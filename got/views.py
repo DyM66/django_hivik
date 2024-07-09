@@ -278,7 +278,6 @@ def download_pdf(request):
     return response
 
 
-
 class CreateSolicitudOt(LoginRequiredMixin, View):
     template_name = 'got/solicitud/create-solicitud-ot.html'
 
@@ -568,7 +567,6 @@ def add_supply_to_equipment(request, code):
         form = SuministrosEquipoForm()
         items = Item.objects.all()  # Asegúrate de filtrar o ajustar esto según tus necesidades
     return render(request, 'got/equipment_detail.html', {'form': form, 'equipo': equipo, 'items': items})
-
 
 
 class SysDelete(DeleteView):
