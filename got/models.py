@@ -640,12 +640,7 @@ class RodamientosEscudos(models.Model):
     escudobs = models.TextField(null=True, blank=True)
 
 
-class Image(models.Model):
 
-    failure = models.ForeignKey(FailureReport, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    solicitud = models.ForeignKey(Solicitud, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    image = models.ImageField(upload_to=get_upload_path)
 
 
 class Document(models.Model):
@@ -654,3 +649,49 @@ class Document(models.Model):
     tasks = models.ForeignKey(Task, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
     file = models.FileField(upload_to=get_upload_pdfs)
     description = models.CharField(max_length=200)
+
+
+class Preoperacional(models.Model):
+
+    RUTA = (
+        ('u', 'Urbana'),
+        ('r', 'Rural'),
+        ('m', 'Mixta (Urbana y Rural)')
+    )
+
+    AUTORIZADO = (
+        ('a', 'Alejandro Angel/ Deliana Lacayo/ Jenny Castillo - Dpto. abasteciiento y logistica'),
+        ('b', 'Juan Pablo Llanos - Residente Santa Marta'),
+        ('c', 'Jose Jurado/ Julieth Ximena - Residente Tumaco'),
+        ('d', 'Issis Alvarez - Directora Administrativa'),
+        ('e', 'Jennifer Padilla - Gerente administrativa'),
+        ('f', 'German Locarno - Gerente de operaciones'),
+        ('g', 'Alexander Davey - Gerente de mantenimiento'),
+        ('h', 'Carlos Cortés - Subgerente'),
+        ('i', 'Federico Payan - Gerente Financiero'),
+        ('j', 'Diego Lievano - Jefe de buceo'),
+        ('k', 'Klaus Bartel - Gerente General'),
+    )
+    
+
+    fecha = models.DateField(auto_now_add=True)
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE)
+    cedula = models.CharField(max_length=20)
+    motivo = models.TextField()
+    salida = models.CharField(max_length=150)
+    destino = models.CharField(max_length=150)
+    tipo_ruta = models.CharField(max_length=1, choices=RUTA)
+    autorizado = models.CharField(max_length=1, choices=AUTORIZADO)
+
+    kilometraje = models.IntegerField()
+    observaciones = models.TextField()
+
+
+class Image(models.Model):
+
+    failure = models.ForeignKey(FailureReport, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    solicitud = models.ForeignKey(Solicitud, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    image = models.ImageField(upload_to=get_upload_path)
+
+    preoperacional = models.ForeignKey(Preoperacional, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
