@@ -60,7 +60,14 @@
                             <div class="detail-value">{{ equipo.system.location }}</div>
                         </div>
                     </li>
-                    {% if equipo.tipo == 'r' %}
+                    {% if equipo.system.asset.area == 'v' %}
+                        <li>
+                            <div class="detail-item">
+                                <div class="detail-key">Kilometraje:</div>
+                                <div class="detail-value">{{ equipo.horometro }} km</div>
+                            </div>
+                        </li>
+                    {% elif equipo.tipo == 'r' %}
                         <li>
                             <div class="detail-item">
                                 <div class="detail-key">Tipo:</div>

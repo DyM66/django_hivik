@@ -171,7 +171,7 @@ class System(models.Model):
 
         max_possible_value = len(rutas)
         if max_possible_value == 0:
-            return None
+            return "---"
 
         return round((total_value / max_possible_value) * 100, 2)
 
@@ -241,7 +241,7 @@ class Location(models.Model):
 class HistoryHour(models.Model):
 
     report_date = models.DateField()
-    hour = models.DecimalField(max_digits=5, decimal_places=2)
+    hour = models.DecimalField(max_digits=10, decimal_places=2)
     reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     component = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='hours')
 
@@ -675,7 +675,8 @@ class Preoperacional(models.Model):
     
 
     fecha = models.DateField(auto_now_add=True)
-    reporter = models.ForeignKey(User, on_delete=models.CASCADE)
+    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    nombre_no_registrado = models.CharField(max_length=100, null=True, blank=True)
     cedula = models.CharField(max_length=20)
     motivo = models.TextField()
     salida = models.CharField(max_length=150)

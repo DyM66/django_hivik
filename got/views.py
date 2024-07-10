@@ -1,4 +1,4 @@
-from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch
+from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
@@ -13,18 +13,19 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template, render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.timezone import localdate
 from django.views import generic, View
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from .models import (
-    Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Image, Operation, Location, Document,
+    Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Image, Operation, Location, Document, Preoperacional,
     Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro, Item, TransaccionSuministro
 )
 from .forms import (
     RescheduleTaskForm, OtForm, ActForm, FinishTask, SysForm, EquipoForm, FinishOtForm, RutaForm, RutActForm, ReportHours,
     ReportHoursAsset, failureForm,EquipoFormUpdate, OtFormNoSup, ActFormNoSup, UploadImages, OperationForm, LocationForm,
     DocumentForm, SolicitudForm, SuministroFormset, MeggerForm, EstatorForm, ExcitatrizForm, RotorMainForm,
-    RotorAuxForm, RodamientosEscudosForm
+    RotorAuxForm, RodamientosEscudosForm, PreoperacionalForm, PreoperacionalEspecificoForm
 )
 
 from datetime import timedelta, date, datetime
@@ -1809,29 +1810,6 @@ class DocumentCreateView(generic.View):
             document.save()
             return redirect('got:asset-detail', pk=asset_id)
         return render(request, self.template_name, {'form': form})
-    
-
-# class SolicitudCreate(CreateView):
-
-#     model = Solicitud
-#     form_class = SolicitudForm
-
-#     def form_valid(self, form):
-#         pk = self.kwargs['pk']
-#         system = get_object_or_404(System, pk=pk)
-
-#         form.instance.system = system
-
-#         return super().form_valid(form)
-
-#     def get_success_url(self):
-#         ruta = self.object
-#         return reverse('got:sys-detail', args=[ruta.system.id])
-
-#     def get_form_kwargs(self):
-#         kwargs = super().get_form_kwargs()
-#         kwargs['system'] = System.objects.get(pk=self.kwargs['pk'])
-#         return kwargs
 
 
 def megger_view(request, pk):
@@ -1875,9 +1853,6 @@ def megger_view(request, pk):
             if rodamientosescudos_form.is_valid():
                 rodamientosescudos_form.save()
                 return redirect('got:meg-detail', pk=megger.pk)
-
-    # else:
-    #     estator_form = EstatorForm(instance=estator)
 
     context = {
         'megger': megger,
@@ -1964,3 +1939,79 @@ def buceomtto(request):
         'buceo_rowspan': buceo_rowspan,
     }
     return render(request, 'got/buceomtto.html', context)
+
+
+def preoperacional_view(request):
+    if request.method == 'POST':
+        form = PreoperacionalForm(request.POST, user=request.user)
+        image_form = UploadImages(request.POST, request.FILES)
+
+        if form.is_valid() and image_form.is_valid():
+            preop = form.save(commit=False)
+            if request.user.is_authenticated:
+                preop.reporter = request.user
+            
+            selected_system = form.cleaned_data['vehiculo']
+            nuevo_kilometraje = form.cleaned_data['nuevo_kilometraje']
+            vehiculo = Equipo.objects.get(system=selected_system)
+
+            horometro_actual = vehiculo.initial_hours + (vehiculo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
+            kilometraje_reportado = nuevo_kilometraje - horometro_actual
+
+            history_hour, created = HistoryHour.objects.get_or_create(
+                component=vehiculo,
+                report_date=date.today(),
+                defaults={'hour': kilometraje_reportado}  # Valor inicial para nuevos registros
+            )
+
+            if not created:
+                # Si el objeto ya existía, actualizamos el kilometraje reportado directamente
+                history_hour.hour = kilometraje_reportado
+                history_hour.save()
+
+            vehiculo.horometro = nuevo_kilometraje
+            vehiculo.save()
+
+            preop.kilometraje = nuevo_kilometraje
+            preop.save()
+
+            for file in request.FILES.getlist('file_field'):
+                Image.objects.create(preoperacional=preop, image=file)
+
+
+            return redirect('got:gracias')  # Redirecciona donde necesites
+    else:
+        form = PreoperacionalForm(user=request.user)
+        image_form = UploadImages()
+    
+    return render(request, 'got/preoperacional/preoperacionalform.html', {'form': form, 'image_form': image_form})
+
+def gracias_view(request):
+    return render(request, 'got/preoperacional/gracias.html')
+
+
+def preoperacional_especifico_view(request):
+    vehiculo_especifico = Equipo.objects.get(code='OP-VEH-664')  # Asegúrate de que el código es correcto y el objeto existe
+    if request.method == 'POST':
+        form = PreoperacionalEspecificoForm(request.POST, user=request.user)
+        image_form = UploadImages(request.POST, request.FILES)
+        if form.is_valid() and image_form.is_valid():
+            preop = form.save(commit=False)
+            if request.user.is_authenticated:
+                preop.reporter = request.user
+            preop.kilometraje = form.cleaned_data['nuevo_kilometraje']
+            preop.save()
+            
+            # Aquí manejas la lógica para calcular y actualizar el historial de horas, similar a como lo haces en el formulario general.
+            # Asegúrate de utilizar `vehiculo_especifico` en lugar de obtenerlo del formulario.
+
+            for file in request.FILES.getlist('file_field'):
+                Image.objects.create(preoperacional=preop, image=file)
+
+            return redirect('got:gracias')
+    else:
+        form = PreoperacionalEspecificoForm(user=request.user)
+        image_form = UploadImages()
+
+    return render(request, 'got/preoperacional/preoperacionalform.html', {'form': form, 'image_form': image_form})
+

@@ -3,11 +3,12 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User, Group
 from .models import (
     Task, Ot, System, Equipo, Ruta, HistoryHour, FailureReport, Operation, Asset, Location, Document,
-    Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro
+    Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro, Preoperacional, TransaccionSuministro
     )
 
 from django.forms import modelformset_factory
-
+from django.utils.timezone import localdate
+from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
 
 
 # ---------------- Widgets ------------------- #
@@ -484,13 +485,11 @@ class failureForm(forms.ModelForm):
             'impact': 'Seleccione las areas afectadas por la falla',
             'causas': 'Describa las causas probable de la falla',
             'suggest_repair': 'Reparación sugerida',
-            # 'evidence': 'Evidencia',
             }
         widgets = {
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'causas': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'suggest_repair': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            # 'evidence': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
 
@@ -689,26 +688,6 @@ class MeggerForm(forms.ModelForm):
         fields = '__all__'
 
 
-# class ConsumibleForm(forms.ModelForm):
-#     class Meta:
-#         model = Consumibles
-#         fields = ['item', 'cant_in', 'cant_out']
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.fields['item'].widget = forms.HiddenInput()
-
-# ConsumibleFormSet = forms.inlineformset_factory(
-#     parent_model=Control,
-#     model=Consumibles,
-#     form=ConsumibleForm,
-#     extra=0,  # No extra forms
-#     can_delete=False
-# )
-
-
-from .models import TransaccionSuministro
-
 class TransaccionSuministroForm(forms.ModelForm):
     class Meta:
         model = TransaccionSuministro
@@ -718,3 +697,81 @@ class TransaccionSuministroForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['cantidad_ingresada'].widget.attrs.update({'class': 'form-control'})
         self.fields['cantidad_consumida'].widget.attrs.update({'class': 'form-control'})
+
+
+class PreoperacionalForm(forms.ModelForm):
+
+    vehiculo = forms.ModelChoiceField(queryset=System.objects.filter(asset__area='v'), empty_label="Seleccione un Vehículo", widget=forms.Select(attrs={'class': 'form-control'}))
+    nuevo_kilometraje = forms.IntegerField(label="Kilometraje Actual", required=True, widget=forms.NumberInput(attrs={'class': 'form-control'}))
+
+    class Meta:
+        model = Preoperacional
+        fields = ['nombre_no_registrado', 'cedula', 'motivo', 'salida', 'destino', 'tipo_ruta', 'autorizado', 'observaciones', 'vehiculo', 'nuevo_kilometraje']
+        labels = {
+            'nombre_no_registrado': 'Nombre y apellido del solicitante',
+            'cedula': 'Cédula del solicitante',
+            'motivo': 'Motivo del desplazamiento',
+            'salida': 'Punto de salida',
+            'destino': 'Destino',
+            'tipo_ruta': 'Tipo de ruta',
+            'autorizado': 'Autorizado por',
+            'Observaciones': 'HALLAZGOS ENCONTRADOS EN EL VEHÍCULO ANTES DE LA SALIDA (En esta sección se deberá remitir evidencia de inconsistencias encontradas en el vehículo antes de la salida de las instalaciones de SERPORT).',
+        }
+        widgets = {
+                'nombre_no_registrado' : forms.TextInput(attrs={'class': 'form-control'}), 
+                'cedula' : forms.TextInput(attrs={'class': 'form-control'}),
+                'motivo' : forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+                'salida' : forms.TextInput(attrs={'class': 'form-control'}), 
+                'destino' : forms.TextInput(attrs={'class': 'form-control'}), 
+                'tipo_ruta': forms.Select(attrs={'class': 'form-control'}),
+                'autorizado': forms.Select(attrs={'class': 'form-control'}),
+                'observaciones' : forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super(PreoperacionalForm, self).__init__(*args, **kwargs)
+        if user and user.is_authenticated:
+            self.fields['nombre_no_registrado'].widget = forms.HiddenInput()
+        else:
+            self.fields['nombre_no_registrado'].required = True
+        self.fields['vehiculo'].queryset = System.objects.filter(asset__area='v')
+
+
+class PreoperacionalEspecificoForm(forms.ModelForm):
+    nuevo_kilometraje = forms.IntegerField(label="Kilometraje Actual", required=True, widget=forms.NumberInput(attrs={'class': 'form-control'}))
+
+    class Meta:
+        model = Preoperacional
+        fields = ['nombre_no_registrado', 'cedula', 'motivo', 'salida', 'destino', 'tipo_ruta', 'autorizado', 'observaciones', 'nuevo_kilometraje']
+        labels = {
+            'nombre_no_registrado': 'Nombre y apellido del solicitante',
+            'cedula': 'Cédula del solicitante',
+            'motivo': 'Motivo del desplazamiento',
+            'salida': 'Punto de salida',
+            'destino': 'Destino',
+            'tipo_ruta': 'Tipo de ruta',
+            'autorizado': 'Autorizado por',
+            'observaciones': 'HALLAZGOS ENCONTRADOS EN EL VEHÍCULO ANTES DE LA SALIDA (En esta sección se deberá remitir evidencia de inconsistencias encontradas en el vehículo antes de la salida de las instalaciones de SERPORT).',
+        }
+        widgets = {
+            'nombre_no_registrado': forms.TextInput(attrs={'class': 'form-control'}),
+            'cedula': forms.TextInput(attrs={'class': 'form-control'}),
+            'motivo': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'salida': forms.TextInput(attrs={'class': 'form-control'}),
+            'destino': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo_ruta': forms.Select(attrs={'class': 'form-control'}),
+            'autorizado': forms.Select(attrs={'class': 'form-control'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)  # Extraer user de kwargs antes de pasar a super
+        super(PreoperacionalEspecificoForm, self).__init__(*args, **kwargs)
+        if user and user.is_authenticated:
+            self.fields['nombre_no_registrado'].widget = forms.HiddenInput()
+        else:
+            self.fields['nombre_no_registrado'].required = True
+
+
+    
