@@ -336,26 +336,26 @@ class ApproveSolicitudView(LoginRequiredMixin, View):
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
 
-@receiver(post_save, sender=Solicitud)
-def send_email_on_new_solicitud(sender, instance, created, **kwargs):
-    if created:
-        suministros = Suministro.objects.filter(Solicitud=instance)
-        suministros_list = "\n".join([f"{suministro.item}: {suministro.cantidad}" for suministro in suministros])
-        subject = f'Nueva Solicitud de Suministros: {instance}'
-        message = f'''
-        Ha sido creada una nueva solicitud de suministros:
-        Fecha de solicitud: {instance.creation_date.strftime("%d/%m/%Y")}
-        Solicitante: {instance.solicitante.get_full_name()}
-        Orden de trabajo: {instance.ot if instance.ot else "N/A"}
-        Centro de costos: {instance.asset.name if instance.asset else "N/A"}
-        Detalles de los Suministros Solicitados: 
+# @receiver(post_save, sender=Solicitud)
+# def send_email_on_new_solicitud(sender, instance, created, **kwargs):
+#     if created:
+#         suministros = Suministro.objects.filter(Solicitud=instance)
+#         suministros_list = "\n".join([f"{suministro.item}: {suministro.cantidad}" for suministro in suministros])
+#         subject = f'Nueva Solicitud de Suministros: {instance}'
+#         message = f'''
+#         Ha sido creada una nueva solicitud de suministros:
+#         Fecha de solicitud: {instance.creation_date.strftime("%d/%m/%Y")}
+#         Solicitante: {instance.solicitante.get_full_name()}
+#         Orden de trabajo: {instance.ot if instance.ot else "N/A"}
+#         Centro de costos: {instance.asset.name if instance.asset else "N/A"}
+#         Detalles de los Suministros Solicitados: 
         
-        {instance.suministros}
-        {suministros_list}
+#         {instance.suministros}
+#         {suministros_list}
 
-        '''
-        recipient_list = ['c.mantenimiento@serport.co']
-        send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
+#         '''
+#         recipient_list = ['c.mantenimiento@serport.co']
+#         send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
     
 
 @login_required
