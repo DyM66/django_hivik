@@ -24,13 +24,15 @@ from .models import (
 from .forms import (
     RescheduleTaskForm, OtForm, ActForm, FinishTask, SysForm, EquipoForm, FinishOtForm, RutaForm, RutActForm, ReportHours,
     ReportHoursAsset, failureForm,EquipoFormUpdate, OtFormNoSup, ActFormNoSup, UploadImages, OperationForm, LocationForm,
-    DocumentForm, SolicitudForm, SuministroFormset, MeggerForm, EstatorForm, ExcitatrizForm, RotorMainForm,
+    DocumentForm, SuministrosEquipoForm, SuministroFormset, MeggerForm, EstatorForm, ExcitatrizForm, RotorMainForm,
     RotorAuxForm, RodamientosEscudosForm, PreoperacionalForm, PreoperacionalEspecificoForm
 )
+
 
 from datetime import timedelta, date, datetime
 from collections import defaultdict
 from xhtml2pdf import pisa
+import io
 from io import BytesIO
 import itertools
 import PyPDF2
@@ -39,6 +41,9 @@ import logging
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 
 
 logger = logging.getLogger(__name__)
@@ -130,12 +135,9 @@ def asset_suministros_report(request, abbreviation):
             cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
             cantidad_ingresada = int(request.POST.get(f'ingresado_{suministro.id}', 0))
             
-            # Actualizar cantidades en los suministros
             suministro.cantidad -= cantidad_consumida
             suministro.cantidad += cantidad_ingresada
             suministro.save()
-
-            # Registrar transacción de suministro
             TransaccionSuministro.objects.create(
                 suministro=suministro,
                 cantidad_ingresada=cantidad_ingresada,
@@ -191,22 +193,13 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         return queryset
    
 
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
-import io
-from django.http import HttpResponse
-from .models import Solicitud  # Asegúrate de tener el import correcto para tus modelos
 
 def download_pdf(request):
-    # Obtenemos los parámetros del filtro desde la solicitud
     state = request.GET.get('state', '')
     asset_filter = request.GET.get('asset', '')
     keyword = request.GET.get('keyword', '')
 
     queryset = Solicitud.objects.all()
-
-    # Aplicamos filtros similares a los de la vista de lista
     if asset_filter:
         queryset = queryset.filter(asset__abbreviation=asset_filter)
 
@@ -417,10 +410,9 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         
         context['item_cant'] = item_cant
 
-        # Determinar los ítems duplicados: aquellos que aparecen en más de un subsystem.
         duplicated_items = {item for item, subsystems in item_subsystems.items() if len(subsystems) > 1}
 
-        item_names = [item.id for item in duplicated_items]
+        # item_names = [item.id for item in duplicated_items]
         for equipo in equipos:
             subsystem = equipo.subsystem if equipo.subsystem else "General"
             for suministro in equipo.suministros.all():
@@ -550,10 +542,6 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
         context['items'] = Item.objects.all()
         return context
 
-from django.shortcuts import redirect, render, get_object_or_404
-from django.urls import reverse
-from .models import Equipo, Suministro, Item
-from .forms import SuministrosEquipoForm
 
 def add_supply_to_equipment(request, code):
     equipo = get_object_or_404(Equipo, code=code)
@@ -664,6 +652,7 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
             email_body_html,
             settings.EMAIL_HOST_USER,
             [user.email for user in Group.objects.get(name='super_members').user_set.all()],
+            # ["medinabaez1120@gmail.com"],
             reply_to=[settings.EMAIL_HOST_USER]
         )
         

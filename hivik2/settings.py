@@ -150,7 +150,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'analistamto@serport.co'
-EMAIL_HOST_PASSWORD = 'fund tewp sxap rbox'
+EMAIL_HOST_PASSWORD = 'ixnf pjom sdke bfxh'
 EMAIL_USE_SSL = False
 
 AWS_ACCESS_KEY_ID = 'AKIAYS2NTXT562AU74PQ'
