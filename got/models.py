@@ -493,11 +493,18 @@ class Solicitud(models.Model):
     approval_date = models.DateTimeField(null=True, blank=True) 
     sc_change_date = models.DateTimeField(null=True, blank=True)
 
+    cancel_date = models.DateTimeField(null=True, blank=True)
+    cancel_reason = models.TextField(null=True, blank=True)
+    cancel = models.BooleanField(default=False)
+
     def __str__(self):
         return f"Suministros para {self.asset}/{self.ot}"
     
     class Meta:
-        permissions = (('can_approve', 'Aprobar solicitudes'),)
+        permissions = (
+            ('can_approve', 'Aprobar solicitudes'),
+            ('can_cancel', 'Puede cancelar'),
+            )
         ordering = ['-creation_date']
 
 
@@ -513,6 +520,9 @@ def update_solicitud_dates(sender, instance, **kwargs):
         # Verifica si num_sc cambia de None o vacío a algún valor
         if not old_instance.num_sc and instance.num_sc:
             instance.sc_change_date = timezone.now()
+
+        if not old_instance.num_sc and instance.cancel:
+            instance.cancel_date = timezone.now()
 
 
 class Suministro(models.Model):
@@ -640,9 +650,6 @@ class RodamientosEscudos(models.Model):
     escudobs = models.TextField(null=True, blank=True)
 
 
-
-
-
 class Document(models.Model):
 
     asset = models.ForeignKey(Asset, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
@@ -672,6 +679,38 @@ class Preoperacional(models.Model):
         ('j', 'Diego Lievano - Jefe de buceo'),
         ('k', 'Klaus Bartel - Gerente General'),
     )
+
+    fecha = models.DateField(auto_now_add=True)
+    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    nombre_no_registrado = models.CharField(max_length=100, null=True, blank=True)
+    cedula = models.CharField(max_length=20)
+    kilometraje = models.IntegerField()
+    motivo = models.TextField()
+    salida = models.CharField(max_length=150)
+    destino = models.CharField(max_length=150)
+    tipo_ruta = models.CharField(max_length=1, choices=RUTA)
+    autorizado = models.CharField(max_length=1, choices=AUTORIZADO)
+
+    vehiculo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
+    observaciones = models.TextField(null=True, blank=True)
+
+
+    horas_trabajo = models.BooleanField()
+    medicamentos = models.BooleanField()
+    molestias = models.BooleanField()
+    enfermo = models.BooleanField()
+    condiciones = models.BooleanField()
+    agua = models.BooleanField()
+    dormido = models.BooleanField()
+    control = models.BooleanField()
+    sueño = models.BooleanField()   
+    radio_aire = models.BooleanField()
+
+    class Meta:
+        ordering = ['-fecha']
+
+
+class PreoperacionalDiario(models.Model):
 
     COMBUSTUBLE = (
         ('f', 'Lleno'),
@@ -707,91 +746,92 @@ class Preoperacional(models.Model):
         ('m', 'Mala'), 
     )
 
+    vehiculo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
+
+
     fecha = models.DateField(auto_now_add=True)
     reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     nombre_no_registrado = models.CharField(max_length=100, null=True, blank=True)
-    cedula = models.CharField(max_length=20)
-    motivo = models.TextField()
-    salida = models.CharField(max_length=150)
-    destino = models.CharField(max_length=150)
-    tipo_ruta = models.CharField(max_length=1, choices=RUTA)
-    autorizado = models.CharField(max_length=1, choices=AUTORIZADO)
-
     kilometraje = models.IntegerField()
-    observaciones = models.TextField()
 
-    combustible_level = models.CharField(max_length=1, choices=COMBUSTUBLE)
-    aceite_level = models.CharField(max_length=1, choices=LEVEL)
-    refrigerante_level = models.CharField(max_length=1, choices=LEVEL)
-    hidraulic_level = models.CharField(max_length=1, choices=LEVEL)
-    liq_frenos_level = models.CharField(max_length=1, choices=LEVEL)
-    liq_frenos_level = models.CharField(max_length=1, choices=LEVEL)
 
-    poleas = models.CharField(max_length=1, choices=ESTADO)
-    correas = models.CharField(max_length=1, choices=ESTADO)
-    mangueras = models.CharField(max_length=1, choices=ESTADO)
-    acoples = models.CharField(max_length=1, choices=ESTADO)
-    tanques = models.CharField(max_length=1, choices=ESTADO)
-    conexiones = models.CharField(max_length=1, choices=ESTADO)
-    radiador = models.CharField(max_length=1, choices=ESTADO)
-    terminales = models.CharField(max_length=1, choices=ESTADO)
-    bujes = models.CharField(max_length=1, choices=ESTADO)
-    rotulas = models.CharField(max_length=1, choices=ESTADO)
-    ejes = models.CharField(max_length=1, choices=ESTADO)
-    cruceta = models.CharField(max_length=1, choices=ESTADO)
-    puertas = models.CharField(max_length=1, choices=ESTADO)
-    chapas = models.CharField(max_length=1, choices=ESTADO)
-    manijas = models.CharField(max_length=1, choices=ESTADO)
-    elevavidrios = models.CharField(max_length=1, choices=ESTADO)
-    lunas = models.CharField(max_length=1, choices=ESTADO)
-    espejos = models.CharField(max_length=1, choices=ESTADO)
-    vidrio_panoramico = models.CharField(max_length=1, choices=ESTADO)
-    asiento = models.CharField(max_length=1, choices=ESTADO)
-    apoyacabezas = models.CharField(max_length=1, choices=ESTADO)
-    cinturon = models.CharField(max_length=1, choices=ESTADO)
-    aire = models.CharField(max_length=1, choices=ESTADO)
-    caja_cambios = models.CharField(max_length=1, choices=ESTADO)
-    direccion = models.CharField(max_length=1, choices=ESTADO)
-    bateria = models.CharField(max_length=1, choices=ESTADO)
-    luces_altas = models.CharField(max_length=1, choices=ESTADO)
-    luces_medias = models.CharField(max_length=1, choices=ESTADO)
-    luces_direccionales = models.CharField(max_length=1, choices=ESTADO)
-    cocuyos = models.CharField(max_length=1, choices=ESTADO)
-    luz_placa = models.CharField(max_length=1, choices=ESTADO)
-    luz_interna = models.CharField(max_length=1, choices=ESTADO)
-    pito = models.CharField(max_length=1, choices=ESTADO)
-    alarma_retroceso = models.CharField(max_length=1, choices=ESTADO)
-    arranque = models.CharField(max_length=1, choices=ESTADO)
-    alternador = models.CharField(max_length=1, choices=ESTADO)
-    rines = models.CharField(max_length=1, choices=ESTADO)
-    tuercas = models.CharField(max_length=1, choices=ESTADO)
-    esparragos = models.CharField(max_length=1, choices=ESTADO)
-    freno_servicio = models.CharField(max_length=1, choices=ESTADO)
-    freno_seguridad = models.CharField(max_length=1, choices=ESTADO)
+    combustible_level = models.CharField(max_length=1, default='f', choices=COMBUSTUBLE)
+    aceite_level = models.CharField(max_length=1, default='l', choices=LEVEL)
+    refrigerante_level = models.CharField(max_length=1, default='l', choices=LEVEL)
+    hidraulic_level = models.CharField(max_length=1, default='l', choices=LEVEL)
+    liq_frenos_level = models.CharField(max_length=1, default='l', choices=LEVEL)
+
+    poleas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    correas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    mangueras = models.CharField(max_length=1, default='b', choices=ESTADO)
+    acoples = models.CharField(max_length=1, default='b', choices=ESTADO)
+    tanques = models.CharField(max_length=1, default='b', choices=ESTADO)
+    radiador = models.CharField(max_length=1, default='b', choices=ESTADO)
+    terminales = models.CharField(max_length=1, default='b', choices=ESTADO)
+    bujes = models.CharField(max_length=1, default='b', choices=ESTADO)
+    rotulas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    ejes = models.CharField(max_length=1, default='b', choices=ESTADO)
+    cruceta = models.CharField(max_length=1, default='b', choices=ESTADO)
+    puertas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    chapas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    manijas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    elevavidrios = models.CharField(max_length=1, default='b', choices=ESTADO)
+    lunas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    espejos = models.CharField(max_length=1, default='b', choices=ESTADO)
+    vidrio_panoramico = models.CharField(max_length=1, default='b', choices=ESTADO)
+    asiento = models.CharField(max_length=1, default='b', choices=ESTADO)
+    apoyacabezas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    cinturon = models.CharField(max_length=1, default='b', choices=ESTADO)
+    aire = models.CharField(max_length=1, default='b', choices=ESTADO)
+    caja_cambios = models.CharField(max_length=1, default='b', choices=ESTADO)
+    direccion = models.CharField(max_length=1, default='b', choices=ESTADO)
+    bateria = models.CharField(max_length=1, default='b', choices=ESTADO)
+    luces_altas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    luces_medias = models.CharField(max_length=1, default='b', choices=ESTADO)
+    luces_direccionales = models.CharField(max_length=1, default='b', choices=ESTADO)
+    cocuyos = models.CharField(max_length=1, default='b', choices=ESTADO)
+    luz_placa = models.CharField(max_length=1, default='b', choices=ESTADO)
+    luz_interna = models.CharField(max_length=1, default='b', choices=ESTADO)
+    pito = models.CharField(max_length=1, default='b', choices=ESTADO)
+    alarma_retroceso = models.CharField(max_length=1, default='b', choices=ESTADO)
+    arranque = models.CharField(max_length=1, default='b', choices=ESTADO)
+    alternador = models.CharField(max_length=1, default='b', choices=ESTADO)
+    rines = models.CharField(max_length=1, default='b', choices=ESTADO)
+    tuercas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    esparragos = models.CharField(max_length=1, default='b', choices=ESTADO)
+    freno_servicio = models.CharField(max_length=1, default='b', choices=ESTADO)
+    freno_seguridad = models.CharField(max_length=1, default='b', choices=ESTADO)
     is_llanta_repuesto = models.BooleanField()
-    llanta_repuesto = models.CharField(max_length=1, choices=ESTADO)
-    suspencion = models.CharField(max_length=1, choices=ESTADO)
+    llantas = models.CharField(max_length=1, default='b', choices=ESTADO)
+    suspencion = models.CharField(max_length=1, default='b', choices=ESTADO)
     
-    capo = models.CharField(max_length=1, choices=FISICO)
-    persiana = models.CharField(max_length=1, choices=FISICO)
-    bumper_delantero = models.CharField(max_length=1, choices=FISICO)
-    panoramico = models.CharField(max_length=1, choices=FISICO)
-    guardafango_derecho = models.CharField(max_length=1, choices=FISICO)
-    puerta_derecho = models.CharField(max_length=1, choices=FISICO)
-    parales_derecho = models.CharField(max_length=1, choices=FISICO)
-    espejo_derecho = models.CharField(max_length=1, choices=FISICO)
-    guardafango_izquierdo = models.CharField(max_length=1, choices=FISICO)
-    puerta_izquierdo = models.CharField(max_length=1, choices=FISICO)
-    parales_izquierdo = models.CharField(max_length=1, choices=FISICO)
-    espejo_izquierdo = models.CharField(max_length=1, choices=FISICO)
-    stop = models.CharField(max_length=1, choices=FISICO)
-    bumper_trasero = models.CharField(max_length=1, choices=FISICO)
-    vidrio_panoramico_trasero = models.CharField(max_length=1, choices=FISICO)
+    capo = models.CharField(max_length=1, default='b', choices=FISICO)
+    persiana = models.CharField(max_length=1, default='b', choices=FISICO)
+    bumper_delantero = models.CharField(max_length=1, default='b', choices=FISICO)
+    panoramico = models.CharField(max_length=1, default='b', choices=FISICO)
+    guardafango = models.CharField(max_length=1, default='b', choices=FISICO)
+    puerta = models.CharField(max_length=1, default='b', choices=FISICO)
+    parales = models.CharField(max_length=1, default='b', choices=FISICO)
+    stop = models.CharField(max_length=1, default='b', choices=FISICO)
+    bumper_trasero = models.CharField(max_length=1, default='b', choices=FISICO)
+    vidrio_panoramico_trasero = models.CharField(max_length=1, default='b', choices=FISICO)
 
-    vidrio_panoramico_trasero = models.CharField(max_length=1, choices=PLACA)
+    placa_delantera = models.CharField(max_length=1, default='a', choices=PLACA)
+    placa_trasera = models.CharField(max_length=1, default='a', choices=PLACA)
     
     aseo_externo = models.BooleanField()
     aseo_interno = models.BooleanField()
+
+    kit_carreteras = models.BooleanField()
+    kit_herramientas = models.BooleanField()
+    kit_botiquin = models.BooleanField()
+    chaleco_reflectivo = models.BooleanField()
+
+    aprobado = models.BooleanField(default=True)
+    observaciones = models.TextField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-fecha']
 
     
 
@@ -804,3 +844,4 @@ class Image(models.Model):
     image = models.ImageField(upload_to=get_upload_path)
 
     preoperacional = models.ForeignKey(Preoperacional, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    preoperacionaldiario = models.ForeignKey(PreoperacionalDiario, related_name='images', on_delete=models.CASCADE, null=True, blank=True)

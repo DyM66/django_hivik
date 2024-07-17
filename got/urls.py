@@ -70,6 +70,7 @@ urlpatterns = [
     path('edit-solicitud/<int:pk>/', views.EditSolicitudView.as_view(), name='edit-solicitud'),
     path('approve-solicitud/<int:pk>/', views.ApproveSolicitudView.as_view(), name='approve-solicitud'),
     path('solicitud/update-sc/<int:pk>/', views.update_sc, name='update-sc'),
+    path('solicitud/cancel-sc/<int:pk>/', views.cancel_sc, name='cancel-sc'),
 
     path('system/<str:asset_id>/<int:system_id>/pdf/', views.generate_system_pdf_with_attachments, name='generate-system-pdf'),
 
@@ -86,9 +87,16 @@ urlpatterns = [
     
     
     path('preoperacional/', views.preoperacional_view, name='preoperacional'),
-    path('gracias/', views.gracias_view, name='gracias'),
+    path('preoperacional/especifico/<str:code>/', views.preoperacional_especifico_view, name='preoperacional-especifico'),
+    path('preoperacional/diario/<str:code>/', views.preoperacional_diario_view, name='preoperacional-dia'),
 
-    path('preoperacional/especifico/', views.preoperacional_especifico_view, name='preoperacional_especifico'),
+    path('preoperacional/consolidado/', views.PreoperacionalListView.as_view(), name='preoperacional-consolidado'),
+    path('preoperacional/salidas/', views.SalidaListView.as_view(), name='salidas-consolidado'),
+    path("preoperacional/consolidado/<int:pk>/", views.PreoperacionalDetailView.as_view(), name="preoperacional-detail"),
+    path("preoperacional/salidas/<int:pk>/", views.SalidaDetailView.as_view(), name="salidas-detail"),
+
+
+    path('gracias/<str:code>/', views.gracias_view, name='gracias'),
 
     path('solicitudes/download_pdf/', views.download_pdf, name='download_pdf'),
 

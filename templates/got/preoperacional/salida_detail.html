@@ -1,0 +1,122 @@
+{% extends "got/base_generic.html" %}
+{% load my_tags %}
+
+{% block header %}Detalle del reporte de salida{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+<table class="table">
+    <tbody>
+        <tr>
+            <th>Fecha: </th>
+            <td>{{preoperacional.fecha}}</td>
+        </tr>
+        <tr>
+            <th>Vehiculo: </th>
+            <td>{{preoperacional.vehiculo}}</td>
+        </tr>
+        <tr>
+            <th>Responsable: </th>
+            {% if preoperacional.reporter %}
+                <td>{{preoperacional.reporter.first_name}} {{preoperacional.reporter.last_name}}</td>
+            {% else %}
+                <td>{{preoperacional.nombre_no_registrado}}</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <th>Cedula del solicitante: </th>
+            <td>{{ preoperacional.cedula }}</td>
+        </tr>
+        <tr>
+            <th>Kilometraje reportado: </th>
+            <td>{{preoperacional.kilometraje}}</td>
+        </tr>
+
+        <tr>
+            <th>Motivo de salida: </th>
+            <td>{{ preoperacional.motivo }}</td>
+        </tr> 
+        <tr>
+            <th>Punto de salida: </th>
+            <td>{{ preoperacional.salida }}</td>
+        </tr> 
+        <tr>
+            <th>Destino: </th>
+            <td>{{ preoperacional.destino }}</td>
+        </tr>  
+        <tr>
+            <th>Tipo de ruta: </th>
+            <td>{{ preoperacional.get_tipo_ruta_display }}</td>
+        </tr>         
+        <tr>
+            <th>Autorizado por: </th>
+            <td>{{ preoperacional.get_autorizado_display }}</td>
+        </tr>  
+        <tr>
+            <th colspan="2" style="text-align: center; font-size: 16px; background-color: antiquewhite;">
+                CONDICIONES DE SALUD
+            </th>
+        </tr>
+        <tr>
+            <th>¿Las horas de trabajo más las horas de conducción superan 12 horas? </th>
+            <td>{% if preoperacional.horas_trabajo %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿Ha ingerido medicamentos que inducen sueño durante el día u horas previas a la jornada laboral? </th>
+            <td>{% if preoperacional.medicamentos %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿Ha consultado al médico o asistido a urgencias por alguna molestia que le dificulte conducir?</th>
+            <td>{% if preoperacional.molestias %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿Se siente enfermo?</th>
+            <td>{% if preoperacional.enfermo %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿Se siente en condiciones para conducir en la jornada asignada?</th>
+            <td>{% if preoperacional.condiciones %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿Tiene agua para beber?</th>
+            <td>{% if preoperacional.agua %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿Ha dormido lo suficiente la noche anterior? (De 7 a 8 horas)</th>
+            <td>{% if preoperacional.dormido %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿Conoce los puestos de control en la vía? (Planifico e identifico los lugares de descanso)</th>
+            <td>{% if preoperacional.control %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿En caso de sentir sueño sabe qué hacer?</th>
+            <td>{% if preoperacional.sueño %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>¿El vehículo que conduce tiene radio y aire acondicionado?</th>
+            <td>{% if preoperacional.radio_aire %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th colspan="2" style="text-align: center; font-size: 16px; background-color: antiquewhite;">
+                Novedades
+            </th>
+        </tr>
+        <tr>
+            <th>Observaciones: </th>
+            <td>{{ preoperacional.observaciones }}</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+{% for i in preoperacional.images.all %}
+    <img src="{{ i.image.url }}" width=200>
+{% endfor %}
+
+</div>
+
+
+{% endblock %}

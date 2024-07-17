@@ -1,0 +1,56 @@
+{% extends "got/base_generic.html" %}
+{% load my_tags %}
+
+{% block header %}Consolidado preoperacional{% endblock %}
+
+{% block content %}
+    
+    <div class="table-responsive">
+        <table class="table-list">
+            <thead>
+                <tr>
+                    <th scope="col">Fecha</th>
+                    <th scope="col">Vehiculo</th>
+                    <th scope="col">Responsable</th>
+                    <th scope="col">Kilometraje reportado</th>
+                    <th scope="col">Punto de salida</th>
+                    <th scope="col">Destino</th>
+                    <th scope="col">Autorizado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for preop in preoperacional_list %}
+                    <tr  data-href="{% url 'got:salidas-detail' preop.id %}">
+                        <td data-cell="Fecha del reporte">{{preop.fecha|date:"d/m/Y"}}</td>
+                        <td data-cell="Placa">{{preop.vehiculo}}</td>
+                        {% if preop.reporter %}
+                            <td data-cell="Responsable">{{preop.reporter.first_name}} {{preop.reporter.last_name}}</td>
+                        {% else %}
+                            <td data-cell="Responsable">{{preop.nombre_no_registrado}}</td>
+                        {% endif %}
+                        <td data-cell="Kilometraje reportado">{{preop.kilometraje}}</td>
+                        <td data-cell="Destino">{{preop.salida}}</td>
+                        <td data-cell="Destino">{{preop.destino}}</td>
+                        <td data-cell="Autorizado por">{{preop.get_autorizado_display}}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6">No hay reportes de salida registrados.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const rows = document.querySelectorAll("tr[data-href]");
+    
+            rows.forEach(row => {
+                row.addEventListener("click", () => {
+                    window.location.href = row.dataset.href;
+                })
+            })
+        })
+    </script>
+{% endblock %}

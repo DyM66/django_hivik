@@ -1,0 +1,316 @@
+{% extends "got/base_generic.html" %}
+{% load my_tags %}
+
+{% block header %}Detalle del preoperacional{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+<table class="table">
+    <tbody>
+        <tr>
+            <th>Fecha: </th>
+            <td>{{preoperacionaldiario.fecha}}</td>
+        </tr>
+        <tr>
+            <th>Vehiculo: </th>
+            <td>{{preoperacionaldiario.vehiculo}}</td>
+        </tr>
+        <tr>
+            <th>Responsable: </th>
+            {% if preoperacionaldiario.reporter %}
+                <td>{{preoperacionaldiario.reporter.first_name}} {{preoperacionaldiario.reporter.last_name}}</td>
+            {% else %}
+                <td>{{preoperacionaldiario.nombre_no_registrado}}</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <th>Kilometraje reportado: </th>
+            <td>{{preoperacionaldiario.kilometraje}}</td>
+        </tr>
+        <tr>
+            <th colspan="2" style="text-align: center; font-size: 16px; background-color: antiquewhite;">
+                Respuestas
+            </th>
+        </tr>
+        <tr>
+            <th>Nivel de combustible: </th>
+            <td>{{ preoperacionaldiario.get_combustible_level_display }}</td>
+        </tr>
+        <tr>
+            <th>Nivel de aceite del motor: </th>
+            <td>{{ preoperacionaldiario.get_aceite_level_display }}</td>
+        </tr> 
+        <tr>
+            <th>Nivel de refrigerante radiador: </th>
+            <td>{{ preoperacionaldiario.get_refrigerante_level_display }}</td>
+        </tr> 
+        <tr>
+            <th>Nivel de aceite dirección hidráulica: </th>
+            <td>{{ preoperacionaldiario.get_hidraulic_level_display }}</td>
+        </tr>  
+        <tr>
+            <th>Nivel de liquido de frenos: </th>
+            <td>{{ preoperacionaldiario.get_liq_frenos_level_display }}</td>
+        </tr>         
+        <tr>
+            <th>Estado de poleas: </th>
+            <td>{{ preoperacionaldiario.get_poleas_display }}</td>
+        </tr>  
+        <tr>
+            <th>Estado de correas: </th>
+            <td>{{ preoperacionaldiario.get_correas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de mangueras: </th>
+            <td>{{ preoperacionaldiario.get_mangueras_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de acoples: </th>
+            <td>{{ preoperacionaldiario.get_acoples_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de tanques: </th>
+            <td>{{ preoperacionaldiario.get_tanques_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de radiador: </th>
+            <td>{{ preoperacionaldiario.get_radiador_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de terminales: </th>
+            <td>{{ preoperacionaldiario.get_terminales_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de bujes: </th>
+            <td>{{ preoperacionaldiario.get_bujes_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de rotulas: </th>
+            <td>{{ preoperacionaldiario.get_rotulas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de ejes: </th>
+            <td>{{ preoperacionaldiario.get_ejes_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de cruceta: </th>
+            <td>{{ preoperacionaldiario.get_cruceta_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de puertas: </th>
+            <td>{{ preoperacionaldiario.get_puertas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de chapas: </th>
+            <td>{{ preoperacionaldiario.get_chapas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de manijas: </th>
+            <td>{{ preoperacionaldiario.get_manijas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de eleva vidrios: </th>
+            <td>{{ preoperacionaldiario.get_elevavidrios_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de lunas: </th>
+            <td>{{ preoperacionaldiario.get_lunas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de espejos: </th>
+            <td>{{ preoperacionaldiario.get_espejos_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de vidrio panoramico: </th>
+            <td>{{ preoperacionaldiario.get_vidrio_panoramico_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de asientos: </th>
+            <td>{{ preoperacionaldiario.get_asiento_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de apoya cabezas: </th>
+            <td>{{ preoperacionaldiario.get_apoyacabezas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de cinturones de seguridad: </th>
+            <td>{{ preoperacionaldiario.get_cinturon_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de sistema de aire acondicionado: </th>
+            <td>{{ preoperacionaldiario.get_aire_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de caja de cambios (General): </th>
+            <td>{{ preoperacionaldiario.get_caja_cambios_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de dirección: </th>
+            <td>{{ preoperacionaldiario.get_direccion_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de bateria (Verificar bornes sueltos, sulfatados): </th>
+            <td>{{ preoperacionaldiario.get_bateria_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de luces altas: </th>
+            <td>{{ preoperacionaldiario.get_luces_altas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de luces direccionales: </th>
+            <td>{{ preoperacionaldiario.get_luces_direccionales_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de cocuyos: </th>
+            <td>{{ preoperacionaldiario.get_cocuyos_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de luz placa: </th>
+            <td>{{ preoperacionaldiario.get_luz_placa_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de luces interna de cabina: </th>
+            <td>{{ preoperacionaldiario.get_luz_interna_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de pito: </th>
+            <td>{{ preoperacionaldiario.get_pito_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de alarma de retroceso: </th>
+            <td>{{ preoperacionaldiario.get_alarma_retroceso_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del arranque: </th>
+            <td>{{ preoperacionaldiario.get_arranque_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del alternador: </th>
+            <td>{{ preoperacionaldiario.get_alternador_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de rines: </th>
+            <td>{{ preoperacionaldiario.get_rines_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de tuercas: </th>
+            <td>{{ preoperacionaldiario.get_tuercas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de esparragos: </th>
+            <td>{{ preoperacionaldiario.get_esparragos_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del freno de servicio: </th>
+            <td>{{ preoperacionaldiario.get_freno_servicio_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del freno de seguridad: </th>
+            <td>{{ preoperacionaldiario.get_freno_seguridad_display }}</td>
+        </tr>
+        <tr>
+            <th>LLanta de repuesto: </th>
+            <td>{% if preoperacionaldiario.is_llanta_repuesto %}Si tiene{% else %}No tiene{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Estado general de llantas</th>
+            <td>{{ preoperacionaldiario.get_llantas_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de suspención: </th>
+            <td>{{ preoperacionaldiario.get_suspencion_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del capo: </th>
+            <td>{{ preoperacionaldiario.get_capo_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de la persiana: </th>
+            <td>{{ preoperacionaldiario.get_persiana_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del bumper delantero: </th>
+            <td>{{ preoperacionaldiario.get_bumper_delantero_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del panorámico: </th>
+            <td>{{ preoperacionaldiario.get_panoramico_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de los guardafangos: </th>
+            <td>{{ preoperacionaldiario.get_guardafango_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de puertas: </th>
+            <td>{{ preoperacionaldiario.get_puerta_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de parales: </th>
+            <td>{{ preoperacionaldiario.get_parales_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del stop (freno): </th>
+            <td>{{ preoperacionaldiario.get_stop_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del bumber trasero: </th>
+            <td>{{ preoperacionaldiario.get_bumper_trasero_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado del vidrio panorámico trasero: </th>
+            <td>{{ preoperacionaldiario.get_vidrio_panoramico_trasero_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de la placa delantera: </th>
+            <td>{{ preoperacionaldiario.get_placa_delantera_display }}</td>
+        </tr>
+        <tr>
+            <th>Estado de la placa trasera: </th>
+            <td>{{ preoperacionaldiario.get_placa_trasera_display }}</td>
+        </tr>
+        <tr>
+            <th>Aseo externo: </th>
+            <td>{% if preoperacionaldiario.aseo_externo %}Limpio{% else %}Sucio{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Aseo interno: </th>
+            <td>{% if preoperacionaldiario.aseo_interno %}Limpio{% else %}Sucio{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Kit de carreteras: </th>
+            <td>{% if preoperacionaldiario.kit_carreteras %}Completo{% else %}Incompleto{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Kit de herramientas: </th>
+            <td>{% if preoperacionaldiario.kit_herramientas %}Completo{% else %}Incompleto{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Kit botiquín: </th>
+            <td>{% if preoperacionaldiario.kit_botiquin %}Completo{% else %}Incompleto{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Chaleco reflectivo: </th>
+            <td>{% if preoperacionaldiario.chaleco_reflectivo %}Si{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Aprobado: </th>
+            <td>{% if preoperacionaldiario.aprobado %}Si{% else %}No{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Observaciones: </th>
+            <td>{{ preoperacionaldiario.observaciones }}</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+{% for i in preoperacionaldiario.images.all %}
+    <img src="{{ i.image.url }}" width=200>
+{% endfor %}
+
+</div>
+
+
+{% endblock %}

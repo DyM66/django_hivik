@@ -19,13 +19,14 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from .models import (
     Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Image, Operation, Location, Document, Preoperacional,
-    Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro, Item, TransaccionSuministro
+    Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro, Item, TransaccionSuministro,
+    PreoperacionalDiario
 )
 from .forms import (
     RescheduleTaskForm, OtForm, ActForm, FinishTask, SysForm, EquipoForm, FinishOtForm, RutaForm, RutActForm, ReportHours,
     ReportHoursAsset, failureForm,EquipoFormUpdate, OtFormNoSup, ActFormNoSup, UploadImages, OperationForm, LocationForm,
     DocumentForm, SuministrosEquipoForm, SuministroFormset, MeggerForm, EstatorForm, ExcitatrizForm, RotorMainForm,
-    RotorAuxForm, RodamientosEscudosForm, PreoperacionalForm, PreoperacionalEspecificoForm
+    RotorAuxForm, RodamientosEscudosForm, PreoperacionalForm, PreoperacionalEspecificoForm, PreoperacionalDiarioForm
 )
 
 
@@ -362,6 +363,18 @@ def update_sc(request, pk):
     return redirect('got:rq-list') 
 
 
+@login_required
+def cancel_sc(request, pk):
+    if request.method == 'POST':
+        solicitud = get_object_or_404(Solicitud, pk=pk)
+        reason = request.POST.get('cancel_reason')
+        solicitud.cancel_reason = reason
+        solicitud.cancel = True
+        solicitud.save()
+        return redirect('got:rq-list')
+    return redirect('got:rq-list') 
+
+
 class AssetsListView(LoginRequiredMixin, generic.ListView):
 
     model = Asset
@@ -652,7 +665,6 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
             email_body_html,
             settings.EMAIL_HOST_USER,
             [user.email for user in Group.objects.get(name='super_members').user_set.all()],
-            # ["medinabaez1120@gmail.com"],
             reply_to=[settings.EMAIL_HOST_USER]
         )
         
@@ -1950,11 +1962,10 @@ def preoperacional_view(request):
             history_hour, created = HistoryHour.objects.get_or_create(
                 component=vehiculo,
                 report_date=date.today(),
-                defaults={'hour': kilometraje_reportado}  # Valor inicial para nuevos registros
+                defaults={'hour': kilometraje_reportado}
             )
 
             if not created:
-                # Si el objeto ya existía, actualizamos el kilometraje reportado directamente
                 history_hour.hour = kilometraje_reportado
                 history_hour.save()
 
@@ -1975,32 +1986,125 @@ def preoperacional_view(request):
     
     return render(request, 'got/preoperacional/preoperacionalform.html', {'form': form, 'image_form': image_form})
 
-def gracias_view(request):
-    return render(request, 'got/preoperacional/gracias.html')
+def gracias_view(request, code):
+    equipo = get_object_or_404(Equipo, code=code)
+    return render(request, 'got/preoperacional/gracias.html', {'equipo': equipo})
 
 
-def preoperacional_especifico_view(request):
-    vehiculo_especifico = Equipo.objects.get(code='OP-VEH-664')  # Asegúrate de que el código es correcto y el objeto existe
+def preoperacional_especifico_view(request, code):
+    
+    equipo = get_object_or_404(Equipo, code=code)
+    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
+
     if request.method == 'POST':
-        form = PreoperacionalEspecificoForm(request.POST, user=request.user)
+        form = PreoperacionalEspecificoForm(request.POST, equipo_code=equipo.code, user=request.user)
         image_form = UploadImages(request.POST, request.FILES)
         if form.is_valid() and image_form.is_valid():
             preop = form.save(commit=False)
-            if request.user.is_authenticated:
-                preop.reporter = request.user
-            preop.kilometraje = form.cleaned_data['nuevo_kilometraje']
+            preop.reporter = request.user if request.user.is_authenticated else None
+            preop.vehiculo = equipo
+            nuevo_kilometraje = form.cleaned_data['nuevo_kilometraje']
+            preop.kilometraje = nuevo_kilometraje
             preop.save()
-            
-            # Aquí manejas la lógica para calcular y actualizar el historial de horas, similar a como lo haces en el formulario general.
-            # Asegúrate de utilizar `vehiculo_especifico` en lugar de obtenerlo del formulario.
+
+            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
+            kilometraje_reportado = nuevo_kilometraje - horometro_actual
+
+            history_hour, created = HistoryHour.objects.get_or_create(
+                component=equipo,
+                report_date=localdate(),
+                defaults={'hour': kilometraje_reportado}
+            )
+
+            if not created:
+                history_hour.hour = kilometraje_reportado
+                history_hour.save()
+
+            equipo.horometro = nuevo_kilometraje
+            equipo.save()
 
             for file in request.FILES.getlist('file_field'):
                 Image.objects.create(preoperacional=preop, image=file)
 
-            return redirect('got:gracias')
+            return redirect('got:gracias', code=equipo.code)
     else:
-        form = PreoperacionalEspecificoForm(user=request.user)
+        form = PreoperacionalEspecificoForm(equipo_code=equipo.code, user=request.user)
         image_form = UploadImages()
 
-    return render(request, 'got/preoperacional/preoperacionalform.html', {'form': form, 'image_form': image_form})
+    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas})
+
+
+def preoperacional_diario_view(request, code):
+    
+    equipo = get_object_or_404(Equipo, code=code)
+    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
+
+    existente = PreoperacionalDiario.objects.filter(vehiculo=equipo, fecha=localdate()).first()
+
+    if existente:
+        mensaje = f"El preoperacional del vehículo {equipo} de la fecha actual ya fue diligenciado y exitosamente enviado. El resultado fue: {'Aprobado' if existente.aprobado else 'No aprobado'}."
+        # Mostrar un modal o mensaje con Django messages framework
+        messages.error(request, mensaje)
+        return render(request, 'got/preoperacional/preoperacional_restricted.html', {'mensaje': mensaje})
+    
+    if request.method == 'POST':
+        form = PreoperacionalDiarioForm(request.POST, equipo_code=equipo.code, user=request.user)
+        image_form = UploadImages(request.POST, request.FILES)
+        if form.is_valid() and image_form.is_valid():
+            preop = form.save(commit=False)
+            preop.reporter = request.user if request.user.is_authenticated else None
+            preop.vehiculo = equipo
+            preop.kilometraje = form.cleaned_data['kilometraje']
+            preop.save()
+
+            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
+            kilometraje_reportado = preop.kilometraje - horometro_actual
+
+            history_hour, created = HistoryHour.objects.get_or_create(
+                component=equipo,
+                report_date=localdate(),
+                defaults={'hour': kilometraje_reportado}
+            )
+
+            if not created:
+                history_hour.hour = kilometraje_reportado
+                history_hour.save()
+
+            equipo.horometro = preop.kilometraje
+            equipo.save()
+
+            for file in request.FILES.getlist('file_field'):
+                Image.objects.create(preoperacional=preop, image=file)
+
+            return redirect('got:gracias', code=equipo.code) 
+    else:
+        form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
+        image_form = UploadImages()
+
+    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas})
+
+
+class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
+
+    model = PreoperacionalDiario
+    paginate_by = 15
+    template_name = 'got/preoperacional/preoperacional_list.html'
+
+class SalidaListView(LoginRequiredMixin, generic.ListView):
+
+    model = Preoperacional
+    paginate_by = 15
+    template_name = 'got/preoperacional/salida_list.html'
+
+
+class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
+
+    model = PreoperacionalDiario
+    template_name = 'got/preoperacional/preoperacional_detail.html'
+
+
+class SalidaDetailView(LoginRequiredMixin, generic.DetailView):
+
+    model = Preoperacional
+    template_name = 'got/preoperacional/salida_detail.html'
 

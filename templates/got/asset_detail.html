@@ -25,17 +25,29 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link {% if not rotativos %}disabled{% endif %}" href="{% url 'got:horas-asset' asset.abbreviation %}">
-                    Reporte de horas
+                    {% if asset.area == 'v' %}
+                        Reporte de kilometraje
+                    {% else %}
+                        Reporte de horas
+                    {% endif %}
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'got:asset-suministros' asset.abbreviation %}">Reporte de Consumos</a>
+                {% if asset.area == 'v' %}
+                    <a class="nav-link" href="{% url 'got:preoperacional-consolidado' %}">Preoperacionales</a>
+                {% else %}
+                    <a class="nav-link" href="{% url 'got:asset-suministros' asset.abbreviation %}">Reporte de Consumos</a>
+                {% endif %}
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'got:failure-report-create' asset.abbreviation %}">Reportar falla</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'got:schedule' asset.abbreviation %}">Cronograma</a>
+                {% if asset.area == 'v' %}
+                    <a class="nav-link" href="{% url 'got:salidas-consolidado' %}">Reportes de salida</a>
+                {% else %}
+                    <a class="nav-link" href="{% url 'got:schedule' asset.abbreviation %}">Cronograma</a>
+                {% endif %}
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'got:add-document' asset_id=asset.abbreviation %}">Añadir documento</a>

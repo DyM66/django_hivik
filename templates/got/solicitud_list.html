@@ -85,9 +85,10 @@
 					<td data-cell="Solicitante" class="nowrap">{{ rq.solicitante.first_name }} {{ rq.solicitante.last_name}}</td>
 					<td data-cell="Estado">
                         <div class="dropdown">
-							<button class="btn status {% if rq.num_sc %}finished{% elif rq.approved %}pending{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-								{% if rq.num_sc %}Tramitado{% elif rq.approved %}Aprobado{% else %}No aprobado{% endif %}
+							<button class="btn status {% if rq.cancel_reason %}close{% elif rq.num_sc %}finished{% elif rq.approved %}pending{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+								{% if rq.cancel %}Cancelado{% elif rq.num_sc %}Tramitado{% elif rq.approved %}Aprobado{% else %}No aprobado{% endif %}
 							</button>
+                            {% if not rq.cancel %}
 							<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                                 {% if not rq.approved %}
                                     {% if perms.got.can_approve %}
@@ -96,8 +97,12 @@
                                     {% endif %}
                                 {% else %}
                                         <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#scModal{{ rq.id }}">Tramitar</a></li>
+                                        {% if perms.got.can_cancel %}
+                                            <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#cancelModal{{ rq.id }}">Cancelar</a></li>
+                                        {% endif %}
                                 {% endif %}
 							</ul>
+                            {% endif %}
 						</div>
                     </td>
                     
@@ -108,6 +113,10 @@
                     <!-- <td></td> -->
                     <td data-cell="Solicitud" colspan="2">
                         {{ rq.suministros|linebreaks }}
+                        <br>
+                        {% if rq.cancel %}
+                            <strong>{{ rq.cancel_reason|linebreaks }}</strong>
+                        {% endif %}
                         <ul style="list-style: none; padding-left: 0;">
                             {% for suministro in rq.suministro_set.all %}
                                 <li onclick="openModal{{ suministro.id }}()" style="cursor: pointer;">
@@ -143,6 +152,7 @@
                         {% if rq.approval_date %}Aprobado: {{ rq.approval_date|date:"d/m/Y H:i" }}{% endif %}<br>
                         {% if rq.sc_change_date %}Tramitado: {{ rq.sc_change_date|date:"d/m/Y H:i" }}{% endif %}<br>
                         {% if rq.num_sc %}SC: {{ rq.num_sc }}{% endif %}
+                        {% if rq.cancel %}Cancelado: {{ rq.cancel_date|date:"d/m/Y H:i" }}{% endif %}<br>
                     </td>
                 </tr>
 
@@ -183,6 +193,27 @@
                                     <div class="mb-3">
                                         <label for="num_sc{{ rq.id }}" class="form-label">Número de SC</label>
                                         <input type="text" class="form-control" id="num_sc{{ rq.id }}" name="num_sc" value="{{ rq.num_sc }}">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Guardar Tramitación</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="cancelModal{{ rq.id }}" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="cancelModalLabel">Cancelar Solicitud OT-{{ rq.ot.num_ot }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="post" action="{% url 'got:cancel-sc' rq.id %}">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="cancel_reason{{ rq.id }}" class="form-label">Motivo de cancelación</label>
+                                        <input type="text" class="form-control" id="cancel_reason{{ rq.id }}" name="cancel_reason" value="{{ rq.cancel_reason }}">
                                     </div>
                                     <button type="submit" class="btn btn-primary">Guardar Tramitación</button>
                                 </form>
