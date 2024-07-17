@@ -716,8 +716,8 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
         if form.is_valid() and image_form.is_valid():
             form.instance.reporter = request.user
             response = super().form_valid(form)
-            context = self.get_email_context()  
-            self.send_email(context)
+            # context = self.get_email_context()  
+            # self.send_email(context)
             for file in request.FILES.getlist('file_field'):
                 Image.objects.create(failure=self.object, image=file)
             return response
