@@ -653,30 +653,30 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
     form_class = failureForm
     http_method_names = ['get', 'post']
 
-    def send_email(self, context):
-        """Sends an email compiled from the given context."""
-        subject = 'Nuevo Reporte de Falla'
-        email_template_name = 'got/failure_report_email.txt'
+    # def send_email(self, context):
+    #     """Sends an email compiled from the given context."""
+    #     subject = 'Nuevo Reporte de Falla'
+    #     email_template_name = 'got/failure_report_email.txt'
         
-        email_body_html = render_to_string(email_template_name, context)
+    #     email_body_html = render_to_string(email_template_name, context)
         
-        email = EmailMessage(
-            subject,
-            email_body_html,
-            settings.EMAIL_HOST_USER,
-            [user.email for user in Group.objects.get(name='super_members').user_set.all()],
-            reply_to=[settings.EMAIL_HOST_USER]
-        )
+    #     email = EmailMessage(
+    #         subject,
+    #         email_body_html,
+    #         settings.EMAIL_HOST_USER,
+    #         [user.email for user in Group.objects.get(name='super_members').user_set.all()],
+    #         reply_to=[settings.EMAIL_HOST_USER]
+    #     )
         
-        if self.object.evidence:
-            mimetype = f'image/{self.object.evidence.name.split(".")[-1]}'
-            email.attach(
-                'Evidencia.' + self.object.evidence.name.split(".")[-1],
-                self.object.evidence.read(),
-                mimetype
-            )
+    #     if self.object.evidence:
+    #         mimetype = f'image/{self.object.evidence.name.split(".")[-1]}'
+    #         email.attach(
+    #             'Evidencia.' + self.object.evidence.name.split(".")[-1],
+    #             self.object.evidence.read(),
+    #             mimetype
+    #         )
         
-        email.send()
+    #     email.send()
 
     def get_email_context(self):
         """Builds the context dictionary for the email."""
