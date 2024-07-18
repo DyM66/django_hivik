@@ -441,7 +441,7 @@ class FailureReport(models.Model):
     )
 
     reporter = models.ForeignKey(User, on_delete=models.CASCADE)
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True)
 
     moment = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
