@@ -458,6 +458,7 @@ class FailureReport(models.Model):
 
     def __str__(self):
         status = "Cerrado" if self.closed else "Abierto"
+        status = "" if self.equipo.name else "Abierto"
         return f'Reporte de falla en {self.equipo.name} - {status}'
 
     def get_absolute_url(self):
