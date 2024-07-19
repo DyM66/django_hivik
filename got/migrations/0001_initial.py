@@ -28,7 +28,6 @@ class Migration(migrations.Migration):
                 ('deadweight', models.IntegerField(blank=True, default=0, null=True)),
                 ('arqueo_bruto', models.IntegerField(blank=True, default=0, null=True)),
                 ('arqueo_neto', models.IntegerField(blank=True, default=0, null=True)),
-                ('espacio_libre_cubierta', models.IntegerField(blank=True, default=0, null=True)),
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('supervisor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],

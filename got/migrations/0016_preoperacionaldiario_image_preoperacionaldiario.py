@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
                 ('espejo_izquierdo', models.CharField(choices=[('l', 'Raya leve'), ('p', 'Rayón profundo'), ('f', 'Golpe fuerte'), ('b', 'Bueno')], max_length=1)),
                 ('stop', models.CharField(choices=[('l', 'Raya leve'), ('p', 'Rayón profundo'), ('f', 'Golpe fuerte'), ('b', 'Bueno')], max_length=1)),
                 ('bumper_trasero', models.CharField(choices=[('l', 'Raya leve'), ('p', 'Rayón profundo'), ('f', 'Golpe fuerte'), ('b', 'Bueno')], max_length=1)),
-                ('vidrio_panoramico_trasero', models.CharField(choices=[('a', 'Buena'), ('b', 'Descolorida'), ('c', 'Rota/Partida'), ('m', 'Mala')], max_length=1)),
+                ('vidrio_panoramico_trasero', models.CharField(choices=[('l', 'Raya leve'), ('p', 'Rayón profundo'), ('f', 'Golpe fuerte'), ('b', 'Bueno')], default='b', max_length=1)),
                 ('aseo_externo', models.BooleanField()),
                 ('aseo_interno', models.BooleanField()),
                 ('kit_carreteras', models.BooleanField()),

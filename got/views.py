@@ -763,7 +763,6 @@ def crear_ot_failure_report(request, fail_id):
     nueva_ot = Ot(
         description=f"Reporte de falla - {fail.equipo}",
         state='x',
-        super=request.user, ################################33
         supervisor=request.user,
         tipo_mtto='c',
         system=fail.equipo.system,

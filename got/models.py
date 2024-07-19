@@ -272,7 +272,7 @@ class Ot(models.Model):
     system = models.ForeignKey(System, on_delete=models.CASCADE)
     description = models.TextField()
     super = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    supervisor = models.CharField(max_length=100)
+    supervisor = models.CharField(max_length=100, null=True, blank=True)
 
     state = models.CharField(choices=STATUS, default='x', max_length=1)
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
@@ -459,7 +459,7 @@ class FailureReport(models.Model):
     def __str__(self):
         status = "Cerrado" if self.closed else "Abierto"
         status2 = self.equipo.name if self.equipo else ""
-        return f'Reporte de falla en {status2} - {status}'
+        return f'{self.id} - Reporte de falla en {status2} - {status}'
 
     def get_absolute_url(self):
         return reverse('got:failure-report-detail', kwargs={'pk': self.pk})

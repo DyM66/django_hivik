@@ -107,9 +107,4 @@ class Migration(migrations.Migration):
             name='stop',
             field=models.CharField(choices=[('l', 'Raya leve'), ('p', 'Rayón profundo'), ('f', 'Golpe fuerte'), ('b', 'Bueno')], default='b', max_length=1),
         ),
-        migrations.AlterField(
-            model_name='preoperacionaldiario',
-            name='vidrio_panoramico_trasero',
-            field=models.CharField(choices=[('l', 'Raya leve'), ('p', 'Rayón profundo'), ('f', 'Golpe fuerte'), ('b', 'Bueno')], default='b', max_length=1),
-        ),
     ]
