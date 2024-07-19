@@ -95,9 +95,21 @@ class EquipoForm(forms.ModelForm):
             'initial_hours': 'Horas iniciales (Si aplica)',
             'lubricante': 'Lubricante (Si aplica)',
             'volumen': 'Capacidad lubricante - Galones (Si aplica)',
-            'subsystem': 'Categoria (Si aplica)'
+            'subsystem': 'Categoria (Si aplica)',
+            'potencia': 'Potencia (kw)',
             }
         widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'model': forms.TextInput(attrs={'class': 'form-control'}),
+            'serial': forms.TextInput(attrs={'class': 'form-control'}),
+            'marca': forms.TextInput(attrs={'class': 'form-control'}),
+            'fabricante': forms.TextInput(attrs={'class': 'form-control'}),
+            'lubricante': forms.TextInput(attrs={'class': 'form-control'}),
+            'subsystem': forms.TextInput(attrs={'class': 'form-control'}),
+            'initial_hours': forms.NumberInput(attrs={'class': 'form-control'}),
+            'volumen': forms.NumberInput(attrs={'class': 'form-control'}),
+            'potencia': forms.NumberInput(attrs={'class': 'form-control'}),
             'feature': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'imagen': forms.FileInput(attrs={'class': 'form-control'}),
             'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
@@ -135,7 +147,7 @@ class EquipoFormUpdate(forms.ModelForm):
 # ----------------- OTs -------------------- #
 class OtForm(forms.ModelForm):
 
-    super = UserChoiceField(
+    supervisor = UserChoiceField(
         queryset=User.objects.none(),
         label='Supervisor',
         widget=forms.Select(attrs={'class': 'form-control'}),
@@ -143,15 +155,13 @@ class OtForm(forms.ModelForm):
 
     class Meta:
         model = Ot
-        exclude = ['creations_date', 'num_ot', 'ot_aprobada']
+        exclude = ['num_ot', 'ot_aprobada', 'super']
         labels = {
-            'description': 'Description',
+            'description': 'Descripción',
             'system': 'Sistema',
             'state': 'Estado',
             'tipo_mtto': 'Tipo de mantenimiento',
             'info_contratista_pdf': 'Informe externo',
-            # 'ot_aprobada': 'OT aprobada',
-            'suministros': 'Suministros'
         }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
@@ -159,36 +169,43 @@ class OtForm(forms.ModelForm):
             'tipo_mtto': forms.Select(attrs={'class': 'form-control'}),
             'system': forms.Select(attrs={'class': 'form-control'}),
             'state': forms.Select(attrs={'class': 'form-control'}),
-            'suministros': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
         asset = kwargs.pop('asset')
         super().__init__(*args, **kwargs)
         self.fields['system'].queryset = System.objects.filter(asset=asset)
+
         super_members_group = Group.objects.get(name='super_members')
-        self.fields['super'].queryset = super_members_group.user_set.all()
+        super_members = super_members_group.user_set.all()
+        supervisor_choices = [(member.get_full_name(), member.get_full_name()) for member in super_members]
+        supervisor_choices.insert(0, ('', '---------'))
+
+        self.fields['supervisor'] = forms.ChoiceField(
+            choices=supervisor_choices,
+            widget=forms.Select(attrs={'class': 'form-control'}),
+            label='Supervisor'
+        )
 
 
 class OtFormNoSup(forms.ModelForm):
 
     class Meta:
         model = Ot
-        exclude = ['creations_date', 'num_ot', 'super']
+        exclude = ['ot_aprobada', 'super', 'supervisor']
         labels = {
-            'description': 'Description',
+            'description': 'Descripción',
             'system': 'Sistema',
             'state': 'Estado',
             'tipo_mtto': 'Tipo de mantenimiento',
             'info_contratista_pdf': 'Informe externo',
-            'suministros': 'Suministros'
         }
         widgets = {
+            'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'info_contratista_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo_mtto': forms.Select(attrs={'class': 'form-control'}),
             'system': forms.Select(attrs={'class': 'form-control'}),
             'state': forms.Select(attrs={'class': 'form-control'}),
-            'suministros': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):

@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 ('causas', models.TextField()),
                 ('suggest_repair', models.TextField(blank=True, null=True)),
                 ('evidence', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
-                ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
+                ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
                 ('reporter', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('related_ot', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='failure_report', to='got.ot')),
                 ('closed', models.BooleanField(default=False)),
@@ -100,10 +100,16 @@ class Migration(migrations.Migration):
                 ('num_sc', models.TextField(blank=True, null=True)),
                 ('approval_date', models.DateTimeField(blank=True, null=True)),
                 ('sc_change_date', models.DateTimeField(blank=True, null=True)),
+                ('cancel', models.BooleanField(default=False)),
+                ('cancel_reason', models.TextField(blank=True, null=True)),
+                ('cancel_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
                 'ordering': ['-creation_date'],
-                'permissions': (('can_approve', 'Aprobar solicitudes'),),
+                'permissions': (
+                    ('can_approve', 'Aprobar solicitudes'),
+                    ('can_cancel', 'Puede cancelar'),
+                ),
             },
         ),
         migrations.CreateModel(

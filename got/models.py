@@ -1,24 +1,22 @@
-from django.db import models
-from django.urls import reverse
+from datetime import date, timedelta, datetime
 from django.contrib.auth.models import User
-from datetime import date, timedelta
-from django.db.models import Sum
-from datetime import datetime
-import uuid
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import Count
+from django.db import models
+from django.db.models import Sum, Count
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+import uuid
+from django.urls import reverse
 from django.utils import timezone
 
 
-def get_upload_path(instance, filename):
+def get_upload_path(filename):
     ext = filename.split('.')[-1]
     filename = f"media/{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
     return filename
 
 
-def get_upload_pdfs(instance, filename):
+def get_upload_pdfs(filename):
     ext = filename.split('.')[-1]
     filename = f"pdfs/{uuid.uuid4()}.{ext}"
     return filename
@@ -61,6 +59,7 @@ class Asset(models.Model):
     name = models.CharField(max_length=50)
     area = models.CharField(max_length=1, choices=AREA, default='a')
     supervisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
     imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
 
     bandera = models.CharField(default='Colombia', max_length=50, null=True, blank=True)
@@ -71,7 +70,6 @@ class Asset(models.Model):
     deadweight = models.IntegerField(default=0, null=True, blank=True)
     arqueo_bruto = models.IntegerField(default=0, null=True, blank=True)
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
-    espacio_libre_cubierta = models.IntegerField(default=0, null=True, blank=True)
 
     def check_ruta_status(self, frecuency, location=None):
         if location:
@@ -274,6 +272,8 @@ class Ot(models.Model):
     system = models.ForeignKey(System, on_delete=models.CASCADE)
     description = models.TextField()
     super = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    supervisor = models.CharField(max_length=100)
+
     state = models.CharField(choices=STATUS, default='x', max_length=1)
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
     info_contratista_pdf = models.FileField(upload_to=get_upload_path,null=True, blank=True)

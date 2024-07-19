@@ -36,12 +36,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='preoperacional',
-            name='dormido_anoche',
-            field=models.BooleanField(default=True),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name='preoperacional',
             name='enfermo',
             field=models.BooleanField(default=True),
             preserve_default=False,
@@ -55,24 +49,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='preoperacional',
             name='medicamentos',
-            field=models.BooleanField(default=True),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name='preoperacional',
-            name='molestias',
-            field=models.BooleanField(default=True),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name='preoperacional',
-            name='radio_aire',
-            field=models.BooleanField(default=True),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name='preoperacional',
-            name='sueño',
             field=models.BooleanField(default=True),
             preserve_default=False,
         ),

@@ -27,7 +27,11 @@ class Migration(migrations.Migration):
                 ('kilometraje', models.IntegerField()),
                 ('observaciones', models.TextField()),
                 ('reporter', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ('molestias', models.BooleanField()),
+                ('radio_aire', models.BooleanField()),
+                ('sueño', models.BooleanField()),
             ],
+            options={'ordering': ['-fecha']},
         ),
         migrations.AddField(
             model_name='image',

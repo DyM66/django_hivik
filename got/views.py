@@ -59,6 +59,8 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         current_user = request.user
         if current_user.groups.filter(name='gerencia').exists():
             return redirect('got:asset-list')
+        elif request.user.username == 'elkin':
+            return redirect('got:asset-detail', pk='VEH')
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -425,7 +427,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
         duplicated_items = {item for item, subsystems in item_subsystems.items() if len(subsystems) > 1}
 
-        # item_names = [item.id for item in duplicated_items]
         for equipo in equipos:
             subsystem = equipo.subsystem if equipo.subsystem else "General"
             for suministro in equipo.suministros.all():
@@ -550,7 +551,6 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
 
         subsystems = Equipo.objects.filter(system=system).exclude(subsystem__isnull=True).exclude(subsystem__exact='').values_list('subsystem', flat=True)
 
-        # Usar set para eliminar duplicados, si el distinct no está funcionando como se espera
         context['unique_subsystems'] = list(set(subsystems))
         context['items'] = Item.objects.all()
         return context
@@ -653,30 +653,30 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
     form_class = failureForm
     http_method_names = ['get', 'post']
 
-    # def send_email(self, context):
-    #     """Sends an email compiled from the given context."""
-    #     subject = 'Nuevo Reporte de Falla'
-    #     email_template_name = 'got/failure_report_email.txt'
+    def send_email(self, context):
+        """Sends an email compiled from the given context."""
+        subject = 'Nuevo Reporte de Falla'
+        email_template_name = 'got/failure_report_email.txt'
         
-    #     email_body_html = render_to_string(email_template_name, context)
+        email_body_html = render_to_string(email_template_name, context)
         
-    #     email = EmailMessage(
-    #         subject,
-    #         email_body_html,
-    #         settings.EMAIL_HOST_USER,
-    #         [user.email for user in Group.objects.get(name='super_members').user_set.all()],
-    #         reply_to=[settings.EMAIL_HOST_USER]
-    #     )
+        email = EmailMessage(
+            subject,
+            email_body_html,
+            settings.EMAIL_HOST_USER,
+            [user.email for user in Group.objects.get(name='super_members').user_set.all()],
+            reply_to=[settings.EMAIL_HOST_USER]
+        )
         
-    #     if self.object.evidence:
-    #         mimetype = f'image/{self.object.evidence.name.split(".")[-1]}'
-    #         email.attach(
-    #             'Evidencia.' + self.object.evidence.name.split(".")[-1],
-    #             self.object.evidence.read(),
-    #             mimetype
-    #         )
+        if self.object.evidence:
+            mimetype = f'image/{self.object.evidence.name.split(".")[-1]}'
+            email.attach(
+                'Evidencia.' + self.object.evidence.name.split(".")[-1],
+                self.object.evidence.read(),
+                mimetype
+            )
         
-    #     email.send()
+        email.send()
 
     def get_email_context(self):
         """Builds the context dictionary for the email."""
@@ -763,7 +763,8 @@ def crear_ot_failure_report(request, fail_id):
     nueva_ot = Ot(
         description=f"Reporte de falla - {fail.equipo}",
         state='x',
-        super=request.user,
+        super=request.user, ################################33
+        supervisor=request.user,
         tipo_mtto='c',
         system=fail.equipo.system,
     )
@@ -1008,7 +1009,7 @@ class OtCreate(CreateView):
     def form_valid(self, form):
         ot = form.save(commit=False)
         if isinstance(form, OtFormNoSup):
-            ot.super = self.request.user
+            ot.supervisor = self.request.user
         ot.save()
         return redirect('got:ot-detail', pk=ot.pk)
 
@@ -1348,7 +1349,7 @@ def crear_ot_desde_ruta(request, ruta_id):
     nueva_ot = Ot(
         description=f"Rutina de mantenimiento con código {ruta.name}",
         state='x',
-        super=request.user,
+        supervisor=request.user,
         tipo_mtto='p',
         system=ruta.system,
     )
