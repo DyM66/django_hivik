@@ -633,6 +633,10 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        asset_id = self.request.GET.get('asset_id')
+
+        if asset_id:
+            queryset = queryset.filter(equipo__system__asset_id=asset_id)
 
         if self.request.user.groups.filter(name='maq_members').exists():
             supervised_assets = Asset.objects.filter(
@@ -802,12 +806,10 @@ class OtListView(LoginRequiredMixin, generic.ListView):
         responsable_id = self.request.GET.get('responsable')
 
         if self.request.user.groups.filter(name='maq_members').exists():
-            # Obtén el/los asset(s) supervisado(s) por el usuario
             supervised_assets = Asset.objects.filter(
                 supervisor=self.request.user)
             queryset = queryset.filter(system__asset__in=supervised_assets)
         elif self.request.user.groups.filter(name='buzos_members').exists():
-            # Obtén el/los asset(s) supervisado(s) por el usuario
             supervised_assets = Asset.objects.filter(
                 area='b')
 
@@ -2081,7 +2083,7 @@ def preoperacional_diario_view(request, code):
         form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
         image_form = UploadImages()
 
-    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas})
+    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas, 'pre': True})
 
 
 class PreoperacionalListView(LoginRequiredMixin, generic.ListView):

@@ -10,13 +10,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 
-def get_upload_path(filename):
+def get_upload_path(instance, filename):
     ext = filename.split('.')[-1]
     filename = f"media/{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
     return filename
 
 
-def get_upload_pdfs(filename):
+def get_upload_pdfs(instance, filename):
     ext = filename.split('.')[-1]
     filename = f"pdfs/{uuid.uuid4()}.{ext}"
     return filename
@@ -835,7 +835,6 @@ class PreoperacionalDiario(models.Model):
         ordering = ['-fecha']
 
     
-
 
 class Image(models.Model):
 

@@ -43,6 +43,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 </head>
 <body>
+
+    {% if not pre %}
     <header>
         <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" alt="Logo SERPORT">
         <h1>FR-SP-GA-5 SOLICITUD DE AUTORIZACIÓN DE SALIDA DE VEHÍCULOS DE SERPORT S.A.S.</h1>
@@ -52,6 +54,17 @@
         <p class="subtext">Una vez diligenciado el presente formulario, se debe notificar al Área Administrativo para su visto bueno y aprobación de la salida del vehículo al área de Seguridad Física.</p>
         <p class="subtext">Se debe verificar la realización de la INSPECCIÓN PRE-OPERACIONAL DEL VEHÍCULO y que el mismo esté aprobado para uso del vehículo solicitado en la fecha del presente formulario.</p>
     </header>
+    {% else %}
+    <header>
+        <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" alt="Logo SERPORT">
+        <h1>FR-SP-GA-4 - INSPECCIÓN PRE-OPERACIONAL DE VEHÍCULOS DE SERPORT S.A.S. </h1>
+        <h2>{{vehiculo}} {{vehiculo.horometro}}</h2>
+        <p class="header-text">VERSIÓN 001 FECHA DE ACTUALIZACION: 12/04/2024</p>
+        <p class="subtext">El diligenciamiento de este formulario es obligatorio para la trazabilidad del proceso de mantenimiento vehicular de SERPORT S.A.S. Se debe reportar a diario y es responsabilidad del personal asignado para este proceso realizar el reporte.</p>
+        <p class="subtext">Resolución 20223040040595 de 2022 Ministerio de Transporte</p>
+    </header>
+
+    {% endif %}
 
     <div class="container">
         <form method="post" enctype="multipart/form-data">
