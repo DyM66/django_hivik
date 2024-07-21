@@ -26,7 +26,7 @@
                 <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Mostrar todas</a></li>
                     {% for u in super_members %}
-                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ some_asset_id }}&responsable={{ u.id }}">{{ u.first_name }} {{ u.last_name }}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ some_asset_id }}&responsable={{ u.first_name }}">{{ u.first_name }} {{ u.last_name }}</a></li>
                     {% endfor %}
                 </ul>
             </div>
@@ -79,7 +79,7 @@
                     <td data-cell="Fecha de creación">{{ot.creation_date|date:"d/m/Y"}}</td>
                     <td data-cell="Descripción">{{ot.description}}</td>
                     <td data-cell="Sistema">{{ot.system}}</td>
-                    <td data-cell="Supervisor">{{ot.super.first_name}} {{ot.super.last_name}}</td>
+                    <td data-cell="Supervisor">{{ot.supervisor}}</td>
                     <td class="nowrap" data-cell="Estado">
                         <p class="status {% if ot.state == 'f' %}finished{% elif ot.state == 'c' %}close{% elif not ot.all_tasks_finished %}pending{% else %}shipped{% endif %}">
                             {% if ot.all_tasks_finished and ot.state != 'f' %}Pausado{% else %}{{ot.get_state_display}}{% endif %}

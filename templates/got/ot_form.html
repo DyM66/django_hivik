@@ -3,7 +3,12 @@
 {% block headtag %}
 <style>
     .field-container {
-        margin-bottom: 20px;  /* Ajusta este valor según necesites */
+        margin-bottom: 20px;
+    }
+    .signature-pad {
+        border: 1px solid #000;
+        border-radius: 4px;
+        touch-action: none;  /* importante para permitir dibujar en dispositivos táctiles */
     }
 </style>
 {% endblock %}
@@ -22,7 +27,36 @@
                     {{ field.help_text }}
                 </div>
             {% endfor %}
+            
+            <div class="field-container">
+                <label for="signature-pad">Firma del Supervisor:</label>
+                <canvas id="signature-pad" class="signature-pad" width="400" height="200"></canvas>
+                <button type="button" onclick="saveSignature()">Guardar Firma</button>
+            </div>
+            <input type="hidden" id="signature-data" name="sign_supervisor">
             <input type="submit" value="Generar" class="btn btn-primary" />
         </form>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.6.0/signature_pad.min.js"></script>
+    <script>
+        window.onload = function () {
+            var canvas = document.getElementById('signature-pad');
+            // Asegúrate de que el canvas esté configurado para responder a los eventos de firma
+            var signaturePad = new SignaturePad(canvas, {
+                backgroundColor: 'rgb(255, 255, 255)',  // fondo blanco para la firma
+            });
+        
+            function saveSignature() {
+                if (signaturePad.isEmpty()) {
+                    alert("Por favor, proporciona una firma primero.");
+                    return;
+                }
+                var dataURL = signaturePad.toDataURL("image/png");
+                document.getElementById('signature-data').value = dataURL;
+            }
+        
+            document.querySelector('button').addEventListener('click', saveSignature);
+        };
+    </script>
 {% endblock %}

@@ -767,7 +767,7 @@ def crear_ot_failure_report(request, fail_id):
     nueva_ot = Ot(
         description=f"Reporte de falla - {fail.equipo}",
         state='x',
-        supervisor=request.user,
+        supervisor=f"{request.user.first_name} {request.user.last_name}",
         tipo_mtto='c',
         system=fail.equipo.system,
     )
@@ -826,7 +826,7 @@ class OtListView(LoginRequiredMixin, generic.ListView):
         if asset_id:
             queryset = queryset.filter(system__asset_id=asset_id)
         if responsable_id:
-            queryset = queryset.filter(super=responsable_id)
+            queryset = queryset.filter(supervisor__icontains=responsable_id)
 
         return queryset
 
@@ -989,6 +989,9 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         return pdf_content.getvalue()
 
 
+from django.core.files.base import ContentFile
+import base64
+
 class OtCreate(CreateView):
 
     model = Ot
@@ -1009,8 +1012,15 @@ class OtCreate(CreateView):
 
     def form_valid(self, form):
         ot = form.save(commit=False)
+        signature_data = form.cleaned_data.pop('sign_supervisor', None)
+        if signature_data:
+            format, imgstr = signature_data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+            ot.sign_supervision.save('firma_supervisor_{}.png'.format(ot.pk), data, save=True)
+
         if isinstance(form, OtFormNoSup):
-            ot.supervisor = self.request.user
+            ot.supervisor = self.request.user.get_full_name()
         ot.save()
         return redirect('got:ot-detail', pk=ot.pk)
 
@@ -1350,7 +1360,7 @@ def crear_ot_desde_ruta(request, ruta_id):
     nueva_ot = Ot(
         description=f"Rutina de mantenimiento con código {ruta.name}",
         state='x',
-        supervisor=request.user,
+        supervisor=f"{request.user.first_name} {request.user.last_name}",
         tipo_mtto='p',
         system=ruta.system,
     )

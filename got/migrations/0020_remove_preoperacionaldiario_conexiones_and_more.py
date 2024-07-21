@@ -247,9 +247,4 @@ class Migration(migrations.Migration):
             name='tuercas',
             field=models.CharField(choices=[('b', 'Bueno'), ('r', 'Regular'), ('m', 'Malo')], default='b', max_length=1),
         ),
-        migrations.AlterField(
-            model_name='preoperacionaldiario',
-            name='vidrio_panoramico',
-            field=models.CharField(choices=[('b', 'Bueno'), ('r', 'Regular'), ('m', 'Malo')], default='b', max_length=1),
-        ),
     ]

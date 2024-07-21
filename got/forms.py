@@ -155,7 +155,7 @@ class OtForm(forms.ModelForm):
 
     class Meta:
         model = Ot
-        exclude = ['num_ot', 'ot_aprobada', 'super']
+        exclude = ['num_ot', 'ot_aprobada', 'super', 'sign_supervisor']
         labels = {
             'description': 'Descripción',
             'system': 'Sistema',
@@ -169,6 +169,7 @@ class OtForm(forms.ModelForm):
             'tipo_mtto': forms.Select(attrs={'class': 'form-control'}),
             'system': forms.Select(attrs={'class': 'form-control'}),
             'state': forms.Select(attrs={'class': 'form-control'}),
+            'sign_supervisor': forms.FileInput(attrs={'accept': 'image/*'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -265,7 +266,7 @@ class FinishTask(forms.ModelForm):
 
     class Meta:
         model = Task
-        fields = ['news', 'finished']
+        fields = ['news', 'finished',]
         labels = {
                 'news': 'Novedades',
                 }
@@ -531,7 +532,6 @@ class OperationForm(forms.ModelForm):
             })
 
         if start and end and asset:
-            # Comprobar si hay solapamientos con otras operaciones
             overlapping_operations = Operation.objects.filter(
                 asset=asset,
                 end__gte=start,

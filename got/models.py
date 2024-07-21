@@ -268,16 +268,16 @@ class Ot(models.Model):
 
     creation_date = models.DateField(auto_now_add=True)
     num_ot = models.AutoField(primary_key=True)
-
     system = models.ForeignKey(System, on_delete=models.CASCADE)
     description = models.TextField()
     super = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     supervisor = models.CharField(max_length=100, null=True, blank=True)
-
     state = models.CharField(choices=STATUS, default='x', max_length=1)
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
     info_contratista_pdf = models.FileField(upload_to=get_upload_path,null=True, blank=True)
     ot_aprobada = models.FileField(upload_to=get_upload_path,null=True, blank=True)
+
+    sign_supervision = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
 
 
     def all_tasks_finished(self):
@@ -309,7 +309,6 @@ class Ruta(models.Model):
     control = models.CharField(choices=CONTROL, max_length=1)
     frecuency = models.IntegerField()
     intervention_date = models.DateField()
-
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='rutas')
     equipo = models.ForeignKey(Equipo, on_delete=models.SET_NULL, null=True, blank=True, related_name='equipos')
     ot = models.ForeignKey(Ot, on_delete=models.SET_NULL, null=True, blank=True)
@@ -396,14 +395,12 @@ class Task(models.Model):
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True)
     responsible = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-
     description = models.TextField()
     procedimiento = models.TextField(default="", blank=True, null=True)
     hse = models.TextField(default="", blank=True, null=True)
     news = models.TextField(blank=True, null=True)
     evidence = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     priority = models.IntegerField(default=0, null=True, blank=True)
-
     start_date = models.DateField(null=True, blank=True)
     men_time = models.IntegerField(default=0)
     finished = models.BooleanField()
@@ -442,7 +439,6 @@ class FailureReport(models.Model):
 
     reporter = models.ForeignKey(User, on_delete=models.CASCADE)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True)
-
     moment = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
     causas = models.TextField()
@@ -474,8 +470,8 @@ class Operation(models.Model):
     end = models.DateField()
     proyecto = models.CharField(max_length=100)
     requirements = models.TextField()
-
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
+    confirmado = models.BooleanField(default=False, null=True, blank=True)
 
     def __str__(self):
         return f"{self.proyecto}/{self.asset} ({self.start} - {self.start})"
@@ -514,11 +510,9 @@ def update_solicitud_dates(sender, instance, **kwargs):
     if instance.id is not None:
         old_instance = Solicitud.objects.get(id=instance.id)
         
-        # Verifica si se está aprobando por primera vez
         if not old_instance.approved and instance.approved:
             instance.approval_date = timezone.now()
 
-        # Verifica si num_sc cambia de None o vacío a algún valor
         if not old_instance.num_sc and instance.num_sc:
             instance.sc_change_date = timezone.now()
 
@@ -691,11 +685,8 @@ class Preoperacional(models.Model):
     destino = models.CharField(max_length=150)
     tipo_ruta = models.CharField(max_length=1, choices=RUTA)
     autorizado = models.CharField(max_length=1, choices=AUTORIZADO)
-
     vehiculo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     observaciones = models.TextField(null=True, blank=True)
-
-
     horas_trabajo = models.BooleanField()
     medicamentos = models.BooleanField()
     molestias = models.BooleanField()
@@ -748,20 +739,15 @@ class PreoperacionalDiario(models.Model):
     )
 
     vehiculo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
-
-
     fecha = models.DateField(auto_now_add=True)
     reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     nombre_no_registrado = models.CharField(max_length=100, null=True, blank=True)
     kilometraje = models.IntegerField()
-
-
     combustible_level = models.CharField(max_length=1, default='f', choices=COMBUSTUBLE)
     aceite_level = models.CharField(max_length=1, default='l', choices=LEVEL)
     refrigerante_level = models.CharField(max_length=1, default='l', choices=LEVEL)
     hidraulic_level = models.CharField(max_length=1, default='l', choices=LEVEL)
     liq_frenos_level = models.CharField(max_length=1, default='l', choices=LEVEL)
-
     poleas = models.CharField(max_length=1, default='b', choices=ESTADO)
     correas = models.CharField(max_length=1, default='b', choices=ESTADO)
     mangueras = models.CharField(max_length=1, default='b', choices=ESTADO)
@@ -805,7 +791,6 @@ class PreoperacionalDiario(models.Model):
     is_llanta_repuesto = models.BooleanField()
     llantas = models.CharField(max_length=1, default='b', choices=ESTADO)
     suspencion = models.CharField(max_length=1, default='b', choices=ESTADO)
-    
     capo = models.CharField(max_length=1, default='b', choices=FISICO)
     persiana = models.CharField(max_length=1, default='b', choices=FISICO)
     bumper_delantero = models.CharField(max_length=1, default='b', choices=FISICO)
@@ -816,18 +801,14 @@ class PreoperacionalDiario(models.Model):
     stop = models.CharField(max_length=1, default='b', choices=FISICO)
     bumper_trasero = models.CharField(max_length=1, default='b', choices=FISICO)
     vidrio_panoramico_trasero = models.CharField(max_length=1, default='b', choices=FISICO)
-
     placa_delantera = models.CharField(max_length=1, default='a', choices=PLACA)
     placa_trasera = models.CharField(max_length=1, default='a', choices=PLACA)
-    
     aseo_externo = models.BooleanField()
     aseo_interno = models.BooleanField()
-
     kit_carreteras = models.BooleanField()
     kit_herramientas = models.BooleanField()
     kit_botiquin = models.BooleanField()
     chaleco_reflectivo = models.BooleanField()
-
     aprobado = models.BooleanField(default=True)
     observaciones = models.TextField(null=True, blank=True)
 
