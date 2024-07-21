@@ -11,6 +11,10 @@ from django.forms import modelformset_factory
 from django.utils.timezone import localdate
 from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
 
+from django.core.files.base import ContentFile
+import base64
+import uuid
+
 
 # ---------------- Widgets ------------------- #
 class UserChoiceField(forms.ModelChoiceField):
@@ -155,7 +159,7 @@ class OtForm(forms.ModelForm):
 
     class Meta:
         model = Ot
-        exclude = ['num_ot', 'ot_aprobada', 'super', 'sign_supervisor']
+        exclude = ['num_ot', 'ot_aprobada', 'super', 'sign_supervision']
         labels = {
             'description': 'Descripción',
             'system': 'Sistema',
@@ -169,7 +173,7 @@ class OtForm(forms.ModelForm):
             'tipo_mtto': forms.Select(attrs={'class': 'form-control'}),
             'system': forms.Select(attrs={'class': 'form-control'}),
             'state': forms.Select(attrs={'class': 'form-control'}),
-            'sign_supervisor': forms.FileInput(attrs={'accept': 'image/*'}),
+            # 'sign_supervisor': forms.FileInput(attrs={'accept': 'image/*'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -221,6 +225,21 @@ class FinishOtForm(forms.Form):
         required=False,
         initial=True,
     )
+
+    # sign_supervisor = forms.CharField(widget=forms.HiddenInput(), required=False)
+
+    # def clean_sign_supervisor(self):
+    #     data = self.cleaned_data.get('sign_supervisor')
+    #     if data:
+    #         try:
+    #             format, imgstr = data.split(';base64,')
+    #             ext = format.split('/')[-1]
+    #             filename = f'supervisor_signature_{uuid.uuid4()}.{ext}'
+    #             data = ContentFile(base64.b64decode(imgstr), name=filename)
+    #             return data
+    #         except Exception as e:
+    #             raise forms.ValidationError("Error processing signature: " + str(e))
+    #     return None
 
 
 # ---------------- Actividades ------------------- #

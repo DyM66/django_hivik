@@ -55,7 +55,7 @@
         </tr>
         <tr>
             <td class="data enc"><strong>SUPERVISOR: </strong></td>
-            <td class="data info">{{ ot.super.first_name }} {{ ot.super.last_name }}</td>
+            <td class="data info">{{ ot.supervisor }}</td>
             <td class="data enc"><strong>AREA: </strong></td>
             <td class="data info">{{ ot.system.asset.get_area_display }}</td>
         </tr>
@@ -210,9 +210,12 @@
         <tr style="height: 60px;">
             <td style="padding-left: 5px; border: 0.5px solid black; text-align: center;">
                 <!-- <img src="https://hivik.s3.us-east-2.amazonaws.com/static/firma+nestor.png" style="width: 150px; height: auto;"> -->
-            </td>
-            <td style="padding-left: 5px; border: 0.5px solid black; height: auto;">
 
+            </td>
+            <td style="padding-left: 5px; border: 0.5px solid black; height: auto; text-align: center;">
+                {%if ot.sign_supervision %}
+                    <img src="{{ ot.sign_supervision.url }}" style="width: 200px; height: auto;">
+                {% endif %}
             </td>
         </tr>
         <tr style="height: 20px;">

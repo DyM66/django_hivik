@@ -1,13 +1,14 @@
-from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group, User
+from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage, send_mail
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template, render_to_string
@@ -39,6 +40,8 @@ import itertools
 import PyPDF2
 import smtplib
 import logging
+import base64
+import uuid
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -394,6 +397,9 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
         return queryset
     
 
+import pandas as pd
+from django.http import HttpResponse
+
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = Asset
@@ -476,7 +482,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
         filtered_rutas = []
         for ruta in Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's']):
-            if (ruta.next_date.month <= current_month and ruta.next_date.year <= current_year) or (ruta.intervention_date.month == current_month and ruta.intervention_date.year == current_year) or (ruta.ot and ruta.ot.state == 'x'):
+            if (ruta.next_date.month <= current_month and ruta.next_date.year <= current_year) or (ruta.ot and ruta.ot.state == 'x'): # or (ruta.intervention_date.month == current_month and ruta.intervention_date.year == current_year)
                 filtered_rutas.append(ruta)
 
         filtered_rutas.sort(key=lambda t: t.next_date)
@@ -498,10 +504,42 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['add_sys'] = combined_systems
 
         return context
+    
+    def export_rutinas_to_excel(self):
+        asset = self.get_object()
+        rutinas = Ruta.objects.filter(system__asset=asset).exclude(system__state__in=['x', 's'])
+        data = []
+        for ruta in rutinas:
+            days_left = (ruta.next_date - datetime.now().date()).days if ruta.next_date else '---'
+            data.append({
+                'equipo_name': ruta.equipo.name if ruta.equipo else ruta.system.name,
+                'location': ruta.equipo.system.location if ruta.equipo else ruta.system.location,
+                'name': ruta.name,
+                'frecuency': ruta.frecuency,
+                'control': ruta.get_control_display(),
+                'daysleft': days_left,
+                'intervention_date': ruta.intervention_date.strftime('%d/%m/%Y') if ruta.intervention_date else '---',
+                'next_date': ruta.next_date.strftime('%d/%m/%Y') if ruta.next_date else '---',
+                'ot_num_ot': ruta.ot.num_ot if ruta.ot else '---'
+            })
+
+        df = pd.DataFrame(data)
+        df.columns = ['Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante', 'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo']
+        
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="rutinas.xlsx"'
+        with pd.ExcelWriter(response, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+
+        return response
 
     def post(self, request, *args, **kwargs):
         asset = self.get_object()
         sys_form = SysForm(request.POST)
+
+        if 'download_excel' in request.POST:
+            return self.export_rutinas_to_excel()
+        
         if sys_form.is_valid():
             sys = sys_form.save(commit=False)
             sys.asset = asset
@@ -907,8 +945,15 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         state_form = FinishOtForm(request.POST)
 
         if 'finish_ot' in request.POST and state_form.is_valid():
-            ot.state = 'f'
-            ot.save()
+            self.object.state = 'f'
+            signature_data = request.POST.get('sign_supervisor')
+            if signature_data:
+                format, imgstr = signature_data.split(';base64,')
+                ext = format.split('/')[-1]
+                filename = f'supervisor_signature_{uuid.uuid4()}.{ext}'
+                data = ContentFile(base64.b64decode(imgstr), name=filename)
+                self.object.sign_supervision.save(filename, data, save=True)
+                self.object.save()
 
             rutas_relacionadas = Ruta.objects.filter(ot=ot)
             for ruta in rutas_relacionadas:
@@ -989,9 +1034,6 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         return pdf_content.getvalue()
 
 
-from django.core.files.base import ContentFile
-import base64
-
 class OtCreate(CreateView):
 
     model = Ot
@@ -1012,12 +1054,19 @@ class OtCreate(CreateView):
 
     def form_valid(self, form):
         ot = form.save(commit=False)
-        signature_data = form.cleaned_data.pop('sign_supervisor', None)
-        if signature_data:
-            format, imgstr = signature_data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-            ot.sign_supervision.save('firma_supervisor_{}.png'.format(ot.pk), data, save=True)
+
+
+        # signature_data = self.request.POST.get('sign_supervisor')
+        # print("Datos recibidos para la firma:", signature_data)
+        # if signature_data:
+        #     format, imgstr = signature_data.split(';base64,')
+        #     ext = format.split('/')[-1]
+        #     filename = f'supervisor_signature_{uuid.uuid4()}.{ext}'
+        #     data = ContentFile(base64.b64decode(imgstr), name=filename)
+        #     ot.sign_supervision.save(filename, data, save=True)
+        #     print("Imagen guardada correctamente")
+        # else:
+        #     print("No se recibió data de firma")
 
         if isinstance(form, OtFormNoSup):
             ot.supervisor = self.request.user.get_full_name()

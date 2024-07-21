@@ -240,6 +240,12 @@
         </table>
     </div>
 
+    <form method="post" action="{% url 'got:asset-detail' asset.abbreviation %}">
+        {% csrf_token %}
+        <button type="submit" name="download_excel" class="btn btn-info">Descargar Rutinas como Excel</button>
+    </form>
+    
+
 	<div class="rutinas">
 		<table class="table-list table-detail">
 			<thead>
@@ -248,8 +254,8 @@
                 </tr>
 				<tr>
 					<th scope="col">Equipo</th>
-					<th scope="col">Codigo</th>
 					<th scope="col">Ubicación</th>
+					<th scope="col">Codigo</th>
 					<th scope="col">Frecuencia</th>
 					<th scope="col">Control</th>
                     <th scope="col">Tiempo restante</th>
