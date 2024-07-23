@@ -190,11 +190,13 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
             queryset = queryset.filter(suministros__icontains=keyword)
 
         if state == 'no_aprobada':
-            queryset = queryset.filter(approved=False)
+            queryset = queryset.filter(approved=False, cancel=False)
         elif state == 'aprobada':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=True)
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=True, cancel=False)
         elif state == 'tramitado':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=False)
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=False, cancel=False)
+        elif state == 'cancel':
+            queryset = queryset.filter(cancel=True)
 
         return queryset
    
