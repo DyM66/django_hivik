@@ -14,12 +14,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='preoperacional',
             name='vehiculo',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.equipo'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo'),
         ),
         migrations.AddField(
             model_name='preoperacionaldiario',
             name='vehiculo',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.equipo'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo'),
         ),
         migrations.AlterField(
             model_name='preoperacional',

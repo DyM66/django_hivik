@@ -41,7 +41,6 @@
         <form method="GET" action="{% url 'got:rq-list' %}" class="form" autocomplete="off">
             <div class="input-group">
                 <input type="text" name="keyword" class="form-control" placeholder="Descripción" aria-label="Descripción" aria-describedby="button-addon2" value="{{ request.GET.keyword }}">
-                <!-- Include other filters as hidden inputs to maintain state -->
                 <input type="hidden" name="asset" value="{{ request.GET.asset }}">
                 <input type="hidden" name="state" value="{{ request.GET.state }}">
                 <input type="submit" value="Buscar" class="btn btn-primary" id="button-addon2">
@@ -58,11 +57,10 @@
         </form>
     </div>
     
-    
 </aside>
 
 
-    <table class="deta">
+    <table class="table-list deta">
         <thead>
             <tr>
                 <th scope="col">Solicitud</th>
@@ -78,7 +76,7 @@
 					
 					<td data-cell="Orden de trabajo">
                         <h6>
-                            {% if rq.ot %}Orden de trabajo OT{{ rq.ot }}{% else %}Consumibles/Repuestos/Herramientas{% endif %}
+                            {% if rq.ot %}Orden de trabajo OT{{ rq.ot }}{% else %}Consumibles/ Repuestos/ Herramientas{% endif %}
                         </h6>
                     </td>
 					
@@ -111,7 +109,6 @@
 				</tr>
                 
                 <tr>
-                    <!-- <td></td> -->
                     <td data-cell="Solicitud" colspan="2">
                         {{ rq.suministros|linebreaks }}
                         <br>

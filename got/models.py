@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Sum, Count
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 import uuid
 from django.urls import reverse
@@ -20,6 +20,21 @@ def get_upload_pdfs(instance, filename):
     ext = filename.split('.')[-1]
     filename = f"pdfs/{uuid.uuid4()}.{ext}"
     return filename
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    cargo = models.CharField(max_length=100, null=True, blank=True)
+    firma = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s profile"
+
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+    instance.profile.save()
 
 
 class Item(models.Model):
@@ -275,7 +290,6 @@ class Ot(models.Model):
     state = models.CharField(choices=STATUS, default='x', max_length=1)
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
     info_contratista_pdf = models.FileField(upload_to=get_upload_path,null=True, blank=True)
-    ot_aprobada = models.FileField(upload_to=get_upload_path,null=True, blank=True)
 
     sign_supervision = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
 

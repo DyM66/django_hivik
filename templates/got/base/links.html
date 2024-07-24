@@ -126,31 +126,6 @@
         cursor: pointer;
     }
 
-    .deta {
-        border-collapse: collapse;
-        margin: 20px 0;
-        font-size: 0.85em;
-        overflow: visible;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-    }
-
-    .deta th {
-        background-color: var(--color-primary);
-        padding: 10px;
-        color: white;
-        text-align: center;
-        font-weight: bold;
-    }
-
-    .deta tbody tr:nth-child(4n+1), .deta tbody tr:nth-child(4n+2) {
-        background-color: #f2f2f2;
-    }
-
-    .deta tbody tr:nth-child(4n+3), .deta tbody tr:nth-child(4n+4) {
-        background-color: #ddd;
-    }
-
-
     .table-list {
 		border-collapse: collapse;
         margin: 20px 0;
@@ -195,7 +170,6 @@
         border-bottom: 1px solid #ddd;
     }
 
-    
 
     .table-list tbody tr:hover td, .table-list tbody tr:hover td strong {
         color: var(--color-secondary);
@@ -527,6 +501,26 @@
         object-fit: contain;
         /* border-radius: 10px; */
         
+    }
+
+    .deta th {
+        background-color: var(--color-primary);
+        padding: 10px;
+        color: white;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .deta tbody tr:nth-child(4n+1), .deta tbody tr:nth-child(4n+2) {
+        background-color: #f2f2f2;
+    }
+
+    .deta tbody tr:nth-child(4n+3), .deta tbody tr:nth-child(4n+4) {
+        background-color: #ddd;
+    }
+
+    .deta tbody tr {
+        border-bottom: none;
     }
 
 

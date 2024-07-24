@@ -84,6 +84,7 @@ class Migration(migrations.Migration):
                 ('proyecto', models.CharField(max_length=100)),
                 ('requirements', models.TextField()),
                 ('asset', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.asset')),
+                ('confirmado', models.BooleanField(blank=True, default=False, null=True)),
             ],
         ),
         migrations.CreateModel(

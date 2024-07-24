@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Location, Operation, Solicitud, Item,
-    Megger, Suministro
+    Megger, Suministro, UserProfile
 )
 
 
@@ -51,6 +51,11 @@ class TaskAdmin(admin.ModelAdmin):
         }),
     )
 
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'cargo', 'firma')
+    search_fields = ('user__username', 'cargo')
+
+admin.site.register(UserProfile, UserProfileAdmin)
 
 admin.site.register(Asset)
 admin.site.register(Suministro)

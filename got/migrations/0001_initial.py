@@ -64,6 +64,7 @@ class Migration(migrations.Migration):
                 ('info_contratista_pdf', models.FileField(upload_to=got.models.get_upload_path, null=True, blank=True)),
                 ('ot_aprobada', models.FileField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('suministros', models.TextField(blank=True, default='', null=True)),
+                ('sign_supervision', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
             ],
             options={
                 'ordering': ['-num_ot'],

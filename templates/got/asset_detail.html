@@ -76,7 +76,7 @@
                 {% endif %}
                 <tr>
                     <th>Supervisor</th>
-                    <td data-cell="Supervisor">{{asset.supervisor.first_name}} {{asset.supervisor.last_name}}</td>
+                    <td data-cell="Supervisor">{{asset.supervisor.first_name}} {{asset.supervisor.last_name}} ({{asset.supervisor.profile.cargo}})</td>
                 </tr>
                 <tr>
                     <th>Área</th>
@@ -117,10 +117,6 @@
                     <tr>
                         <th>Arqueo neto</th>
                         <td data-cell="Arqueo neto">{{asset.arqueo_neto}}</td>
-                    </tr>
-                    <tr>
-                        <th>Espacio libre sobre cubierta</th>
-                        <td data-cell="Espacio libre sobre cubierta">{{asset.espacio_libre_cubierta}} m2</td>
                     </tr>
                 {% endif %}
                 </tbody>
