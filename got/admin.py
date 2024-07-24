@@ -4,6 +4,18 @@ from .models import (
     Megger, Suministro, UserProfile
 )
 
+# Definición de la clase SuministroAdmin
+class SuministroAdmin(admin.ModelAdmin):
+    list_display = ('item', 'cantidad', 'display_asset')
+    list_filter = ('asset',)  # Filtro para Asset
+
+    def display_asset(self, obj):
+        return obj.asset if obj.asset else "---"
+    display_asset.short_description = 'Asset'  # Etiqueta para la columna en el admin
+
+# Registro del modelo Suministro con su clase admin personalizada
+admin.site.register(Suministro, SuministroAdmin)
+
 
 class OtAdmin(admin.ModelAdmin):
     list_display = (
@@ -58,7 +70,6 @@ class UserProfileAdmin(admin.ModelAdmin):
 admin.site.register(UserProfile, UserProfileAdmin)
 
 admin.site.register(Asset)
-admin.site.register(Suministro)
 admin.site.register(Megger)
 admin.site.register(Operation)
 admin.site.register(FailureReport)
