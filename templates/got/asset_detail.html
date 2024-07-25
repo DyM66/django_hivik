@@ -219,11 +219,11 @@
                     <tr>
                         <th colspan="3">{{ subsystem }}</th>
                     </tr>
-                    {% for item, quantity, inventory in items_with_quantities %}
+                    {% for item, quantity, inventory, double_quantity in items_with_quantities %}
                         <tr>
                             <td>{{ item }}</td>
                             <td>{{ quantity }}</td>
-                            <td>{{ inventory }}</td>
+                            <td class="{% if inventory < double_quantity %}red-strong{% endif %}">{{ inventory }}</td>
                         </tr>
                     {% endfor %}
                 {% empty %}

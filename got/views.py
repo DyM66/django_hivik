@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group, User
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage, send_mail
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
+from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.http import HttpResponse, HttpResponseRedirect
@@ -42,6 +42,7 @@ import smtplib
 import logging
 import base64
 import uuid
+import pandas as pd
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -82,14 +83,15 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
             context['worker'] = f'{worker.first_name} {worker.last_name}'
             context['worker_id'] = worker_id
 
-        if current_user.groups.filter(name='super_members').exists():
-            all_users = User.objects.all()
 
-        elif current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
+
+        if current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
             talleres = Group.objects.get(name='serport_members')
             taller_list = list(talleres.user_set.all())
             taller_list.append(current_user)
             all_users = User.objects.filter(id__in=[user.id for user in taller_list])
+        elif current_user.groups.filter(name='super_members').exists():
+            all_users = User.objects.all()
 
         context['assets'] = Asset.objects.all()
         context['serport_members'] = all_users
@@ -109,11 +111,12 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         if responsable_id:
             queryset = queryset.filter(responsible=responsable_id)
 
+        if current_user.groups.filter(name='serport_members').exists():
+            return queryset.filter(responsible=current_user)
+
         if current_user.groups.filter(name='super_members').exists():
             return queryset
 
-        if current_user.groups.filter(name='serport_members').exists():
-            return queryset.filter(responsible=current_user)
 
         if current_user.groups.filter(name='maq_members').exists():
             return queryset.filter(ot__system__asset__supervisor=current_user)
@@ -136,6 +139,10 @@ def asset_suministros_report(request, abbreviation):
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
     suministros = Suministro.objects.filter(asset=asset)
 
+    ultima_fecha_transaccion = TransaccionSuministro.objects.filter(
+        suministro__asset=asset
+    ).aggregate(Max('fecha'))['fecha__max'] or "---"
+
     if request.method == 'POST':
         for suministro in suministros:
             cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
@@ -152,7 +159,7 @@ def asset_suministros_report(request, abbreviation):
             )
         return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
 
-    return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros})
+    return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros, 'ultima_fecha_transaccion': ultima_fecha_transaccion})
 
 
 class SolicitudesListView(LoginRequiredMixin, generic.ListView):
@@ -337,26 +344,26 @@ class ApproveSolicitudView(LoginRequiredMixin, View):
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
 
-# @receiver(post_save, sender=Solicitud)
-# def send_email_on_new_solicitud(sender, instance, created, **kwargs):
-#     if created:
-#         suministros = Suministro.objects.filter(Solicitud=instance)
-#         suministros_list = "\n".join([f"{suministro.item}: {suministro.cantidad}" for suministro in suministros])
-#         subject = f'Nueva Solicitud de Suministros: {instance}'
-#         message = f'''
-#         Ha sido creada una nueva solicitud de suministros:
-#         Fecha de solicitud: {instance.creation_date.strftime("%d/%m/%Y")}
-#         Solicitante: {instance.solicitante.get_full_name()}
-#         Orden de trabajo: {instance.ot if instance.ot else "N/A"}
-#         Centro de costos: {instance.asset.name if instance.asset else "N/A"}
-#         Detalles de los Suministros Solicitados: 
+@receiver(post_save, sender=Solicitud)
+def send_email_on_new_solicitud(sender, instance, created, **kwargs):
+    if created:
+        suministros = Suministro.objects.filter(Solicitud=instance)
+        suministros_list = "\n".join([f"{suministro.item}: {suministro.cantidad}" for suministro in suministros])
+        subject = f'Nueva Solicitud de Suministros: {instance}'
+        message = f'''
+        Ha sido creada una nueva solicitud de suministros:
+        Fecha de solicitud: {instance.creation_date.strftime("%d/%m/%Y")}
+        Solicitante: {instance.solicitante.get_full_name()}
+        Orden de trabajo: {instance.ot if instance.ot else "N/A"}
+        Centro de costos: {instance.asset.name if instance.asset else "N/A"}
+        Detalles de los Suministros Solicitados: 
         
-#         {instance.suministros}
-#         {suministros_list}
+        {instance.suministros}
+        {suministros_list}
 
-#         '''
-#         recipient_list = ['c.mantenimiento@serport.co']
-#         send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
+        '''
+        recipient_list = ['c.mantenimiento@serport.co']
+        send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
     
 
 @login_required
@@ -397,10 +404,7 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
             queryset = queryset.filter(area=area)
 
         return queryset
-    
 
-import pandas as pd
-from django.http import HttpResponse
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
@@ -438,7 +442,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         for equipo in equipos:
             subsystem = equipo.subsystem if equipo.subsystem else "General"
             for suministro in equipo.suministros.all():
-                item_tuple = (suministro.item, item_cant[suministro.item], inventory_counts[suministro.item])
+                item_tuple = (suministro.item, item_cant[suministro.item], inventory_counts[suministro.item], item_cant[suministro.item] * 2)
                 if suministro.item in duplicated_items:
                     items_by_subsystem["General"].add(item_tuple)
                 else:

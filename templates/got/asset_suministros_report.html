@@ -5,6 +5,7 @@
 
 <div class="container">
     <h1>Reporte de Consumos de lubricantes y filtros para {{ asset.name }}</h1>
+    <p>Ultimo reporte realizado: {{ultima_fecha_transaccion}}</p>
 
     <form method="post">{% csrf_token %}
         <table class="table-list table-detail">
