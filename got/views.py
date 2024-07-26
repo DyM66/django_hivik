@@ -1310,8 +1310,8 @@ def RutaListView(request):
         if sistema:
             motor_estribor = sistema.equipos.filter(name__icontains='Motor propulsor estribor').first()
             motor_babor = sistema.equipos.filter(name__icontains='Motor propulsor babor').first()
-            motor_generador1 = sistema2.equipos.filter(Q(name__icontains='Motor generador estribor') | Q(name__icontains='Motor generador 1')).first()
-            motor_generador2 = sistema2.equipos.filter(Q(name__icontains='Motor generador babor') | Q(name__icontains='Motor generador 2')).first()
+            motor_generador1 = sistema2.equipos.filter(Q(name__icontains='Motor generador estribor') | Q(name__icontains='Motor generador 1')).first() if sistema2 else None
+            motor_generador2 = sistema2.equipos.filter(Q(name__icontains='Motor generador babor') | Q(name__icontains='Motor generador 2')).first() if sistema2 else None
             
             if motor_estribor:
                 motores_info['estribor'] = {

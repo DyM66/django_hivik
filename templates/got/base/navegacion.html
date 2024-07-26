@@ -69,7 +69,7 @@
                         </ul>
                     </li>
                 {% endif %}
-                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" or request.user|has_group:"maq_members"  %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'rq-list' %}active{% endif %}" href="{% url 'got:rq-list' %}">
                             Solicitudes
