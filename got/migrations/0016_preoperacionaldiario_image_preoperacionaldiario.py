@@ -89,6 +89,7 @@ class Migration(migrations.Migration):
                 ('observaciones', models.TextField(blank=True, null=True)),
                 ('aprobado', models.BooleanField(default=True)),
                 ('reporter', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('vehiculo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
             ],
             options={'ordering': ['-fecha']},
         ),

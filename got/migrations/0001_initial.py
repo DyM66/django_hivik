@@ -62,7 +62,6 @@ class Migration(migrations.Migration):
                 ('supervisor', models.CharField(blank=True, max_length=100, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.system')),
                 ('info_contratista_pdf', models.FileField(upload_to=got.models.get_upload_path, null=True, blank=True)),
-                ('ot_aprobada', models.FileField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('suministros', models.TextField(blank=True, default='', null=True)),
                 ('sign_supervision', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
             ],

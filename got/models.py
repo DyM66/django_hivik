@@ -461,7 +461,7 @@ class FailureReport(models.Model):
     evidence = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     closed = models.BooleanField(default=False)
     impact = ArrayField(models.CharField(max_length=1, choices=IMPACT), default=list, blank=True)
-    related_ot = models.OneToOneField('Ot', on_delete=models.SET_NULL, null=True, blank=True, related_name='failure_report')
+    related_ot = models.ForeignKey('Ot', on_delete=models.SET_NULL, null=True, blank=True, related_name='failure_report')
 
     class Meta:
         ordering = ['-moment']

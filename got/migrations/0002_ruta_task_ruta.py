@@ -147,4 +147,14 @@ class Migration(migrations.Migration):
                 ('solicitud', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.solicitud')),
             ],
         ),
+
+        migrations.CreateModel(
+            name='UserProfile',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('cargo', models.CharField(blank=True, max_length=100, null=True)),
+                ('firma', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
     ]
