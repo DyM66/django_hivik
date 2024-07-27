@@ -896,11 +896,15 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         context['has_activities'] = has_activities
 
         try:
-            failure_report = ot.failure_report
+            failure_report = FailureReport.objects.filter(related_ot=ot)
+            failure = True
+
         except FailureReport.DoesNotExist:
             failure_report = None
+            failure = False
 
         context['failure_report'] = failure_report
+        context['failure'] = failure
 
         rutas = ot.ruta_set.all()
         context['rutas'] = rutas

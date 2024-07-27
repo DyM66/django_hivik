@@ -111,17 +111,20 @@
                 </tbody>
             </table>
         </div>
+
     
         <div class="add-info">
-            {% if failure_report or rutas %}
+            {% if failure or rutas %}
                 <table class="table-list table-detail">
                     <thead>
-                        {% if failure_report %}
-                            <tr data-href="{% url 'got:failure-report-detail' failure_report.pk %}">
-                                <th class="add" colspan="2">
-                                    Reporte de falla #{{ failure_report.pk }}
-                                </th>
-                            </tr>
+                        {% if failure %}
+                            {% for fail in failure_report %}
+                                <tr data-href="{% url 'got:failure-report-detail' fail.pk %}">
+                                    <th class="add" colspan="2">
+                                        Reporte de falla #{{ fail.pk }}
+                                    </th>
+                                </tr>
+                            {% endfor %}
                         {% elif rutas %}
                             <tr data-href="{% url 'got:sys-detail' ot.system.pk %}">
                                 <th class="add" colspan="2">
@@ -136,8 +139,10 @@
                                 Equipos
                             </th>
                             <td>
-                                {% if failure_report %}
-                                    {{ failure_report.equipo }}
+                                {% if failure %}
+                                    {% for fail in failure_report %}
+                                        {{ fail.equipo }}
+                                    {% endfor %}
                                 {% endif %}
                                 {% if rutas %}
                                     {% for equipo in equipos %}
@@ -146,14 +151,16 @@
                                 {% endif %}   
                             </td>
                         </tr>
-                        {% if failure_report %}
+                        {% if failure %}
+                        {% for fail in failure_report %}
+
                             <tr>
                                 <th>
                                     Falla reportada
                                 </th>
                                 <td>
-                                    {{ failure_report.moment }}/{{ failure_report.description }}<br>
-                                    {{ failure_report.causas }}
+                                    {{ fail.moment }}/{{ fail.description }}<br>
+                                    {{ fail.causas }}
                                 </td>
                             </tr>
                             <tr>
@@ -161,9 +168,10 @@
                                     Responsable del reporte
                                 </th>
                                 <td>
-                                    {{ failure_report.reporter.first_name }} {{ failure_report.reporter.last_name }}
+                                    {{ fail.reporter.first_name }} {{ fail.reporter.last_name }}
                                 </td>
                             </tr>
+                        {% endfor %}
                         {% endif %}
                     </tbody>
                 </table>
