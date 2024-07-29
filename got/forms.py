@@ -405,17 +405,22 @@ class RutaForm(forms.ModelForm):
 
     class Meta:
         model = Ruta
-        exclude = ['system', 'code', 'astillero']
+        exclude = ['system', 'astillero']
         labels = {
             'name': 'Codigo interno',
             'frecuency': 'Frecuencia',
             'intervention_date': 'Fecha ultima intervención',
             'dependencia': 'Dependencia',
-            'suministros': 'Suministros'
+            'ot': 'Ultima orden de trabajo relacionada',
             }
         widgets = {
-            'intervention_date': XYZ_DateInput(format=['%Y-%m-%d'],),
-            'suministros': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'intervention_date': XYZ_DateInput(format=['%Y-%m-%d'], attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'rows': 4, 'class': 'form-control'}),
+            'control': forms.Select(attrs={'class': 'form-control'}),
+            'equipo': forms.Select(attrs={'class': 'form-control'}),
+            'frecuency': forms.NumberInput(attrs={'class': 'form-control'}),
+            'ot': forms.Select(attrs={'class': 'form-control'}),
+            'dependencia': forms.Select(attrs={'class': 'form-control'}),
             }
 
     def __init__(self, *args, **kwargs):

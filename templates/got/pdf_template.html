@@ -74,37 +74,38 @@
     <hr>
 
     <div style="margin-top: 20px">
-        {% if ot.failure_report %}
+        {% if failure %}
+            {% for fail in  fallas %}
             <table style="margin-top: 15px;">
                 <tr>
                     <td colspan="2">
-                        <strong>REPORTE DE FALLA #{{ot.failure_report.id}} - {{ot.failure_report.moment}}</strong>
+                        <strong>REPORTE DE FALLA #{{fail.id}} - {{fail.moment}}</strong>
                     </td>
                 </tr>
                 <tr>
                     <td class="data" style="width: 105px;"><strong>Reportado por: </strong></td>
-                    <td class="data info">{{ ot.failure_report.reporter.first_name }} {{ ot.failure_report.reporter.last_name }}</td>
+                    <td class="data info">{{ fail.reporter.first_name }} {{ fail.reporter.last_name }}</td>
                 </tr>
                 <tr>
                     <td class="data" style="width: 105px;"><strong>Equipo afectado:</strong></td>
-                    <td class="data info">{{ot.failure_report.equipo}}</td>
+                    <td class="data info">{{fail.equipo}}</td>
                 </tr>
                 <tr>
                     <td class="data" style="width: 105px;"><strong>Detalle: </strong></td>
-                    <td colspan="2" class="data info">{{ot.failure_report.description}}</td>
+                    <td colspan="2" class="data info">{{fail.description}}</td>
                 </tr>
                 <tr>
                     <td class="data" style="width: 105px;"><strong>Posibles causas: </strong></td>
-                    <td colspan="2" class="data info">{{ot.failure_report.causas}}</td>
+                    <td colspan="2" class="data info">{{fail.causas}}</td>
                 </tr>
                 <tr>
                     <td class="data" style="width: 105px;"><strong>Reparación sugerida: </strong></td>
-                    <td colspan="2" class="data info">{{ot.failure_report.suggest_repair}}</td>
+                    <td colspan="2" class="data info">{{fail.suggest_repair}}</td>
                 </tr>
                 <tr>
                     <td class="data" style="width: 105px;"><strong>Impacto de falla: </strong></td>
                     <td colspan="2" class="data info">
-                        {% for code in ot.failure_report.impact %}
+                        {% for code in fail.impact %}
                             {% if code == 'i' %}
                                 Integridad del equipo/sistema -
                             {% elif code == 's' %}
@@ -118,6 +119,7 @@
                     </td>
                 </tr>
             </table>
+            {% endfor %}
         {% endif %}
     </div>        
     

@@ -969,10 +969,10 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
             for ruta in rutas_relacionadas:
                 self.actualizar_rutas_dependientes(ruta)
 
-            # Verificar y cerrar el reporte de falla relacionado, si existe
-            if hasattr(ot, 'failure_report'):
-                ot.failure_report.closed = True
-                ot.failure_report.save()
+
+            fallas_relacionadas = FailureReport.objects.filter(related_ot=ot)
+            for fail in fallas_relacionadas:
+                fail.closed = True
 
             supervisor = ot.system.asset.supervisor
             if supervisor and supervisor.email:
@@ -1452,7 +1452,16 @@ def crear_ot_desde_ruta(request, ruta_id):
 def report_pdf(request, num_ot):
 
     ot_info = Ot.objects.get(num_ot=num_ot)
-    context = {'ot': ot_info}
+    fallas = FailureReport.objects.filter(related_ot=ot_info)
+
+    try:
+        fallas = FailureReport.objects.filter(related_ot=ot_info)
+        failure = True
+    except FailureReport.DoesNotExist:
+        fallas = None
+        failure = False
+
+    context = {'ot': ot_info, 'fallas': fallas, 'failure': failure}
     template_path = 'got/pdf_template.html'
     
     response = HttpResponse(content_type='application/pdf')
