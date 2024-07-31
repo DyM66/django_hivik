@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('report_date', models.DateField()),
-                ('hour', models.DecimalField(decimal_places=2, max_digits=5)),
+                ('hour', models.DecimalField(decimal_places=2, max_digits=10)),
                 ('component', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='hours', to='got.equipo')),
                 ('reporter', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
@@ -146,6 +146,7 @@ class Migration(migrations.Migration):
                 ('task', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.task')),
                 ('solicitud', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.solicitud')),
                 ('preoperacionaldiario', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.preoperacionaldiario')),
+                ('darbaja', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.darbaja')),
             ],
         ),
 
@@ -238,5 +239,41 @@ class Migration(migrations.Migration):
                 ('vehiculo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
             ],
             options={'ordering': ['-fecha']},
+        ),
+
+        migrations.CreateModel(
+            name='DarBaja',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('fecha', models.DateField(auto_now_add=True)),
+                ('reporter', models.CharField(max_length=100)),
+                ('responsable', models.CharField(max_length=100)),
+                ('activo', models.CharField(max_length=100)),
+                ('motivo', models.CharField(choices=[('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('i', 'Inservible/depreciado')], max_length=1)),
+                ('observaciones', models.TextField()),
+                ('disposicion', models.TextField()),
+                ('firma_responsable', models.ImageField(upload_to=got.models.get_upload_path)),
+                ('firma_autorizado', models.CharField(max_length=100)),
+                ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
+            ],
+            options={
+                'ordering': ['-fecha'],
+            },
+        ),
+
+        migrations.CreateModel(
+            name='Transferencia',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('fecha', models.DateField(auto_now_add=True)),
+                ('responsable', models.CharField(max_length=100)),
+                ('observaciones', models.TextField(blank=True, null=True)),
+                ('destino', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='destino', to='got.system')),
+                ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
+                ('origen', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='origen', to='got.system')),
+            ],
+            options={
+                'ordering': ['-fecha'],
+            },
         ),
     ]

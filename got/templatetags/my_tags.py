@@ -47,3 +47,25 @@ def can_edit_task(user, task):
 @register.filter
 def get_mapping_value(mapping, key):
     return mapping.get(key, None)
+
+
+@register.filter(name='format_number')
+def format_number(value):
+    try:
+        value = float(value)
+    except ValueError:
+        return value 
+    except TypeError:
+        return value 
+    
+    suffix = 'Ω'
+    if value >= 1_000_000_000_000:
+        return f"{value / 1_000_000_000_000:.2f}T{suffix}"
+    elif value >= 1_000_000_000:
+        return f"{value / 1_000_000_000:.2f}G{suffix}"
+    elif value >= 1_000_000:
+        return f"{value / 1_000_000:.2f}M{suffix}"
+    elif value >= 1_000:
+        return f"{value / 1_000:.2f}K{suffix}"
+    else:
+        return f"{value}{suffix}"
