@@ -4,7 +4,7 @@ from django.contrib.auth.models import User, Group
 from .models import (
     Task, Ot, System, Equipo, Ruta, HistoryHour, FailureReport, Operation, Asset, Location, Document,
     Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro,
-    Preoperacional, TransaccionSuministro, PreoperacionalDiario
+    Preoperacional, TransaccionSuministro, PreoperacionalDiario, Transferencia
     )
 
 from django.forms import modelformset_factory
@@ -1159,5 +1159,20 @@ class PreoperacionalDiarioForm(forms.ModelForm):
         return kilometraje
 
 
+class TransferenciaForm(forms.ModelForm):
+    destino = forms.ModelChoiceField(
+        queryset=System.objects.all().select_related('asset').order_by('asset__name', 'name'),
+        label="Sistema Destino",
+        required=True
+    )
+    observaciones = forms.CharField(widget=forms.Textarea, label="Justificación", required=False)
 
-    
+    class Meta:
+        model = Transferencia
+        fields = ['destino', 'observaciones']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['destino'].label_from_instance = lambda obj: f"{obj.asset.name} - {obj.name}"
+
+

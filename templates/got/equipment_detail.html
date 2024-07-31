@@ -16,6 +16,7 @@
                 {% if perms.got.add_equipo %}
 					<a href="{% url 'got:equipo-delete' equipo.code %}" style="color: white;"><i class="bi bi-file-earmark-minus-fill"></i></a>
 					<a href="{% url 'got:equipo-update' equipo.code %}" style="color: white;"><i class="bi bi-pen"></i></a>
+					<a href="{% url 'got:transferir_equipo' equipo.code %}"><i class="fa-solid fa-right-left"></i></a>
 				{% endif %}
             </h4>
             <span class="header-right-text">{{ equipo.date_inv|date:"d M, Y" }}</span>
@@ -329,6 +330,38 @@
         </div>
     </div>
 </div>
+
+
+<div class="container mt-4">
+    <h3>Historial de Transferencias</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Responsable</th>
+                <th>Sistema Origen</th>
+                <th>Sistema Destino</th>
+                <th>Observaciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transferencia in transferencias %}
+            <tr>
+                <td>{{ transferencia.fecha|date:"d M, Y" }}</td>
+                <td>{{ transferencia.responsable }}</td>
+                <td>{{ transferencia.origen.asset }}</td>
+                <td>{{ transferencia.destino.asset }}</td>
+                <td>{{ transferencia.observaciones }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No se han registrado transferencias para este equipo.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
 
 
 <script>

@@ -829,6 +829,48 @@ class PreoperacionalDiario(models.Model):
     class Meta:
         ordering = ['-fecha']
 
+
+class Transferencia(models.Model):
+
+    fecha = models.DateField(auto_now_add=True)
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
+    responsable = models.CharField(max_length=100)
+    origen = models.ForeignKey(System, on_delete=models.CASCADE, related_name='origen')
+    destino = models.ForeignKey(System, on_delete=models.CASCADE, related_name='destino')
+    observaciones = models.TextField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"{self.equipo} - {self.origen} -> {self.destino}"
+    
+
+class DarBaja(models.Model):
+
+    MOTIVO = (
+        ('o', 'Obsoleto'),
+        ('r', 'Robo/Hurto'),
+        ('p', 'Perdida'),
+        ('i', 'Inservible/depreciado')
+    )
+
+    fecha = models.DateField(auto_now_add=True)
+    reporter = models.CharField(max_length=100)
+    responsable = models.CharField(max_length=100)
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
+    activo = models.CharField(max_length=100)
+    motivo = models.CharField(max_length=1, choices=MOTIVO)
+    observaciones = models.TextField()
+    disposicion = models.TextField()
+    firma_responsable = models.ImageField(upload_to=get_upload_path)
+    firma_autorizado = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"{self.equipo} - {self.fecha}"
     
 
 class Image(models.Model):
@@ -840,3 +882,5 @@ class Image(models.Model):
 
     preoperacional = models.ForeignKey(Preoperacional, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacionaldiario = models.ForeignKey(PreoperacionalDiario, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+
+    darbaja = models.ForeignKey(DarBaja, related_name='images', on_delete=models.CASCADE, null=True, blank=True)

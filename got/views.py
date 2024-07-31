@@ -21,13 +21,14 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from .models import (
     Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Image, Operation, Location, Document, Preoperacional,
     Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro, Item, TransaccionSuministro,
-    PreoperacionalDiario
+    PreoperacionalDiario, Transferencia
 )
 from .forms import (
     RescheduleTaskForm, OtForm, ActForm, FinishTask, SysForm, EquipoForm, FinishOtForm, RutaForm, RutActForm, ReportHours,
     ReportHoursAsset, failureForm,EquipoFormUpdate, OtFormNoSup, ActFormNoSup, UploadImages, OperationForm, LocationForm,
     DocumentForm, SuministrosEquipoForm, SuministroFormset, MeggerForm, EstatorForm, ExcitatrizForm, RotorMainForm,
-    RotorAuxForm, RodamientosEscudosForm, PreoperacionalForm, PreoperacionalEspecificoForm, PreoperacionalDiarioForm
+    RotorAuxForm, RodamientosEscudosForm, PreoperacionalForm, PreoperacionalEspecificoForm, PreoperacionalDiarioForm, TransferenciaForm
+
 )
 
 
@@ -83,8 +84,6 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
             context['worker'] = f'{worker.first_name} {worker.last_name}'
             context['worker_id'] = worker_id
 
-
-
         if current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
             talleres = Group.objects.get(name='serport_members')
             taller_list = list(talleres.user_set.all())
@@ -134,261 +133,7 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 
         return queryset.none() 
     
-
-def asset_suministros_report(request, abbreviation):
-    asset = get_object_or_404(Asset, abbreviation=abbreviation)
-    suministros = Suministro.objects.filter(asset=asset)
-
-    ultima_fecha_transaccion = TransaccionSuministro.objects.filter(
-        suministro__asset=asset
-    ).aggregate(Max('fecha'))['fecha__max'] or "---"
-
-    if request.method == 'POST':
-        for suministro in suministros:
-            cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
-            cantidad_ingresada = int(request.POST.get(f'ingresado_{suministro.id}', 0))
-            
-            suministro.cantidad -= cantidad_consumida
-            suministro.cantidad += cantidad_ingresada
-            suministro.save()
-            TransaccionSuministro.objects.create(
-                suministro=suministro,
-                cantidad_ingresada=cantidad_ingresada,
-                cantidad_consumida=cantidad_consumida,
-                usuario=request.user
-            )
-        return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
-
-    return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros, 'ultima_fecha_transaccion': ultima_fecha_transaccion})
-
-
-class SolicitudesListView(LoginRequiredMixin, generic.ListView):
-    
-    model = Solicitud
-    paginate_by = 20
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['assets'] = Asset.objects.all()
-
-        asset_filter = self.request.GET.get('asset')
-        context['asset'] = Asset.objects.filter(abbreviation=asset_filter).first() if asset_filter else None
-
-        context['current_asset'] = self.request.GET.get('asset', '')
-        context['current_state'] = self.request.GET.get('state', '')
-        context['current_keyword'] = self.request.GET.get('keyword', '')
-        return context
-
-    def get_queryset(self):
-        queryset = Solicitud.objects.all()
-        state = self.request.GET.get('state')
-        asset_filter = self.request.GET.get('asset')
-
-        if asset_filter:
-            queryset = queryset.filter(asset__abbreviation=asset_filter)
-
-        if self.request.user.groups.filter(name='maq_members').exists():
-            supervised_assets = Asset.objects.filter(
-                supervisor=self.request.user)
-            queryset = queryset.filter(asset__in=supervised_assets)
-
-        keyword = self.request.GET.get('keyword')
-        if keyword:
-            queryset = queryset.filter(suministros__icontains=keyword)
-
-        if state == 'no_aprobada':
-            queryset = queryset.filter(approved=False, cancel=False)
-        elif state == 'aprobada':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=True, cancel=False)
-        elif state == 'tramitado':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=False, cancel=False)
-        elif state == 'cancel':
-            queryset = queryset.filter(cancel=True)
-
-        return queryset
-   
-
-
-def download_pdf(request):
-    state = request.GET.get('state', '')
-    asset_filter = request.GET.get('asset', '')
-    keyword = request.GET.get('keyword', '')
-
-    queryset = Solicitud.objects.all()
-    if asset_filter:
-        queryset = queryset.filter(asset__abbreviation=asset_filter)
-
-    if state:
-        if state == 'no_aprobada':
-            queryset = queryset.filter(approved=False)
-        elif state == 'aprobada':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=True)
-        elif state == 'tramitado':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=False)
-
-    if keyword:
-        queryset = queryset.filter(suministros__icontains=keyword)
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="solicitudes_report.pdf"'
-
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=60, leftMargin=60, topMargin=60, bottomMargin=60)
-    elements = []
-
-    styles = getSampleStyleSheet()
-    style_normal = styles['BodyText']
-    style_normal.fontSize = 9
-    style_heading = styles['Heading2']
-    style_heading.alignment = 1  # Alineación al centro
-    style_heading.fontSize = 12
-
-    elements.append(Paragraph('<b>REPORTE DE SOLICITUDES</b>', style_heading))
-    elements.append(Spacer(1, 20))
-
-    # Datos de la tabla
-    solicitudes_data = [['#OT', 'Centro de costos', 'Solicitante', 'Estado', 'Suministros', 'Fechas']]
-    for solicitud in queryset:
-        ot_display = solicitud.ot.num_ot if solicitud.ot else "Consumibles/Repuestos/Herramientas"
-        fechas = f"Solicitado: {solicitud.creation_date.strftime('%d/%m/%Y')}"
-        if solicitud.approval_date:
-            fechas += f", Aprobado: {solicitud.approval_date.strftime('%d/%m/%Y')}"
-        if solicitud.sc_change_date:
-            fechas += f", Tramitado: {solicitud.sc_change_date.strftime('%d/%m/%Y')}"
-
-        row = [
-            Paragraph(str(ot_display), style_normal),
-            Paragraph(solicitud.asset.name if solicitud.asset else '---', style_normal),
-            Paragraph(f"{solicitud.solicitante.first_name} {solicitud.solicitante.last_name}", style_normal),
-            Paragraph('Aprobado' if solicitud.approved else 'No aprobado', style_normal),
-            Paragraph(solicitud.suministros, style_normal),
-            Paragraph(fechas, style_normal)
-        ]
-        solicitudes_data.append(row)
-
-    table = Table(solicitudes_data, colWidths=[0.9 * inch, 1.2 * inch, 1.5 * inch, 1 * inch, 2.2 * inch, 1.5 * inch], repeatRows=1)
-    table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),  # Líneas más delgadas y menos negras
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),  # Texto del encabezado en negro
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 5),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('FONTSIZE', (0, 0), (-1, -1), 9)
-    ]))
-    elements.append(table)
-
-    doc.build(elements)
-    pdf = buffer.getvalue()
-    buffer.close()
-    response.write(pdf)
-    return response
-
-
-class CreateSolicitudOt(LoginRequiredMixin, View):
-    template_name = 'got/solicitud/create-solicitud-ot.html'
-
-    def get(self, request, asset_id, ot_num=None):
-        asset = get_object_or_404(Asset, abbreviation=asset_id)
-        ot = None if not ot_num else get_object_or_404(Ot, num_ot=ot_num)
-        items = Item.objects.all()
-
-        return render(request, self.template_name, {
-            'ot': ot,
-            'asset': asset,
-            'items': items
-        })
-
-    def post(self, request, asset_id, ot_num=None):
-            asset = get_object_or_404(Asset, abbreviation=asset_id)
-            ot = None if not ot_num else get_object_or_404(Ot, num_ot=ot_num)
-            items_ids = request.POST.getlist('item_id[]') 
-            cantidades = request.POST.getlist('cantidad[]')
-            suministros = request.POST.get('suministros', '')
-
-            solicitud = Solicitud.objects.create(
-                solicitante=request.user,
-                ot=ot,
-                asset=asset,
-                suministros=suministros
-            )
-
-            for item_id, cantidad in zip(items_ids, cantidades):
-                if item_id and cantidad:
-                    item = get_object_or_404(Item, id=item_id)
-                    Suministro.objects.create(
-                        item=item,
-                        cantidad=int(cantidad),
-                        Solicitud=solicitud
-                    )
-            return redirect('got:my-tasks')
-
-
-class EditSolicitudView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
-        solicitud = get_object_or_404(Solicitud, pk=kwargs['pk'])
-        suministros = request.POST.get('suministros')
-        if suministros:
-            solicitud.suministros = suministros
-            solicitud.save()
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
-    
-
-class ApproveSolicitudView(LoginRequiredMixin, View):
-    def get(self, request, *args, **kwargs):
-        solicitud = Solicitud.objects.get(id=kwargs['pk'])
-        solicitud.approved = not solicitud.approved
-        solicitud.save()
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
-    
-
-@receiver(post_save, sender=Solicitud)
-def send_email_on_new_solicitud(sender, instance, created, **kwargs):
-    if created:
-        suministros = Suministro.objects.filter(Solicitud=instance)
-        suministros_list = "\n".join([f"{suministro.item}: {suministro.cantidad}" for suministro in suministros])
-        subject = f'Nueva Solicitud de Suministros: {instance}'
-        message = f'''
-        Ha sido creada una nueva solicitud de suministros:
-        Fecha de solicitud: {instance.creation_date.strftime("%d/%m/%Y")}
-        Solicitante: {instance.solicitante.get_full_name()}
-        Orden de trabajo: {instance.ot if instance.ot else "N/A"}
-        Centro de costos: {instance.asset.name if instance.asset else "N/A"}
-        Detalles de los Suministros Solicitados: 
-        
-        {instance.suministros}
-        {suministros_list}
-
-        '''
-        recipient_list = ['c.mantenimiento@serport.co']
-        send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
-    
-
-@login_required
-def update_sc(request, pk):
-    if request.method == 'POST':
-        solicitud = get_object_or_404(Solicitud, pk=pk)
-        num_sc = request.POST.get('num_sc')
-        solicitud.num_sc = num_sc
-        solicitud.save()
-        return redirect('got:rq-list')
-    return redirect('got:rq-list') 
-
-
-@login_required
-def cancel_sc(request, pk):
-    if request.method == 'POST':
-        solicitud = get_object_or_404(Solicitud, pk=pk)
-        reason = request.POST.get('cancel_reason')
-        solicitud.cancel_reason = reason
-        solicitud.cancel = True
-        solicitud.save()
-        return redirect('got:rq-list')
-    return redirect('got:rq-list') 
-
-
+ 
 class AssetsListView(LoginRequiredMixin, generic.ListView):
 
     model = Asset
@@ -587,7 +332,9 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
 
         try:
             equipment = Equipo.objects.get(code=view_type)
+            transferencias = Transferencia.objects.filter(equipo=equipment).order_by('-fecha')
             context['equipo'] = equipment
+            context['transferencias'] = transferencias
             context['suministros'] = Suministro.objects.filter(equipo=equipment)
         except Equipo.DoesNotExist:
             equipments = Equipo.objects.filter(system=system, subsystem=view_type)
@@ -2188,3 +1935,297 @@ class SalidaDetailView(LoginRequiredMixin, generic.DetailView):
     model = Preoperacional
     template_name = 'got/preoperacional/salida_detail.html'
 
+
+def asset_suministros_report(request, abbreviation):
+    asset = get_object_or_404(Asset, abbreviation=abbreviation)
+    suministros = Suministro.objects.filter(asset=asset)
+
+    ultima_fecha_transaccion = TransaccionSuministro.objects.filter(
+        suministro__asset=asset
+    ).aggregate(Max('fecha'))['fecha__max'] or "---"
+
+    if request.method == 'POST':
+        for suministro in suministros:
+            cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
+            cantidad_ingresada = int(request.POST.get(f'ingresado_{suministro.id}', 0))
+            
+            suministro.cantidad -= cantidad_consumida
+            suministro.cantidad += cantidad_ingresada
+            suministro.save()
+            TransaccionSuministro.objects.create(
+                suministro=suministro,
+                cantidad_ingresada=cantidad_ingresada,
+                cantidad_consumida=cantidad_consumida,
+                usuario=request.user
+            )
+        return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
+
+    return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros, 'ultima_fecha_transaccion': ultima_fecha_transaccion})
+
+
+class SolicitudesListView(LoginRequiredMixin, generic.ListView):
+    
+    model = Solicitud
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['assets'] = Asset.objects.all()
+
+        asset_filter = self.request.GET.get('asset')
+        context['asset'] = Asset.objects.filter(abbreviation=asset_filter).first() if asset_filter else None
+
+        context['current_asset'] = self.request.GET.get('asset', '')
+        context['current_state'] = self.request.GET.get('state', '')
+        context['current_keyword'] = self.request.GET.get('keyword', '')
+        return context
+
+    def get_queryset(self):
+        queryset = Solicitud.objects.all()
+        state = self.request.GET.get('state')
+        asset_filter = self.request.GET.get('asset')
+
+        if asset_filter:
+            queryset = queryset.filter(asset__abbreviation=asset_filter)
+
+        if self.request.user.groups.filter(name='maq_members').exists():
+            supervised_assets = Asset.objects.filter(
+                supervisor=self.request.user)
+            queryset = queryset.filter(asset__in=supervised_assets)
+
+        keyword = self.request.GET.get('keyword')
+        if keyword:
+            queryset = queryset.filter(suministros__icontains=keyword)
+
+        if state == 'no_aprobada':
+            queryset = queryset.filter(approved=False, cancel=False)
+        elif state == 'aprobada':
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=True, cancel=False)
+        elif state == 'tramitado':
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=False, cancel=False)
+        elif state == 'cancel':
+            queryset = queryset.filter(cancel=True)
+
+        return queryset
+    
+
+def download_pdf(request):
+    state = request.GET.get('state', '')
+    asset_filter = request.GET.get('asset', '')
+    keyword = request.GET.get('keyword', '')
+
+    queryset = Solicitud.objects.all()
+    if asset_filter:
+        queryset = queryset.filter(asset__abbreviation=asset_filter)
+
+    if state:
+        if state == 'no_aprobada':
+            queryset = queryset.filter(approved=False)
+        elif state == 'aprobada':
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=True)
+        elif state == 'tramitado':
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=False)
+
+    if keyword:
+        queryset = queryset.filter(suministros__icontains=keyword)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="solicitudes_report.pdf"'
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=60, leftMargin=60, topMargin=60, bottomMargin=60)
+    elements = []
+
+    styles = getSampleStyleSheet()
+    style_normal = styles['BodyText']
+    style_normal.fontSize = 9
+    style_heading = styles['Heading2']
+    style_heading.alignment = 1  # Alineación al centro
+    style_heading.fontSize = 12
+
+    elements.append(Paragraph('<b>REPORTE DE SOLICITUDES</b>', style_heading))
+    elements.append(Spacer(1, 20))
+
+    # Datos de la tabla
+    solicitudes_data = [['#OT', 'Centro de costos', 'Solicitante', 'Estado', 'Suministros', 'Fechas']]
+    for solicitud in queryset:
+        ot_display = solicitud.ot.num_ot if solicitud.ot else "Consumibles/Repuestos/Herramientas"
+        fechas = f"Solicitado: {solicitud.creation_date.strftime('%d/%m/%Y')}"
+        if solicitud.approval_date:
+            fechas += f", Aprobado: {solicitud.approval_date.strftime('%d/%m/%Y')}"
+        if solicitud.sc_change_date:
+            fechas += f", Tramitado: {solicitud.sc_change_date.strftime('%d/%m/%Y')}"
+
+        row = [
+            Paragraph(str(ot_display), style_normal),
+            Paragraph(solicitud.asset.name if solicitud.asset else '---', style_normal),
+            Paragraph(f"{solicitud.solicitante.first_name} {solicitud.solicitante.last_name}", style_normal),
+            Paragraph('Aprobado' if solicitud.approved else 'No aprobado', style_normal),
+            Paragraph(solicitud.suministros, style_normal),
+            Paragraph(fechas, style_normal)
+        ]
+        solicitudes_data.append(row)
+
+    table = Table(solicitudes_data, colWidths=[0.9 * inch, 1.2 * inch, 1.5 * inch, 1 * inch, 2.2 * inch, 1.5 * inch], repeatRows=1)
+    table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),  # Líneas más delgadas y menos negras
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),  # Texto del encabezado en negro
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('FONTSIZE', (0, 0), (-1, -1), 9)
+    ]))
+    elements.append(table)
+
+    doc.build(elements)
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+    return response
+
+
+class CreateSolicitudOt(LoginRequiredMixin, View):
+    template_name = 'got/solicitud/create-solicitud-ot.html'
+
+    def get(self, request, asset_id, ot_num=None):
+        asset = get_object_or_404(Asset, abbreviation=asset_id)
+        ot = None if not ot_num else get_object_or_404(Ot, num_ot=ot_num)
+        items = Item.objects.all()
+
+        return render(request, self.template_name, {
+            'ot': ot,
+            'asset': asset,
+            'items': items
+        })
+
+    def post(self, request, asset_id, ot_num=None):
+            asset = get_object_or_404(Asset, abbreviation=asset_id)
+            ot = None if not ot_num else get_object_or_404(Ot, num_ot=ot_num)
+            items_ids = request.POST.getlist('item_id[]') 
+            cantidades = request.POST.getlist('cantidad[]')
+            suministros = request.POST.get('suministros', '')
+
+            solicitud = Solicitud.objects.create(
+                solicitante=request.user,
+                ot=ot,
+                asset=asset,
+                suministros=suministros
+            )
+
+            for item_id, cantidad in zip(items_ids, cantidades):
+                if item_id and cantidad:
+                    item = get_object_or_404(Item, id=item_id)
+                    Suministro.objects.create(
+                        item=item,
+                        cantidad=int(cantidad),
+                        Solicitud=solicitud
+                    )
+            return redirect('got:my-tasks')
+
+
+class EditSolicitudView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        solicitud = get_object_or_404(Solicitud, pk=kwargs['pk'])
+        suministros = request.POST.get('suministros')
+        if suministros:
+            solicitud.suministros = suministros
+            solicitud.save()
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    
+
+class ApproveSolicitudView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        solicitud = Solicitud.objects.get(id=kwargs['pk'])
+        solicitud.approved = not solicitud.approved
+        solicitud.save()
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    
+
+# @receiver(post_save, sender=Solicitud)
+# def send_email_on_new_solicitud(sender, instance, created, **kwargs):
+#     if created:
+#         suministros = Suministro.objects.filter(Solicitud=instance)
+#         suministros_list = "\n".join([f"{suministro.item}: {suministro.cantidad}" for suministro in suministros])
+#         subject = f'Nueva Solicitud de Suministros: {instance}'
+#         message = f'''
+#         Ha sido creada una nueva solicitud de suministros:
+#         Fecha de solicitud: {instance.creation_date.strftime("%d/%m/%Y")}
+#         Solicitante: {instance.solicitante.get_full_name()}
+#         Orden de trabajo: {instance.ot if instance.ot else "N/A"}
+#         Centro de costos: {instance.asset.name if instance.asset else "N/A"}
+#         Detalles de los Suministros Solicitados: 
+        
+#         {instance.suministros}
+#         {suministros_list}
+
+#         '''
+#         recipient_list = ['c.mantenimiento@serport.co']
+#         send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
+    
+
+@login_required
+def update_sc(request, pk):
+    if request.method == 'POST':
+        solicitud = get_object_or_404(Solicitud, pk=pk)
+        num_sc = request.POST.get('num_sc')
+        solicitud.num_sc = num_sc
+        solicitud.save()
+        return redirect('got:rq-list')
+    return redirect('got:rq-list') 
+
+
+@login_required
+def cancel_sc(request, pk):
+    if request.method == 'POST':
+        solicitud = get_object_or_404(Solicitud, pk=pk)
+        reason = request.POST.get('cancel_reason')
+        solicitud.cancel_reason = reason
+        solicitud.cancel = True
+        solicitud.save()
+        return redirect('got:rq-list')
+    return redirect('got:rq-list')
+
+
+@login_required
+def transferir_equipo(request, equipo_id):
+    equipo = get_object_or_404(Equipo, pk=equipo_id)
+    if request.method == 'POST':
+        form = TransferenciaForm(request.POST)
+        if form.is_valid():
+            nuevo_sistema = form.cleaned_data['destino']
+            observaciones = form.cleaned_data['observaciones']
+            
+            # Guarda el sistema de origen antes de cambiarlo
+            sistema_origen = equipo.system
+            
+            # Actualiza el sistema del equipo
+            equipo.system = nuevo_sistema
+            equipo.save()
+
+            rutas = Ruta.objects.filter(equipo=equipo)
+            for ruta in rutas:
+                ruta.system = nuevo_sistema
+                ruta.save()
+            
+            # Crea el registro de la transferencia
+            Transferencia.objects.create(
+                equipo=equipo,
+                responsable=f"{request.user.first_name} {request.user.last_name}",
+                origen=sistema_origen,
+                destino=nuevo_sistema,
+                observaciones=observaciones
+            )
+            
+            # Redirige a la página de detalles del nuevo sistema
+            return redirect(nuevo_sistema.get_absolute_url())
+    else:
+        form = TransferenciaForm()
+
+    context = {
+        'form': form,
+        'equipo': equipo
+    }
+    return render(request, 'got/transferencia-equipo.html', context)
