@@ -92,6 +92,7 @@ class SolicitudAdmin(admin.ModelAdmin):
     list_filter = ('approved', 'creation_date', 'solicitante', 'asset')
     search_fields = ('solicitante__username', 'ot__description', 'asset__name', 'num_sc')
     date_hierarchy = 'creation_date'
+    readonly_fields = ('creation_date',)
 
     fieldsets = (
         (None, {
