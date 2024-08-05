@@ -30,41 +30,41 @@ class OtAdmin(admin.ModelAdmin):
         )
 
 
-@admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
-    list_display = (
-        'ot',
-        'responsible',
-        'description',
-        'start_date',
-        'is_overdue'
-    )
+# @admin.register(Task)
+# class TaskAdmin(admin.ModelAdmin):
+#     list_display = (
+#         'ot',
+#         'responsible',
+#         'description',
+#         # 'start_date',
+#         # 'is_overdue'
+#     )
 
-    list_filter = (
-        'start_date', 'finished'
-    )
+#     list_filter = (
+#         'start_date', 'finished'
+#     )
 
-    search_fields = (
-        'ot_description', 'description', 'responsible_username'
-    )
+#     search_fields = (
+#         'ot_description', 'description', 'responsible_username'
+#     )
 
-    date_hierarchy = 'start_date'
+#     date_hierarchy = 'start_date'
 
-    fieldsets = (
-        (None, {
-            'fields': (
-                'ot',
-                'responsible',
-                'description',
-                'news',
-                'evidence',
-                'start_date'
-            )
-        }),
-        ('Timing', {
-            'fields': ('men_time', 'finished')
-        }),
-    )
+#     fieldsets = (
+#         (None, {
+#             'fields': (
+#                 'ot',
+#                 'responsible',
+#                 'description',
+#                 'news',
+#                 'evidence',
+#                 'start_date'
+#             )
+#         }),
+#         ('Timing', {
+#             'fields': ('men_time', 'finished')
+#         }),
+#     )
 
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'cargo', 'firma')

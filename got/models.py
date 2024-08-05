@@ -229,7 +229,7 @@ class Equipo(models.Model):
         return last_report.report_date if last_report else None
 
     def __str__(self):
-        return f"{self.name}"
+        return f"{self.system.asset} - {self.name}"
 
     class Meta:
         ordering = ['name', 'code']
