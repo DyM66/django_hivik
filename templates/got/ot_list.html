@@ -37,11 +37,11 @@
                 Estado
             </button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Todos</a></li>
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=a">Abierto</a></li>
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=x">En ejecucion</a></li>
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=f">Finalizado</a></li>
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=c">Cancelado</a></li>
+                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}&?asset_id={{ some_asset_id }}">Todos</a></li>
+                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=a&?asset_id={{ some_asset_id }}">Abierto</a></li>
+                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=x&asset_id={{ a.abbreviation }}">En ejecucion</a></li>
+                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=f&asset_id={{ a.abbreviation }}">Finalizado</a></li>
+                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=c&asset_id={{ a.abbreviation }}">Cancelado</a></li>
             </ul>
         </div>
 

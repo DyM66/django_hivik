@@ -31,7 +31,6 @@ from .forms import (
 
 )
 
-
 from datetime import timedelta, date, datetime
 from collections import defaultdict
 from xhtml2pdf import pisa

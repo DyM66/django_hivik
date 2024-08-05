@@ -128,7 +128,9 @@
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <img src="{{ suministro.item.imagen.url }}" alt="Imagen de {{ suministro.item.name }}" class="img-fluid">
+                                                {% if suministro.item.imagen %}
+                                                    <img src="{{ suministro.item.imagen.url }}" alt="Imagen de {{ suministro.item.name }}" class="img-fluid">
+                                                {% endif %}
                                                 <p>Referencia: {{ suministro.item.reference }}</p>
                                                 <p>Presentación: {{ suministro.item.presentacion }}</p>
                                                 <p>Código: {{ suministro.item.code }}</p>
