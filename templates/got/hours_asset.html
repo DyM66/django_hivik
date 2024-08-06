@@ -46,16 +46,21 @@
 {% block content %}
 
 {% if not asset.area == 'v' %}
-
-{% endif %}
-
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
     <button class="btn btn-primary" type="submit">Guardar</button>
 </form>
+{% endif %}
 
+
+
+{% if not asset.area == 'v' %}
 <h3 class="mt-4">Horometro actual</h3>
+{% else %}
+<h3 class="mt-4">Kilometraje actual</h3>
+{% endif %}
+
 
 <div class="scrollable">
 	<table>

@@ -4,7 +4,7 @@ from django.contrib.auth.models import User, Group
 from .models import (
     Task, Ot, System, Equipo, Ruta, HistoryHour, FailureReport, Operation, Asset, Location, Document,
     Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro,
-    Preoperacional, TransaccionSuministro, PreoperacionalDiario, Transferencia
+    Preoperacional, TransaccionSuministro, PreoperacionalDiario, Transferencia, DarBaja
     )
 
 from django.forms import modelformset_factory
@@ -1175,4 +1175,10 @@ class TransferenciaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['destino'].label_from_instance = lambda obj: f"{obj.asset.name} - {obj.name}"
 
+
+class DarBajaForm(forms.ModelForm):
+
+    class Meta:
+        model = DarBaja
+        fields = ['motivo', 'observaciones', 'disposicion', 'firma_responsable', 'firma_autorizado']
 

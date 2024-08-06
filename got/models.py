@@ -864,13 +864,13 @@ class DarBaja(models.Model):
     observaciones = models.TextField()
     disposicion = models.TextField()
     firma_responsable = models.ImageField(upload_to=get_upload_path)
-    firma_autorizado = models.CharField(max_length=100)
+    firma_autorizado = models.ImageField(upload_to=get_upload_path)
 
     class Meta:
         ordering = ['-fecha']
 
     def __str__(self):
-        return f"{self.equipo} - {self.fecha}"
+        return f"{self.activo}/{self.equipo} - {self.fecha}"
     
 
 class Image(models.Model):
