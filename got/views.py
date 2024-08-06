@@ -697,12 +697,25 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
             for file in request.FILES.getlist('file_field'):
                 Image.objects.create(task=task, image=file)
 
-
         state_form = FinishOtForm(request.POST)
 
         if 'finish_ot' in request.POST and state_form.is_valid():
             self.object.state = 'f'
             signature_data = request.POST.get('sign_supervisor')
+
+            rutas_relacionadas = Ruta.objects.filter(ot=ot)
+            for ruta in rutas_relacionadas:
+                self.actualizar_rutas_dependientes(ruta)
+
+            fallas_relacionadas = FailureReport.objects.filter(related_ot=ot)
+            for fail in fallas_relacionadas:
+                fail.closed = True
+                fail.save()
+
+            # supervisor = ot.system.asset.supervisor
+            # if supervisor and supervisor.email:
+            #     supervisor_email = supervisor.email
+
             if signature_data:
                 format, imgstr = signature_data.split(';base64,')
                 ext = format.split('/')[-1]
@@ -711,55 +724,42 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
                 self.object.sign_supervision.save(filename, data, save=True)
                 self.object.save()
 
-            rutas_relacionadas = Ruta.objects.filter(ot=ot)
-            for ruta in rutas_relacionadas:
-                self.actualizar_rutas_dependientes(ruta)
-
-
-            fallas_relacionadas = FailureReport.objects.filter(related_ot=ot)
-            for fail in fallas_relacionadas:
-                fail.closed = True
-
-            supervisor = ot.system.asset.supervisor
-            if supervisor and supervisor.email:
-                supervisor_email = supervisor.email
-
                 # Enviar correo electrónico al finalizar la OT
-                subject = f'Orden de Trabajo {ot.num_ot} Finalizada'
-                message = render_to_string('got/ot_finished_email.txt', {'ot': ot})
-                from_email = settings.EMAIL_HOST_USER
-                to_email = supervisor_email
+                # subject = f'Orden de Trabajo {ot.num_ot} Finalizada'
+                # message = render_to_string('got/ot_finished_email.txt', {'ot': ot})
+                # from_email = settings.EMAIL_HOST_USER
+                # to_email = supervisor_email
 
-                email = EmailMessage(
-                    subject, message, from_email, [to_email]
-                    )
+                # email = EmailMessage(
+                #     subject, message, from_email, [to_email]
+                #     )
 
-                # Adjuntar el PDF al correo
-                pdf_content_dynamic = self.generate_pdf_content(ot)
-                pdf_filename_dynamic = f'OT_{ot.num_ot}_Detalle.pdf'
-                email.attach(
-                    pdf_filename_dynamic,
-                    pdf_content_dynamic,
-                    'application/pdf'
-                    )
+                # # Adjuntar el PDF al correo
+                # pdf_content_dynamic = self.generate_pdf_content(ot)
+                # pdf_filename_dynamic = f'OT_{ot.num_ot}_Detalle.pdf'
+                # email.attach(
+                #     pdf_filename_dynamic,
+                #     pdf_content_dynamic,
+                #     'application/pdf'
+                #     )
 
                 # Adjuntar el PDF almacenado en el campo info_contratista_pdf
-                if ot.info_contratista_pdf:
-                    pdf_filename_stored = f'OT_{ot.num_ot}_Contratista.pdf'
-                    email.attach(
-                        pdf_filename_stored,
-                        ot.info_contratista_pdf.read(),
-                        'application/pdf'
-                        )
+                # if ot.info_contratista_pdf:
+                #     pdf_filename_stored = f'OT_{ot.num_ot}_Contratista.pdf'
+                #     email.attach(
+                #         pdf_filename_stored,
+                #         ot.info_contratista_pdf.read(),
+                #         'application/pdf'
+                #         )
 
-                try:
-                    # Preparar y enviar el correo electrónico
-                    email.send()
-                except smtplib.SMTPSenderRefused as e:
-                    # Manejar adecuadamente el error
-                    logger.error(f"Error al enviar correo: {str(e)}")
-                    messages.error(request, "No se pudo enviar el correo. El tamaño del mensaje excede el límite permitido.")
-                    return redirect(ot.get_absolute_url())
+                # try:
+                #     # Preparar y enviar el correo electrónico
+                #     email.send()
+                # except smtplib.SMTPSenderRefused as e:
+                #     # Manejar adecuadamente el error
+                #     logger.error(f"Error al enviar correo: {str(e)}")
+                #     messages.error(request, "No se pudo enviar el correo. El tamaño del mensaje excede el límite permitido.")
+                #     return redirect(ot.get_absolute_url())
 
             return redirect(ot.get_absolute_url())
 
