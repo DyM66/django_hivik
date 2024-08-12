@@ -811,7 +811,6 @@ class OtCreate(CreateView):
     def form_valid(self, form):
         ot = form.save(commit=False)
 
-
         # signature_data = self.request.POST.get('sign_supervisor')
         # print("Datos recibidos para la firma:", signature_data)
         # if signature_data:
@@ -1966,6 +1965,7 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
     
     model = Solicitud
     paginate_by = 20
+    template_name = 'got/solicitud/solicitud_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2228,3 +2228,21 @@ def transferir_equipo(request, equipo_id):
         'equipo': equipo
     }
     return render(request, 'got/transferencia-equipo.html', context)
+
+
+def render_to_pdf(template_src, context_dict={}):
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    if not pdf.err:
+        return HttpResponse(result.getvalue(), content_type='application/pdf')
+    return None
+
+
+
+
+def detalle_pdf(request, pk):
+    registro = Solicitud.objects.get(pk=pk)
+    context = {'rq': registro}
+    return render_to_pdf('got/solicitud/solicitud_detail.html', context)

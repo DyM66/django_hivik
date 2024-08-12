@@ -44,7 +44,9 @@
         
         <h2>Equipos en el Sistema</h2>
         {% for equipo in system.equipos.all %}
+        {% if equipo.imagen %}
         <img src="{{ equipo.imagen.url }}" alt="{{ equipo.name }}" width="500px">
+        {% endif %}
         {% endfor %}
         <ul>
             {% for equipo in system.equipos.all %}

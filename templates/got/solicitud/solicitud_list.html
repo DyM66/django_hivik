@@ -110,7 +110,8 @@
                 
                 <tr>
                     <td data-cell="Solicitud" colspan="2">
-                        {{ rq.suministros|linebreaks }}
+                        {{ rq.suministros|linebreaks }} 
+                        <a href="{% url 'got:solicitud_pdf' rq.id %}">Descargar</a>
                         <br>
                         {% if rq.cancel %}
                             <strong>{{ rq.cancel_reason|linebreaks }}</strong>

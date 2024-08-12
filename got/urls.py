@@ -103,4 +103,6 @@ urlpatterns = [
     path('asset/<str:abbreviation>/suministros/', views.asset_suministros_report, name='asset-suministros'),
     path('transferir-equipo/<str:equipo_id>/', views.transferir_equipo, name='transferir_equipo'),
 
+    path('detalle_pdf/<int:pk>/', views.detalle_pdf, name='solicitud_pdf'),
+
 ]

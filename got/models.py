@@ -285,8 +285,10 @@ class Ot(models.Model):
     num_ot = models.AutoField(primary_key=True)
     system = models.ForeignKey(System, on_delete=models.CASCADE)
     description = models.TextField()
+
     super = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     supervisor = models.CharField(max_length=100, null=True, blank=True)
+
     state = models.CharField(choices=STATUS, default='x', max_length=1)
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
     info_contratista_pdf = models.FileField(upload_to=get_upload_path,null=True, blank=True)
@@ -369,14 +371,12 @@ class Ruta(models.Model):
         if self.control == 'd':
             percent = int((days_remaining / self.frecuency) * 100)
         elif self.control == 'h':
-            
             hours_period = (self.equipo.hours.filter(
                     report_date__gte=self.intervention_date,
                     report_date__lte=date.today()
                 ).aggregate(total_hours=Sum('hour'))['total_hours']) or 0
             inv = self.frecuency - hours_period
             percent = int((inv / self.frecuency) * 100)
-
         else: 
             percent = 0
         return percent
@@ -417,7 +417,9 @@ class Task(models.Model):
     procedimiento = models.TextField(default="", blank=True, null=True)
     hse = models.TextField(default="", blank=True, null=True)
     news = models.TextField(blank=True, null=True)
+    
     evidence = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+    
     priority = models.IntegerField(default=0, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     men_time = models.IntegerField(default=0)

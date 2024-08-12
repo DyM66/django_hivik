@@ -1,0 +1,62 @@
+<html>
+<head>
+    <style>
+        /* @font-face {
+            font-family: 'Roboto Mono';
+            src: url('https://hivik.s3.us-east-2.amazonaws.com/static/Roboto_Mono/static/RobotoMono-Regular.ttf') format('truetype');
+        } */
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 16px;
+        }
+
+        .container {
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        tr {
+            padding: 4px;
+        }
+
+        th {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>REPORTE DE COMPRA/SERVICIO</h1>
+
+        <table >
+            <tr>
+                <th><strong>Centros de costos:</strong></th>
+                <td>{{ rq.asset.get_area_display }} - {{ rq.asset }}</td>
+            </tr>
+            <tr>
+                <th>Justificación:</th>
+                <td>{% if rq.ot %}Orden de trabajo OT{{ rq.ot }}{% else %}Consumibles/ Repuestos/ Herramientas{% endif %}</td>
+            </tr>
+            <tr>
+                <th><strong>Solicitante: </strong></th>
+                <td>{{ rq.solicitante.first_name }} {{ rq.solicitante.last_name }}</td>
+            </tr>
+            <tr>
+                <th><strong>Fecha de solicitud:</strong></th>
+                <td>{{ rq.creation_date }}</td>
+            </tr>
+            <!-- <tr>
+                <td style="border-left: none;" colspan="2"></td>
+            </tr> -->
+
+            <tr>
+                <th colspan="2" style="text-align: center;">Descripción de solicitud</th>
+            </tr>
+            <tr>
+                <td colspan="2">{{ rq.suministros|linebreaks }}</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
