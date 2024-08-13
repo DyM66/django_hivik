@@ -1,5 +1,6 @@
 <html>
 <head>
+    <meta charset="UTF-8">
     <style>
         /* @font-face {
             font-family: 'Roboto Mono';
@@ -8,7 +9,7 @@
 
         body {
             font-family: 'Roboto Mono', monospace;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .container {
@@ -17,44 +18,115 @@
         }
 
         tr {
-            padding: 4px;
+            padding: 5px;
         }
 
         th {
             text-align: left;
+            vertical-align: top;
         }
+
+        ul {
+            list-style: none;
+            list-style-type: none;
+        }
+        
+
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>REPORTE DE COMPRA/SERVICIO</h1>
+        <table style="border: 0.2px solid #000;">
+            <tr>
+                <th>
+                    <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" style="width: 180px; height: auto;">
+                </th>
+                <th style="text-align: center; width: 300px; vertical-align: center;">
+                    <h2 style="font-weight: bolder;">REPORTE DE COMPRA/SERVICIO</h2>
+                </th>
+                <th style="text-align: center;">
+                    Código:
+                </th>
+            </tr>
+        </table>
+        
+        <br>
+        <table style="border: 0.2px solid #000;">
+            <tr>
+                <th>
+                    <strong>Centro de costo:</strong>
+                    <ul>
+                        <li>{{ rq.asset }}</li>
+                    </ul>
+                </th>
+                <th>
+                    Justificación:
+                    <ul>
+                        <li>{% if rq.ot %}Orden de trabajo OT{{ rq.ot }}{% else %}Consumibles/ Repuestos/ Herramientas{% endif %}</li>
+                    </ul> 
+                </th>
+                <th>
+                    Sistema:
+                    <li>
+                        <ol>{{ rq.ot.system.name }}</ol>
+                    </li> 
+                </th>
 
-        <table >
-            <tr>
-                <th><strong>Centros de costos:</strong></th>
-                <td>{{ rq.asset.get_area_display }} - {{ rq.asset }}</td>
             </tr>
             <tr>
-                <th>Justificación:</th>
-                <td>{% if rq.ot %}Orden de trabajo OT{{ rq.ot }}{% else %}Consumibles/ Repuestos/ Herramientas{% endif %}</td>
+                <th>
+                    <strong>Solicitante:</strong>
+                    <li>
+                        <ol>{{ rq.solicitante.first_name }} {{ rq.solicitante.last_name }}</ol>
+                    </li> 
+                </th>
+                <th>
+                    <strong>Cargo:</strong>
+                    <li>
+                        <ol>{{ rq.solicitante.profile.cargo }}</ol>
+                    </li> 
+                </th>
+                <th>
+                    Fecha de creación:
+                    <li>
+                        <ol>{{ rq.creation_date }}</ol>
+                    </li> 
+                </th>
+            </tr>
+        </table>    
+        <br>
+        <table style="border: #000 0.2px solid;">
+            <tr>
+                <th colspan="2" style="text-align: center; padding-bottom: 0;">
+                    <h3 style="font-weight: bolder;">Descripción de solicitud</h3>
+                </th>
             </tr>
             <tr>
-                <th><strong>Solicitante: </strong></th>
-                <td>{{ rq.solicitante.first_name }} {{ rq.solicitante.last_name }}</td>
-            </tr>
-            <tr>
-                <th><strong>Fecha de solicitud:</strong></th>
-                <td>{{ rq.creation_date }}</td>
-            </tr>
-            <!-- <tr>
-                <td style="border-left: none;" colspan="2"></td>
-            </tr> -->
+                <td colspan="2">
+                    {{ rq.suministros|linebreaks }}
+                    <ul>
+                        {% for i in rq.suministro_set.all %}
+                            <li>{{i}}</li>
+                        {% endfor %}
+                    </ul>
 
-            <tr>
-                <th colspan="2" style="text-align: center;">Descripción de solicitud</th>
+                </td>
             </tr>
-            <tr>
-                <td colspan="2">{{ rq.suministros|linebreaks }}</td>
+        </table>
+        <br>
+
+        <table style="font-size: 12px; border: 0.2px solid #000;">
+            <tr style="padding-bottom: 0;">
+                <th>Aprobado por:</th>
+                <th>Fecha de aprobación:</th>
+                <th>Tramitado:</th>
+                <th>Fecha de tramite:</th>
+            </tr>
+            <tr style="padding-bottom: 0;">
+                <td>{% if rq.approved %}Jader Aguilar{% else %}---{% endif %}</td>
+                <td>{% if rq.approved %}{{rq.approval_date|date:"d/m/Y H:i"}}{% else %}---{% endif %}</td>
+                <td>{% if rq.sc_change_date %}SC: {{ rq.num_sc }}{% else %}---{% endif %}</td>
+                <td>{% if rq.sc_change_date %}{{ rq.sc_change_date|date:"d/m/Y H:i" }}{% else %}---{% endif %}</td>
             </tr>
         </table>
     </div>

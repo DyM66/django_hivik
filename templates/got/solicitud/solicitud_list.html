@@ -89,6 +89,7 @@
 							</button>
                             {% if not rq.cancel %}
 							<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+								<li><a class="dropdown-item" href="{% url 'got:solicitud_pdf' rq.id %}">Ver detalle</a></li>
                                 {% if not rq.approved %}
                                     {% if perms.got.can_approve %}
 								        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editSolicitudModal{{ rq.id }}">Editar</a></li>
@@ -111,7 +112,6 @@
                 <tr>
                     <td data-cell="Solicitud" colspan="2">
                         {{ rq.suministros|linebreaks }} 
-                        <a href="{% url 'got:solicitud_pdf' rq.id %}">Descargar</a>
                         <br>
                         {% if rq.cancel %}
                             <strong>{{ rq.cancel_reason|linebreaks }}</strong>

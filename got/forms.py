@@ -387,10 +387,10 @@ class RutaForm(forms.ModelForm):
         control = cleaned_data.get('control')
         equipo = cleaned_data.get('equipo')
 
-        if control == 'h' and not equipo:
+        if (control == 'h' or control == 'k') and not equipo:
             self.add_error(
                 'equipo',
-                'Seleccionar un equipo es obligatorio para el control en horas'
+                'Seleccionar un equipo es obligatorio para el control en horas o kilometros'
                 )
         return cleaned_data
 

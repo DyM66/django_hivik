@@ -2240,8 +2240,6 @@ def render_to_pdf(template_src, context_dict={}):
     return None
 
 
-
-
 def detalle_pdf(request, pk):
     registro = Solicitud.objects.get(pk=pk)
     context = {'rq': registro}
