@@ -23,15 +23,17 @@
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'got:ot-create' asset.abbreviation %}">Nueva orden de trabajo</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link {% if not rotativos %}disabled{% endif %}" href="{% url 'got:horas-asset' asset.abbreviation %}">
-                    {% if asset.area == 'v' %}
-                        Reporte de kilometraje
-                    {% else %}
-                        Reporte de horas
-                    {% endif %}
-                </a>
-            </li>
+            {% if rotativos %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'got:horas-asset' asset.abbreviation %}">
+                        {% if asset.area == 'v' %}
+                            Reporte de kilometraje
+                        {% else %}
+                            Reporte de horas
+                        {% endif %}
+                    </a>
+                </li>
+            {% endif %}
             <li class="nav-item">
                 {% if asset.area == 'v' %}
                     <a class="nav-link" href="{% url 'got:preoperacional-consolidado' %}">Preoperacionales</a>
@@ -119,12 +121,11 @@
                         <td data-cell="Arqueo neto">{{asset.arqueo_neto}}</td>
                     </tr>
                 {% endif %}
-                </tbody>
-            </table>
-        </div>
+            </tbody>
+        </table>
+    </div>
 
     <div class="sistemas">
-        
         <table class="table-list table-detail">
             <thead>
                 <tr>
@@ -175,31 +176,29 @@
             </tbody>
         </table>
         
-            {% if page_obj.has_other_pages %}
-                <nav>
-                    <ul class="pagination">
-                        {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Anterior</a>
-                            </li>
+        {% if page_obj.has_other_pages %}
+            <nav>
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Anterior</a>
+                        </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><a href="#" class="page-link">{{ num }}</a></li>
+                        {% else %}
+                            <li class="page-item"><a href="?page={{ num }}" class="page-link">{{ num }}</a></li>
                         {% endif %}
-                    
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                                <li class="page-item active"><a href="#" class="page-link">{{ num }}</a></li>
-                            {% else %}
-                                <li class="page-item"><a href="?page={{ num }}" class="page-link">{{ num }}</a></li>
-                            {% endif %}
-                        {% endfor %}
-                    
-                        {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a href="?page={{ page_obj.next_page_number }}" class="page-link">Siguiente</a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a href="?page={{ page_obj.next_page_number }}" class="page-link">Siguiente</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
         
 
         <table class="table-list table-detail">

@@ -43,6 +43,7 @@ import logging
 import base64
 import uuid
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -210,8 +211,8 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
         combined_systems = (sys.union(other_asset_systems)).order_by('group')
         
-        current_month = datetime.now().month
-        current_year = datetime.now().year
+        current_date = datetime.now() 
+        next_date = current_date + relativedelta(months=1)
         month_names_es = {
             "January": "Enero",
             "February": "Febrero",
@@ -232,7 +233,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
         filtered_rutas = []
         for ruta in Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's']):
-            if (ruta.next_date.month <= current_month and ruta.next_date.year <= current_year) or (ruta.ot and ruta.ot.state == 'x'): # or (ruta.intervention_date.month == current_month and ruta.intervention_date.year == current_year)
+            if (ruta.next_date <= next_date.date()) or (ruta.ot and ruta.ot.state == 'x'): # or (ruta.intervention_date.month == current_month and ruta.intervention_date.year == current_year)
                 filtered_rutas.append(ruta)
 
         filtered_rutas.sort(key=lambda t: t.next_date)
