@@ -227,6 +227,22 @@ class Equipo(models.Model):
     def last_hour_report_date(self):
         last_report = self.hours.order_by('-report_date').first()
         return last_report.report_date if last_report else None
+    
+    @property
+    def ruta_proxima(self):
+        # Fetch all routes related to this equipment
+        rutas = self.equipos.all()
+
+        # Filter routes with a next date that is in the future
+        future_rutas = [ruta for ruta in rutas if ruta.next_date and ruta.next_date > date.today()]
+
+        if not future_rutas:
+            return None  # No upcoming routes
+
+        # Find the route with the nearest next_date
+        next_ruta = min(future_rutas, key=lambda ruta: ruta.next_date)
+
+        return next_ruta
 
     def __str__(self):
         return f"{self.system.asset} - {self.name}"

@@ -1587,7 +1587,7 @@ def generate_system_pdf_with_attachments(request, asset_id, system_id):
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="System_{system_id}_Asset_{asset_id}_with_attachments.pdf"'
-    template = get_template('got/system_pdf_with_attachments_template.html')
+    template = get_template('got/system_pdf_template.html')
     html = template.render(context)
     main_pdf = BytesIO()
     pisa_status = pisa.CreatePDF(html, dest=main_pdf)
@@ -2245,3 +2245,25 @@ def detalle_pdf(request, pk):
     registro = Solicitud.objects.get(pk=pk)
     context = {'rq': registro}
     return render_to_pdf('got/solicitud/solicitud_detail.html', context)
+
+def system_maintence_pdf(request, asset_id, system_id):
+    asset = get_object_or_404(Asset, pk=asset_id)
+    system = get_object_or_404(System, pk=system_id, asset=asset)
+
+    # rutas_data = []
+    # equipos = system.equipos.prefetch_related('rutas').all()
+    # for ruta in rutas:
+    #     tasks = ruta.task_set.all()
+    #     ot_pdfs = [task.ot.info_contratista_pdf for task in tasks if task.ot and task.ot.info_contratista_pdf]
+    #     rutas_data.append({
+    #         'ruta': ruta,
+    #         'tasks': tasks,
+    #         'ot_num': ruta.ot.num_ot if ruta.ot else 'N/A',
+    #         'ot_pdfs': ot_pdfs  # Lista de PDFs asociados
+    #     })
+
+    context = {
+        'asset': asset,
+        'system': system,
+    }
+    return render_to_pdf('got/system_pdf_template.html', context)

@@ -72,7 +72,7 @@ urlpatterns = [
     path('solicitud/update-sc/<int:pk>/', views.update_sc, name='update-sc'),
     path('solicitud/cancel-sc/<int:pk>/', views.cancel_sc, name='cancel-sc'),
 
-    path('system/<str:asset_id>/<int:system_id>/pdf/', views.generate_system_pdf_with_attachments, name='generate-system-pdf'),
+    path('system/<str:asset_id>/<int:system_id>/pdf/', views.system_maintence_pdf, name='generate-system-pdf'),
 
     path('nueva-solicitud/<str:asset_id>/', views.CreateSolicitudOt.as_view(), name='create-solicitud'),
     path('nueva-solicitud/<str:asset_id>/<int:ot_num>/', views.CreateSolicitudOt.as_view(), name='create-solicitud-ot'),
