@@ -53,10 +53,16 @@
         color: var(--color-primary);
         box-sizing: border-box;
     }
-    
+
     button.loading {
         background-color: #ccc;
         cursor: not-allowed;
+    }
+
+    .signature-pad {
+        border: 1px solid #000;
+        border-radius: 4px;
+        touch-action: none;
     }
 
     .status {
@@ -68,7 +74,7 @@
     }
 
     .red-strong {
-        color: red; /* O el código de color específico que prefieras */
+        color: red;
         font-weight: bold;
     }
 
@@ -262,7 +268,6 @@
     }
 
     .detail .title {
-        margin-top: 10px;
         grid-area: title;
     }
 
@@ -437,8 +442,6 @@
         /* letter-spacing: 0.5px; */
         /* text-transform: uppercase; */
     }
-
-    
 
     .terminar:hover {
         color: var(--color-secondary);

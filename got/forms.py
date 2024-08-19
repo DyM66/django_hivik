@@ -599,6 +599,7 @@ class DocumentForm(forms.ModelForm):
         model = Document
         fields = ['description', 'file']
         widgets = {
+            'description':forms.TextInput(attrs={'class': 'form-control'}),
             'file': forms.FileInput(attrs={'class': 'form-control'})
         }
         labels = {

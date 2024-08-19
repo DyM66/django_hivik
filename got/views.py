@@ -626,6 +626,7 @@ class OtListView(LoginRequiredMixin, generic.ListView):
 class OtDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = Ot
+    template_name = 'got/ots/ot_detail.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1948,6 +1949,9 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         context['current_asset'] = self.request.GET.get('asset', '')
         context['current_state'] = self.request.GET.get('state', '')
         context['current_keyword'] = self.request.GET.get('keyword', '')
+
+
+
         return context
 
     def get_queryset(self):
@@ -1977,6 +1981,20 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
             queryset = queryset.filter(cancel=True)
 
         return queryset
+    
+    def get_page_for_solicitud(self, solicitud_id):
+        queryset = self.get_queryset()
+        
+        # Encontrar la posición del registro
+        solicitud = queryset.filter(id=solicitud_id).first()
+        if not solicitud:
+            return None
+
+        solicitud_position = (list(queryset).index(solicitud) + 1)
+        
+        page_number = (solicitud_position // self.paginate_by) + 1
+        
+        return page_number
     
 
 def download_pdf(request):

@@ -2,19 +2,8 @@
 {% load my_tags %}
 
 {% block headtag %}
-<style>
-    .field-container {
-        margin-bottom: 20px;
-    }
-    .signature-pad {
-        border: 1px solid #000;
-        border-radius: 4px;
-        touch-action: none; /* Necesario para dispositivos táctiles */
-    }
-</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.2/signature_pad.umd.min.js"></script>
 {% endblock %}
-
 
 {% block content %}
 	<main class="detail">
@@ -22,16 +11,15 @@
         <div class="title">
             <h1>
                 {% if perms.got.view_ot %}
-                    <a href="{% url 'got:ot-list' %}?asset_id={{ ot.system.asset.abbreviation }}"><i class="bi bi-arrow-90deg-left add-more"></i></a>
+                    <a href="{% url 'got:ot-list' %}?asset_id={{ ot.system.asset.abbreviation }}">
+                        <i class="bi bi-arrow-90deg-left add-more"></i>
+                    </a>
                 {% endif %}
                 <a href="{% url 'got:asset-detail' ot.system.asset.abbreviation %}">{{ ot.system.asset }}/</a>
                 Orden de trabajo #{{ ot.num_ot }}
             </h1>
-
-            
         </div>
         
-
         <div class="ot-detail">
             <aside>
                 <div class="btn-group" role="group">
@@ -58,12 +46,6 @@
                             Finalizar OT
                         </button>
                     </div>
-                    <!-- <form style="display: inline;" method="post" action="{% url 'got:ot-detail' ot.num_ot %}">{% csrf_token %}
-                        <div class="btn-group" role="group">
-                            {{ state_form }}
-                            <button type="submit" class="btn btn-success" name="finish_ot">Finalizar</button>
-                        </div>
-                    </form> -->
                 {% endif %}
             </aside>
             
@@ -105,7 +87,11 @@
                 <thead>
                     <tr>
                         <th>Documentos</th>
-                        <th><button class="dropdown-item" class="add-sys" type="button" data-bs-toggle="modal" data-bs-target="#new_doc"><i class="bi bi-plus-circle add-sys"></i></button></th>
+                        <th>
+                            <button class="dropdown-item" class="add-sys" type="button" data-bs-toggle="modal" data-bs-target="#new_doc">
+                                <i class="bi bi-plus-circle add-sys"></i>Añadir
+                            </button>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -136,7 +122,7 @@
                         <div class="modal-body">
                             <form method="post" action="{% url 'got:ot-detail' ot.num_ot %}" enctype="multipart/form-data">{% csrf_token %}
                                 {{ doc_form }}
-                                <button type="submit" class="btn btn-primary submit-button" name="add-doc">Añadir</button>
+                                <button type="submit" class="btn btn-group btn-primary submit-button" name="add-doc">Añadir</button>
                             </form>
                         </div>
                     </div>
@@ -144,7 +130,6 @@
             </div>
         </div>
 
-    
         <div class="add-info">
             {% if failure or rutas %}
                 <table class="table-list table-detail">
@@ -209,73 +194,43 @@
                 </table>
             {% endif %} 
 
-            <table class="table-list table-detail">
-                <thead>
-                    <tr>
-                        <th class="add" colspan="2">
-                            Suministros/servicios
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in ot.solicitud_set.all %}
-                    <tr>
-                        <th>
-                            {{ item.creation_date|date:"d/m/Y" }}
-                        </th>
-                        <td>
-                            {{ item.suministros|linebreaks }}<br>
-                            {% for suministro in item.suministro_set.all %}
-                                {{ suministro.cantidad }} {{ suministro.item.presentacion }} {{ suministro.item.name }} {{ suministro.item.reference }} - {{ suministro.item.code }}<br>
-                            {% endfor %}
-                        </td>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% if ot.solicitud_set.all %}
+                <table class="table-list table-detail">
+                    <thead>
+                        <tr>
+                            <th class="add" colspan="2">
+                                Suministros/servicios
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in ot.solicitud_set.all %}
+                        <tr>
+                            <th>
+                                {{ item.creation_date|date:"d/m/Y" }}
+                            </th>
+                            <td>
+                                {% get_page item.id as page %}
+                                <a href="{% url 'got:rq-list' %}?page={{ page }}#{{ item.id }}">
+                                {{ item.suministros|linebreaks }}<br>
+                                {% for suministro in item.suministro_set.all %}
+                                    {{ suministro.cantidad }} {{ suministro.item.presentacion }} {{ suministro.item.name }} {{ suministro.item.reference }} - {{ suministro.item.code }}<br>
+                                {% endfor %}
+                                </a>
+                            </td>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
         </div>
 
-       <div class="tasks">     
+        <div class="tasks">     
             <aside>
                 {% if ot.state == 'x' %}
                     <div class="btn-group" role="group">
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#activityModal">
                             Crear Actividad
                         </button>
-                    </div>
-                {% endif %}
-
-                {% if has_electric_motors and request.user|has_group:"super_members" %}
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#electricMotorSelectionModal">
-                            Crear registro pueba Megger
-                        </button>
-                    </div>
-
-                    <!-- Modal para seleccionar un motor eléctrico -->
-                    <div class="modal fade" id="electricMotorSelectionModal" tabindex="-1" aria-labelledby="electricMotorSelectionModalLabel" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="electricMotorSelectionModalLabel">Seleccionar Motor Eléctrico</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form method="post" action="{% url 'got:create_megger' ot.num_ot %}">
-                                        {% csrf_token %}
-                                        <div class="list-group">
-                                            {% for equipo in electric_motors %}
-                                                <label class="list-group-item">
-                                                    <input type="radio" class="form-check-input me-1" name="equipo" value="{{ equipo.code }}" required>
-                                                    {{ equipo.name }}
-                                                </label>
-                                            {% endfor %}
-                                        </div>
-                                        <button type="submit" class="btn btn-primary mt-3">Crear Megger</button>
-                                    </form>
-                                </div>
-                                
-                            </div>
-                        </div>
                     </div>
                 {% endif %}
             </aside>    
@@ -298,10 +253,9 @@
                     </thead>
                     <tbody>
                         {% for act in ot.task_set.all %}
-                            <!-- <tr {% if request.user|can_edit_task:act %}data-href="{% url 'got:finish-task' act.id %}"{% endif %}> -->
                             <tr>
                                 <th scope="row">{{forloop.counter}}</th>
-                                <td><a href="{% if request.user|can_edit_task:act %}{% url 'got:finish-task' act.id %}{% endif %}">{{ act.description|linebreaksbr }}</a></td>
+                                <td>{{ act.description|linebreaksbr }}</td>
                                 <td>{{act.responsible.first_name}} {{act.responsible.last_name}}</td>
                                 <td>{{act.start_date|date:"d/m/Y"}}-{{act.final_date|date:"d/m/Y"}}</td>
                                 <td class="nowrap">
@@ -357,21 +311,53 @@
                 </table>
             </div>
 
-            <div class="megger-section">
-                <h2>Pruebas de Megger</h2>
-                {% if megger_tests %}
-                    <ul class="list-group">
+            {% if has_electric_motors %}
+                <div class="megger-section">
+                    <div role="group">
+                        <h4>Pruebas de Megger</h4>
+                        <button type="button" class="btn btn-group btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#electricMotorSelectionModal">
+                            Crear registro pueba Megger
+                        </button>
+                    </div>
+                    <ul class="list-group mt-3">
                         {% for megger in megger_tests %}
                             <li class="list-group-item">
                                 Prueba Megger #{{ megger.id }} para el equipo {{ megger.equipo.name }}
                                 <a href="{% url 'got:meg-detail' megger.pk %}" class="btn btn-primary btn-sm">Ver Detalles</a>
                             </li>
+                        {% empty %}
+                            <p>No hay pruebas de Megger asociadas con esta OT.</p>
                         {% endfor %}
                     </ul>
-                {% else %}
-                    <p>No hay pruebas de Megger asociadas con esta OT.</p>
-                {% endif %}
-            </div>
+                </div>
+
+                <!-- Modal para seleccionar un motor eléctrico -->
+                <div class="modal fade" id="electricMotorSelectionModal" tabindex="-1" aria-labelledby="electricMotorSelectionModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="electricMotorSelectionModalLabel">Seleccionar Motor Eléctrico</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="post" action="{% url 'got:create_megger' ot.num_ot %}">
+                                    {% csrf_token %}
+                                    <div class="list-group">
+                                        {% for equipo in electric_motors %}
+                                            <label class="list-group-item">
+                                                <input type="radio" class="form-check-input me-1" name="equipo" value="{{ equipo.code }}" required>
+                                                {{ equipo.name }}
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                    <button type="submit" class="btn btn-primary mt-3">Crear Megger</button>
+                                </form>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
         
         {% if perms.got.add_task %}
@@ -423,24 +409,21 @@
 
 
     <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        var canvas = document.getElementById('signature-pad');
-        var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
-        var form = document.getElementById('signature-form');  // Asegúrate de asignar un ID único al formulario de firma
+        document.addEventListener("DOMContentLoaded", function() {
+            var canvas = document.getElementById('signature-pad');
+            var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
+            var form = document.getElementById('signature-form');  // Asegúrate de asignar un ID único al formulario de firma
 
-        form.addEventListener('submit', function(event) {
-            if (signaturePad.isEmpty()) {
-                alert("Por favor, proporciona una firma primero.");
-                event.preventDefault();  // Detiene el envío del formulario si no hay firma
-            } else {
-                var dataURL = signaturePad.toDataURL("image/png");
-                document.getElementById('signature-data').value = dataURL;
-            }
+            form.addEventListener('submit', function(event) {
+                if (signaturePad.isEmpty()) {
+                    alert("Por favor, proporciona una firma primero.");
+                    event.preventDefault();  // Detiene el envío del formulario si no hay firma
+                } else {
+                    var dataURL = signaturePad.toDataURL("image/png");
+                    document.getElementById('signature-data').value = dataURL;
+                }
+            });
         });
-    });
-
-        
-
 
         document.addEventListener("shown.bs.dropdown", function (event) {
             let tableResponsive = document.querySelector('.table-responsive');
@@ -453,6 +436,28 @@
             let tableResponsive = document.querySelector('.table-responsive');
             if (tableResponsive) {
                 tableResponsive.style.overflow = 'auto';
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const rows = document.querySelectorAll("tr[data-href]");
+    
+            rows.forEach(row => {
+                row.addEventListener("click", (event) => {
+                    if (!event.target.matches('.dropdown, .dropdown *, .dropdown-toggle, .dropdown-menu, .dropdown-item')) {
+                        window.location.href = row.dataset.href;
+                    }
+                });
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const targetSection = new URLSearchParams(window.location.search).get('target');
+            if (targetSection) {
+                const sectionElement = document.getElementById(targetSection);
+                if (sectionElement) {
+                    sectionElement.scrollIntoView();
+                }
             }
         });
 

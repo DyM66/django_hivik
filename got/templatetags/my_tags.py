@@ -1,7 +1,8 @@
 from django import template
-from got.models import Asset, FailureReport, System
+from got.models import Asset, FailureReport, Solicitud
 from django.contrib.auth.models import Group
 from simple_history.models import HistoricalRecords
+from math import ceil
 
 
 register = template.Library()
@@ -69,3 +70,15 @@ def format_number(value):
         return f"{value / 1_000:.2f}K{suffix}"
     else:
         return f"{value}{suffix}"
+    
+
+@register.simple_tag
+def get_page(solicitud_id, paginate_by=20):
+    try:
+        solicitud = Solicitud.objects.get(id=solicitud_id)
+        position = len(list(Solicitud.objects.order_by('id'))) - (list(Solicitud.objects.order_by('id')).index(solicitud) + 1) 
+        page = (position // paginate_by) + 1
+        # page = position
+        return page
+    except Solicitud.DoesNotExist:
+        return None
