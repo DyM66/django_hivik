@@ -159,13 +159,12 @@ class OtForm(forms.ModelForm):
 
     class Meta:
         model = Ot
-        exclude = ['num_ot', 'ot_aprobada', 'super', 'sign_supervision']
+        exclude = ['num_ot', 'ot_aprobada', 'super', 'sign_supervision', 'info_contratista_pdf']
         labels = {
             'description': 'Descripción',
             'system': 'Sistema',
             'state': 'Estado',
             'tipo_mtto': 'Tipo de mantenimiento',
-            'info_contratista_pdf': 'Informe externo',
         }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
@@ -410,6 +409,7 @@ class RutaForm(forms.ModelForm):
             'name': 'Codigo interno',
             'frecuency': 'Frecuencia',
             'intervention_date': 'Fecha ultima intervención',
+            'nivel': 'Convención',
             'dependencia': 'Dependencia',
             'ot': 'Ultima orden de trabajo relacionada',
             }
@@ -421,6 +421,7 @@ class RutaForm(forms.ModelForm):
             'frecuency': forms.NumberInput(attrs={'class': 'form-control'}),
             'ot': forms.Select(attrs={'class': 'form-control'}),
             'dependencia': forms.Select(attrs={'class': 'form-control'}),
+            'nivel': forms.Select(attrs={'class': 'form-control'}),
             }
 
     def __init__(self, *args, **kwargs):

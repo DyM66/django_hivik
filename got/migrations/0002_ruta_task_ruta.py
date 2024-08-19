@@ -25,10 +25,10 @@ class Migration(migrations.Migration):
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rutas', to='got.system')),
                 ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.ot')),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='equipos', to='got.equipo')),
-                ('control', models.CharField(choices=[('d', 'Días'), ('h', 'Horas')], max_length=1)),
-                ('dependencia', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='dependiente', to='got.ruta')),
+                ('control', models.CharField(choices=[('d', 'Días'), ('h', 'Horas'), ('k', 'Kilómetros')], max_length=1)),
+                ('dependencia', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='dependiente', to='got.ruta')),
                 ('astillero', models.CharField(blank=True, max_length=50, null=True)),
-                ('suministros', models.TextField(blank=True, default='', null=True)),
+                ('nivel', models.CharField(choices=[('a', 'Nivel 1 - Operadores'), ('b', 'Nivel 2 - Operador Técnico'), ('c', 'Nivel 3 - Proveedor especializado'), ('d', 'Nivel 4 - Fabricante')], default='a', max_length=1)),
             ],
             options={'ordering': ['frecuency']},
         ),
@@ -92,7 +92,6 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('creation_date', models.DateTimeField(auto_now_add=True)),
-                ('seccion', models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas'), ('r', 'Repuestos')], default='c', max_length=1)),
                 ('suministros', models.TextField()),
                 ('approved', models.BooleanField(default=False)),
                 ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.asset')),
@@ -134,6 +133,7 @@ class Migration(migrations.Migration):
                 ('Solicitud', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.solicitud')),
                 ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.item')),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.equipo'),),
+                ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.asset'),),
             ],
         ),
 
@@ -146,6 +146,7 @@ class Migration(migrations.Migration):
                 ('task', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.task')),
                 ('solicitud', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.solicitud')),
                 ('preoperacionaldiario', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.preoperacionaldiario')),
+                ('preoperacional', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.preoperacional')),
                 ('darbaja', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.darbaja')),
             ],
         ),
@@ -253,7 +254,7 @@ class Migration(migrations.Migration):
                 ('observaciones', models.TextField()),
                 ('disposicion', models.TextField()),
                 ('firma_responsable', models.ImageField(upload_to=got.models.get_upload_path)),
-                ('firma_autorizado', models.CharField(max_length=100)),
+                ('firma_autorizado', models.ImageField(upload_to=got.models.get_upload_path),),
                 ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
             ],
             options={
@@ -275,5 +276,16 @@ class Migration(migrations.Migration):
             options={
                 'ordering': ['-fecha'],
             },
+        ),
+        migrations.CreateModel(
+            name='TransaccionSuministro',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('cantidad_ingresada', models.IntegerField(default=0, help_text='Cantidad que se añade al inventario')),
+                ('cantidad_consumida', models.IntegerField(default=0, help_text='Cantidad que se consume del inventario')),
+                ('fecha', models.DateTimeField(auto_now_add=True)),
+                ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
+                ('usuario', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ],
         ),
     ]

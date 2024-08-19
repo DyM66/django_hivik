@@ -62,7 +62,6 @@ class Migration(migrations.Migration):
                 ('supervisor', models.CharField(blank=True, max_length=100, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.system')),
                 ('info_contratista_pdf', models.FileField(upload_to=got.models.get_upload_path, null=True, blank=True)),
-                ('suministros', models.TextField(blank=True, default='', null=True)),
                 ('sign_supervision', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
             ],
             options={
@@ -73,7 +72,7 @@ class Migration(migrations.Migration):
             name='Equipo',
             fields=[
                 ('name', models.CharField(max_length=50)),
-                ('date_inv', models.DateField()),
+                ('date_inv', models.DateField(auto_now_add=True)),
                 ('code', models.CharField(max_length=50, primary_key=True, serialize=False)),
                 ('model', models.CharField(blank=True, max_length=50, null=True)),
                 ('serial', models.CharField(blank=True, max_length=50, null=True)),
@@ -90,6 +89,7 @@ class Migration(migrations.Migration):
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='equipos', to='got.system')),
                 ('tipo', models.CharField(choices=[('r', 'Rotativo'), ('nr', 'No rotativo')], default='nr', max_length=2)),
                 ('subsystem', models.CharField(blank=True, max_length=100, null=True)),
+                ('potencia', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
             ],
             options={
                 'ordering': ['name', 'code'],

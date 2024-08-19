@@ -230,16 +230,12 @@ class Equipo(models.Model):
     
     @property
     def ruta_proxima(self):
-        # Fetch all routes related to this equipment
-        rutas = self.equipos.all()
-
-        # Filter routes with a next date that is in the future
+        rutas = self.equipos.exclude(nivel='a')
         future_rutas = [ruta for ruta in rutas if ruta.next_date and ruta.next_date > date.today()]
 
         if not future_rutas:
-            return None  # No upcoming routes
+            return None 
 
-        # Find the route with the nearest next_date
         next_ruta = min(future_rutas, key=lambda ruta: ruta.next_date)
 
         return next_ruta
@@ -336,16 +332,26 @@ class Ruta(models.Model):
         ('k', 'Kilómetros')
     )
 
+    NIVEL = (
+        ('a', 'Nivel 1 - Operadores'),
+        ('b', 'Nivel 2 - Operador Técnico'),
+        ('c', 'Nivel 3 - Proveedor especializado'),
+        ('d', 'Nivel 4 - Fabricante')
+    )
+
     code = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
     control = models.CharField(choices=CONTROL, max_length=1)
     frecuency = models.IntegerField()
     intervention_date = models.DateField()
+    nivel = models.CharField(choices=NIVEL, max_length=1, default='a')
+
+    astillero = models.CharField(max_length=50, null=True, blank=True)
+
+    ot = models.ForeignKey(Ot, on_delete=models.SET_NULL, null=True, blank=True)
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='rutas')
     equipo = models.ForeignKey(Equipo, on_delete=models.SET_NULL, null=True, blank=True, related_name='equipos')
-    ot = models.ForeignKey(Ot, on_delete=models.SET_NULL, null=True, blank=True)
     dependencia = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependiente')
-    astillero = models.CharField(max_length=50, null=True, blank=True)
 
 
     @property
@@ -354,23 +360,20 @@ class Ruta(models.Model):
             ndays = self.frecuency
             return self.intervention_date + timedelta(days=ndays)
         
-        if self.control == 'h' and not self.ot:
+        if (self.control == 'h' or self.control == 'k') and not self.ot:
             inv = self.frecuency - self.equipo.horometro
             try:
                 ndays = int(inv/self.equipo.prom_hours)
             except (ZeroDivisionError, AttributeError):
                 ndays = int(inv/1)
         
-        elif self.control == 'h':
+        elif self.control == 'h' or self.control == 'k':
             period = self.equipo.hours.filter(report_date__gte=self.intervention_date, report_date__lte=date.today()).aggregate(total_hours=Sum('hour'))['total_hours'] or 0
             inv = self.frecuency - period
             try:
                 ndays = int(inv/self.equipo.prom_hours)
             except (ZeroDivisionError, AttributeError):
                 ndays = int(inv/1)
-
-        if self.control == 'k':
-            ndays = self.frecuency
         
         return date.today() + timedelta(days=ndays)
 
@@ -415,7 +418,7 @@ class Ruta(models.Model):
                 return 'v'
 
     def __str__(self):
-        return '%s - %s - %s' % (self.code, self.system, self.name)
+        return '%s - %s' % (self.system, self.name)
 
     def get_absolute_url(self):
         return reverse('got:sys-detail', args=[str(self.system.id)])
@@ -684,7 +687,7 @@ class RodamientosEscudos(models.Model):
 class Document(models.Model):
 
     asset = models.ForeignKey(Asset, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
-    tasks = models.ForeignKey(Task, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
+    ot = models.ForeignKey(Ot, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
     file = models.FileField(upload_to=get_upload_pdfs)
     description = models.CharField(max_length=200)
 

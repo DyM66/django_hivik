@@ -44,7 +44,7 @@
                 {% endif %}
                 {% if perms.got.delete_ot %}
                     <div class="btn-group" role="group">
-                        <a href="{% url 'got:ot-delete' ot.num_ot %}" class="btn btn-danger {% if has_activities %}disabled{% endif %}">Eliminar</a>
+                        <a href="{% url 'got:ot-delete' ot.num_ot %}" class="btn btn-danger submit-button {% if has_activities %}disabled{% endif %}">Eliminar</a>
                     </div>
                 {% endif %}
                 {% if ot.state == 'x' %} 
@@ -75,6 +75,10 @@
                 </thead>
                 <tbody>
                     <tr>
+                        <th>Descripción</th>
+                        <td>{{ot.description}}</td>
+                    </tr>
+                    <tr>
                         <th>Fecha de creación</th>
                         <td>{{ot.creation_date}}</td>
                     </tr>
@@ -94,22 +98,50 @@
                         <th>Mantenimiento</th>
                         <td>{{ot.get_tipo_mtto_display}}</td>
                     </tr>
-                    <tr>
-                        <th>Descripción</th>
-                        <td>{{ot.description}}</td>
-                    </tr>
-                    <tr>
-                        <th>Informe externo</th>
-                        <td>
-                            {% if ot.info_contratista_pdf %}
-                                <a href="{{ ot.info_contratista_pdf.url }}" target="_blank">Ver informe</a>
-                            {% else %}
-                                No hay informe disponible
-                            {% endif %}
-                        </td>
-                    </tr>
                 </tbody>
             </table>
+
+            <table class="table-list table-detail">
+                <thead>
+                    <tr>
+                        <th>Documentos</th>
+                        <th><button class="dropdown-item" class="add-sys" type="button" data-bs-toggle="modal" data-bs-target="#new_doc"><i class="bi bi-plus-circle add-sys"></i></button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in ot.documents.all %}
+                        <tr>
+                            <td>
+                                {{doc.description}}
+                            </td>
+                            <td>
+                                <a href="{{ doc.file.url }}" target="_blank">Abrir</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="2">No hay informes disponibles</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="modal fade" id="new_doc" tabindex="-1" aria-labelledby="docLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="docLabel">Añadir documento: </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form method="post" action="{% url 'got:ot-detail' ot.num_ot %}" enctype="multipart/form-data">{% csrf_token %}
+                                {{ doc_form }}
+                                <button type="submit" class="btn btn-primary submit-button" name="add-doc">Añadir</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
     
@@ -299,9 +331,9 @@
                                                     {{act.description}}
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <form method="post" action="{% url 'got:ot-detail' ot.num_ot %}" enctype="multipart/form-data">{% csrf_token %}
+                                                    <form method="post" action="{% url 'got:ot-detail' ot.num_ot %}">{% csrf_token %}
                                                         <input type="hidden" name="delete_task_id" value="{{ act.id }}">
-                                                        <button type="submit" class="btn btn-danger" name="delete_task">Eliminar</button>
+                                                        <button type="submit" class="btn btn-danger submit-button" name="delete_task">Eliminar</button>
                                                     </form>
                                                 </div>
                                             </div>

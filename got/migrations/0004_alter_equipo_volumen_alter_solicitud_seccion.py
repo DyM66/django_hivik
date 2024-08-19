@@ -16,11 +16,6 @@ class Migration(migrations.Migration):
             field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True),
         ),
         migrations.AlterField(
-            model_name='solicitud',
-            name='seccion',
-            field=models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas'), ('r', 'Repuestos')], default='r', max_length=1),
-        ),
-        migrations.AlterField(
             model_name='estator',
             name='pf_10min_l1_l2',
             field=models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True),

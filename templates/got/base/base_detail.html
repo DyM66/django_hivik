@@ -34,6 +34,24 @@
                 });
             });
         });
-    </script> -->
+    </script> --> 
+	<script>
+		// Function to disable the button and show a loading state
+		function disableButtonOnSubmit(button) {
+			
+			button.innerHTML = 'Loading...';  // Change the button text to indicate loading
+			button.classList.add('loading');  // Optional: Add a loading class for styling
+			setTimeout(function() {
+				button.disabled = true;  // Disable the button after a short delay
+			}, 1); 
+		}
+
+		// Add event listeners to all buttons with the class 'submit-button'
+		document.querySelectorAll('.submit-button').forEach(button => {
+			button.addEventListener('click', function(event) {
+				disableButtonOnSubmit(this);
+			});
+		});
+	</script>
 </body>
 </html>

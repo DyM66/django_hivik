@@ -28,7 +28,6 @@ from .forms import (
     ReportHoursAsset, failureForm,EquipoFormUpdate, OtFormNoSup, ActFormNoSup, UploadImages, OperationForm, LocationForm,
     DocumentForm, SuministrosEquipoForm, SuministroFormset, MeggerForm, EstatorForm, ExcitatrizForm, RotorMainForm,
     RotorAuxForm, RodamientosEscudosForm, PreoperacionalForm, PreoperacionalEspecificoForm, PreoperacionalDiarioForm, TransferenciaForm
-
 )
 
 from datetime import timedelta, date, datetime
@@ -50,6 +49,8 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+
+from .ot_functions import *
 
 
 logger = logging.getLogger(__name__)
@@ -304,6 +305,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 class SysDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = System
+    template_name = "got/systems/system_detail.html"
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -311,7 +313,6 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
         context['is_structures'] = system.name.lower() == "estructuras"
         
         orders_list = Ot.objects.filter(system=system)
-
         view_type = self.kwargs.get('view_type', 'sys')
         context['view_type'] = view_type
 
@@ -358,7 +359,7 @@ def add_supply_to_equipment(request, code):
             return redirect(reverse('got:sys-detail-view', args=[equipo.system.id, equipo.code]))
     else:
         form = SuministrosEquipoForm()
-        items = Item.objects.all()  # Asegúrate de filtrar o ajustar esto según tus necesidades
+        items = Item.objects.all()
     return render(request, 'got/equipment_detail.html', {'form': form, 'equipo': equipo, 'items': items})
 
 
@@ -628,55 +629,44 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['state_form'] = FinishOtForm()
+        context['image_form'] = UploadImages()
+
+        context['doc_form'] = DocumentForm()
+
         if self.request.user.groups.filter(name='super_members').exists():
             context['task_form'] = ActForm()
         else:
             context['task_form'] = ActFormNoSup()
-        context['state_form'] = FinishOtForm()
-        context['image_form'] = UploadImages()
 
-        ot = self.get_object()
-        all_tasks_finished = ot.task_set.filter(finished=False).exists()
-        context['all_tasks_finished'] = not all_tasks_finished
+        context['all_tasks_finished'] = not self.get_object().task_set.filter(finished=False).exists()
+        context['has_activities'] = self.get_object().task_set.exists()
 
-        has_activities = ot.task_set.exists()
-        context['has_activities'] = has_activities
-
-        try:
-            failure_report = FailureReport.objects.filter(related_ot=ot)
-            failure = True
-
-        except FailureReport.DoesNotExist:
-            failure_report = None
-            failure = False
-
+        failure_report = FailureReport.objects.filter(related_ot=self.get_object())
         context['failure_report'] = failure_report
-        context['failure'] = failure
+        context['failure'] = failure_report.exists()
 
-        rutas = ot.ruta_set.all()
+        rutas = self.get_object().ruta_set.all()
         context['rutas'] = rutas
+        context['equipos'] = set([ruta.equipo for ruta in rutas])
 
-        equipos = []
-        for ruta in rutas:
-            equipos.append(ruta.equipo)
-        context['equipos'] = set(equipos)
-
-        system = ot.system
+        system = self.get_object().system
         context['electric_motors'] = system.equipos.filter(tipo='e')
         context['has_electric_motors'] = system.equipos.filter(tipo='e').exists()
-        context['megger_tests'] = Megger.objects.filter(ot=ot)
+        context['megger_tests'] = Megger.objects.filter(ot=self.get_object())
 
         return context
-
-    def actualizar_rutas_dependientes(self, ruta):
-        ruta.intervention_date = timezone.now()
-        ruta.save()
-        if ruta.dependencia is not None:
-            self.actualizar_rutas_dependientes(ruta.dependencia)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         ot = self.get_object()
+        
+        if 'add-doc' in request.POST:
+            doc_form = DocumentForm(request.POST, request.FILES)
+            document = doc_form.save(commit=False)
+            document.ot = get_object_or_404(Ot, pk=ot.num_ot)
+            document.save()
+            return redirect(ot.get_absolute_url()) 
 
         if 'delete_task' in request.POST:
             task_id = request.POST.get('delete_task_id')
@@ -689,12 +679,10 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         image_form = UploadImages(request.POST, request.FILES)
 
         if task_form.is_valid() and image_form.is_valid():
-            # Guardar la tarea
             task = task_form.save(commit=False)
             task.ot = ot
             task.save()
 
-            # Guardar cada imagen asociada a la tarea
             for file in request.FILES.getlist('file_field'):
                 Image.objects.create(task=task, image=file)
 
@@ -706,7 +694,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
 
             rutas_relacionadas = Ruta.objects.filter(ot=ot)
             for ruta in rutas_relacionadas:
-                self.actualizar_rutas_dependientes(ruta)
+                actualizar_rutas_dependientes(ruta)
 
             fallas_relacionadas = FailureReport.objects.filter(related_ot=ot)
             for fail in fallas_relacionadas:
@@ -736,7 +724,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
                 #     )
 
                 # # Adjuntar el PDF al correo
-                # pdf_content_dynamic = self.generate_pdf_content(ot)
+                # pdf_content_dynamic = generate_pdf_content(ot)
                 # pdf_filename_dynamic = f'OT_{ot.num_ot}_Detalle.pdf'
                 # email.attach(
                 #     pdf_filename_dynamic,
@@ -775,20 +763,6 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         context = {'ot': ot, 'task_form': task_form, 'state_form': state_form}
 
         return render(request, self.template_name, context)
-
-    def generate_pdf_content(self, ot):
-        '''
-        Función para generar el contenido del PDF
-        '''
-        template_path = 'got/pdf_template.html'
-        context = {'ot': ot}
-        template = get_template(template_path)
-        html = template.render(context)
-        pdf_content = BytesIO()
-
-        pisa.CreatePDF(html, dest=pdf_content)
-
-        return pdf_content.getvalue()
 
 
 class OtCreate(CreateView):
@@ -1117,19 +1091,15 @@ class RutaCreate(CreateView):
     form_class = RutaForm
 
     def form_valid(self, form):
-        # Obtener el valor del parámetro pk desde la URL
         pk = self.kwargs['pk']
         system = get_object_or_404(System, pk=pk)
 
-        # Establecer el valor del campo system en el formulario
         form.instance.system = system
 
-        # Llamar al método form_valid de la clase base
         return super().form_valid(form)
 
     def get_success_url(self):
         ruta = self.object
-        # Redirigir a la vista de detalle del objeto recién creado
         return reverse('got:sys-detail', args=[ruta.system.id])
 
     def get_form_kwargs(self):
