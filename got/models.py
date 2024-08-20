@@ -197,28 +197,37 @@ class Equipo(models.Model):
         ('e', 'Motor eléctrico'),
     )
 
+    code = models.CharField(primary_key=True, max_length=50)
     name = models.CharField(max_length=50)
     date_inv = models.DateField(auto_now_add=True)
-    code = models.CharField(primary_key=True, max_length=50)
+
     model = models.CharField(max_length=50, null=True, blank=True)
     serial = models.CharField(max_length=50, null=True, blank=True)
     marca = models.CharField(max_length=50, null=True, blank=True)
     fabricante = models.CharField(max_length=50, null=True, blank=True)
     feature = models.TextField()
-    imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
-    manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True)
 
     tipo = models.CharField(choices=TIPO, default='nr', max_length=2)
+
+    system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
+    subsystem = models.CharField(max_length=100, null=True, blank=True)
+
+    'Motores'
+    potencia  = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    'Motores de combustion'
     initial_hours = models.IntegerField(default=0)
     horometro = models.IntegerField(default=0, null=True, blank=True)
     prom_hours = models.IntegerField(default=0, null=True, blank=True)
     lubricante = models.CharField(max_length=100, null=True, blank=True)
     volumen = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
-    potencia  = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    'Motores eléctricos'
+    # rod_as = models.CharField(max_length=100, null=True, blank=True)
+    # rod_bs = models.CharField(max_length=100, null=True, blank=True)
 
-    system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
-    subsystem = models.CharField(max_length=100, null=True, blank=True)
+    imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+    manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True)
 
     def calculate_horometro(self):
         total_hours = self.hours.aggregate(total=Sum('hour'))['total'] or 0
@@ -588,6 +597,7 @@ class Megger(models.Model):
 
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
+    date_report = models.DateField(auto_now_add=True, null=True, blank=True)
 
     def __str__(self):
         return f"Prueba #{self.id}/{self.equipo}"

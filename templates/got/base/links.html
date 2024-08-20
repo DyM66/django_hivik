@@ -290,13 +290,13 @@
     .main-asset {
         margin: 15px;
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1.2fr 0.8fr;
         gap: 10px;
         grid-template-areas: 
             "title title title"
             "sistemas sistemas detail"
-            "ruta ruta detail";
-            /* ". tasks tasks"; */
+            "ruta ruta  acciones"
+            /* "ruta ruta ."; */
     }
 
     .main-asset .title-asset {
@@ -317,8 +317,12 @@
     }
 
     .main-asset .rutinas {
-        margin-right: 20px;
+        /* margin-right: 20px; */
         grid-area: ruta;
+    }
+
+    .main-asset .acciones {
+        grid-area: acciones;
     }
 
     .add-sys {

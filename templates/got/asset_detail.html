@@ -1,6 +1,21 @@
 {% extends "got/base/base_detail.html" %}
 {% load my_tags %}
 
+{% block headtag %}
+<style>
+    .filter-form {
+        margin: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .filter-form button {
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <main class="main-asset">
@@ -235,13 +250,35 @@
         </table>
     </div>
 
-    <form method="post" action="{% url 'got:asset-detail' asset.abbreviation %}">
-        {% csrf_token %}
-        <button type="submit" name="download_excel" class="btn btn-info">Descargar Rutinas como Excel</button>
-    </form>
+    <div class="acciones">
     
+        <form method="get" class="filter-form">
+            <fieldset>
+                <legend>Filtro de Rutinas</legend>
+    
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Mes</span>
+                    {{ moth_form.month }}
+                </div>
+    
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Año</span>
+                    {{ moth_form.year }}
+                </div>
+    
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </fieldset>
+        </form>
+
+        <form method="post" action="{% url 'got:asset-detail' asset.abbreviation %}">
+            {% csrf_token %}
+            <button type="submit" name="download_excel" class="btn btn-info">Descargar Rutinas como Excel</button>
+        </form>
+    </div>
+
 
 	<div class="rutinas">
+
 		<table class="table-list table-detail">
 			<thead>
                 <tr>
@@ -269,7 +306,8 @@
 					    <td data-cell="Control">{{ ruta.get_control_display }}</td>
                         <td data-cell="Ultima intervención">{{ ruta.daysleft }}</td>
 					    <td data-cell="Ultima intervención">{% if ruta.ot %}{{ ruta.intervention_date|date:"d/m/Y" }}{% else %}---{% endif %}</td>
-						<td data-cell="Proxima Intervención">{% if ruta.ot %}{{ ruta.next_date|date:"d/m/Y" }}{% else %}---{% endif %}</td>
+						<!-- <td data-cell="Proxima Intervención">{% if ruta.ot %}{{ ruta.next_date|date:"d/m/Y" }}{% else %}---{% endif %}</td> -->
+						<td data-cell="Proxima Intervención">{{ ruta.next_date|date:"d/m/Y" }}</td>
 					    <td data-cell="Orden de trabajo" class="nowrap"><a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a></td>
 				    </tr>
                 {% empty %}

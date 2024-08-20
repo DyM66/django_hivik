@@ -18,17 +18,8 @@ from django.utils.timezone import localdate
 from django.views import generic, View
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
-from .models import (
-    Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Image, Operation, Location, Document, Preoperacional,
-    Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro, Item, TransaccionSuministro,
-    PreoperacionalDiario, Transferencia, DarBaja
-)
-from .forms import (
-    RescheduleTaskForm, OtForm, ActForm, FinishTask, SysForm, EquipoForm, FinishOtForm, RutaForm, RutActForm, ReportHours,
-    ReportHoursAsset, failureForm,EquipoFormUpdate, OtFormNoSup, ActFormNoSup, UploadImages, OperationForm, LocationForm,
-    DocumentForm, SuministrosEquipoForm, SuministroFormset, MeggerForm, EstatorForm, ExcitatrizForm, RotorMainForm,
-    RotorAuxForm, RodamientosEscudosForm, PreoperacionalForm, PreoperacionalEspecificoForm, PreoperacionalDiarioForm, TransferenciaForm
-)
+from .models import *
+from .forms import *
 
 from datetime import timedelta, date, datetime
 from collections import defaultdict
@@ -43,6 +34,7 @@ import base64
 import uuid
 import pandas as pd
 from dateutil.relativedelta import relativedelta
+import calendar
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -197,7 +189,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         items_by_subsystem = {k: list(v) for k, v in items_by_subsystem.items() if v}
         context['items_by_subsystem'] = items_by_subsystem
 
-
         if self.request.user.groups.filter(name='buzos_members').exists():
             location_filters = {
                 'santamarta_station': 'Santa Marta',
@@ -229,13 +220,34 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             "December": "Diciembre"
         }
 
-        current_month_name_en = datetime.now().strftime("%B")
-        current_month_name_es = month_names_es[current_month_name_en]
 
-        filtered_rutas = []
-        for ruta in Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's']):
-            if (ruta.next_date <= next_date.date()) or (ruta.ot and ruta.ot.state == 'x'): # or (ruta.intervention_date.month == current_month and ruta.intervention_date.year == current_year)
-                filtered_rutas.append(ruta)
+        current_month_name_en = datetime.now().strftime('%B')
+        print(current_month_name_en)
+        current_month_name_es = month_names_es[current_month_name_en]
+        form = DateFilterForm(self.request.GET or None)
+        context['moth_form'] = form
+            
+        if form.is_valid():
+            current_month_name_en = form.cleaned_data.get('month')
+            current_month_name_es = month_names_es[calendar.month_name[int(current_month_name_en)]]
+            month = int(form.cleaned_data['month'])
+            year = int(form.cleaned_data['year'])
+
+            filtered_rutas = Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's'])
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month == month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x')]
+        else:
+            current_date = timezone.now()
+            next_date = current_date + relativedelta(months=1)
+            filtered_rutas = Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's'])
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date <= next_date.date()) or (ruta.ot and ruta.ot.state == 'x')]
+
+        
+        
+
+        # filtered_rutas = []
+        # for ruta in Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's']):
+        #     if (ruta.next_date <= next_date.date()) or (ruta.ot and ruta.ot.state == 'x'): # or (ruta.intervention_date.month == current_month and ruta.intervention_date.year == current_year)
+        #         filtered_rutas.append(ruta)
 
         filtered_rutas.sort(key=lambda t: t.next_date)
         paginator = Paginator(combined_systems, 10)
@@ -2219,39 +2231,24 @@ def transferir_equipo(request, equipo_id):
     return render(request, 'got/transferencia-equipo.html', context)
 
 
-def render_to_pdf(template_src, context_dict={}):
-    template = get_template(template_src)
-    html = template.render(context_dict)
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
-    if not pdf.err:
-        return HttpResponse(result.getvalue(), content_type='application/pdf')
-    return None
-
-
 def detalle_pdf(request, pk):
     registro = Solicitud.objects.get(pk=pk)
     context = {'rq': registro}
     return render_to_pdf('got/solicitud/solicitud_detail.html', context)
 
+
 def system_maintence_pdf(request, asset_id, system_id):
     asset = get_object_or_404(Asset, pk=asset_id)
     system = get_object_or_404(System, pk=system_id, asset=asset)
-
-    # rutas_data = []
-    # equipos = system.equipos.prefetch_related('rutas').all()
-    # for ruta in rutas:
-    #     tasks = ruta.task_set.all()
-    #     ot_pdfs = [task.ot.info_contratista_pdf for task in tasks if task.ot and task.ot.info_contratista_pdf]
-    #     rutas_data.append({
-    #         'ruta': ruta,
-    #         'tasks': tasks,
-    #         'ot_num': ruta.ot.num_ot if ruta.ot else 'N/A',
-    #         'ot_pdfs': ot_pdfs  # Lista de PDFs asociados
-    #     })
 
     context = {
         'asset': asset,
         'system': system,
     }
     return render_to_pdf('got/system_pdf_template.html', context)
+
+
+def megger_pdf(request, pk):
+    registro = Megger.objects.get(pk=pk)
+    context = {'meg': registro}
+    return render_to_pdf('got/meg/meg_detail.html', context)

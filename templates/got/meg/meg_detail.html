@@ -1,9 +1,265 @@
-{% extends "got/base/base_detail.html" %}
+{% load my_tags %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
 
-{% block header %}MEGGER Y MANTENIMIENTO ELÉCTRICO DE MOTORES Y GENERADORES{% endblock %}
+        body {
+            font-family: 'Roboto Mono', monospace;
+            /* font-size: 12px; */
+        }
 
-{% block content %}
+        h1, h2, h3 { color: #333366; }
+        thead th, td { padding: 5px;}
 
+        thead th {
+            text-align: left;
+            vertical-align: top;
+        }
 
+        tbody th {
+            padding-bottom: 0;
+        }
 
-{% endblock %}
+        td {
+            padding-bottom: 0;
+        }
+
+        .header-table, .content-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        img { width: 100px; height: auto; margin-right: 10px; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 5px; }
+        table {
+            width: 100%; 
+            border-collapse: collapse; 
+            border: 0.2px solid #000; 
+            padding-top: 8px; 
+            padding-left: 4px;
+        }
+    </style>
+</head>
+    
+<body>
+    
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <td rowspan="2" style="width: 300px; height: auto; text-align: center;">
+                        <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" style="width: 200px; height: auto;">
+                    </td>
+                    <th colspan="3" style="text-align: center; margin-bottom: 0;">
+                        <h1 style="margin: 0; font-size: 20px;">MEGGER Y MANTENIMIENTO ELÉCTRICO DE MOTORES Y GENERADORES</h1>
+                    </th>
+                </tr>
+                <tr>
+                    <td style="text-align: center;">
+                        <h4>CODIGO: </h4>
+                    </td>
+                    <td style="text-align: center;">
+                        <h4>VERSION 001</h4>
+                    </td>
+                    <td style="text-align: center;">
+                        <h4>FECHA DE ACTUALIZACION: 20/08/2024</h4>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        EMBARCACIÓN:
+                        <ul>
+                            <li>{{meg.ot.system.asset}}</li>
+                        </ul> 
+                    </th>
+                    <th>
+                        EQUIPO/MARCA:
+                        <ul>
+                            <li>{{meg.equipo.name}}/ {{meg.equipo.marca}}-{{meg.equipo.model}}</li>
+                        </ul> 
+                    </th>
+                    <th>
+                        N° ORDEN:
+                        <ul>
+                            <li>OT-{{meg.ot}}</li>
+                        </ul> 
+                    </th>
+                    <th>
+                        FECHA:
+                        <ul>
+                            <li>{{meg.date_report}}</li>
+                        </ul> 
+                    </th>
+                </tr>
+            </thead>
+        </table>
+        <br>
+        <table style="min-width: 100%;">
+            <tbody>
+                <tr>
+                    <th>-</th>
+                    <th colspan="3">PRUEBA INICIAL (ESTATOR)</th>
+                    <th colspan="3">PRUEBA FINAL (ESTATOR)</th>
+                </tr>
+                <tr>
+                    <th>-</th>
+                    <th>1MIN/500VDC</th>
+                    <th>10MIN/500VDC</th>
+                    <th>OBSERVACIONES</th>
+                    <th>1MIN/500VDC</th>
+                    <th>10MIN/500VDC</th>
+                    <th>OBSERVACIONES</th>
+                </tr>
+                <tr>
+                    <td>L1+TIERRA</td>
+                    <td>{{ meg.estator.pi_1min_l1_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pi_10min_l1_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pi_obs_l1_tierra|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pf_1min_l1_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pf_10min_l1_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ megger.estator.pf_obs_l1_tierra|default_if_none:"---" }}</td>
+                </tr>
+                <tr>
+                    <td>L2+TIERRA</td>
+                    <td>{{ meg.estator.pi_1min_l2_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pi_10min_l2_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pi_obs_l2_tierra|default_if_none:"---" }}</td>
+    
+                    <td>{{ meg.estator.pf_1min_l2_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pf_10min_l2_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pf_obs_l2_tierra|default_if_none:"---" }}</td>
+                </tr>
+                <tr>
+                    <td>L3 +TIERRA</td>
+                    <td>{{ meg.estator.pi_1min_l3_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pi_10min_l3_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pi_obs_l3_tierra|default_if_none:"---" }}</td>
+    
+                    <td>{{ meg.estator.pf_1min_l3_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pf_10min_l3_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pf_obs_l3_tierra|default_if_none:"---" }}</td>
+                </tr>
+                <tr>
+                    <td>L1+L2</td>
+                    <td>{{ meg.estator.pi_1min_l1_l2|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pi_10min_l1_l2|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pi_obs_l1_l2|default_if_none:"---" }}</td>
+    
+                    <td>{{ meg.estator.pf_1min_l1_l2|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pf_10min_l1_l2|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pf_obs_l1_l2|default_if_none:"---" }}</td>
+                </tr>
+                <tr>
+                    <td>L2+L3</td>
+                    <td>{{ meg.estator.pi_1min_l2_l3|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pi_10min_l2_l3|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pi_obs_l2_l3|default_if_none:"---" }}</td>
+    
+                    <td>{{ meg.estator.pf_1min_l2_l3|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pf_10min_l2_l3|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pf_obs_l2_l3|default_if_none:"---" }}</td>
+                </tr>
+                <tr>
+                    <td>L3+L1</td>
+                    <td>{{ meg.estator.pi_1min_l3_l1|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pi_10min_l3_l1|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pi_obs_l3_l1|default_if_none:"---" }}</td>
+    
+                    <td>{{ meg.estator.pf_1min_l3_l1|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.estator.pf_10min_l3_l1|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.estator.pf_obs_l3_l1|default_if_none:"---" }}</td>
+                </tr>
+                <tr>
+                    <th>-</th>
+                    <th colspan="3">PRUEBA INICIAL (EXCITATRIZ)</th>
+                    <th colspan="3">PRUEBA FINAL (EXCITATRIZ)</th>
+                </tr>
+                <tr>
+                    <td>L+Tierra</td>
+                    <td>{{ meg.excitatriz.pi_1min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.excitatriz.pi_10min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.excitatriz.pi_obs_l_tierra|default_if_none:"---" }}</td>
+        
+                    <td>{{ meg.excitatriz.pf_1min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.excitatriz.pf_10min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.excitatriz.pf_obs_l_tierra|default_if_none:"---" }}</td>
+                </tr>
+                <tr>
+                    <th>-</th>
+                    <th colspan="3">PRUEBA INICIAL (ROTOR PRINCIPAL)</th>
+                    <th colspan="3">PRUEBA FINAL (ROTOR PRINCIPAL)</th>
+                </tr>
+                <tr>
+                    <td>L+Tierra</td>
+                    <td>{{ meg.rotormain.pi_1min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.rotormain.pi_10min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.rotormain.pi_obs_l_tierra|default_if_none:"---" }}</td>
+        
+                    <td>{{ meg.rotormain.pf_1min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.rotormain.pf_10min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.rotormain.pf_obs_l_tierra|default_if_none:"---" }}</td>
+                </tr>
+                <tr>
+                    <th>-</th>
+                    <th colspan="3">PRUEBA INICIAL (ROTOR AUXILIAR)</th>
+                    <th colspan="3">PRUEBA FINAL (ROTOR AUXILIAR)</th>
+                </tr>
+                <tr>
+                    <td>L+Tierra</td>
+                    <td>{{ meg.rotoraux.pi_1min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.rotoraux.pi_10min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.rotoraux.pi_obs_l_tierra|default_if_none:"---" }}</td>
+        
+                    <td>{{ meg.rotoraux.pf_1min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>{{ meg.rotoraux.pf_10min_l_tierra|format_number|default_if_none:"---" }}</td>
+                    <td>-{{ meg.rotoraux.pf_obs_l_tierra|default_if_none:"---" }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <table>
+            <tbody>
+                <tr>
+                    <th colspan="8">RODAMIENTOS Y ESCUDOS</th>
+                </tr>
+                <tr>
+                    <th colspan="2">RODAMIENTO AS</th>
+                    <th colspan="2">ESCUDO AS</th>
+                    <th colspan="2">RODAMIENTO BS</th>
+                    <th colspan="2">ESCUDO BS</th>
+                </tr>
+                <tr>
+                    <td>Serial/Estado</td>
+                    <td>{{ meg.rodamientosescudos.rodamientoas|default_if_none:"---" }}</td>
+                    <td>Serial/Estado</td>
+                    <td>{{ meg.rodamientosescudos.escudoas|default_if_none:"---" }}</td>
+                    <td>Serial/Estado</td>
+                    <td>{{ meg.rodamientosescudos.rodamientobs|default_if_none:"---" }}</td>
+                    <td>Serial/Estado</td>
+                    <td>{{ meg.rodamientosescudos.escudobs|default_if_none:"---" }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <table>
+            <tbody>
+                <tr>
+                    <th colspan="4">CARACTERÍSTICAS</th>
+                </tr>
+                <tr>
+                    <th>POTENCIA</th>
+                    <td>{{meg.equipo.potencia}}KW</td>
+                    <th>SERIAL</th>
+                    <td>-{{meg.equipo.serial}}</td>
+                </tr>
+                <tr>
+                    <td colspan="4">{{meg.equipo.feature|linebreaks}}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div> 
+</body>
+</html>

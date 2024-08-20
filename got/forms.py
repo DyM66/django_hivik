@@ -1,11 +1,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User, Group
-from .models import (
-    Task, Ot, System, Equipo, Ruta, HistoryHour, FailureReport, Operation, Asset, Location, Document,
-    Megger, Estator, Excitatriz, RotorMain, RotorAux, RodamientosEscudos, Solicitud, Suministro,
-    Preoperacional, TransaccionSuministro, PreoperacionalDiario, Transferencia, DarBaja
-    )
+from .models import *
+from datetime import datetime
 
 from django.forms import modelformset_factory
 from django.utils.timezone import localdate
@@ -14,6 +11,7 @@ from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWra
 from django.core.files.base import ContentFile
 import base64
 import uuid
+import re
 
 
 # ---------------- Widgets ------------------- #
@@ -49,6 +47,32 @@ class MultipleFileField(forms.FileField):
             result = [single_file_clean(data, initial)]
         return result
     
+class DateFilterForm(forms.Form):
+    current_year = datetime.now().year
+    max_year = current_year + 5
+
+    MONTH_CHOICES = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+
+    # MONTH_CHOICES = [(i, f"{i:02}") for i in range(1, 13)]
+    YEAR_CHOICES = [(i, str(i)) for i in range(current_year, max_year + 1)]
+
+    month = forms.ChoiceField(
+        choices=MONTH_CHOICES,
+        initial=datetime.now().month,
+        label="Mes",
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    year = forms.ChoiceField(
+        choices=YEAR_CHOICES,
+        initial=datetime.now().year,
+        label="Año",
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+
 
 class UploadImages(forms.Form):
     file_field = MultipleFileField(label='Evidencias', required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
@@ -75,6 +99,12 @@ class EquipoForm(forms.ModelForm):
 
     def clean_code(self):
         code = self.cleaned_data.get('code')
+
+        if re.search(r'[/?¿!&%$#"\'<]', code):
+            raise ValidationError(
+                '''El código no puede contener los siguientes caracteres: / ? ¿ ! & % $ # " ' <'''
+            )
+    
         if Equipo.objects.filter(code=code).exists():
             raise ValidationError(
                 '''Este código ya está en uso. Por favor,
@@ -140,7 +170,17 @@ class EquipoFormUpdate(forms.ModelForm):
             'initial_hours': 'Horas iniciales (si aplica)'
             }
         widgets = {
-            'date_inv': XYZ_DateInput(format=['%Y-%m-%d'],),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'model': forms.TextInput(attrs={'class': 'form-control'}),
+            'serial': forms.TextInput(attrs={'class': 'form-control'}),
+            'marca': forms.TextInput(attrs={'class': 'form-control'}),
+            'fabricante': forms.TextInput(attrs={'class': 'form-control'}),
+            'lubricante': forms.TextInput(attrs={'class': 'form-control'}),
+            'subsystem': forms.TextInput(attrs={'class': 'form-control'}),
+            'initial_hours': forms.NumberInput(attrs={'class': 'form-control'}),
+            'volumen': forms.NumberInput(attrs={'class': 'form-control'}),
+            'potencia': forms.NumberInput(attrs={'class': 'form-control'}),
             'feature': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'imagen': forms.FileInput(attrs={'class': 'form-control'}),
             'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),

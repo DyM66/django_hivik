@@ -104,5 +104,6 @@ urlpatterns = [
     path('transferir-equipo/<str:equipo_id>/', views.transferir_equipo, name='transferir_equipo'),
 
     path('detalle_pdf/<int:pk>/', views.detalle_pdf, name='solicitud_pdf'),
+    path('meg_pdf/<int:pk>/', views.megger_pdf, name='meg_pdf'),
 
 ]

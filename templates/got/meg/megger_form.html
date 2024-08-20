@@ -3,6 +3,7 @@
 
 {% block content %}
     <h1>Megger y mantenimiento eléctrico de motores y generadores</h1>
+    <p><a href="{% url 'got:meg_pdf' megger.id %}">Descargar</a></p>
 
     <table class="table table-bordered">
         <thead>
@@ -15,7 +16,7 @@
         <tbody>
             <tr>
                 <td><a href="{{megger.ot.get_absolute_url}}">{{ megger.ot }}</a></td>
-                <td>{{ megger.ot.system.asset }}</td>
+                <td><a href="{% url 'got:asset-detail' megger.ot.system.asset.abbreviation %}">{{ megger.ot.system.asset }}</a></td>
                 <td>{{ megger.equipo }}</td>
             </tr>
         </tbody>
@@ -44,61 +45,61 @@
                 <td>L1 + Tierra</td>
                 <td>{{ megger.estator.pi_1min_l1_tierra|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pi_10min_l1_tierra|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pi_obs_l1_tierra|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pi_obs_l1_tierra|default_if_none:"---" }}</td>
 
                 <td>{{ megger.estator.pf_1min_l1_tierra|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pf_10min_l1_tierra|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pf_obs_l1_tierra|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pf_obs_l1_tierra|default_if_none:"---" }}</td>
             </tr>
             <tr>
                 <td>L2 + Tierra</td>
                 <td>{{ megger.estator.pi_1min_l2_tierra|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pi_10min_l2_tierra|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pi_obs_l2_tierra|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pi_obs_l2_tierra|default_if_none:"---" }}</td>
 
                 <td>{{ megger.estator.pf_1min_l2_tierra|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pf_10min_l2_tierra|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pf_obs_l2_tierra|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pf_obs_l2_tierra|default_if_none:"---" }}</td>
             </tr>
             <tr>
                 <td>L3 + Tierra</td>
                 <td>{{ megger.estator.pi_1min_l3_tierra|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pi_10min_l3_tierra|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pi_obs_l3_tierra|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pi_obs_l3_tierra|default_if_none:"---" }}</td>
 
                 <td>{{ megger.estator.pf_1min_l3_tierra|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pf_10min_l3_tierra|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pf_obs_l3_tierra|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pf_obs_l3_tierra|default_if_none:"---" }}</td>
             </tr>
             <tr>
                 <td>L1 + L2</td>
                 <td>{{ megger.estator.pi_1min_l1_l2|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pi_10min_l1_l2|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pi_obs_l1_l2|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pi_obs_l1_l2|default_if_none:"---" }}</td>
 
                 <td>{{ megger.estator.pf_1min_l1_l2|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pf_10min_l1_l2|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pf_obs_l1_l2|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pf_obs_l1_l2|default_if_none:"---" }}</td>
             </tr>
             <tr>
                 <td>L2 + L3</td>
                 <td>{{ megger.estator.pi_1min_l2_l3|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pi_10min_l2_l3|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pi_obs_l2_l3|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pi_obs_l2_l3|default_if_none:"---" }}</td>
 
                 <td>{{ megger.estator.pf_1min_l2_l3|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pf_10min_l2_l3|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pf_obs_l2_l3|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pf_obs_l2_l3|default_if_none:"---" }}</td>
             </tr>
             <tr>
                 <td>L3 + L1</td>
                 <td>{{ megger.estator.pi_1min_l3_l1|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pi_10min_l3_l1|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pi_obs_l3_l1|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pi_obs_l3_l1|default_if_none:"---" }}</td>
 
                 <td>{{ megger.estator.pf_1min_l3_l1|format_number|default_if_none:"---" }}</td>
                 <td>{{ megger.estator.pf_10min_l3_l1|format_number|default_if_none:"---" }}</td>
-                <td>{{ megger.estator.pf_obs_l3_l1|format_number|default_if_none:"---" }}</td>
+                <td>{{ megger.estator.pf_obs_l3_l1|default_if_none:"---" }}</td>
             </tr>
         </tbody>
     </table>
@@ -578,11 +579,11 @@
             <td>L + Tierra</td>
             <td>{{ megger.excitatriz.pi_1min_l_tierra|format_number|default_if_none:"---" }}</td>
             <td>{{ megger.excitatriz.pi_10min_l_tierra|format_number|default_if_none:"---" }}</td>
-            <td>{{ megger.excitatriz.pi_obs_l_tierra|format_number|default_if_none:"---" }}</td>
+            <td>{{ megger.excitatriz.pi_obs_l_tierra|default_if_none:"---" }}</td>
 
             <td>{{ megger.excitatriz.pf_1min_l_tierra|format_number|default_if_none:"---" }}</td>
             <td>{{ megger.excitatriz.pf_10min_l_tierra|format_number|default_if_none:"---" }}</td>
-            <td>{{ megger.excitatriz.pf_obs_l_tierra|format_number|default_if_none:"---" }}</td>
+            <td>{{ megger.excitatriz.pf_obs_l_tierra|default_if_none:"---" }}</td>
         </tr>
     </tbody>
 </table>

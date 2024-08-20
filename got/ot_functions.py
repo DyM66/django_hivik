@@ -1,7 +1,12 @@
 from django.template.loader import get_template
+from django.shortcuts import get_object_or_404
+from django.db import transaction
 from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
+from django.http import HttpResponse
+
+from got.models import System, Ruta, Task
 
 def actualizar_rutas_dependientes(ruta):
     ruta.intervention_date = timezone.now()
@@ -21,3 +26,50 @@ def generate_pdf_content(ot):
     pisa.CreatePDF(html, dest=pdf_content)
 
     return pdf_content.getvalue()
+
+
+def render_to_pdf(template_src, context_dict={}):
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    if not pdf.err:
+        return HttpResponse(result.getvalue(), content_type='application/pdf')
+    return None
+
+
+def copiar_rutas_de_sistema(system_id):
+    sistema_origen = get_object_or_404(System, id=system_id)
+    asset = sistema_origen.asset
+    
+    sistemas_destino = System.objects.filter(asset=asset).exclude(id=system_id)
+    
+    with transaction.atomic():
+        for sistema in sistemas_destino:
+            for ruta in sistema_origen.rutas.all():
+                ruta_nueva = Ruta.objects.create(
+                    name=ruta.name,
+                    control=ruta.control,
+                    frecuency=ruta.frecuency,
+                    intervention_date=ruta.intervention_date,
+                    astillero=ruta.astillero,
+                    system=sistema,
+                    # equipo=ruta.equipo.code,
+                    dependencia=ruta.dependencia,
+                )
+                
+                for tarea in ruta.task_set.all():
+                    Task.objects.create(
+                        ot=tarea.ot,
+                        ruta=ruta_nueva,
+                        responsible=tarea.responsible,
+                        description=tarea.description,
+                        procedimiento=tarea.procedimiento,
+                        hse=tarea.hse,
+                        news=tarea.news,
+                        evidence=tarea.evidence,
+                        start_date=tarea.start_date,
+                        men_time=tarea.men_time,
+                        finished=tarea.finished
+                    )
+    print(f"Rutas y tareas copiadas exitosamente a otros sistemas en el mismo activo {asset.name}.")
