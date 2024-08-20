@@ -369,7 +369,7 @@ class Ruta(models.Model):
             ndays = self.frecuency
             return self.intervention_date + timedelta(days=ndays)
         
-        if (self.control == 'h' or self.control == 'k') and not self.ot:
+        if (self.control == 'h') and not self.ot:
             inv = self.frecuency - self.equipo.horometro
             try:
                 ndays = int(inv/self.equipo.prom_hours)

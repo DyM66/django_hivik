@@ -17,7 +17,7 @@
             <tr>
                 <td><a href="{{megger.ot.get_absolute_url}}">{{ megger.ot }}</a></td>
                 <td><a href="{% url 'got:asset-detail' megger.ot.system.asset.abbreviation %}">{{ megger.ot.system.asset }}</a></td>
-                <td>{{ megger.equipo }}</td>
+                <td>{{ megger.equipo.name }}</td>
             </tr>
         </tbody>
     </table>
