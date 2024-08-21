@@ -222,7 +222,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
 
         current_month_name_en = datetime.now().strftime('%B')
-        print(current_month_name_en)
         current_month_name_es = month_names_es[current_month_name_en]
         form = DateFilterForm(self.request.GET or None)
         context['moth_form'] = form
