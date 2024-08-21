@@ -5,26 +5,24 @@
 
     {% if perms.got.view_asset %}
         <a href="{% url 'got:failure-report-list' %}"><i class="bi bi-arrow-90deg-left"></i></a>
-        Reporte de falla #{{ failurereport.id }}
     {% endif %}
+    Reporte de falla #{{ failurereport.id }}
+    <hr>
 
 {% endblock %}
 
 {% block content %}
-
     
-        <a href="{% url 'got:failure-report-update' failurereport.id %}" class="btn btn-danger"><i class="bi bi-pen"></i></a>
-        {% if not failurereport.related_ot %}
-            <a href="{% url 'got:failure-report-crear-ot' failurereport.id %}" class="btn btn-success"><i class="bi bi-clipboard-plus"></i></a>
-        {% endif %}
-
-
-    Orden de trabajo: OT-
-    {% if failurereport.related_ot %}
-        <a href="{% url 'got:ot-detail' failurereport.related_ot.num_ot %}">
-            {{ failurereport.related_ot.num_ot }}
+    <a href="{% url 'got:failure-report-update' failurereport.id %}" class="btn btn-danger"><i class="bi bi-pen"></i></a>
+    {% if not failurereport.related_ot %}
+        <a href="{% url 'got:failure-report-crear-ot' failurereport.id %}" class="btn btn-success">Generar orden de trabajo</a>
+    {% else %}
+        <a href="{% url 'got:ot-detail' failurereport.related_ot.num_ot %}" class="btn btn-primary">
+            Orden de trabajo: OT-{{ failurereport.related_ot.num_ot }}
         </a>
     {% endif %}
+    <a href="{% url 'got:fail_pdf' failurereport.id %}" class="btn btn-primary">Generar reporte</a>
+
 
 <!-- Informacion basica -->
 <table class="table">
@@ -40,7 +38,7 @@
         <tr>
             <th>Estado: </th>
             <td>{% if failurereport.closed %}Cerrado{% else %}Abierto{% endif %}</td>
-        </tr>{{ failurereport.get_state_display }}
+        </tr>
         <tr>
             <th>Sistema: </th>
             <td>{{ failurereport.equipo.system.asset.name }}</td>
@@ -71,15 +69,13 @@
                 {% endfor %}
             </td>
         </tr>
-        {% if failurereport.evidence %}
-            <tr>
-                <th>Evidencias: </th>
-                <td><img src="{{ failurereport.evidence.url }}"></td>
-            </tr>
-        {% endif %}
-
+        <tr>
+            <th colspan="2">Evidencias: </th>
+        </tr>
         {% for i in failurereport.images.all %}
-            <img src="{{ i.image.url }}" width=200>
+            <tr>
+                <td><img src="{{ i.image.url }}" width=200></td>
+            </tr>
         {% endfor %}
     </tbody>
 </table>

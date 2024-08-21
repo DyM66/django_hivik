@@ -289,7 +289,6 @@
 					<th scope="col">Ubicación</th>
 					<th scope="col">Codigo</th>
 					<th scope="col">Frecuencia</th>
-					<th scope="col">Control</th>
                     <th scope="col">Tiempo restante</th>
 					<th scope="col">Ultima intervención</th>
 					<th scope="col">Proxima intervención</th>
@@ -302,11 +301,9 @@
 					    <td scope="row" data-cell="Equipo" class="nowrap">{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}</td>
 					    <td scope="row" data-cell="Equipo" class="nowrap">{% if ruta.equipo %}{{ ruta.equipo.system.location }}{% else %}{{ ruta.system.location }}{% endif %}</td>
 					    <td scope="row" data-cell="Codigo" class="nowrap">{{ ruta.name }}</td>
-					    <td data-cell="Frecuencia">{{ ruta.frecuency }}</td>
-					    <td data-cell="Control">{{ ruta.get_control_display }}</td>
+					    <td data-cell="Frecuencia">{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
                         <td data-cell="Ultima intervención">{{ ruta.daysleft }}</td>
 					    <td data-cell="Ultima intervención">{% if ruta.ot %}{{ ruta.intervention_date|date:"d/m/Y" }}{% else %}---{% endif %}</td>
-						<!-- <td data-cell="Proxima Intervención">{% if ruta.ot %}{{ ruta.next_date|date:"d/m/Y" }}{% else %}---{% endif %}</td> -->
 						<td data-cell="Proxima Intervención">{{ ruta.next_date|date:"d/m/Y" }}</td>
 					    <td data-cell="Orden de trabajo" class="nowrap"><a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a></td>
 				    </tr>

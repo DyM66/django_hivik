@@ -2,56 +2,89 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        /* @font-face {
-            font-family: 'Roboto Mono';
-            src: url('https://hivik.s3.us-east-2.amazonaws.com/static/Roboto_Mono/static/RobotoMono-Regular.ttf') format('truetype');
-        } */
 
         body {
-            font-family: 'Roboto Mono', monospace;
-            font-size: 14px;
+            font-family: monospace;
+            font-size: 11px;
         }
 
-        .container {
-            width: 100%;
-            margin: 0 auto;
+        h1, h2, h3 {
+            color: #333366; 
+            font-size: 16px;
         }
 
-        tr {
-            padding: 5px;
+        table {
+            width: 100%; 
+            border: 0.2px solid #000; 
         }
 
-        th {
-            text-align: left;
+        thead th, thead td { 
+            padding-top: 10px;
             vertical-align: top;
+            text-align: center;
         }
 
-        ul {
-            list-style: none;
-            list-style-type: none;
+        .deta thead th {
+            text-align: left;
+            padding: 5px 0 0 5px;
         }
-        
+
+        td {
+            padding: 5px 0 0 5px;
+        }
+
+
+        tbody th {
+            background-color: #a5a8b2;
+            text-align: left;
+            padding: 4px 0 0 4px;
+        }
+
+        img { 
+            width: 200px; 
+            height: auto; 
+        }
+
+        ul { 
+            list-style-type: none;
+            padding: 0; 
+        }
+
+        li { 
+            margin-bottom: 5px; 
+        }
+    </style>
 
     </style>
 </head>
 <body>
-    <div class="container">
-        <table style="border: 0.2px solid #000;">
+    <table>
+        <thead>
             <tr>
-                <th>
-                    <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" style="width: 180px; height: auto;">
-                </th>
-                <th style="text-align: center; width: 300px; vertical-align: center;">
-                    <h2 style="font-weight: bolder;">REPORTE DE COMPRA/SERVICIO</h2>
-                </th>
-                <th style="text-align: center;">
-                    Código:
+                <td rowspan="2" style="width: 220px; height: auto;">
+                    <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png">
+                </td>
+                <th colspan="3">
+                    <h1>REPORTE DE SOLICITUD COMPRA/SERVICIO</h1>
                 </th>
             </tr>
-        </table>
-        
-        <br>
-        <table style="border: 0.2px solid #000;">
+            <tr>
+                <td>
+                    <h4>CODIGO: </h4>
+                </td>
+                <td>
+                    <h4>VERSION 001</h4>
+                </td>
+                <td>
+                    <h4>FECHA DE ACTUALIZACION: 20/08/2024</h4>
+                </td>
+            </tr>
+        </thead>
+    </table>
+    
+    <br>
+    <table class="deta">
+        <thead>
             <tr>
                 <th>
                     <strong>Centro de costo:</strong>
@@ -93,12 +126,14 @@
                     </li> 
                 </th>
             </tr>
-        </table>    
+        </thead>
+    </table>    
+
         <br>
-        <table style="border: #000 0.2px solid;">
+        <table>
             <tr>
                 <th colspan="2" style="text-align: center; padding-bottom: 0;">
-                    <h3 style="font-weight: bolder;">Descripción de solicitud</h3>
+                    <h3 style="font-weight: bolder;">DESCRIPCIÓN DE SOLICITUD</h3>
                 </th>
             </tr>
             <tr>
@@ -115,20 +150,19 @@
         </table>
         <br>
 
-        <table style="font-size: 12px; border: 0.2px solid #000;">
-            <tr style="padding-bottom: 0;">
+        <table>
+            <tr>
                 <th>Aprobado por:</th>
                 <th>Fecha de aprobación:</th>
                 <th>Tramitado:</th>
                 <th>Fecha de tramite:</th>
             </tr>
-            <tr style="padding-bottom: 0;">
+            <tr>
                 <td>{% if rq.approved %}Jader Aguilar{% else %}---{% endif %}</td>
                 <td>{% if rq.approved %}{{rq.approval_date|date:"d/m/Y H:i"}}{% else %}---{% endif %}</td>
                 <td>{% if rq.sc_change_date %}SC: {{ rq.num_sc }}{% else %}---{% endif %}</td>
                 <td>{% if rq.sc_change_date %}{{ rq.sc_change_date|date:"d/m/Y H:i" }}{% else %}---{% endif %}</td>
             </tr>
         </table>
-    </div>
 </body>
 </html>

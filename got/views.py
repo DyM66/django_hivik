@@ -1210,7 +1210,7 @@ def report_pdf(request, num_ot):
 @login_required
 def indicadores(request):
 
-    m = 7
+    m = 8
 
     area_filter = request.GET.get('area', None)
 
@@ -2173,7 +2173,12 @@ def update_sc(request, pk):
         num_sc = request.POST.get('num_sc')
         solicitud.num_sc = num_sc
         solicitud.save()
-        return redirect('got:rq-list')
+
+        hola = request.POST.get('asset')
+        query_params = request.GET.urlencode()
+        print(hola)
+        redirect_url = f'{reverse("got:rq-list")}?{query_params}'
+        return redirect(redirect_url)
     return redirect('got:rq-list') 
 
 
@@ -2252,3 +2257,9 @@ def megger_pdf(request, pk):
     registro = Megger.objects.get(pk=pk)
     context = {'meg': registro}
     return render_to_pdf('got/meg/meg_detail.html', context)
+
+
+def fail_pdf(request, pk):
+    registro = FailureReport.objects.get(pk=pk)
+    context = {'fail': registro}
+    return render_to_pdf('got/fail/fail_pdf.html', context)

@@ -13,12 +13,22 @@ import base64
 import uuid
 import re
 
-
 # ---------------- Widgets ------------------- #
 class UserChoiceField(forms.ModelChoiceField):
 
     def label_from_instance(self, obj):
-        return f'{obj.first_name} {obj.last_name}'
+        try:
+            # Intentar obtener el perfil y el cargo del usuario
+            cargo = obj.profile.cargo if obj.profile.cargo else "Sin cargo"
+        except User.profile.RelatedObjectDoesNotExist:
+            # Si no existe un perfil, asignar "Sin cargo"
+            cargo = "Sin cargo"
+        
+        if obj.groups.filter(name="maq_members").exists():
+            asset = Asset.objects.get(supervisor=obj)
+            return f"{obj.get_full_name()} - {cargo} ({asset})"
+        else:
+            return f"{obj.get_full_name()} - {cargo}"
 
 
 class XYZ_DateInput(forms.DateInput):
@@ -399,22 +409,21 @@ class ActFormNoSup(forms.ModelForm):
 
 
 class RutActForm(forms.ModelForm):
-    responsible = UserChoiceField(queryset=User.objects.all(), label='Responsable', required=False,)
+    responsible = UserChoiceField(queryset=User.objects.exclude(groups__name='gerencia'), label='Responsable', required=False, widget=forms.Select(attrs={'class': 'form-control'}))
 
     class Meta:
         model = Task
         fields = ['responsible', 'description', 'procedimiento', 'hse', 'priority']
         labels = {
-            'responsible': 'Responsable(Opcional)',
             'description': 'Descripción',
             'procedimiento': 'Procedimiento',
             'hse': 'Precauciones de seguridad',
+            'priority': 'Prioridad (entre mayor sea el numero tendra mas prioridad)',
             }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'procedimiento': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'hse': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
-            'responsible': forms.Select(attrs={'class': 'form-control'}),
             }
 
 

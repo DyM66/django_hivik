@@ -1,37 +1,6 @@
 {% extends "got/base_generic.html" %}
 
-{% block headtag %}
-    <style>
-        .chartMenu {
-            width: 100vw;
-            height: 40px;
-            background: #1A1A1A;
-            color: rgba(54, 162, 235, 1);
-        }
-        .chartMenu p {
-            padding: 10px;
-            font-size: 20px;
-        }
-        .chartCard {
-            width: 100vw;
-            height: calc(100vh - 40px);
-            background: rgba(54, 162, 235, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .chartBox {
-            width: 100%;
-            padding: 0px;
-            border-radius: 20px;
-            /* border: solid 3px rgba(54, 162, 235, 1); */
-            background: white;
-        }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-{% endblock %}
-
-{% block header %}Indicadores - Julio, 2024{% endblock %}
+{% block header %}Indicadores - Agosto, 2024{% endblock %}
 
 {% block content %}
 
@@ -89,7 +58,7 @@
         <div class="row">
             <!-- Diagrama circular de tipo de mantenimiento -->
             <div class="col-md-4 mb-3">
-                <div id="container" style="width: 70%; height: auto;">
+                <div id="container" style="width: 100%; height: auto;">
                     <canvas id="pie-chart"></canvas>
                 </div>
             </div>
@@ -112,182 +81,27 @@
         </div>
     </div>
 
-    <div class="chartBox mt-5 rounded shadow">
-        <canvas id="myChart"></canvas>
-    </div>
 
-
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Libreria chartjs para estilos de diagramas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
     <script>
 
-        // Generar una paleta amplia de colores pasteles
-        function generatePastelColors(numColors) {
-            const pastelColors = [
-                'rgba(255, 182, 193, 0.7)', // Light Pink
-                'rgba(255, 160, 122, 0.7)', // Light Salmon
-                'rgba(255, 222, 173, 0.7)', // Navajo White
-                'rgba(255, 239, 213, 0.7)', // Papaya Whip
-                'rgba(255, 228, 225, 0.7)', // Misty Rose
-                'rgba(255, 240, 245, 0.7)', // Lavender Blush
-                'rgba(224, 255, 255, 0.7)', // Light Cyan
-                'rgba(240, 255, 240, 0.7)', // Honeydew
-                'rgba(245, 245, 220, 0.7)', // Beige
-                'rgba(255, 218, 185, 0.7)', // Peach Puff
-                'rgba(255, 228, 181, 0.7)', // Moccasin
-                'rgba(253, 245, 230, 0.7)', // Old Lace
-                'rgba(255, 250, 205, 0.7)', // Lemon Chiffon
-                'rgba(255, 228, 196, 0.7)', // Bisque
-                'rgba(255, 248, 220, 0.7)', // Cornsilk
-            ];
-
-            // Repetir colores si hay más OT que colores disponibles
-            return Array.from({ length: numColors }, (_, index) => pastelColors[index % pastelColors.length]);
-        }
-
-        const ganttColors = generatePastelColors({{ barcos|length }});
-        const data = {
-            datasets: [{
-                label: 'Consolidado',
-                data: [
-                    {% for ot in barcos %}
-                        {
-                            x: ['{{ot.start|date:"Y-m-d"}}', '{{ot.end|date:"Y-m-d"}}'],
-                            y: '{{ot.system.asset.name}}',
-                            Description: '{{ot.description}}'
-                        },
-                    {% endfor %}         
-                ],
-                backgroundColor: ganttColors,
-                borderColor: ganttColors.map(color => color.replace('0.7', '1')),
-                borderWidth: 2,
-                borderSkipped: false,
-                borderRadius: 20,
-                barPercentage: 0.5,
-            }]
-        };
-
-        const todayLine = {
-            id: 'todayLine',
-            afterDatasetsDraw(chart, arg, pluginOptions) {
-                const {ctx, data, chartArea: {top, bottom, left, right }, scales: {x, y} } = chart;
-                ctx.save();
-
-                ctx.beginPath();
-                ctx.lineWidth = 0.5;
-                ctx.strokeStyle = 'rgba(255, 26, 104, 1)';
-                ctx.moveTo(x.getPixelForValue(new Date()), top);
-                ctx.lineTo(x.getPixelForValue(new Date()), bottom);
-                ctx.stroke();
-            }
-        }
-
-        // const status = {
-        //     id: 'status',
-        // afterDatasetsDraw(chart, args, pluginOptions) {
-        //     const {ctx, data, chartArea: {top, bottom, left, right}, scales: {x, y}} = chart;
-
-        //     const icons = ['\uf00d', '\uf110', '\uf00c'];
-        //     const colours = ['rgba(255, 26, 104, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'];
-
-        //     ctx.save();
-        //     ctx.font = 'bolder 12px FontAwesome';
-        //     ctx.textBaseline = 'middle';
-        //     ctx.textAlign = 'center';
-        //     data.datasets[0].data.forEach((datapoint, index) => {
-        //         ctx.beginPath();
-        //         ctx.fillStyle = colours[datapoint.status];
-        //         ctx.arc(right + 50, y.getPixelForValue(index), 12, 0, (Math.PI/180)*360, false);
-        //         ctx.closePath();
-        //         ctx.fill();
-        //         ctx.fillStyle = 'white';
-        //         ctx.fillText(icons[datapoint.status], right + 50, y.getPixelForValue(index));})
-        //     ctx.restore();
-        // }
-        // }
-
-        // config 
-        const ganttConfig = {
-            type: 'bar',
-            data,
-            options: {
-                responsive: true,
-                indexAxis: 'y',
-                layout: {
-                    padding: {left: 0, right: 100},
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        position: 'top',
-                        type: 'time',
-                        time: {
-                            unit: 'day'
-                        },
-                        min: '2024-04-30',
-                        max: '2024-05-30',
-                        padding: {top: 20, left: 0, right: 0, bottom: 0}
-                    },
-                    y: {
-                        display: true,
-                        position: 'left',
-                        ticks: {
-                            font: {
-                                size: 16,  
-                                weight: 'bold', 
-                            }
-                        }
-                    },
-                },
-    
-                plugins: {
-                    tooltip: {
-                        enabled: true,
-                        callbacks: {
-                            title: function(tooltipItems, data) {
-                                return tooltipItems[0].raw.Description;
-                            },
-                            label: function(context) {
-                                var dataPoint = context.raw;
-                                return [
-                                    `Fecha inicio: ${dataPoint.x[0]}`,
-                                    `Fecha fin: ${dataPoint.x[1]}`,
-                                    // `Responsable: ${dataPoint.name}`,
-                                    // `Estado: ${dataPoint.status ? 'Finalizado' : 'En proceso'}`,
-                                ];
-                            }
-                        }
-                    },
-                    legend: {
-                        display: false
-                    },
-                },
-
-            },
-            plugins: [
-                todayLine
-            ]
-        };
-
-
-        // Gráfico circular
-        const pieConfig = {
+        var pieConfig = {
             type: 'pie',
             data: {
                 datasets: [{
-                    data: {{ data }},
-                    backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(255, 159, 64, 0.7)']
+                    data: {{data}},
+                    backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(255, 159, 64, 0.7)'],
+                    label: 'label'
                 }],
-                labels: {{ labels|safe }}
+                labels: {{labels|safe}}
             },
             options: {
                 responsive: true
             }
         };
 
-        // Gráfico de barras
-        const barConfig = {
+        var barConfig = {
             type: 'bar',
             data: {
                 labels: {{ asset_labels|safe }},
@@ -297,15 +111,15 @@
                         'rgba(255, 99, 132, 0.7)',
                         'rgba(54, 162, 235, 0.7)',
                         'rgba(255, 206, 86, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
                     ],
                     borderColor: [
                         'rgba(255, 99, 132, 1)',
                         'rgba(54, 162, 235, 1)',
                         'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 206, 86, 1)',
                     ],
                     borderWidth: 1
                 }]
@@ -313,29 +127,24 @@
             options: {
                 responsive: true,
                 scales: {
-                    y: {
+                    yAxes: [{
                         ticks: {
                             beginAtZero: true
                         }
-                    }
+                    }]
                 },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
+                legend: {
+                display: false  // Oculta el legendario
+            }
             }
         };
 
         window.onload = function() {
-            const pieCtx = document.getElementById('pie-chart').getContext('2d');
+            var pieCtx = document.getElementById('pie-chart').getContext('2d');
             window.pieChart = new Chart(pieCtx, pieConfig);
 
-            const barCtx = document.getElementById('bar-chart').getContext('2d');
+            var barCtx = document.getElementById('bar-chart').getContext('2d');
             window.barChart = new Chart(barCtx, barConfig);
-
-            const ganttCtx = document.getElementById('myChart').getContext('2d');
-            window.myChart = new Chart(ganttCtx, ganttConfig);
         };
     </script>
 

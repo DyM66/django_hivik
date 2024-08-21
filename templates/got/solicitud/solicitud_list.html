@@ -11,6 +11,7 @@
 
 {% block content %}
 
+
 <aside>
     <div class="btn-group" role="group">
         <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
@@ -155,9 +156,6 @@
                         {% if rq.cancel %}Cancelado: {{ rq.cancel_date|date:"d/m/Y H:i" }}{% endif %}<br>
                     </td>
                 </tr>
-
-
-
 
                 <div class="modal fade" id="editSolicitudModal{{ rq.id }}" tabindex="-1" aria-labelledby="editSolicitudModalLabel" aria-hidden="true">
                     <div class="modal-dialog">

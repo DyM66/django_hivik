@@ -1,0 +1,212 @@
+{% load my_tags %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        body {
+            font-family: monospace;
+        }
+
+        h1, h2, h3 {
+            color: #333366; 
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%; 
+            border: 0.2px solid #000; 
+        }
+
+        thead th, thead td { 
+            padding-top: 10px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        td {
+            padding: 5px 0 0 5px;
+        }
+
+
+        tbody th {
+            background-color: #a5a8b2;
+            text-align: left;
+            padding: 4px 0 0 4px;
+        }
+
+        img { 
+            width: 200px; 
+            height: auto; 
+        }
+
+        ul { 
+            list-style-type: none;
+            padding: 0; 
+        }
+
+        li { 
+            margin-bottom: 5px; 
+        }
+    </style>
+</head>
+<body>
+
+    <table>
+        <thead>
+            <tr>
+                <td rowspan="2" style="width: 220px; height: auto;">
+                    <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png">
+                </td>
+                <th colspan="3">
+                    <h1>REPORTE DE FALLA</h1>
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    <h4>CODIGO: </h4>
+                </td>
+                <td>
+                    <h4>VERSION 001</h4>
+                </td>
+                <td>
+                    <h4>FECHA DE ACTUALIZACION: 20/08/2024</h4>
+                </td>
+            </tr>
+        </thead>
+    </table>
+
+    <br>
+    <table>
+        <tbody>
+            <tr>
+                <th style="width: 130px;">Registro de falla N°</th>
+                <td style="width: 50px;">{{fail.id}}</td>
+                <th style="width: 60px;">Centro</th>
+                <td>{{fail.equipo.system.asset}}</td>
+                <th style="width: 70px;">Fecha</th>
+                <td style="width: 250px;">{{fail.moment}}</td>
+            </tr>
+            <tr>
+                <th>Equipo critico:</th>    
+                <td colspan="3">{% if fail.critico %}Sí{% else %}No{% endif %}</td>
+                <th>Ubicación:</th>
+                <td>{{ fail.equipo.system.location }}</td>
+            </tr>
+            <tr>
+                <th>Equipo:</th>
+                <td colspan="3">{{fail.equipo.name}}</td>
+                <th>Sistema:</th>
+                <td>{{fail.equipo.system.name}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <br>
+    <table>
+        <tbody>
+            <tr>
+                <th rowspan="2" style="width: 50px;">AFECTA:</th>
+                <td style="width: 150px;">Seguridad personal</td>
+                <td style="width: 40px; font-size: 16px; text-align: center; font-family: Verdana, Geneva, Tahoma, sans-serif;">
+                    {% if 's' in fail.impact %}
+                    <strong>x</strong>
+                    {% endif %}
+                </td>
+                <td style="width: 200px;">Integridad del equipo/sistema</td>
+                <td style="width: 40px; font-size: 16px; text-align: center; font-family: Verdana, Geneva, Tahoma, sans-serif;">
+                    {% if 's' in fail.impact %}
+                    <strong>x</strong>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td>El medio ambiente</td>
+                <td style="font-size: 16px; text-align: center; font-family: Verdana, Geneva, Tahoma, sans-serif;">
+                    {% if 'm' in fail.impact %}
+                    <strong>x</strong>
+                    {% endif %}
+                </td>
+                <td>Desarrollo de operaciones</td>
+                <td style="font-size: 16px; text-align: center; font-family: Verdana, Geneva, Tahoma, sans-serif;">
+                    {% if 'o' in fail.impact %}
+                    <strong>x</strong>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <br>
+    <table>
+        <tr>
+            <th style="text-align: center;">DESCRIPCIÓN DE LA FALLA PRESENTADA</th>
+        </tr>
+        <tr>
+            <td>{{fail.description|linebreaks}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: center;">CAUSAS PROBABLES DE LA FALLA PRESENTADA</th>
+        </tr>
+        <tr>
+            <td>{{fail.causas|linebreaks}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: center;">REPARACIÓN SUGERIDA</th>
+        </tr>
+        <tr>
+            <td>{{fail.suggest_repair|linebreaks}}</td>
+        </tr>
+    </table>
+
+    <br>
+    {% if fail.images.all %}
+    <table>
+        <tr>
+            <th colspan="2" style="text-align: center;">EVIDENCIAS DE LA FALLA PRESENTADA</th>
+        </tr>
+        <tbody>
+            {% for i in fail.images.all %}
+                {% if forloop.counter0|divisibleby:3 %}
+                <tr>
+                {% endif %}
+    
+                <td style="text-align: center;">
+                    <img src="{{ i.image.url }}" alt="Evidence">
+                </td>
+    
+                {% if forloop.counter|divisibleby:3 %}
+                </tr>
+                {% endif %}
+            {% endfor %}
+    
+            {% if not forloop.last and not forloop.counter|divisibleby:3 %}
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <br>
+    <table>
+        <tr style="height: 60px;">
+            <td style="padding-left: 5px; text-align: center;">
+                {{fail.reporter.get_full_name}}
+            </td>
+            <td style="padding-left: 5px; text-align: center;">
+                
+            </td>
+        </tr>
+        <tr style="height: 20px;">
+            <th style="padding-top: 5px; text-align: center;">
+                <h4>Reportado por:</h4>
+            </th>
+            <th style="padding-top: 5px; text-align: center;">
+                <h4>Recibido por:</h4>
+            </th>
+        </tr>
+    </table>
+</body>
+</html>

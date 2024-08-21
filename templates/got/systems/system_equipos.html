@@ -36,8 +36,13 @@
 							<td><a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a></td>
 							<td data-cell="Acciones">
 								<div class="dropdown">
-									<button class="btn status {% if ruta.maintenance_status == 'c' %}finished{%elif ruta.maintenance_status == 'p' %}pending{%elif ruta.maintenance_status == 'e' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-										{% if ruta.maintenance_status == 'c' %}Completado{%elif ruta.maintenance_status == 'p' %}Planeado{%elif ruta.maintenance_status == 'e' %}Sin información{% else %}Retrasado{% endif %}
+									<button 
+										class="btn status {% if ruta.maintenance_status == 'c' %}finished{%elif ruta.maintenance_status == 'p' %}pending{%elif ruta.maintenance_status == 'e' %}shipped{%elif ruta.maintenance_status == 'x' %}exe{% else %}close{% endif %} btn-sm dropdown-toggle" 
+										type="button" 
+										id="dropdownMenuButton" 
+										data-bs-toggle="dropdown" 
+										aria-expanded="false">
+										{% if ruta.maintenance_status == 'c' %}Completado{%elif ruta.maintenance_status == 'p' %}Planeado{%elif ruta.maintenance_status == 'e' %}Sin información{%elif ruta.maintenance_status == 'x' %}En ejecución{% else %}Retrasado{% endif %}
 									</button>
 									<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 										{% if ruta.equipo %}
@@ -77,7 +82,7 @@
 							<td colspan="9">
 								<div>
 									<h4>
-										Actividades: 
+										Actividades:  {{ruta.get_nivel_display}}
 										{% if perms.got.add_equipo %}
 											<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill add-more"></i></a>
 										{% endif %}
@@ -89,7 +94,7 @@
 									{% if ruta.task_set.all %}
 										<ul>
 											{% for task in ruta.task_set.all %}
-												<li style="margin-bottom: 5px; list-style-type: disc;">{{ task.description }} ({{ task.responsible.first_name }} {{ task.responsible.last_name }})
+												<li style="margin-bottom: 5px; list-style-type: disc;">{{ task.description }} ({{ task.responsible.profile.cargo }})
 	
 													{% if perms.got.add_equipo %}
 														<a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>

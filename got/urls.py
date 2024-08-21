@@ -105,5 +105,6 @@ urlpatterns = [
 
     path('detalle_pdf/<int:pk>/', views.detalle_pdf, name='solicitud_pdf'),
     path('meg_pdf/<int:pk>/', views.megger_pdf, name='meg_pdf'),
+    path('fail_pdf/<int:pk>/', views.fail_pdf, name='fail_pdf'),
 
 ]
