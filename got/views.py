@@ -2174,10 +2174,7 @@ def update_sc(request, pk):
         solicitud.num_sc = num_sc
         solicitud.save()
 
-        hola = request.POST.get('asset')
-        query_params = request.GET.urlencode()
-        print(hola)
-        redirect_url = f'{reverse("got:rq-list")}?{query_params}'
+        redirect_url = f'{reverse("got:rq-list")}?'
         return redirect(redirect_url)
     return redirect('got:rq-list') 
 
@@ -2250,7 +2247,7 @@ def system_maintence_pdf(request, asset_id, system_id):
         'asset': asset,
         'system': system,
     }
-    return render_to_pdf('got/system_pdf_template.html', context)
+    return render_to_pdf('got//systems/system_pdf_template.html', context)
 
 
 def megger_pdf(request, pk):

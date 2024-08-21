@@ -103,8 +103,46 @@
         {% endfor %}
     </table>
 
+    {% for ruta in system.rutas.all %}
+        {% if not ruta.equipo %} 
+        <br>
+        <table style="border: 0.2px solid #000;">
+            <tr>
+                <th colspan="4" style="text-align: center; padding-bottom: 0; background-color: #333366;">
+                    <h3 style="font-weight: bolder; color: #fff">Rutinas de mantenimiento: {{ system.name }}</h3>
+                </th>
+            </tr>
+            <tr>
+                <th>Rutina</th>
+                <th>Frecuencia</th>
+                <th>Última Intervención</th>
+                <th>Estimado Próxima Intervención</th>
+            </tr>
+                <tr>
+                    <td>{{ ruta.name }}</td>
+                    <td>{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
+                    <td>{{ ruta.intervention_date|date:"d/m/Y" }}</td>
+                    <td>{{ ruta.next_date|date:"d/m/Y" }}</td>
+                </tr>
+                <tr style="background-color: #ddd; border-bottom: 1px #000 solid;">
+                    <td colspan="4">
+                        <strong>Actividades: {{ruta.get_nivel_display}}</strong>
+                        <ul  style="list-style-type: circle;">
+                            {% for task in ruta.task_set.all %}
+                                <li>
+                                    {{ task.description }} {{ task.hse }}<br>
+                                    {{ task.procedimiento|linebreaks }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+        </table>
+        {% endif %}
+    {% endfor %}    
 
     {% for equipo in system.equipos.all %}
+    {% if equipo.equipos.exists %}
         <br>
         <table style="border: 0.2px solid #000;">
             <tr>
@@ -127,7 +165,7 @@
                 </tr>
                 <tr style="background-color: #ddd; border-bottom: 1px #000 solid;">
                     <td colspan="4">
-                        <strong>Actividades:</strong>
+                        <strong>Actividades: {{ruta.get_nivel_display}}</strong>
                         <ul  style="list-style-type: circle;">
                             {% for task in ruta.task_set.all %}
                                 <li>
@@ -140,7 +178,47 @@
                 </tr>
             {% endfor %}
         </table>
+        {% endif %}
     {% endfor %}
+
+    
+    <br>
+    <table style="border: 0.2px solid #000;">
+        <tr>
+            <th colspan="5" style="text-align: center; padding-bottom: 0; background-color: #333366;">
+                <h3 style="font-weight: bolder; color: #fff">BITACORA DE MANTENIMIENTOS REALIZADOS</h3>
+            </th>
+        </tr>
+        <tr>
+            <th style="width: 85px;">Fecha</th>
+            <th style="width: 50px;">#OT</th>
+            <th>Descripción</th>
+            <th style="width: 120px;">Tipo de mantenimiento</th>
+            <th style="width: 150px;">Responsable</th>
+        </tr>
+        {% for ot in system.ot_set.all %}
+            <tr>
+                <td>{{ ot.creation_date|date:"d/m/Y" }}</td>
+                <td>{{ ot.num_ot }}</td>
+                <td>{{ ot.description }}</td>
+                <td>{{ ot.get_tipo_mtto_display }}</td>
+                <td>{{ ot.supervisor }}</td>
+            </tr>
+            <tr style="background-color: #ddd; border-bottom: 1px #000 solid;">
+                <td colspan="4">
+                    <strong>Actividades:</strong>
+                    <ul  style="list-style-type: circle;">
+                        {% for task in ot.task_set.all %}
+                            <li>
+                                {{ task.description }} {{ task.hse }}<br>
+                                {{ task.procedimiento|linebreaks }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
 </body>
 </html>
 
