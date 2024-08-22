@@ -7,7 +7,6 @@
 
         body {
             font-family: monospace;
-            /* font-size: 11px; */
         }
 
         h1, h2, h3 {
@@ -28,13 +27,12 @@
 
         .deta thead th {
             text-align: left;
-            padding: 5px 0 0 5px;
+            padding: 5px 10px 10px 5px;
         }
 
         td {
             padding: 5px 0 0 2px;
         }
-
 
         tbody th {
             background-color: #a5a8b2;
@@ -83,12 +81,46 @@
         </table>
     </header>
 
+
+    <br>
+    <table class="deta">
+        <thead>
+            <tr>
+                <th>
+                    {% if asset %}
+                    <strong>Centro de costo:</strong>
+                    <ul>
+                        <li>{{ asset.name }}</li>
+                    </ul>
+                    {% endif %}
+                </th>
+                <th>
+                    {% if state %}
+                    Estado:
+                    <ul>
+                        <li>{{ state }}</li>
+                    </ul> 
+                    {% endif %}
+                </th>
+                <th>
+                    {% if keyword %}
+                    Palabra clave:
+                    <li>
+                        <ol>{{ keyword }}</ol>
+                    </li> 
+                    {% endif %}
+                </th>
+            </tr>
+ 
+        </thead>
+    </table>    
+
     <br>
     <table>
         <tr>
             <th style="width: 200px; text-align: center; background-color: #333366; font-weight: bolder; color: #fff">FECHA</th>
             <th style="text-align: center; background-color: #333366; font-weight: bolder; color: #fff">CENTRO DE COSTOS</th>
-            <th style="text-align: center; background-color: #333366; font-weight: bolder; color: #fff">#OT</th>
+            <th style="text-align: center; background-color: #333366; font-weight: bolder; color: #fff">#ORDEN DE MANTENIMIENTO</th>
             <th style="width: 70px; text-align: center; background-color: #333366; font-weight: bolder; color: #fff">ESTADO</th>
             <th style="width: 100px; text-align: center; background-color: #333366; font-weight: bolder; color: #fff">SOLICITANTE</th>
         </tr>

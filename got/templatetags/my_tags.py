@@ -101,11 +101,6 @@ def calcular_repeticiones(ruta, periodo):
         # Si la rutina es en días, calcular cuántas veces se repetirá en el periodo
         frecuencia_dias = ruta.frecuency
         repeticiones = dias_periodo // frecuencia_dias
-        # frecuencia_dias = ruta.frecuency
-        # if frecuencia_dias > 0:
-        #     repeticiones = dias_periodo // frecuencia_dias
-        # else:
-        #     repeticiones = 0 
     
     elif ruta.get_control_display() == 'Horas':
         # Si la rutina es en horas, calcular la diferencia en días y luego las repeticiones
@@ -116,3 +111,7 @@ def calcular_repeticiones(ruta, periodo):
             repeticiones = 0  # Si la diferencia es negativa o cero, no se repite
     
     return repeticiones
+
+@register.filter
+def range_filter(value):
+    return range(value)

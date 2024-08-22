@@ -1995,6 +1995,7 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         return queryset
     
 
+
 def download_pdf(request):
     state = request.GET.get('state', '')
     asset_filter = request.GET.get('asset', '')
@@ -2014,7 +2015,12 @@ def download_pdf(request):
     if keyword:
         queryset = queryset.filter(suministros__icontains=keyword)
 
-    context = {'rqs': queryset}
+    context = {
+        'rqs': queryset,
+        'state': state, 
+        'asset': Asset.objects.filter(pk=asset_filter).first(),
+        'keyword': keyword,
+        }
     return render_to_pdf('got/solicitud/rqs_report.html', context)
  
 
@@ -2179,10 +2185,11 @@ def detalle_pdf(request, pk):
     return render_to_pdf('got/solicitud/solicitud_detail.html', context)
 
 
+
 def system_maintence_pdf(request, asset_id, system_id):
     asset = get_object_or_404(Asset, pk=asset_id)
     system = get_object_or_404(System, pk=system_id, asset=asset)
-    current_date = timezone.now()
+    start_date = timezone.now()
 
     sections = [
         {'title': 'Resumen', 'id': 'summary'},
@@ -2196,7 +2203,7 @@ def system_maintence_pdf(request, asset_id, system_id):
         'asset': asset,
         'system': system,
         'sections': sections,
-        'current_date': current_date,
+        'current_date': start_date,
     }
 
     return render_to_pdf('got//systems/system_pdf_template.html', context)

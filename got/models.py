@@ -375,7 +375,7 @@ class Ruta(models.Model):
             try:
                 ndays = int(inv/self.equipo.prom_hours)
             except (ZeroDivisionError, AttributeError):
-                ndays = int(inv/6)
+                ndays = int(inv/12)
         
         elif self.control == 'h' or self.control == 'k':
             period = self.equipo.hours.filter(report_date__gte=self.intervention_date, report_date__lte=date.today()).aggregate(total_hours=Sum('hour'))['total_hours'] or 0
@@ -383,7 +383,7 @@ class Ruta(models.Model):
             try:
                 ndays = int(inv/self.equipo.prom_hours)
             except (ZeroDivisionError, AttributeError):
-                ndays = int(inv/6)
+                ndays = int(inv/12)
         
         return date.today() + timedelta(days=ndays)
 
@@ -396,19 +396,19 @@ class Ruta(models.Model):
 
     @property
     def percentage_remaining(self):
-        days_remaining = (self.next_date - date.today()).days
+        
         if self.control == 'd':
-            percent = int((days_remaining / self.frecuency) * 100)
-        elif self.control == 'h':
+            time_remaining = (self.next_date - date.today()).days
+
+        elif self.control == 'h' or self.control == 'k':
             hours_period = (self.equipo.hours.filter(
                     report_date__gte=self.intervention_date,
                     report_date__lte=date.today()
                 ).aggregate(total_hours=Sum('hour'))['total_hours']) or 0
-            inv = self.frecuency - hours_period
-            percent = int((inv / self.frecuency) * 100)
-        else: 
-            percent = 0
-        return percent
+            
+            time_remaining = self.frecuency - hours_period
+
+        return int((time_remaining / self.frecuency) * 100)
 
     @property
     def maintenance_status(self):
