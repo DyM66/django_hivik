@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe del Sistema</title>
+    <style>
+
+        body {
+            font-family: monospace;
+            /* font-size: 11px; */
+        }
+
+        h1, h2, h3 {
+            color: #333366; 
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%; 
+            border: 0.2px solid #000; 
+        }
+
+        thead th, thead td { 
+            padding-top: 10px;
+            vertical-align: top;
+            text-align: center;
+        }
+
+        .deta thead th {
+            text-align: left;
+            padding: 5px 0 0 5px;
+        }
+
+        td {
+            padding: 5px 0 0 2px;
+        }
+
+
+        tbody th {
+            background-color: #a5a8b2;
+            text-align: left;
+            padding: 4px 0 0 4px;
+        }
+
+        img { 
+            width: 200px; 
+            height: auto; 
+        }
+
+        ul { 
+            list-style-type: none;
+            padding: 0; 
+        }
+
+        li { 
+            margin-bottom: 5px; 
+        }
+    </style>
+<body>
+    <header>
+        <table>
+            <thead>
+                <tr>
+                    <td rowspan="2" style="width: 220px; height: auto;">
+                        <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png">
+                    </td>
+                    <th colspan="3">
+                        <h1>REPORTE DE SOLICITUDES COMPRA/SERVICIO</h1>
+                    </th>
+                </tr>
+                <tr>
+                    <td>
+                        <h4>CODIGO: </h4>
+                    </td>
+                    <td>
+                        <h4>VERSION 001</h4>
+                    </td>
+                    <td>
+                        <h4>FECHA DE ACTUALIZACION: 20/08/2024</h4>
+                    </td>
+                </tr>
+            </thead>
+        </table>
+    </header>
+
+    <br>
+    <table>
+        <tr>
+            <th style="width: 200px; text-align: center; background-color: #333366; font-weight: bolder; color: #fff">FECHA</th>
+            <th style="text-align: center; background-color: #333366; font-weight: bolder; color: #fff">CENTRO DE COSTOS</th>
+            <th style="text-align: center; background-color: #333366; font-weight: bolder; color: #fff">#OT</th>
+            <th style="width: 70px; text-align: center; background-color: #333366; font-weight: bolder; color: #fff">ESTADO</th>
+            <th style="width: 100px; text-align: center; background-color: #333366; font-weight: bolder; color: #fff">SOLICITANTE</th>
+        </tr>
+        {% for rq in rqs %}
+            <tr>
+                <td>
+                    Solicitado: {{ rq.creation_date|date:"d/m/Y H:i" }}<br>
+                    Aprobado: {{ rq.approval_date|date:"d/m/Y H:i" }}<br>
+                    Tramitado: {{ rq.sc_change_date|date:"d/m/Y H:i" }}<br>
+                </td>
+                <td>{{ rq.asset.name }}/{{ rq.ot.system.name }}</td>
+                <td>{% if rq.ot %}Orden de trabajo OT{{ rq.ot }}{% else %}Consumibles/ Repuestos/ Herramientas{% endif %}</td>
+                <td>{% if rq.cancel %}Cancelado{% elif rq.num_sc %}Tramitado{% elif rq.approved %}Aprobado{% else %}No aprobado{% endif %}</td>
+                <td>{{ rq.solicitante.get_full_name }}</td>
+            </tr>
+            <tr style="background-color: #ddd; border-bottom: 1px #000 solid;">
+                <td colspan="5">
+                    <strong>Descripción:</strong>
+                    {{ rq.suministros|linebreaks }}
+                    <ul  style="list-style-type: circle;"></ul>
+                        {% for i in rq.suministro_set.all %}
+                            <li>{{i}}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+    
+</body>
+</html>

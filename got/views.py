@@ -220,7 +220,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             "December": "Diciembre"
         }
 
-
+        exe = self.request.GET.get('execution')
         current_month_name_en = datetime.now().strftime('%B')
         current_month_name_es = month_names_es[current_month_name_en]
         form = DateFilterForm(self.request.GET or None)
@@ -233,7 +233,8 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             year = int(form.cleaned_data['year'])
 
             filtered_rutas = Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's'])
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month == month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x')]
+            if exe == 'false':
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month == month and ruta.next_date.year == year) or (ruta.ot and not ruta.ot.state == 'x')]
         else:
             current_date = timezone.now()
             next_date = current_date + relativedelta(months=1)
@@ -1993,20 +1994,6 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
 
         return queryset
     
-    def get_page_for_solicitud(self, solicitud_id):
-        queryset = self.get_queryset()
-        
-        # Encontrar la posición del registro
-        solicitud = queryset.filter(id=solicitud_id).first()
-        if not solicitud:
-            return None
-
-        solicitud_position = (list(queryset).index(solicitud) + 1)
-        
-        page_number = (solicitud_position // self.paginate_by) + 1
-        
-        return page_number
-    
 
 def download_pdf(request):
     state = request.GET.get('state', '')
@@ -2014,9 +2001,9 @@ def download_pdf(request):
     keyword = request.GET.get('keyword', '')
 
     queryset = Solicitud.objects.all()
+
     if asset_filter:
         queryset = queryset.filter(asset__abbreviation=asset_filter)
-
     if state:
         if state == 'no_aprobada':
             queryset = queryset.filter(approved=False)
@@ -2024,66 +2011,12 @@ def download_pdf(request):
             queryset = queryset.filter(approved=True, sc_change_date__isnull=True)
         elif state == 'tramitado':
             queryset = queryset.filter(approved=True, sc_change_date__isnull=False)
-
     if keyword:
         queryset = queryset.filter(suministros__icontains=keyword)
 
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="solicitudes_report.pdf"'
-
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=60, leftMargin=60, topMargin=60, bottomMargin=60)
-    elements = []
-
-    styles = getSampleStyleSheet()
-    style_normal = styles['BodyText']
-    style_normal.fontSize = 9
-    style_heading = styles['Heading2']
-    style_heading.alignment = 1  # Alineación al centro
-    style_heading.fontSize = 12
-
-    elements.append(Paragraph('<b>REPORTE DE SOLICITUDES</b>', style_heading))
-    elements.append(Spacer(1, 20))
-
-    # Datos de la tabla
-    solicitudes_data = [['#OT', 'Centro de costos', 'Solicitante', 'Estado', 'Suministros', 'Fechas']]
-    for solicitud in queryset:
-        ot_display = solicitud.ot.num_ot if solicitud.ot else "Consumibles/Repuestos/Herramientas"
-        fechas = f"Solicitado: {solicitud.creation_date.strftime('%d/%m/%Y')}"
-        if solicitud.approval_date:
-            fechas += f", Aprobado: {solicitud.approval_date.strftime('%d/%m/%Y')}"
-        if solicitud.sc_change_date:
-            fechas += f", Tramitado: {solicitud.sc_change_date.strftime('%d/%m/%Y')}"
-
-        row = [
-            Paragraph(str(ot_display), style_normal),
-            Paragraph(solicitud.asset.name if solicitud.asset else '---', style_normal),
-            Paragraph(f"{solicitud.solicitante.first_name} {solicitud.solicitante.last_name}", style_normal),
-            Paragraph('Aprobado' if solicitud.approved else 'No aprobado', style_normal),
-            Paragraph(solicitud.suministros, style_normal),
-            Paragraph(fechas, style_normal)
-        ]
-        solicitudes_data.append(row)
-
-    table = Table(solicitudes_data, colWidths=[0.9 * inch, 1.2 * inch, 1.5 * inch, 1 * inch, 2.2 * inch, 1.5 * inch], repeatRows=1)
-    table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),  # Líneas más delgadas y menos negras
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),  # Texto del encabezado en negro
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 5),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('FONTSIZE', (0, 0), (-1, -1), 9)
-    ]))
-    elements.append(table)
-
-    doc.build(elements)
-    pdf = buffer.getvalue()
-    buffer.close()
-    response.write(pdf)
-    return response
+    context = {'rqs': queryset}
+    return render_to_pdf('got/solicitud/rqs_report.html', context)
+ 
 
 
 class CreateSolicitudOt(LoginRequiredMixin, View):
@@ -2173,7 +2106,18 @@ def update_sc(request, pk):
         solicitud.num_sc = num_sc
         solicitud.save()
 
-        redirect_url = f'{reverse("got:rq-list")}?'
+        query_params = {
+            'asset': request.POST.get('asset', ''),
+            'state': request.POST.get('state', ''),
+            'keyword': request.POST.get('keyword', ''),
+        }
+        
+        # Filtramos los parámetros vacíos
+        query_string = '&'.join([f'{key}={value}' for key, value in query_params.items() if value])
+
+        redirect_url = f'{reverse("got:rq-list")}'
+        if query_string:
+            redirect_url += f'?{query_string}'
         return redirect(redirect_url)
     return redirect('got:rq-list') 
 
@@ -2199,10 +2143,7 @@ def transferir_equipo(request, equipo_id):
             nuevo_sistema = form.cleaned_data['destino']
             observaciones = form.cleaned_data['observaciones']
             
-            # Guarda el sistema de origen antes de cambiarlo
-            sistema_origen = equipo.system
-            
-            # Actualiza el sistema del equipo
+            sistema_origen = equipo.system            
             equipo.system = nuevo_sistema
             equipo.save()
 
@@ -2241,11 +2182,23 @@ def detalle_pdf(request, pk):
 def system_maintence_pdf(request, asset_id, system_id):
     asset = get_object_or_404(Asset, pk=asset_id)
     system = get_object_or_404(System, pk=system_id, asset=asset)
+    current_date = timezone.now()
+
+    sections = [
+        {'title': 'Resumen', 'id': 'summary'},
+        {'title': 'Información del Sistema', 'id': 'system-info'},
+        {'title': 'Equipos Asociados', 'id': 'associated-equipment'},
+        {'title': 'Rutinas de Mantenimiento', 'id': 'maintenance-routines'},
+        {'title': 'Bitácora de Mantenimientos', 'id': 'maintenance-log'},
+    ]
 
     context = {
         'asset': asset,
         'system': system,
+        'sections': sections,
+        'current_date': current_date,
     }
+
     return render_to_pdf('got//systems/system_pdf_template.html', context)
 
 

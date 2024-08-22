@@ -82,3 +82,37 @@ def get_page(solicitud_id, paginate_by=20):
         return page
     except Solicitud.DoesNotExist:
         return None
+    
+
+
+@register.filter
+def calcular_repeticiones(ruta, periodo):
+    # Definir los días que representa cada periodo
+    periodos = {
+        'trimestral': 90,
+        'semestral': 180,
+        'anual': 365,
+        'quinquenal': 1825,  # 5 años
+    }
+
+    dias_periodo = periodos.get(periodo, 0)
+
+    if ruta.control == 'd':
+        # Si la rutina es en días, calcular cuántas veces se repetirá en el periodo
+        frecuencia_dias = ruta.frecuency
+        repeticiones = dias_periodo // frecuencia_dias
+        # frecuencia_dias = ruta.frecuency
+        # if frecuencia_dias > 0:
+        #     repeticiones = dias_periodo // frecuencia_dias
+        # else:
+        #     repeticiones = 0 
+    
+    elif ruta.get_control_display() == 'Horas':
+        # Si la rutina es en horas, calcular la diferencia en días y luego las repeticiones
+        diferencia_dias = (ruta.next_date - ruta.intervention_date).days
+        if diferencia_dias > 0:
+            repeticiones = dias_periodo // diferencia_dias
+        else:
+            repeticiones = 0  # Si la diferencia es negativa o cero, no se repite
+    
+    return repeticiones

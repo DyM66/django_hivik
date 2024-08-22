@@ -188,6 +188,9 @@
                             <div class="modal-body">
                                 <form method="post" action="{% url 'got:update-sc' rq.id %}">
                                     {% csrf_token %}
+                                    <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+                                    <input type="hidden" name="state" value="{{ request.GET.state }}">
+                                    <input type="hidden" name="keyword" value="{{ request.GET.keyword }}">
                                     <div class="mb-3">
                                         <label for="num_sc{{ rq.id }}" class="form-label">Número de SC</label>
                                         <input type="text" class="form-control" id="num_sc{{ rq.id }}" name="num_sc" value="{{ rq.num_sc }}">

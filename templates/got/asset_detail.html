@@ -169,7 +169,7 @@
                         {% if not asset.area == 'a' %}
                             <td data-cell="Ubicación">{{ sys.location }}</td>
                         {% endif %}
-                        <td data-cell="Mantenimiento">{% if sys.maintenance_percentage %}{{ sys.maintenance_percentage }}%{% endif %}</td>
+                        <td data-cell="Mantenimiento">{% if sys.maintenance_percentage %}{{ sys.maintenance_percentage }}%{% else %} --- {% endif %}</td>
                         <td data-cell="Estado">
                             <div class="dropdown">
                                 <button class="btn status {% if sys.state == 'o' %}finished{% elif sys.state == 'm' %}pending{% elif sys.state == 's' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
@@ -264,6 +264,11 @@
                 <div class="input-group mb-3">
                     <span class="input-group-text">Año</span>
                     {{ moth_form.year }}
+                </div>
+
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Mostrar en ejecución</span>
+                    <input type="checkbox" id="toggle-execution" name="execution" value="true">
                 </div>
     
                 <button type="submit" class="btn btn-primary">Filtrar</button>

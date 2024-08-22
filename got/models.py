@@ -177,10 +177,11 @@ class System(models.Model):
             if ruta.maintenance_status == 'c':
                 total_value += 1
             elif ruta.maintenance_status == 'p':
-                total_value += 0.5
+                total_value += 0.2
             elif ruta.maintenance_status == 'e' and ruta.next_date > date.today():
-                total_value += 1
-            
+                total_value += 0.3
+            elif ruta.maintenance_status == 'x':
+                total_value += 0.5
 
         max_possible_value = len(rutas)
         if max_possible_value == 0:
@@ -374,7 +375,7 @@ class Ruta(models.Model):
             try:
                 ndays = int(inv/self.equipo.prom_hours)
             except (ZeroDivisionError, AttributeError):
-                ndays = int(inv/1)
+                ndays = int(inv/6)
         
         elif self.control == 'h' or self.control == 'k':
             period = self.equipo.hours.filter(report_date__gte=self.intervention_date, report_date__lte=date.today()).aggregate(total_hours=Sum('hour'))['total_hours'] or 0
@@ -382,7 +383,7 @@ class Ruta(models.Model):
             try:
                 ndays = int(inv/self.equipo.prom_hours)
             except (ZeroDivisionError, AttributeError):
-                ndays = int(inv/1)
+                ndays = int(inv/6)
         
         return date.today() + timedelta(days=ndays)
 
