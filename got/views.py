@@ -142,6 +142,10 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
         other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
         combined_systems = (systems.union(other_asset_systems)).order_by('group')
+        paginator = Paginator(combined_systems, 10)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
         # if self.request.user.groups.filter(name='buzos_members').exists():
         #     locations = buzos_station_filter(self.request.user)
@@ -149,39 +153,32 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         #         return asset.system_set.filter(location__in=locations)
         #     return asset.system_set.all()
 
-        current_date = datetime.now() 
         current_month_name_en = datetime.now().strftime('%B')
         current_month_name_es = traductor(current_month_name_en)
-        next_date = current_date + relativedelta(months=1)
 
-        exe = self.request.GET.get('execution')
-
-        form = DateFilterForm(self.request.GET or None)
+        form = RutinaFilterForm(self.request.GET or None, asset=asset)
 
         if form.is_valid():
             current_month_name_en = form.cleaned_data.get('month')
             current_month_name_es = traductor(calendar.month_name[int(current_month_name_en)])
             month = int(form.cleaned_data['month'])
             year = int(form.cleaned_data['year'])
+            show_execute = form.cleaned_data.get('execute', False)
+            selected_locations = form.cleaned_data.get('locations')
 
-            filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's'])
-            if exe == 'false':
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month == month and ruta.next_date.year == year) or (ruta.ot and not ruta.ot.state == 'x')]
+            filtered_rutas = Ruta.objects.filter(system__in=systems, system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            if show_execute == 'on':
+                filtered_rutas = [
+                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x') #or (ruta.percentage_remaining < 10)
+                    ]
+            else:
+                filtered_rutas = [
+                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) #or (ruta.percentage_remaining < 10)
+                    ]
 
         else:
-            filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel')
-                # if ruta.percentage_remaining < 10:
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date <= next_date.date())] #or (ruta.ot and ruta.ot.state == 'x')]
-
-        # filtered_rutas = []
-        # for ruta in Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's']):
-        #     if (ruta.next_date <= next_date.date()) or (ruta.ot and ruta.ot.state == 'x'): # or (ruta.intervention_date.month == current_month and ruta.intervention_date.year == current_year)
-        #         filtered_rutas.append(ruta)
-
-        filtered_rutas.sort(key=lambda t: t.next_date)
-        paginator = Paginator(combined_systems, 10)
-        page_number = self.request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
+            filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 10)]
 
         if asset.area == 'b':
             context['locations'] = System.objects.filter(asset=asset).values_list('location', flat=True).distinct()

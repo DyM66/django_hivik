@@ -57,7 +57,8 @@ class MultipleFileField(forms.FileField):
             result = [single_file_clean(data, initial)]
         return result
     
-class DateFilterForm(forms.Form):
+    
+class RutinaFilterForm(forms.Form):
     current_year = datetime.now().year
     max_year = current_year + 5
 
@@ -67,7 +68,6 @@ class DateFilterForm(forms.Form):
         (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
     ]
 
-    # MONTH_CHOICES = [(i, f"{i:02}") for i in range(1, 13)]
     YEAR_CHOICES = [(i, str(i)) for i in range(current_year, max_year + 1)]
 
     month = forms.ChoiceField(
@@ -82,6 +82,29 @@ class DateFilterForm(forms.Form):
         label="Año",
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
+    execute = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Mostrar rutinas en ejecución",
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        asset = kwargs.pop('asset', None)
+        super().__init__(*args, **kwargs)
+
+        if asset:
+            # Obtener ubicaciones únicas
+            locations = System.objects.filter(asset=asset).values_list('location', flat=True).distinct()
+            unique_locations = list(set(locations))  # Eliminar duplicados
+            location_choices = [(location, location) for location in unique_locations]
+            self.fields['locations'] = forms.MultipleChoiceField(
+                choices=location_choices,
+                widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+                initial=[location for location in unique_locations],
+                required=False,
+                label="Ubicaciones"
+            )
 
 
 class UploadImages(forms.Form):

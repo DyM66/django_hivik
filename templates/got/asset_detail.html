@@ -3,16 +3,36 @@
 
 {% block headtag %}
 <style>
-    .filter-form {
-        margin: 20px;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background-color: #f9f9f9;
-    }
-    .filter-form button {
-        margin-top: 10px;
-    }
+.filter-form {
+    margin: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    width: 100%;
+}
+
+.filter-form .form-group {
+    display: block;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* .form-check {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.form-check-input {
+    margin-right: 10px; 
+}
+
+.filter-form button {
+    margin-top: 10px;
+} */
+
+
 </style>
 {% endblock %}
 
@@ -254,22 +274,25 @@
     
         <form method="get" class="filter-form">
             <fieldset>
-                <legend>Filtro de Rutinas</legend>
-    
-                <div class="input-group mb-3">
-                    <span class="input-group-text">Mes</span>
+                <legend><strong>Filtro de Rutinas:</strong></legend>
+
+                <div class="input-group">
+                    <span class="input-group-text">Mes y año</span>
                     {{ rutinas_filter_form.month }}
-                </div>
-    
-                <div class="input-group mb-3">
-                    <span class="input-group-text">Año</span>
                     {{ rutinas_filter_form.year }}
                 </div>
 
-                <!-- <div class="input-group mb-3">
-                    <span class="input-group-text">Mostrar en ejecución</span>
-                    <input type="checkbox" id="toggle-execution" name="execution" value="true">
-                </div> -->
+                <div class="form-check form-switch form-check-reverse">
+                    <span class="form-check-label">Mostrar rutinas en ejecución</span>
+                    {{ rutinas_filter_form.execute }}
+                </div>
+
+                <legend>Ubicaciones:</legend>
+                <div>
+                    {% for location in rutinas_filter_form.locations %}
+                        {{ location }} <br>
+                    {% endfor %}
+                </div>
     
                 <button type="submit" class="btn btn-primary">Filtrar</button>
             </fieldset>
@@ -297,7 +320,6 @@
                     <th scope="col">Tiempo restante</th>
 					<th scope="col">Ultima intervención</th>
 					<th scope="col">Proxima intervención</th>
-					<th scope="col">Orden de trabajo</th>
 					<th scope="col">%PM</th>
 				</tr>
 			</thead>
@@ -311,7 +333,6 @@
                         <td data-cell="Ultima intervención">{{ ruta.daysleft }}</td>
 					    <td data-cell="Ultima intervención">{% if ruta.ot %}{{ ruta.intervention_date|date:"d/m/Y" }}{% else %}---{% endif %}</td>
 						<td data-cell="Proxima Intervención">{{ ruta.next_date|date:"d/m/Y" }}</td>
-					    <td data-cell="Orden de trabajo"><a href="{{  ruta.ot.get_absolute_url }}">{{ ruta.ot.num_ot }}</a></td>
 					    <td>{{ ruta.percentage_remaining }}</td>
 				    </tr>
                 {% empty %}
