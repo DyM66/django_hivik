@@ -240,7 +240,7 @@ class Equipo(models.Model):
     
     @property
     def ruta_proxima(self):
-        rutas = self.equipos.exclude(level=1)
+        rutas = self.equipos.exclude(nivel=1)
         future_rutas = [ruta for ruta in rutas if ruta.next_date and ruta.next_date > date.today()]
 
         if not future_rutas:

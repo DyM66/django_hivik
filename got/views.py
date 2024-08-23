@@ -170,7 +170,8 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
         else:
             filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel')
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date <= next_date.date()) or (ruta.ot and ruta.ot.state == 'x')]
+                # if ruta.percentage_remaining < 10:
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date <= next_date.date())] #or (ruta.ot and ruta.ot.state == 'x')]
 
         # filtered_rutas = []
         # for ruta in Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's']):
