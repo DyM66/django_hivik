@@ -24,11 +24,9 @@ from .forms import *
 from datetime import timedelta, date, datetime
 from collections import defaultdict
 from xhtml2pdf import pisa
-import io
 from io import BytesIO
 import itertools
 import PyPDF2
-import smtplib
 import logging
 import base64
 import uuid
@@ -36,13 +34,7 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 import calendar
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-
-from .ot_functions import *
+from .functions import *
 
 
 logger = logging.getLogger(__name__)
@@ -114,12 +106,7 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
             return queryset.filter(ot__system__asset__supervisor=current_user)
 
         if current_user.groups.filter(name='buzos_members').exists():
-            location_filters = {
-                'santamarta_station': 'Santa Marta',
-                'ctg_station': 'Cartagena',
-                'guyana_station': 'Guyana'
-            }
-            locations = [loc for group, loc in location_filters.items() if current_user.groups.filter(name=group).exists()]
+            locations = buzos_station_filter(self.request.user)
             if locations:
                 return queryset.filter(ot__system__asset__area='b', ot__system__location__in=locations)
             return queryset.filter(ot__system__asset__area='b')
@@ -151,98 +138,39 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
-        sys = asset.system_set.all()
-
-        equipos = Equipo.objects.filter(system__asset=asset).prefetch_related('suministros__item')
-
-        item_subsystems = defaultdict(set)
-        items_by_subsystem = defaultdict(set)
-        item_cant = defaultdict(set)
-
-        inventory_counts = defaultdict(int)
-        suministros = Suministro.objects.filter(asset=asset)
-        for suministro in suministros:
-            inventory_counts[suministro.item] += suministro.cantidad
-
-        for equipo in equipos:
-            subsystem = equipo.subsystem if equipo.subsystem else "General"
-            for suministro in equipo.suministros.all():
-                item_subsystems[suministro.item].add(subsystem)
-                if suministro.item in item_cant:
-                    item_cant[suministro.item] += suministro.cantidad
-                else:
-                    item_cant[suministro.item] = suministro.cantidad
-        
-        context['item_cant'] = item_cant
-
-        duplicated_items = {item for item, subsystems in item_subsystems.items() if len(subsystems) > 1}
-
-        for equipo in equipos:
-            subsystem = equipo.subsystem if equipo.subsystem else "General"
-            for suministro in equipo.suministros.all():
-                item_tuple = (suministro.item, item_cant[suministro.item], inventory_counts[suministro.item], item_cant[suministro.item] * 2)
-                if suministro.item in duplicated_items:
-                    items_by_subsystem["General"].add(item_tuple)
-                else:
-                    items_by_subsystem[subsystem].add(item_tuple)
-
-        items_by_subsystem = {k: list(v) for k, v in items_by_subsystem.items() if v}
-        context['items_by_subsystem'] = items_by_subsystem
-
-        if self.request.user.groups.filter(name='buzos_members').exists():
-            location_filters = {
-                'santamarta_station': 'Santa Marta',
-                'ctg_station': 'Cartagena',
-                'guyana_station': 'Guyana',
-            }
-            locations = [loc for group, loc in location_filters.items() if self.request.user.groups.filter(name=group).exists()]
-            if locations:
-                return asset.system_set.filter(area='b', location__in=locations)
-            return asset.system_set.all()
+        systems = asset.system_set.all()
 
         other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
-        combined_systems = (sys.union(other_asset_systems)).order_by('group')
-        
+        combined_systems = (systems.union(other_asset_systems)).order_by('group')
+
+        # if self.request.user.groups.filter(name='buzos_members').exists():
+        #     locations = buzos_station_filter(self.request.user)
+        #     if locations:
+        #         return asset.system_set.filter(location__in=locations)
+        #     return asset.system_set.all()
+
         current_date = datetime.now() 
+        current_month_name_en = datetime.now().strftime('%B')
+        current_month_name_es = traductor(current_month_name_en)
         next_date = current_date + relativedelta(months=1)
-        month_names_es = {
-            "January": "Enero",
-            "February": "Febrero",
-            "March": "Marzo",
-            "April": "Abril",
-            "May": "Mayo",
-            "June": "Junio",
-            "July": "Julio",
-            "August": "Agosto",
-            "September": "Septiembre",
-            "October": "Octubre",
-            "November": "Noviembre",
-            "December": "Diciembre"
-        }
 
         exe = self.request.GET.get('execution')
-        current_month_name_en = datetime.now().strftime('%B')
-        current_month_name_es = month_names_es[current_month_name_en]
+
         form = DateFilterForm(self.request.GET or None)
-        context['moth_form'] = form
-            
+
         if form.is_valid():
             current_month_name_en = form.cleaned_data.get('month')
-            current_month_name_es = month_names_es[calendar.month_name[int(current_month_name_en)]]
+            current_month_name_es = traductor(calendar.month_name[int(current_month_name_en)])
             month = int(form.cleaned_data['month'])
             year = int(form.cleaned_data['year'])
 
-            filtered_rutas = Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's'])
+            filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's'])
             if exe == 'false':
                 filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month == month and ruta.next_date.year == year) or (ruta.ot and not ruta.ot.state == 'x')]
-        else:
-            current_date = timezone.now()
-            next_date = current_date + relativedelta(months=1)
-            filtered_rutas = Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's'])
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date <= next_date.date()) or (ruta.ot and ruta.ot.state == 'x')]
 
-        
-        
+        else:
+            filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel')
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date <= next_date.date()) or (ruta.ot and ruta.ot.state == 'x')]
 
         # filtered_rutas = []
         # for ruta in Ruta.objects.filter(system__in=sys).exclude(system__state__in=['x', 's']):
@@ -266,6 +194,10 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['rotativos'] = rotativos
         context['other_asset_systems'] = other_asset_systems
         context['add_sys'] = combined_systems
+
+
+        context['items_by_subsystem'] = consumibles_summary(asset)
+        context['rutinas_filter_form'] = form
 
         return context
     

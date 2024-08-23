@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
                 ('file', models.FileField(upload_to=got.models.get_upload_pdfs)),
                 ('description', models.CharField(max_length=200)),
                 ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.asset')),
-                ('tasks', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.task')),
+                ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.ot')),
             ],
         ),
 
@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
             name='Megger',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('fecha', models.DateField()),
+                ('date_report', models.DateField(auto_now_add=True, null=True)),
                 ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
                 ('ot', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.ot')),
             ],
@@ -78,7 +78,7 @@ class Migration(migrations.Migration):
                 ('pf_1min_l_tierra', models.DecimalField(blank=True, decimal_places=4, max_digits=8, null=True)),
                 ('pf_10min_l_tierra', models.DecimalField(blank=True, decimal_places=4, max_digits=8, null=True)),
                 ('pf_obs_l_tierra', models.TextField(blank=True, null=True)),
-                ('megger', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
+                ('megger', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
             ],
         ),
         migrations.CreateModel(
@@ -121,7 +121,7 @@ class Migration(migrations.Migration):
                 ('pf_obs_l1_l2', models.TextField(blank=True, null=True)),
                 ('pf_obs_l2_l3', models.TextField(blank=True, null=True)),
                 ('pf_obs_l3_l1', models.TextField(blank=True, null=True)),
-                ('megger', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
+                ('megger', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
             ],
         ),
         migrations.CreateModel(
@@ -132,7 +132,7 @@ class Migration(migrations.Migration):
                 ('rodamientobs', models.TextField(blank=True, null=True)),
                 ('escudoas', models.TextField(blank=True, null=True)),
                 ('escudobs', models.TextField(blank=True, null=True)),
-                ('megger', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
+                ('megger', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
             ],
         ),
         migrations.CreateModel(
@@ -145,7 +145,7 @@ class Migration(migrations.Migration):
                 ('pf_1min_l_tierra', models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True)),
                 ('pf_10min_l_tierra', models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True)),
                 ('pf_obs_l_tierra', models.TextField(blank=True, null=True)),
-                ('megger', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
+                ('megger', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
             ],
         ),
         migrations.CreateModel(
@@ -158,7 +158,7 @@ class Migration(migrations.Migration):
                 ('pf_1min_l_tierra', models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True)),
                 ('pf_10min_l_tierra', models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True)),
                 ('pf_obs_l_tierra', models.TextField(blank=True, null=True)),
-                ('megger', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
+                ('megger', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
             ],
         ),
     ]

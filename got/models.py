@@ -240,7 +240,7 @@ class Equipo(models.Model):
     
     @property
     def ruta_proxima(self):
-        rutas = self.equipos.exclude(nivel='a')
+        rutas = self.equipos.exclude(level=1)
         future_rutas = [ruta for ruta in rutas if ruta.next_date and ruta.next_date > date.today()]
 
         if not future_rutas:
@@ -343,10 +343,10 @@ class Ruta(models.Model):
     )
 
     NIVEL = (
-        ('a', 'Nivel 1 - Operadores'),
-        ('b', 'Nivel 2 - Operador Técnico'),
-        ('c', 'Nivel 3 - Proveedor especializado'),
-        ('d', 'Nivel 4 - Fabricante')
+        (1, 'Nivel 1 - Operadores'),
+        (2, 'Nivel 2 - Operador Técnico'),
+        (3, 'Nivel 3 - Proveedor especializado'),
+        (4, 'Nivel 4 - Fabricante')
     )
 
     code = models.AutoField(primary_key=True)
@@ -354,7 +354,8 @@ class Ruta(models.Model):
     control = models.CharField(choices=CONTROL, max_length=1)
     frecuency = models.IntegerField()
     intervention_date = models.DateField()
-    nivel = models.CharField(choices=NIVEL, max_length=1, default='a')
+
+    nivel = models.IntegerField(choices=NIVEL, default=1)
 
     astillero = models.CharField(max_length=50, null=True, blank=True)
 
