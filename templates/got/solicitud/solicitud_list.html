@@ -90,13 +90,13 @@
                             {% if not rq.cancel %}
 							<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 								<li><a class="dropdown-item" href="{% url 'got:solicitud_pdf' rq.id %}">Ver detalle</a></li>
-                                {% if perms.got.change_solicitud %}
+                                <!-- {% if perms.got.change_solicitud %}
                                 <li>
                                     <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editRqInfoModal{{ rq.id }}">
                                         Actualizar Proveedor e Inversión
                                     </button>
                                 </li>
-                                {% endif %}
+                                {% endif %} -->
                                 {% if not rq.approved %}
                                     {% if perms.got.can_approve %}
 								        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editSolicitudModal{{ rq.id }}">Editar</a></li>

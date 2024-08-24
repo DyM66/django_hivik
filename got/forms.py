@@ -276,17 +276,15 @@ class OtFormNoSup(forms.ModelForm):
 
     class Meta:
         model = Ot
-        exclude = ['ot_aprobada', 'super', 'supervisor']
+        exclude = ['description', 'system', 'state', 'tipo_mtto']
         labels = {
             'description': 'Descripción',
             'system': 'Sistema',
             'state': 'Estado',
             'tipo_mtto': 'Tipo de mantenimiento',
-            'info_contratista_pdf': 'Informe externo',
         }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
-            'info_contratista_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo_mtto': forms.Select(attrs={'class': 'form-control'}),
             'system': forms.Select(attrs={'class': 'form-control'}),
             'state': forms.Select(attrs={'class': 'form-control'}),
