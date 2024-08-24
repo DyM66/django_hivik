@@ -90,6 +90,13 @@
                             {% if not rq.cancel %}
 							<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 								<li><a class="dropdown-item" href="{% url 'got:solicitud_pdf' rq.id %}">Ver detalle</a></li>
+                                {% if perms.got.change_solicitud %}
+                                <li>
+                                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editRqInfoModal{{ rq.id }}">
+                                        Actualizar Proveedor e Inversión
+                                    </button>
+                                </li>
+                                {% endif %}
                                 {% if not rq.approved %}
                                     {% if perms.got.can_approve %}
 								        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editSolicitudModal{{ rq.id }}">Editar</a></li>
@@ -147,6 +154,28 @@
                                 </script>
                             {% endfor %}
                         </ul>
+
+<!-- Modal para actualizar Proveedor e Inversión -->
+<!-- <div class="modal fade" id="editRqInfoModal{{ rq.id }}" tabindex="-1" aria-labelledby="editRqInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editRqInfoModalLabel">Editar Proveedor e Inversión para OT-{{ rq.ot.num_ot }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'got:rq-list' %}">
+                    {% csrf_token %}
+                    {{rq_info_form}}
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> -->
+
+
+                        
                     </td>
                     <td colspan="2">
                         Solicitado: {{ rq.creation_date|date:"d/m/Y H:i" }}<br>

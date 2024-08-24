@@ -1891,10 +1891,23 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         context['current_asset'] = self.request.GET.get('asset', '')
         context['current_state'] = self.request.GET.get('state', '')
         context['current_keyword'] = self.request.GET.get('keyword', '')
-
-
-
+        context['rq_info_form'] = Rq_Info()
         return context
+    
+    # def post(self, request, *args, **kwargs):
+    #     if 'edit_rq_info' in request.POST:
+    #         solicitud_id = request.POST.get('solicitud_id')
+    #         solicitud = get_object_or_404(Solicitud, id=solicitud_id)
+    #         form = Rq_Info(request.POST)
+    #         if form.is_valid():
+    #             proveedor = request.POST.get('proveedor')
+    #             inversion = request.POST.get('inversion')
+    #             solicitud.proveedor = proveedor
+    #             solicitud.inversion = inversion
+    #             solicitud.save()
+    #             return redirect('got:rq-list')
+        
+    #     return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = Solicitud.objects.all()
@@ -2149,3 +2162,34 @@ def fail_pdf(request, pk):
     registro = FailureReport.objects.get(pk=pk)
     context = {'fail': registro}
     return render_to_pdf('got/fail/fail_pdf.html', context)
+
+
+class GratusView(generic.TemplateView):
+    template_name = "got/gratus.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Filtrar las OTs asociadas al asset "Gratus"
+        ots = Ot.objects.filter(system__asset__abbreviation="GTS")
+        
+        gratus_data = []
+
+        for ot in ots:
+            # Agrupar las solicitudes por proveedor
+            solicitudes_grouped = Solicitud.objects.filter(ot=ot).values('proveedor').annotate(
+                total_inversion=Sum('inversion')
+            )
+
+            total_ejecutado = sum(item['total_inversion'] for item in solicitudes_grouped)
+            pendiente = ot.presupuesto - total_ejecutado
+
+            gratus_data.append({
+                'ot': ot,
+                'presupuesto': ot.presupuesto,
+                'solicitudes_grouped': solicitudes_grouped,
+                'pendiente': pendiente,
+            })
+
+        context['gratus_data'] = gratus_data
+        return context

@@ -107,4 +107,5 @@ urlpatterns = [
     path('meg_pdf/<int:pk>/', views.megger_pdf, name='meg_pdf'),
     path('fail_pdf/<int:pk>/', views.fail_pdf, name='fail_pdf'),
 
+    path('gratus/', views.GratusView.as_view(), name='gratus-view'),
 ]
