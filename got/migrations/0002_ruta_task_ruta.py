@@ -103,6 +103,8 @@ class Migration(migrations.Migration):
                 ('cancel', models.BooleanField(default=False)),
                 ('cancel_reason', models.TextField(blank=True, null=True)),
                 ('cancel_date', models.DateTimeField(blank=True, null=True)),
+                ('proveedor', models.CharField(max_length=100, null=True, blank=True)),
+                ('inversion', models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Inversión (COP)")),
             ],
             options={
                 'ordering': ['-creation_date'],

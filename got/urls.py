@@ -70,6 +70,7 @@ urlpatterns = [
     path('edit-solicitud/<int:pk>/', views.EditSolicitudView.as_view(), name='edit-solicitud'),
     path('approve-solicitud/<int:pk>/', views.ApproveSolicitudView.as_view(), name='approve-solicitud'),
     path('solicitud/update-sc/<int:pk>/', views.update_sc, name='update-sc'),
+    path('solicitud/exp-sc/<int:pk>/', views.exp_sc, name='exp-sc'),
     path('solicitud/cancel-sc/<int:pk>/', views.cancel_sc, name='cancel-sc'),
 
     path('system/<str:asset_id>/<int:system_id>/pdf/', views.system_maintence_pdf, name='generate-system-pdf'),
@@ -107,5 +108,5 @@ urlpatterns = [
     path('meg_pdf/<int:pk>/', views.megger_pdf, name='meg_pdf'),
     path('fail_pdf/<int:pk>/', views.fail_pdf, name='fail_pdf'),
 
-    path('gratus/', views.GratusView.as_view(), name='gratus-view'),
+    # path('gratus/', views.GratusView.as_view(), name='gratus-view'),
 ]

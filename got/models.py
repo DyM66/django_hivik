@@ -316,7 +316,8 @@ class Ot(models.Model):
 
     state = models.CharField(choices=STATUS, default='x', max_length=1)
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
-    presupuesto = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Presupuesto (COP)")
+    # presupuesto = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Presupuesto (COP)")
+    # obs = models.TextField(null=True, blank=True)
 
     sign_supervision = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
 
@@ -553,8 +554,8 @@ class Solicitud(models.Model):
     cancel_reason = models.TextField(null=True, blank=True)
     cancel = models.BooleanField(default=False)
 
-    proveedor = models.CharField(max_length=100, null=True, blank=True)
-    inversion = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Inversión (COP)")
+    # proveedor = models.CharField(max_length=100, null=True, blank=True)
+    # inversion = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Inversión (COP)")
 
     @property
     def formatted_inversion(self):

@@ -61,8 +61,8 @@ class Migration(migrations.Migration):
                 ('super', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('supervisor', models.CharField(blank=True, max_length=100, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.system')),
-                ('info_contratista_pdf', models.FileField(upload_to=got.models.get_upload_path, null=True, blank=True)),
                 ('sign_supervision', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
+                ('presupuesto', models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Presupuesto (COP)")),
             ],
             options={
                 'ordering': ['-num_ot'],
