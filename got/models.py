@@ -8,6 +8,9 @@ from django.dispatch import receiver
 import uuid
 from django.urls import reverse
 from django.utils import timezone
+from django.core.validators import MinValueValidator
+from django.utils.formats import number_format
+from django.utils.translation import gettext as _
 
 
 def get_upload_path(instance, filename):
@@ -313,9 +316,13 @@ class Ot(models.Model):
 
     state = models.CharField(choices=STATUS, default='x', max_length=1)
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
-    info_contratista_pdf = models.FileField(upload_to=get_upload_path,null=True, blank=True)
+    presupuesto = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Presupuesto (COP)")
 
     sign_supervision = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+
+    @property
+    def formatted_presupuesto(self):
+        return f"${number_format(self.presupuesto, decimal_pos=2, use_l10n=True, force_grouping=True)} COP"
 
 
     def all_tasks_finished(self):
@@ -535,6 +542,8 @@ class Solicitud(models.Model):
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
     suministros = models.TextField()
     num_sc = models.TextField(null=True, blank=True)
+
+    # approved_by = models.CharField(max_length=100, null=True, blank=True, default='Jader Aguilar')
     approved = models.BooleanField(default=False)
 
     approval_date = models.DateTimeField(null=True, blank=True) 
@@ -543,6 +552,13 @@ class Solicitud(models.Model):
     cancel_date = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.TextField(null=True, blank=True)
     cancel = models.BooleanField(default=False)
+
+    proveedor = models.CharField(max_length=100, null=True, blank=True, verbose_name="Proveedor")
+    inversion = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Inversión (COP)")
+
+    @property
+    def formatted_inversion(self):
+        return f"${number_format(self.inversion, decimal_pos=2, use_l10n=True, force_grouping=True)} COP"
 
     def __str__(self):
         return f"Suministros para {self.asset}/{self.ot}"

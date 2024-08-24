@@ -37,19 +37,21 @@
                     </li>
                 {% endif %}
 
-                <!-- Vistas publicas -->
+                {% if perms.got.view_task %}
                     <li class="nav-item">
                         <a class="nav-link  {% if request.resolver_match.url_name == 'my-tasks' %}active{% endif %}" href="{% url 'got:my-tasks' %}">
                             Actividades
                         </a>
                     </li>
+                {% endif %}
                     <li class="nav-item">
                         <a class="nav-link  {% if request.resolver_match.url_name == 'ot-list' %}active{% endif %}" href="{% url 'got:ot-list' %}">
                             Ordenes de trabajo
                         </a>
                     </li>
 
-                {% if not request.user|has_group:"serport_members" %}
+
+                {% if perms.got.view_failurereport %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'failure-report-list' %}active{% endif %}" href="{% url 'got:failure-report-list' %}">
                             Reportes de fallas

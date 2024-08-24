@@ -138,6 +138,7 @@
             </tr>
             <tr style="background-color: #ddd; border-bottom: 1px #000 solid;">
                 <td colspan="5">
+                    {% if rq.num_sc %}Tramite: {{rq.num_sc}}{% endif %} <br>
                     <strong>Descripción:</strong>
                     {{ rq.suministros|linebreaks }}
                     <ul  style="list-style-type: circle;"></ul>

@@ -130,24 +130,4 @@ class Migration(migrations.Migration):
             name='pi_1min_l3_l1',
             field=models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True),
         ),
-        migrations.AlterField(
-            model_name='estator',
-            name='pi_1min_l3_tierra',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True),
-        ),
-        migrations.AlterField(
-            model_name='excitatriz',
-            name='pf_10min_l_tierra',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True),
-        ),
-        migrations.AlterField(
-            model_name='excitatriz',
-            name='pf_1min_l_tierra',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True),
-        ),
-        migrations.AlterField(
-            model_name='excitatriz',
-            name='pi_10min_l_tierra',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True),
-        ),
     ]

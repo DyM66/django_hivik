@@ -183,3 +183,6 @@ def migrate_nivel_to_integer():
         elif ruta.nivel == 'd':
             ruta.nivel_int = 4
         ruta.save()
+
+
+
