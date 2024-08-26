@@ -316,8 +316,6 @@ class Ot(models.Model):
 
     state = models.CharField(choices=STATUS, default='x', max_length=1)
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
-    # presupuesto = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Presupuesto (COP)")
-    # obs = models.TextField(null=True, blank=True)
 
     sign_supervision = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
 
@@ -557,10 +555,6 @@ class Solicitud(models.Model):
     # proveedor = models.CharField(max_length=100, null=True, blank=True)
     # inversion = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Inversión (COP)")
 
-    @property
-    def formatted_inversion(self):
-        return f"${number_format(self.inversion, decimal_pos=2, use_l10n=True, force_grouping=True)} COP"
-
     def __str__(self):
         return f"Suministros para {self.asset}/{self.ot}"
     
@@ -570,6 +564,26 @@ class Solicitud(models.Model):
             ('can_cancel', 'Puede cancelar'),
             )
         ordering = ['-creation_date']
+
+
+class Salida(models.Model):
+    destino = models.CharField(max_length=200)
+    fecha = models.DateField(auto_now_add=True)
+    motivo = models.TextField()
+    propietario = models.CharField(max_length=100)
+    responsable = models.CharField(max_length=100)
+    recibe = models.CharField(max_length=100)
+    vehiculo = models.CharField(max_length=100, null=True, blank=False)
+    auth = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.motivo} - {self.fecha}"
+    
+    class Meta:
+        permissions = (
+            ('can_approve_it', 'Aprobar salidas'),
+            )
+        ordering = ['-fecha']
 
 
 @receiver(pre_save, sender=Solicitud)
@@ -591,14 +605,14 @@ class Suministro(models.Model):
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     cantidad = models.IntegerField()
+
     Solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=True, blank=True)
-
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
-
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
+    salida = models.ForeignKey(Salida, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
 
     def __str__(self):
-        return f"{self.item} ({self.cantidad})"
+        return f"{self.cantidad} {self.item.presentacion} - {self.item} "
 
 
 class TransaccionSuministro(models.Model):
@@ -932,9 +946,14 @@ class Image(models.Model):
     failure = models.ForeignKey(FailureReport, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     solicitud = models.ForeignKey(Solicitud, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    salida= models.ForeignKey(Salida, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     image = models.ImageField(upload_to=get_upload_path)
 
     preoperacional = models.ForeignKey(Preoperacional, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacionaldiario = models.ForeignKey(PreoperacionalDiario, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
     darbaja = models.ForeignKey(DarBaja, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+
+
+
+

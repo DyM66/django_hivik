@@ -1,0 +1,72 @@
+{% extends 'got/base_generic.html' %}
+
+{% block content %}
+
+<h1><a href="{% url 'got:salida-list' %}"><i class="bi bi-arrow-bar-left"></i></a></h1>
+
+
+<div class="container">
+    <div class="row">
+        <!-- Sidebar for Create Form -->
+        <div class="col-lg-3">
+            <div class="card">
+                <div class="card-header">
+                    Crear Nuevo Artículo
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-success">Crear</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Item Cards with Search Filters -->
+        <div class="col-lg-9">
+            <input type="text" id="search-name-input" onkeyup="filterItems()" placeholder="Buscar por nombre..." class="form-control mb-1">
+            <input type="text" id="search-reference-input" onkeyup="filterItems()" placeholder="Buscar por referencia..." class="form-control mb-3 mt-4">
+            <div class="row">
+                {% for item in items %}
+                    <div class="col-lg-3 mb-3 article-card" data-name="{{ item.name|lower }}" data-reference="{{ item.reference|lower }}">
+                        <div class="card">
+                            {% if item.imagen %}
+                                <img src="{{ item.imagen.url }}" class="card-img-top" alt="Imagen de {{ item.name }}" style="height: 200px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#imageModal{{ item.id }}">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ item.name }}</h5>
+                                <p class="card-text">
+                                    Referencia: {{ item.reference }}<br>
+                                    Presentación: {{ item.presentacion }}<br>
+                                    Código: {{ item.code }}<br>
+                                    Sección: {{ item.get_seccion_display }}
+                                </p>
+                                <a href="{% url 'got:edit_item' item.id %}" class="btn btn-secondary">✏️ Editar</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterItems() {
+        const searchName = document.getElementById('search-name-input').value.toLowerCase();
+        const searchReference = document.getElementById('search-reference-input').value.toLowerCase();
+        const articles = document.querySelectorAll('.article-card');
+
+        articles.forEach(card => {
+            const itemName = card.getAttribute('data-name');
+            const itemReference = card.getAttribute('data-reference');
+            if (itemName.includes(searchName) && itemReference.includes(searchReference)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>
+{% endblock %}

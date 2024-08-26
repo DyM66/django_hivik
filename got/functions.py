@@ -7,6 +7,7 @@ from xhtml2pdf import pisa
 from django.http import HttpResponse
 from got.models import System, Ruta, Task, Suministro, Equipo
 from collections import defaultdict
+from datetime import date
 
 
 def actualizar_rutas_dependientes(ruta):
@@ -172,17 +173,28 @@ def traductor(word):
     }
     return context[word]
 
-def migrate_nivel_to_integer():
-    for ruta in Ruta.objects.all():
-        if ruta.nivel == 'a':
-            ruta.nivel_int = 1
-        elif ruta.nivel == 'b':
-            ruta.nivel_int = 2
-        elif ruta.nivel == 'c':
-            ruta.nivel_int = 3
-        elif ruta.nivel == 'd':
-            ruta.nivel_int = 4
-        ruta.save()
 
+def truncate_text(text, length=45):
+    if len(text) > length:
+        return text[:length] + '...'
+    return text
+
+
+def calculate_status_code(t):
+    ot_tasks = Task.objects.filter(ot=t)
+
+    earliest_start_date = min(t.start_date for t in ot_tasks)
+    latest_final_date = max(t.final_date for t in ot_tasks)
+
+    today = date.today()
+
+    if latest_final_date < today:
+        return 0
+    elif earliest_start_date < today < latest_final_date:
+        return 1
+    elif earliest_start_date > today:
+        return 2
+
+    return None
 
 

@@ -92,6 +92,13 @@
                         </a>
                     </li>
                 {% endif %}
+                {% if perms.got.view_salida %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'salida-list' %}active{% endif %}" href="{% url 'got:salida-list' %}">
+                            Salidas
+                        </a>
+                    </li>
+                {% endif %}
               </ul>
 
               <!-- Boton de logout -->

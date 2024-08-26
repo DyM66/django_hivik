@@ -22,7 +22,6 @@ from .models import *
 from .forms import *
 
 from datetime import timedelta, date, datetime
-from collections import defaultdict
 from xhtml2pdf import pisa
 from io import BytesIO
 import itertools
@@ -31,7 +30,6 @@ import logging
 import base64
 import uuid
 import pandas as pd
-from dateutil.relativedelta import relativedelta
 import calendar
 
 from .functions import *
@@ -39,6 +37,8 @@ from .functions import *
 
 logger = logging.getLogger(__name__)
 
+
+'HOME PAGE'
 class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 
     model = Task
@@ -114,6 +114,7 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         return queryset.none() 
     
  
+'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, generic.ListView):
 
     model = Asset
@@ -193,7 +194,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['other_asset_systems'] = other_asset_systems
         context['add_sys'] = combined_systems
 
-
         context['items_by_subsystem'] = consumibles_summary(asset)
         context['rutinas_filter_form'] = form
 
@@ -244,6 +244,141 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             return render(request, self.template_name, context)
 
 
+class AssetDocCreateView(generic.View):
+    form_class = DocumentForm
+    template_name = 'got/add-document.html'
+
+    def get(self, request, asset_id):
+        asset = get_object_or_404(Asset, pk=asset_id)
+        form = self.form_class()
+        return render(request, self.template_name, {'form': form, 'asset': asset})
+
+    def post(self, request, asset_id):
+        form = self.form_class(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.asset = get_object_or_404(Asset, pk=asset_id)
+            document.save()
+            return redirect('got:asset-detail', pk=asset_id)
+        return render(request, self.template_name, {'form': form})
+
+
+def asset_suministros_report(request, abbreviation):
+    asset = get_object_or_404(Asset, abbreviation=abbreviation)
+    suministros = Suministro.objects.filter(asset=asset)
+
+    ultima_fecha_transaccion = TransaccionSuministro.objects.filter(
+        suministro__asset=asset
+    ).aggregate(Max('fecha'))['fecha__max'] or "---"
+
+    if request.method == 'POST':
+        for suministro in suministros:
+            cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
+            cantidad_ingresada = int(request.POST.get(f'ingresado_{suministro.id}', 0))
+            
+            suministro.cantidad -= cantidad_consumida
+            suministro.cantidad += cantidad_ingresada
+            suministro.save()
+            TransaccionSuministro.objects.create(
+                suministro=suministro,
+                cantidad_ingresada=cantidad_ingresada,
+                cantidad_consumida=cantidad_consumida,
+                usuario=request.user
+            )
+        return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
+
+    return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros, 'ultima_fecha_transaccion': ultima_fecha_transaccion})
+
+
+@login_required
+def schedule(request, pk):
+
+    tasks = Task.objects.filter(ot__system__asset=pk, ot__isnull=False, start_date__isnull=False, ot__state='x')
+    ots = Ot.objects.filter(system__asset=pk, state='x')
+    asset = get_object_or_404(Asset, pk=pk)
+    systems = System.objects.filter(asset=asset)
+    min_date = tasks.aggregate(Min('start_date'))['start_date__min']
+
+    color_palette = itertools.cycle([
+        'rgba(255, 99, 132, 0.2)',   # rojo
+        'rgba(54, 162, 235, 0.2)',   # azul
+        'rgba(255, 206, 86, 0.2)',   # amarillo
+        'rgba(75, 192, 192, 0.2)',   # verde agua
+        'rgba(153, 102, 255, 0.2)',  # púrpura
+        'rgba(255, 159, 64, 0.2)',   # naranja
+    ])
+
+    n = 0
+    responsibles = set(task.responsible.username for task in tasks if task.responsible)
+    responsible_colors = {res: next(color_palette) for res in responsibles}
+
+    chart_data = []
+    n = 0
+    for task in tasks:
+        if task.finished:
+            color = "rgba(192, 192, 192, 0.5)"
+            border_color = "rgba(192, 192, 192, 1)"
+        else:
+            color = responsible_colors.get(task.responsible.username, "rgba(54, 162, 235, 0.2)")
+            border_color = color.replace('0.2', '1') 
+        
+        chart_data.append({
+            'start_date': task.start_date,
+            'final_date': task.final_date,
+            'description': truncate_text(task.ot.description),
+            'name': f"{task.responsible.first_name} {task.responsible.last_name}",
+            'activity_description': task.description,
+            'background_color': color,
+            'border_color': border_color,
+        })
+        n += 1
+
+    context = {
+        'tasks': chart_data,
+        'asset': asset,
+        'min_date': min_date,
+        'responsibles': responsible_colors,
+    }
+    return render(request, 'got/schedule.html', context)
+
+
+def generate_asset_pdf(request, asset_id):
+    asset = get_object_or_404(Asset, pk=asset_id)
+    systems = asset.system_set.all()
+
+    systems_with_rutas = []
+    for system in systems:
+        rutas_data = []
+        rutas = Ruta.objects.filter(system=system).prefetch_related('task_set')
+        for ruta in rutas:
+            # Recoger las tareas para cada ruta
+            tasks = ruta.task_set.all()
+            rutas_data.append({
+                'ruta': ruta,
+                'tasks': tasks,
+                'ot_num': ruta.ot.num_ot if ruta.ot else 'N/A'  # Asegúrate que ruta.ot es accesible y no nulo
+            })
+        systems_with_rutas.append({
+            'system': system,
+            'rutas_data': rutas_data
+        })
+
+    context = {
+        'asset': asset,
+        'systems_with_rutas': systems_with_rutas
+    }
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Asset_{}.pdf"'.format(asset.pk)
+    template = get_template('got/asset_pdf_template.html')
+    html = template.render(context)
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+'SYSTEMS VIEW'
 class SysDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = System
@@ -270,7 +405,6 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
             orders = paginator.page(1)
         except EmptyPage:
             orders = paginator.page(paginator.num_pages)
-
         context['orders'] = orders
 
         try:
@@ -284,25 +418,16 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
             context['equipos'] = equipments
 
         subsystems = Equipo.objects.filter(system=system).exclude(subsystem__isnull=True).exclude(subsystem__exact='').values_list('subsystem', flat=True)
-
         context['unique_subsystems'] = list(set(subsystems))
         context['items'] = Item.objects.all()
         return context
+    
 
+class SysUpdate(UpdateView):
 
-def add_supply_to_equipment(request, code):
-    equipo = get_object_or_404(Equipo, code=code)
-    if request.method == 'POST':
-        form = SuministrosEquipoForm(request.POST)
-        if form.is_valid():
-            suministro = form.save(commit=False)
-            suministro.equipo = equipo
-            suministro.save()
-            return redirect(reverse('got:sys-detail-view', args=[equipo.system.id, equipo.code]))
-    else:
-        form = SuministrosEquipoForm()
-        items = Item.objects.all()
-    return render(request, 'got/equipment_detail.html', {'form': form, 'equipo': equipo, 'items': items})
+    model = System
+    form_class = SysForm
+    template_name = 'got/systems/system_form.html'
 
 
 class SysDelete(DeleteView):
@@ -314,15 +439,32 @@ class SysDelete(DeleteView):
         success_url = reverse_lazy(
             'got:asset-detail', kwargs={'pk': asset_code})
         return str(success_url)
+    
+
+def system_maintence_pdf(request, asset_id, system_id):
+    asset = get_object_or_404(Asset, pk=asset_id)
+    system = get_object_or_404(System, pk=system_id, asset=asset)
+    start_date = timezone.now()
+
+    sections = [
+        {'title': 'Resumen', 'id': 'summary'},
+        {'title': 'Información del Sistema', 'id': 'system-info'},
+        {'title': 'Equipos Asociados', 'id': 'associated-equipment'},
+        {'title': 'Rutinas de Mantenimiento', 'id': 'maintenance-routines'},
+        {'title': 'Bitácora de Mantenimientos', 'id': 'maintenance-log'},
+    ]
+
+    context = {
+        'asset': asset,
+        'system': system,
+        'sections': sections,
+        'current_date': start_date,
+    }
+
+    return render_to_pdf('got//systems/system_pdf_template.html', context)
 
 
-class SysUpdate(UpdateView):
-
-    model = System
-    form_class = SysForm
-    template_name = 'got/system_form.html'
-
-
+'EQUIPMENTS VIEW'
 class EquipoCreateView(CreateView):
 
     model = Equipo
@@ -335,7 +477,7 @@ class EquipoCreateView(CreateView):
 
     def get_success_url(self):
         return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
-
+    
 
 class EquipoUpdate(UpdateView):
 
@@ -355,6 +497,132 @@ class EquipoDelete(DeleteView):
         return success_url
 
 
+def add_supply_to_equipment(request, code):
+    equipo = get_object_or_404(Equipo, code=code)
+    if request.method == 'POST':
+        form = SuministrosEquipoForm(request.POST)
+        if form.is_valid():
+            suministro = form.save(commit=False)
+            suministro.equipo = equipo
+            suministro.save()
+            return redirect(reverse('got:sys-detail-view', args=[equipo.system.id, equipo.code]))
+    else:
+        form = SuministrosEquipoForm()
+        items = Item.objects.all()
+    return render(request, 'got/equipment_detail.html', {'form': form, 'equipo': equipo, 'items': items})
+
+
+@login_required
+def transferir_equipo(request, equipo_id):
+    equipo = get_object_or_404(Equipo, pk=equipo_id)
+    if request.method == 'POST':
+        form = TransferenciaForm(request.POST)
+        if form.is_valid():
+            nuevo_sistema = form.cleaned_data['destino']
+            observaciones = form.cleaned_data['observaciones']
+            
+            sistema_origen = equipo.system            
+            equipo.system = nuevo_sistema
+            equipo.save()
+
+            rutas = Ruta.objects.filter(equipo=equipo)
+            for ruta in rutas:
+                ruta.system = nuevo_sistema
+                ruta.save()
+            
+            Transferencia.objects.create(
+                equipo=equipo,
+                responsable=f"{request.user.first_name} {request.user.last_name}",
+                origen=sistema_origen,
+                destino=nuevo_sistema,
+                observaciones=observaciones
+            )
+            
+            return redirect(nuevo_sistema.get_absolute_url())
+    else:
+        form = TransferenciaForm()
+
+    context = {
+        'form': form,
+        'equipo': equipo
+    }
+    return render(request, 'got/transferencia-equipo.html', context)
+
+
+'HOURS VIEW'
+@login_required
+def reporthours(request, component):
+
+    hours = HistoryHour.objects.filter(component=component)[:30]
+    equipo = get_object_or_404(Equipo, pk=component)
+
+    if request.method == 'POST':
+        # Si se envió el formulario, procesarlo
+        form = ReportHours(request.POST)
+        if form.is_valid():
+            # Guardar el formulario si es válido
+            instance = form.save(commit=False)
+            instance.component = equipo
+            instance.reporter = request.user
+            instance.save()
+            return redirect(request.path)
+    else:
+        form = ReportHours()
+
+    context = {
+        'form': form,
+        'horas': hours,
+        'component': equipo
+    }
+
+    return render(request, 'got/hours.html', context)
+
+
+@login_required
+def reportHoursAsset(request, asset_id):
+
+    asset = get_object_or_404(Asset, pk=asset_id)
+    today = date.today()
+    dates = [today - timedelta(days=x) for x in range(30)]
+    equipos_rotativos = Equipo.objects.filter(system__asset=asset, tipo='r')
+
+    if request.method == 'POST':
+        form = ReportHoursAsset(request.POST, asset=asset)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.reporter = request.user
+            instance.save()
+            return redirect(request.path)
+    else:
+        form = ReportHoursAsset(asset=asset)
+
+    hours = HistoryHour.objects.filter(component__system__asset=asset)[:30]
+
+    equipos_data = []
+    for equipo in equipos_rotativos:
+        horas_reportadas = {date: 0 for date in dates}
+        for hour in equipo.hours.filter(report_date__range=(dates[-1], today)):
+            if hour.report_date in horas_reportadas:
+                horas_reportadas[hour.report_date] += hour.hour
+
+        equipos_data.append({
+            'equipo': equipo,
+            'horas': [horas_reportadas[date] for date in dates]
+        })
+
+    context = { 
+        'form': form,
+        'horas': hours,
+        'asset': asset,
+        'equipos_data': equipos_data,
+        'equipos_rotativos': equipos_rotativos,
+        'dates': dates
+    }
+
+    return render(request, 'got/hours_asset.html', context)
+
+
+'FAILURE REPORTS VIEW'
 class FailureListView(LoginRequiredMixin, generic.ListView):
 
     model = FailureReport
@@ -384,6 +652,11 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
             queryset = queryset.filter(equipo__system__asset__in=supervised_assets)
 
         return queryset
+    
+
+class FailureDetailView(LoginRequiredMixin, generic.DetailView):
+
+    model = FailureReport
 
 
 class FailureReportForm(LoginRequiredMixin, CreateView):
@@ -467,11 +740,6 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
         return self.render_to_response(context)
 
 
-class FailureDetailView(LoginRequiredMixin, generic.DetailView):
-
-    model = FailureReport
-
-
 class FailureReportUpdate(LoginRequiredMixin, UpdateView):
 
     model = FailureReport
@@ -493,6 +761,12 @@ class FailureReportUpdate(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         return super().form_valid(form)
+    
+
+def fail_pdf(request, pk):
+    registro = FailureReport.objects.get(pk=pk)
+    context = {'fail': registro}
+    return render_to_pdf('got/fail/fail_pdf.html', context)
 
 
 @permission_required('got.can_see_completely')
@@ -513,6 +787,7 @@ def crear_ot_failure_report(request, fail_id):
     return redirect('got:ot-detail', pk=nueva_ot.pk)
 
 
+'OTS VIEWS'
 class OtListView(LoginRequiredMixin, generic.ListView):
 
     model = Ot
@@ -729,18 +1004,6 @@ class OtCreate(CreateView):
     def form_valid(self, form):
         ot = form.save(commit=False)
 
-        # signature_data = self.request.POST.get('sign_supervisor')
-        # print("Datos recibidos para la firma:", signature_data)
-        # if signature_data:
-        #     format, imgstr = signature_data.split(';base64,')
-        #     ext = format.split('/')[-1]
-        #     filename = f'supervisor_signature_{uuid.uuid4()}.{ext}'
-        #     data = ContentFile(base64.b64decode(imgstr), name=filename)
-        #     ot.sign_supervision.save(filename, data, save=True)
-        #     print("Imagen guardada correctamente")
-        # else:
-        #     print("No se recibió data de firma")
-
         if isinstance(form, OtFormNoSup):
             ot.supervisor = self.request.user.get_full_name()
         ot.save()
@@ -771,6 +1034,127 @@ class OtDelete(DeleteView):
     success_url = reverse_lazy('got:ot-list')
 
 
+def ot_pdf(request, num_ot):
+
+    ot_info = Ot.objects.get(num_ot=num_ot)
+    fallas = FailureReport.objects.filter(related_ot=ot_info)
+
+    try:
+        fallas = FailureReport.objects.filter(related_ot=ot_info)
+        failure = True
+    except FailureReport.DoesNotExist:
+        fallas = None
+        failure = False
+
+    context = {'ot': ot_info, 'fallas': fallas, 'failure': failure}
+    template_path = 'got/pdf_template.html'
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="orden_de_trabajo_{num_ot}.pdf"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    # Crear el PDF y enviarlo directamente a la respuesta HTTP
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+'TASKS VIEW'
+class TaskDetailView(LoginRequiredMixin, generic.DetailView):
+
+    model = Task
+
+
+class TaskCreate(CreateView):
+
+    model = Task
+    http_method_names = ['get', 'post']
+    form_class = RutActForm
+
+    def form_valid(self, form):
+        pk = self.kwargs['pk']
+        ruta = get_object_or_404(Ruta, pk=pk)
+
+        form.instance.ruta = ruta
+        form.instance.finished = False
+
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        task = self.object
+        return reverse('got:sys-detail', args=[task.ruta.system.id])
+
+
+class TaskUpdate(UpdateView):
+
+    model = Task
+    template_name = 'got/task_form.html'
+    form_class = ActForm
+    second_form_class = UploadImages
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if 'image_form' not in context:
+            context['image_form'] = self.second_form_class()
+        context['images'] = Image.objects.filter(task=self.get_object())
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        image_form = self.second_form_class(request.POST, request.FILES)
+        if form.is_valid() and image_form.is_valid():
+            response = super().form_valid(form)
+            if form.cleaned_data.get('delete_images'):
+                self.object.images.all().delete()
+            for img in request.FILES.getlist('file_field'):
+                Image.objects.create(task=self.object, image=img)
+            return response
+        else:
+            return self.form_invalid(form)
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def form_invalid(self, form, **kwargs):
+        return self.render_to_response(self.get_context_data(form=form, **kwargs))
+    
+
+class TaskDelete(DeleteView):
+
+    model = Task
+    success_url = reverse_lazy('got:ot-list')
+
+
+class TaskUpdaterut(UpdateView):
+
+    model = Task
+    form_class = RutActForm
+    template_name = 'got/task_form.html'
+    http_method_names = ['get', 'post']
+
+    def get_success_url(self):
+        sys_id = self.object.ruta.system.id
+        return reverse_lazy('got:sys-detail', kwargs={'pk': sys_id})
+    
+
+class TaskDeleterut(DeleteView):
+
+    model = Task
+
+    def get_success_url(self):
+        sys_id = self.object.ruta.system.id
+        return reverse_lazy('got:sys-detail', kwargs={'pk': sys_id})
+
+    def get(self, request, *args, **kwargs):
+        context = {'task': self.get_object()}
+        return render(request, 'got/task_confirm_delete.html', context)
+
+    
 class Finish_task(UpdateView):
 
     model = Task
@@ -802,17 +1186,6 @@ class Finish_task(UpdateView):
 
     def form_invalid(self, form, **kwargs):
         return self.render_to_response(self.get_context_data(form=form, **kwargs))
-
-
-class Reschedule_task(UpdateView):
-
-    model = Task
-    form_class = RescheduleTaskForm
-    template_name = 'got/task/task_reschedule.html'
-    success_url = reverse_lazy('got:my-tasks')
-
-    def form_valid(self, form):
-        return super().form_valid(form)
     
 
 class Finish_task_ot(UpdateView):
@@ -852,97 +1225,18 @@ class Finish_task_ot(UpdateView):
         return self.render_to_response(self.get_context_data(form=form, **kwargs))
 
 
-class TaskDetailView(LoginRequiredMixin, generic.DetailView):
+class Reschedule_task(UpdateView):
 
     model = Task
-
-
-class TaskUpdate(UpdateView):
-
-    model = Task
-    template_name = 'got/task_form.html'
-    form_class = ActForm
-    second_form_class = UploadImages
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if 'image_form' not in context:
-            context['image_form'] = self.second_form_class()
-        context['images'] = Image.objects.filter(task=self.get_object())
-        return context
-
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        form = self.get_form()
-        image_form = self.second_form_class(request.POST, request.FILES)
-        if form.is_valid() and image_form.is_valid():
-            response = super().form_valid(form)
-            if form.cleaned_data.get('delete_images'):
-                self.object.images.all().delete()
-            for img in request.FILES.getlist('file_field'):
-                Image.objects.create(task=self.object, image=img)
-            return response
-        else:
-            return self.form_invalid(form)
+    form_class = RescheduleTaskForm
+    template_name = 'got/task/task_reschedule.html'
+    success_url = reverse_lazy('got:my-tasks')
 
     def form_valid(self, form):
         return super().form_valid(form)
+    
 
-    def form_invalid(self, form, **kwargs):
-        return self.render_to_response(self.get_context_data(form=form, **kwargs))
-
-
-class TaskCreate(CreateView):
-
-    model = Task
-    http_method_names = ['get', 'post']
-    form_class = RutActForm
-
-    def form_valid(self, form):
-        pk = self.kwargs['pk']
-        ruta = get_object_or_404(Ruta, pk=pk)
-
-        form.instance.ruta = ruta
-        form.instance.finished = False
-
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        task = self.object
-        return reverse('got:sys-detail', args=[task.ruta.system.id])
-
-
-class TaskDelete(DeleteView):
-
-    model = Task
-    success_url = reverse_lazy('got:ot-list')
-
-
-class TaskUpdaterut(UpdateView):
-
-    model = Task
-    form_class = RutActForm
-    template_name = 'got/task_form.html'
-    http_method_names = ['get', 'post']
-
-    def get_success_url(self):
-        sys_id = self.object.ruta.system.id
-        return reverse_lazy('got:sys-detail', kwargs={'pk': sys_id})
-
-
-class TaskDeleterut(DeleteView):
-
-    model = Task
-
-    def get_success_url(self):
-        sys_id = self.object.ruta.system.id
-        return reverse_lazy('got:sys-detail', kwargs={'pk': sys_id})
-
-    def get(self, request, *args, **kwargs):
-        context = {'task': self.get_object()}
-        return render(request, 'got/task_confirm_delete.html', context)
-
-
+'RUTINAS VIEWS'
 @login_required
 def RutaListView(request):
 
@@ -1108,35 +1402,616 @@ def crear_ot_desde_ruta(request, ruta_id):
     return redirect('got:ot-detail', pk=nueva_ot.pk)
 
 
-def report_pdf(request, num_ot):
+def buceomtto(request):
 
-    ot_info = Ot.objects.get(num_ot=num_ot)
-    fallas = FailureReport.objects.filter(related_ot=ot_info)
+    location_filter = request.GET.get('location', None)
+    buceo = Asset.objects.filter(area='b')
 
+    buceo_rowspan = len(buceo) + 1
+    total_oks = 0
+    total_non_dashes = 0
+
+    buceo_data = []
+    for asset in buceo:
+        mensual = asset.check_ruta_status(30, location_filter)
+        trimestral = asset.check_ruta_status(90, location_filter)
+        semestral = asset.check_ruta_status(180, location_filter)
+        anual = asset.check_ruta_status(365, location_filter)
+        bianual = asset.check_ruta_status(730, location_filter)
+
+        for status in [mensual, trimestral, semestral, anual, bianual]:
+            if status == "Ok":
+                total_oks += 1
+            if status != "---":
+                total_non_dashes += 1
+
+        buceo_data.append({
+            'asset': asset,
+            'mensual': mensual,
+            'trimestral': trimestral,
+            'semestral': semestral,
+            'anual': anual,
+            'bianual': bianual,
+            'buceo': buceo_data,
+        })
+    
+    ind_mtto = round((total_oks*100)/total_non_dashes, 2)
+
+    context = {
+        'buceo': buceo_data,
+        'ind_mtto': ind_mtto,
+        'buceo_rowspan': buceo_rowspan,
+    }
+    return render(request, 'got/buceomtto.html', context)
+
+
+'OPERATIONS VIEW'
+def OperationListView(request):
+
+    assets = Asset.objects.filter(area='a')
+    operations = Operation.objects.order_by('start')
+
+    operations_data = []
+    for asset in assets:
+        asset_operations = asset.operation_set.all().values(
+            'start', 'end', 'proyecto', 'requirements'
+        )
+        operations_data.append({
+            'asset': asset,
+            'operations': list(asset_operations)
+        })
+
+    form = OperationForm(request.POST or None)
+    modal_open = False 
+
+    if request.method == 'POST':
+        form = OperationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(request.path)
+        else:
+            modal_open = True 
+    else:
+        form = OperationForm()
+
+    context= {
+        'operations_data': operations_data,
+        'operation_form': form,
+        'modal_open': modal_open,
+        'operaciones': operations,
+        }
+
+    return render(request, 'got/operation_list.html', context)
+
+
+class OperationUpdate(UpdateView):
+
+    model = Operation
+    form_class = OperationForm
+
+    def get_success_url(self):
+
+        return reverse('operation-list')
+
+
+class OperationDelete(DeleteView):
+
+    model = Operation
+    success_url = reverse_lazy('got:operation-list')
+
+
+'MEGGERS VIEW'
+def megger_view(request, pk):
+    megger = get_object_or_404(Megger, pk=pk) 
+    estator = get_object_or_404(Estator, megger=megger)
+    excitatriz = get_object_or_404(Excitatriz, megger=megger)
+    rotormain = get_object_or_404(RotorMain, megger=megger)
+    rotoraux = get_object_or_404(RotorAux, megger=megger)
+    rodamientosescudos = get_object_or_404(RodamientosEscudos, megger=megger)
+
+    estator_form = EstatorForm(request.POST or None, instance=estator)
+    excitatriz_form = ExcitatrizForm(request.POST or None, instance=excitatriz)
+    rotormain_form = RotorMainForm(request.POST or None, instance=rotormain)
+    rotoraux_form = RotorAuxForm(request.POST or None, instance=rotoraux)
+    rodamientosescudos_form = RodamientosEscudosForm(request.POST or None, instance=rodamientosescudos)
+
+    if request.method == 'POST':
+        estator_form = EstatorForm(request.POST, instance=estator)
+        excitatriz_form = ExcitatrizForm(request.POST, instance=excitatriz)
+        rotormain_form = RotorMainForm(request.POST, instance=rotormain)
+        rotoraux_form = RotorAuxForm(request.POST, instance=rotoraux)
+        rodamientosescudos_form = RodamientosEscudosForm(request.POST, instance=rodamientosescudos)
+
+        if 'submit_estator' in request.POST:
+            if estator_form.is_valid():
+                estator_form.save()
+                return redirect('got:meg-detail', pk=megger.pk)
+        elif 'submit_excitatriz' in request.POST:
+            if excitatriz_form.is_valid():
+                excitatriz_form.save()
+                return redirect('got:meg-detail', pk=megger.pk)
+        elif 'submit_rotormain' in request.POST:
+            if rotormain_form.is_valid():
+                rotormain_form.save()
+                return redirect('got:meg-detail', pk=megger.pk)
+        elif 'submit_rotoraux' in request.POST:
+            if rotoraux_form.is_valid():
+                rotoraux_form.save()
+                return redirect('got:meg-detail', pk=megger.pk)
+        elif 'submit_rodamientosescudos' in request.POST:
+            if rodamientosescudos_form.is_valid():
+                rodamientosescudos_form.save()
+                return redirect('got:meg-detail', pk=megger.pk)
+
+    context = {
+        'megger': megger,
+        'estator_form': estator_form,
+        'excitatriz_form': excitatriz_form,
+        'rotormain_form': rotormain_form,
+        'rotoraux_form': rotoraux_form,
+        'rodamientosescudos_form': rodamientosescudos_form,
+    }
+    return render(request, 'got/meg/megger_form.html', context)
+
+
+def create_megger(request, ot_id):
+    if request.method == 'POST':
+        ot = get_object_or_404(Ot, num_ot=ot_id)
+        equipo_id = request.POST.get('equipo')
+        equipo = get_object_or_404(Equipo, code=equipo_id)
+
+        megger = Megger.objects.create(ot=ot, equipo=equipo)
+
+        Estator.objects.create(megger=megger)
+        Excitatriz.objects.create(megger=megger)
+        RotorMain.objects.create(megger=megger)
+        RotorAux.objects.create(megger=megger)
+        RodamientosEscudos.objects.create(megger=megger)
+
+        return redirect('got:meg-detail', pk=megger.pk)
+    
+
+def megger_pdf(request, pk):
+    registro = Megger.objects.get(pk=pk)
+    context = {'meg': registro}
+    return render_to_pdf('got/meg/meg_detail.html', context)
+
+
+'PREOPERACIONAL VIEW'
+class SalidaListView(LoginRequiredMixin, generic.ListView):
+
+    model = Preoperacional
+    paginate_by = 15
+    template_name = 'got/preoperacional/salida_list.html'
+
+
+class SalidaDetailView(LoginRequiredMixin, generic.DetailView):
+
+    model = Preoperacional
+    template_name = 'got/preoperacional/salida_detail.html'
+
+
+def preoperacional_especifico_view(request, code):
+    
+    equipo = get_object_or_404(Equipo, code=code)
+    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
+
+    if request.method == 'POST':
+        form = PreoperacionalEspecificoForm(request.POST, equipo_code=equipo.code, user=request.user)
+        image_form = UploadImages(request.POST, request.FILES)
+        if form.is_valid() and image_form.is_valid():
+            preop = form.save(commit=False)
+            preop.reporter = request.user if request.user.is_authenticated else None
+            preop.vehiculo = equipo
+            nuevo_kilometraje = form.cleaned_data['nuevo_kilometraje']
+            preop.kilometraje = nuevo_kilometraje
+            preop.save()
+
+            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
+            kilometraje_reportado = nuevo_kilometraje - horometro_actual
+
+            history_hour, created = HistoryHour.objects.get_or_create(
+                component=equipo,
+                report_date=localdate(),
+                defaults={'hour': kilometraje_reportado}
+            )
+
+            if not created:
+                history_hour.hour = kilometraje_reportado
+                history_hour.save()
+
+            equipo.horometro = nuevo_kilometraje
+            equipo.save()
+
+            for file in request.FILES.getlist('file_field'):
+                Image.objects.create(preoperacional=preop, image=file)
+
+            return redirect('got:gracias', code=equipo.code)
+    else:
+        form = PreoperacionalEspecificoForm(equipo_code=equipo.code, user=request.user)
+        image_form = UploadImages()
+
+    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas})
+
+
+'PREOPERACIONAL DIARIO VIEW'
+class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
+
+    model = PreoperacionalDiario
+    paginate_by = 15
+    template_name = 'got/preoperacional/preoperacional_list.html'
+
+
+class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
+
+    model = PreoperacionalDiario
+    template_name = 'got/preoperacional/preoperacional_detail.html'
+
+
+def preoperacional_diario_view(request, code):
+    
+    equipo = get_object_or_404(Equipo, code=code)
+    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
+
+    existente = PreoperacionalDiario.objects.filter(vehiculo=equipo, fecha=localdate()).first()
+
+    if existente:
+        mensaje = f"El preoperacional del vehículo {equipo} de la fecha actual ya fue diligenciado y exitosamente enviado. El resultado fue: {'Aprobado' if existente.aprobado else 'No aprobado'}."
+        # Mostrar un modal o mensaje con Django messages framework
+        messages.error(request, mensaje)
+        return render(request, 'got/preoperacional/preoperacional_restricted.html', {'mensaje': mensaje})
+    
+    if request.method == 'POST':
+        form = PreoperacionalDiarioForm(request.POST, equipo_code=equipo.code, user=request.user)
+        image_form = UploadImages(request.POST, request.FILES)
+        if form.is_valid() and image_form.is_valid():
+            preop = form.save(commit=False)
+            preop.reporter = request.user if request.user.is_authenticated else None
+            preop.vehiculo = equipo
+            preop.kilometraje = form.cleaned_data['kilometraje']
+            preop.save()
+
+            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
+            kilometraje_reportado = preop.kilometraje - horometro_actual
+
+            history_hour, created = HistoryHour.objects.get_or_create(
+                component=equipo,
+                report_date=localdate(),
+                defaults={'hour': kilometraje_reportado}
+            )
+
+            if not created:
+                history_hour.hour = kilometraje_reportado
+                history_hour.save()
+
+            equipo.horometro = preop.kilometraje
+            equipo.save()
+
+            for file in request.FILES.getlist('file_field'):
+                Image.objects.create(preoperacional=preop, image=file)
+
+            return redirect('got:gracias', code=equipo.code) 
+    else:
+        form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
+        image_form = UploadImages()
+
+    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas, 'pre': True})
+
+
+def gracias_view(request, code):
+    equipo = get_object_or_404(Equipo, code=code)
+    return render(request, 'got/preoperacional/gracias.html', {'equipo': equipo})
+
+
+'SOLICITUDES VIEWS'
+class SolicitudesListView(LoginRequiredMixin, generic.ListView):
+    
+    model = Solicitud
+    paginate_by = 20
+    template_name = 'got/solicitud/solicitud_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['assets'] = Asset.objects.all()
+
+        asset_filter = self.request.GET.get('asset')
+        context['asset'] = Asset.objects.filter(abbreviation=asset_filter).first() if asset_filter else None
+
+        context['current_asset'] = self.request.GET.get('asset', '')
+        context['current_state'] = self.request.GET.get('state', '')
+        context['current_keyword'] = self.request.GET.get('keyword', '')
+        return context
+
+    def get_queryset(self):
+        queryset = Solicitud.objects.all()
+        state = self.request.GET.get('state')
+        asset_filter = self.request.GET.get('asset')
+
+        if asset_filter:
+            queryset = queryset.filter(asset__abbreviation=asset_filter)
+
+        if self.request.user.groups.filter(name='maq_members').exists():
+            supervised_assets = Asset.objects.filter(
+                supervisor=self.request.user)
+            queryset = queryset.filter(asset__in=supervised_assets)
+
+        keyword = self.request.GET.get('keyword')
+        if keyword:
+            queryset = queryset.filter(suministros__icontains=keyword)
+
+        if state == 'no_aprobada':
+            queryset = queryset.filter(approved=False, cancel=False)
+        elif state == 'aprobada':
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=True, cancel=False)
+        elif state == 'tramitado':
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=False, cancel=False)
+        elif state == 'cancel':
+            queryset = queryset.filter(cancel=True)
+
+        return queryset
+
+
+def detalle_pdf(request, pk):
+    registro = Solicitud.objects.get(pk=pk)
+    context = {'rq': registro}
+    return render_to_pdf('got/solicitud/solicitud_detail.html', context)
+
+
+class CreateSolicitudOt(LoginRequiredMixin, View):
+    template_name = 'got/solicitud/create-solicitud-ot.html'
+
+    def get(self, request, asset_id, ot_num=None):
+        asset = get_object_or_404(Asset, abbreviation=asset_id)
+        ot = None if not ot_num else get_object_or_404(Ot, num_ot=ot_num)
+        items = Item.objects.all()
+
+        return render(request, self.template_name, {
+            'ot': ot,
+            'asset': asset,
+            'items': items
+        })
+
+    def post(self, request, asset_id, ot_num=None):
+            asset = get_object_or_404(Asset, abbreviation=asset_id)
+            ot = None if not ot_num else get_object_or_404(Ot, num_ot=ot_num)
+            items_ids = request.POST.getlist('item_id[]') 
+            cantidades = request.POST.getlist('cantidad[]')
+            suministros = request.POST.get('suministros', '')
+
+            solicitud = Solicitud.objects.create(
+                solicitante=request.user,
+                ot=ot,
+                asset=asset,
+                suministros=suministros
+            )
+
+            for item_id, cantidad in zip(items_ids, cantidades):
+                if item_id and cantidad:
+                    item = get_object_or_404(Item, id=item_id)
+                    Suministro.objects.create(
+                        item=item,
+                        cantidad=int(cantidad),
+                        Solicitud=solicitud
+                    )
+            return redirect('got:my-tasks')
+
+
+class EditSolicitudView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        solicitud = get_object_or_404(Solicitud, pk=kwargs['pk'])
+        suministros = request.POST.get('suministros')
+        if suministros:
+            solicitud.suministros = suministros
+            solicitud.save()
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    
+
+class ApproveSolicitudView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        solicitud = Solicitud.objects.get(id=kwargs['pk'])
+        solicitud.approved = not solicitud.approved
+        solicitud.save()
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+
+@login_required
+def update_sc(request, pk):
+    if request.method == 'POST':
+        solicitud = get_object_or_404(Solicitud, pk=pk)
+        num_sc = request.POST.get('num_sc')
+        solicitud.num_sc = num_sc
+        solicitud.save()
+
+        query_params = {
+            'asset': request.POST.get('asset', ''),
+            'state': request.POST.get('state', ''),
+            'keyword': request.POST.get('keyword', ''),
+        }
+        
+        query_string = '&'.join([f'{key}={value}' for key, value in query_params.items() if value])
+
+        redirect_url = f'{reverse("got:rq-list")}'
+        if query_string:
+            redirect_url += f'?{query_string}'
+        return redirect(redirect_url)
+    return redirect('got:rq-list') 
+
+
+@login_required
+def cancel_sc(request, pk):
+    if request.method == 'POST':
+        solicitud = get_object_or_404(Solicitud, pk=pk)
+        reason = request.POST.get('cancel_reason')
+        solicitud.cancel_reason = reason
+        solicitud.cancel = True
+        solicitud.save()
+        return redirect('got:rq-list')
+    return redirect('got:rq-list')
+
+
+def download_pdf(request):
+    state = request.GET.get('state', '')
+    asset_filter = request.GET.get('asset', '')
+    keyword = request.GET.get('keyword', '')
+
+    queryset = Solicitud.objects.all()
+
+    if asset_filter:
+        queryset = queryset.filter(asset__abbreviation=asset_filter)
+    if state:
+        if state == 'no_aprobada':
+            queryset = queryset.filter(approved=False)
+        elif state == 'aprobada':
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=True)
+        elif state == 'tramitado':
+            queryset = queryset.filter(approved=True, sc_change_date__isnull=False)
+    if keyword:
+        queryset = queryset.filter(suministros__icontains=keyword)
+
+    context = {
+        'rqs': queryset,
+        'state': state, 
+        'asset': Asset.objects.filter(pk=asset_filter).first(),
+        'keyword': keyword,
+        }
+    return render_to_pdf('got/solicitud/rqs_report.html', context)
+
+
+'SALIDAS VIEW'
+class SalListView(LoginRequiredMixin, generic.ListView):
+
+    model = Salida
+    paginate_by = 20
+    template_name = 'got/salidas/salidas_list.html'
+
+
+class SalidaCreateView(LoginRequiredMixin, View):
+    form_class = SalidaForm
+    template_name = 'got/salidas/create-salida.html'
+
+    def get(self, request):
+        items = Item.objects.all()
+        form = self.form_class()
+        image_form = UploadImages(request.POST, request.FILES)
+
+        return render(request, self.template_name, {
+            'items': items,
+            'form': form,
+            'image_form': image_form
+        })
+
+    def post(self, request):
+
+            form = self.form_class(request.POST, request.FILES)
+            image_form = UploadImages(request.POST, request.FILES)
+            items_ids = request.POST.getlist('item_id[]') 
+            cantidades = request.POST.getlist('cantidad[]')
+
+            context = {
+                'items': Item.objects.all(),
+                'form': form,
+                'image_form': image_form
+            }
+
+            if form.is_valid() and image_form.is_valid():
+                solicitud = form.save(commit=False)
+                solicitud.responsable = self.request.user.get_full_name()
+                solicitud.save()
+
+                for item_id, cantidad in zip(items_ids, cantidades):
+                    if item_id and cantidad:
+                        item = get_object_or_404(Item, id=item_id)
+                        Suministro.objects.create(
+                            item=item,
+                            cantidad=int(cantidad),
+                            salida=solicitud
+                        )
+                
+                for file in request.FILES.getlist('file_field'):
+                    Image.objects.create(salida=solicitud, image=file)
+                
+                pdf_buffer = salida_email_pdf(solicitud.pk)
+                subject = f'Solicitud salida de materiales: {solicitud}'
+                message = f'''
+                Cordial saludo,
+                
+                Notificación de salida.
+                
+                Por favor, revise el archivo adjunto para más detalles.
+                '''
+                email = EmailMessage(
+                    subject,
+                    message,
+                    settings.EMAIL_HOST_USER,
+                    ['analistamto@serport.co']
+                )
+                email.attach(f'Salida_{solicitud.pk}.pdf', pdf_buffer, 'application/pdf')
+                email.send()
+                return redirect('got:salida-list')
+            return render(request, self.template_name, context)
+
+
+def salida_pdf(request, pk):
+    salida = Salida.objects.get(pk=pk)
+    nombre_completo = salida.responsable.split()
+    if len(nombre_completo) > 1:
+        first_name = nombre_completo[0]
+        last_name = nombre_completo[1]
+    else:
+        first_name = salida.responsable
+        last_name = ""
+
+    # Buscar el usuario basado en el nombre y apellido
     try:
-        fallas = FailureReport.objects.filter(related_ot=ot_info)
-        failure = True
-    except FailureReport.DoesNotExist:
-        fallas = None
-        failure = False
+        user = User.objects.get(first_name=first_name, last_name=last_name)
+        cargo = user.profile.cargo  # Asume que el perfil tiene un campo 'cargo'
+    except User.DoesNotExist:
+        cargo = 'Cargo no encontrado'
+    context = {
+        'rq': salida,
+        'pro': cargo
+        }
+    return render_to_pdf('got/salidas/salida_detail.html', context)
 
-    context = {'ot': ot_info, 'fallas': fallas, 'failure': failure}
-    template_path = 'got/pdf_template.html'
-    
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="orden_de_trabajo_{num_ot}.pdf"'
-    
-    template = get_template(template_path)
+
+def salida_email_pdf(pk):
+    salida = Salida.objects.get(pk=pk)
+    nombre_completo = salida.responsable.split()
+    if len(nombre_completo) > 1:
+        first_name = nombre_completo[0]
+        last_name = nombre_completo[1]
+    else:
+        first_name = salida.responsable
+        last_name = ""
+
+    # Buscar el usuario basado en el nombre y apellido
+    try:
+        user = User.objects.get(first_name=first_name, last_name=last_name)
+        cargo = user.profile.cargo  # Asume que el perfil tiene un campo 'cargo'
+    except User.DoesNotExist:
+        cargo = 'Cargo no encontrado'
+    context = {
+        'rq': salida,
+        'pro': cargo
+        }
+    # pdf_content = render_to_pdf('got/salidas/salida_detail.html', context)
+
+    template = get_template('got/salidas/salida_detail.html')
     html = template.render(context)
-    
-    # Crear el PDF y enviarlo directamente a la respuesta HTTP
-    pisa_status = pisa.CreatePDF(html, dest=response)
-    
-    if pisa_status.err:
-        return HttpResponse('We had some errors <pre>' + html + '</pre>')
-    return response
+    pdf_content = BytesIO()
+    pisa.CreatePDF(html, dest=pdf_content)
+    return pdf_content.getvalue()
 
+        
+class ApproveSalidaView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        solicitud = Salida.objects.get(id=kwargs['pk'])
+        solicitud.auth = not solicitud.auth
+        solicitud.save()
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    
 
+'GENERAL VIEWS'
 @login_required
 def indicadores(request):
 
@@ -1154,7 +2029,6 @@ def indicadores(request):
     labels = ['Preventivo', 'Correctivo', 'Modificativo']
 
     earliest_start_date = Task.objects.filter(ot=OuterRef('pk')).order_by('start_date').values('start_date')[:1]
-    # Subconsulta para calcular la fecha de finalización más tardía
     latest_final_date = Task.objects.filter(ot=OuterRef('pk')).annotate(
         final_date=ExpressionWrapper(
             F('start_date') + F('men_time'),
@@ -1162,7 +2036,6 @@ def indicadores(request):
         )
     ).order_by('-final_date').values('final_date')[:1]
 
-    # Anotar fechas de inicio y fin en `Ot` a través de subconsultas de `Task`
     bar = Ot.objects.annotate(
         start=Subquery(earliest_start_date),
         end=Subquery(latest_final_date)
@@ -1236,393 +2109,7 @@ def indicadores(request):
     return render(request, 'got/indicadores.html', context)
 
 
-@login_required
-def reporthours(request, component):
-
-    hours = HistoryHour.objects.filter(component=component)[:30]
-    equipo = get_object_or_404(Equipo, pk=component)
-
-    if request.method == 'POST':
-        # Si se envió el formulario, procesarlo
-        form = ReportHours(request.POST)
-        if form.is_valid():
-            # Guardar el formulario si es válido
-            instance = form.save(commit=False)
-            instance.component = equipo
-            instance.reporter = request.user
-            instance.save()
-            return redirect(request.path)
-    else:
-        form = ReportHours()
-
-    context = {
-        'form': form,
-        'horas': hours,
-        'component': equipo
-    }
-
-    return render(request, 'got/hours.html', context)
-
-
-@login_required
-def reportHoursAsset(request, asset_id):
-
-    asset = get_object_or_404(Asset, pk=asset_id)
-    today = date.today()
-    dates = [today - timedelta(days=x) for x in range(30)]
-    equipos_rotativos = Equipo.objects.filter(system__asset=asset, tipo='r')
-
-    if request.method == 'POST':
-        # Si se envió el formulario, procesarlo
-        form = ReportHoursAsset(request.POST, asset=asset)
-        if form.is_valid():
-            # Guardar el formulario si es válido
-            instance = form.save(commit=False)
-            instance.reporter = request.user
-            instance.save()
-            return redirect(request.path)
-    else:
-        form = ReportHoursAsset(asset=asset)
-
-    hours = HistoryHour.objects.filter(component__system__asset=asset)[:30]
-
-    equipos_data = []
-    for equipo in equipos_rotativos:
-        horas_reportadas = {date: 0 for date in dates}
-        for hour in equipo.hours.filter(report_date__range=(dates[-1], today)):
-            if hour.report_date in horas_reportadas:
-                horas_reportadas[hour.report_date] += hour.hour
-
-        equipos_data.append({
-            'equipo': equipo,
-            'horas': [horas_reportadas[date] for date in dates]
-        })
-
-    context = { 
-        'form': form,
-        'horas': hours,
-        'asset': asset,
-        'equipos_data': equipos_data,
-        'equipos_rotativos': equipos_rotativos,
-        'dates': dates
-    }
-
-    return render(request, 'got/hours_asset.html', context)
-
-
-def truncate_text(text, length=45):
-    if len(text) > length:
-        return text[:length] + '...'
-    return text
-
-
-def calculate_status_code(t):
-    ot_tasks = Task.objects.filter(ot=t)
-
-    earliest_start_date = min(t.start_date for t in ot_tasks)
-    latest_final_date = max(t.final_date for t in ot_tasks)
-
-    today = date.today()
-
-    if latest_final_date < today:
-        return 0
-    elif earliest_start_date < today < latest_final_date:
-        return 1
-    elif earliest_start_date > today:
-        return 2
-
-    return None
-
-
-@login_required
-def schedule(request, pk):
-
-    tasks = Task.objects.filter(ot__system__asset=pk, ot__isnull=False, start_date__isnull=False, ot__state='x')
-    ots = Ot.objects.filter(system__asset=pk, state='x')
-    asset = get_object_or_404(Asset, pk=pk)
-    systems = System.objects.filter(asset=asset)
-    min_date = tasks.aggregate(Min('start_date'))['start_date__min']
-
-    color_palette = itertools.cycle([
-        'rgba(255, 99, 132, 0.2)',   # rojo
-        'rgba(54, 162, 235, 0.2)',   # azul
-        'rgba(255, 206, 86, 0.2)',   # amarillo
-        'rgba(75, 192, 192, 0.2)',   # verde agua
-        'rgba(153, 102, 255, 0.2)',  # púrpura
-        'rgba(255, 159, 64, 0.2)',   # naranja
-    ])
-
-    n = 0
-    responsibles = set(task.responsible.username for task in tasks if task.responsible)
-    responsible_colors = {res: next(color_palette) for res in responsibles}
-
-    chart_data = []
-    n = 0
-    for task in tasks:
-        if task.finished:
-            color = "rgba(192, 192, 192, 0.5)"
-            border_color = "rgba(192, 192, 192, 1)"
-        else:
-            color = responsible_colors.get(task.responsible.username, "rgba(54, 162, 235, 0.2)")
-            border_color = color.replace('0.2', '1') 
-        
-        chart_data.append({
-            'start_date': task.start_date,
-            'final_date': task.final_date,
-            'description': truncate_text(task.ot.description),
-            'name': f"{task.responsible.first_name} {task.responsible.last_name}",
-            'activity_description': task.description,
-            'background_color': color,
-            'border_color': border_color,
-        })
-        n += 1
-
-    context = {
-        'tasks': chart_data,
-        'asset': asset,
-        'min_date': min_date,
-        'responsibles': responsible_colors,
-    }
-    return render(request, 'got/schedule.html', context)
-
-
-def OperationListView(request):
-
-    assets = Asset.objects.filter(area='a')
-    operations = Operation.objects.order_by('start')
-
-    operations_data = []
-    for asset in assets:
-        asset_operations = asset.operation_set.all().values(
-            'start', 'end', 'proyecto', 'requirements'
-        )
-        operations_data.append({
-            'asset': asset,
-            'operations': list(asset_operations)
-        })
-
-    form = OperationForm(request.POST or None)
-    modal_open = False 
-
-    if request.method == 'POST':
-        form = OperationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect(request.path)
-        else:
-            modal_open = True 
-    else:
-        form = OperationForm()
-
-    context= {
-        'operations_data': operations_data,
-        'operation_form': form,
-        'modal_open': modal_open,
-        'operaciones': operations,
-        }
-
-    return render(request, 'got/operation_list.html', context)
-
-
-class OperationDelete(DeleteView):
-
-    model = Operation
-    success_url = reverse_lazy('got:operation-list')
-
-
-class OperationUpdate(UpdateView):
-
-    model = Operation
-    form_class = OperationForm
-
-    def get_success_url(self):
-
-        return reverse('operation-list')
-
-
-def generate_asset_pdf(request, asset_id):
-    asset = get_object_or_404(Asset, pk=asset_id)
-    systems = asset.system_set.all()
-
-    systems_with_rutas = []
-    for system in systems:
-        rutas_data = []
-        rutas = Ruta.objects.filter(system=system).prefetch_related('task_set')
-        for ruta in rutas:
-            # Recoger las tareas para cada ruta
-            tasks = ruta.task_set.all()
-            rutas_data.append({
-                'ruta': ruta,
-                'tasks': tasks,
-                'ot_num': ruta.ot.num_ot if ruta.ot else 'N/A'  # Asegúrate que ruta.ot es accesible y no nulo
-            })
-        systems_with_rutas.append({
-            'system': system,
-            'rutas_data': rutas_data
-        })
-
-    context = {
-        'asset': asset,
-        'systems_with_rutas': systems_with_rutas
-    }
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="Asset_{}.pdf"'.format(asset.pk)
-    template = get_template('got/asset_pdf_template.html')
-    html = template.render(context)
-    pisa_status = pisa.CreatePDF(html, dest=response)
-    if pisa_status.err:
-        return HttpResponse('We had some errors <pre>' + html + '</pre>')
-    return response
-
-
-def generate_system_pdf_with_attachments(request, asset_id, system_id):
-    asset = get_object_or_404(Asset, pk=asset_id)
-    system = get_object_or_404(System, pk=system_id, asset=asset)
-
-    rutas_data = []
-    rutas = Ruta.objects.filter(system=system).prefetch_related('task_set')
-    for ruta in rutas:
-        tasks = ruta.task_set.all()
-        ot_pdfs = [task.ot.info_contratista_pdf for task in tasks if task.ot and task.ot.info_contratista_pdf]
-        rutas_data.append({
-            'ruta': ruta,
-            'tasks': tasks,
-            'ot_num': ruta.ot.num_ot if ruta.ot else 'N/A',
-            'ot_pdfs': ot_pdfs  # Lista de PDFs asociados
-        })
-
-    context = {
-        'asset': asset,
-        'system': system,
-        'rutas_data': rutas_data
-    }
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="System_{system_id}_Asset_{asset_id}_with_attachments.pdf"'
-    template = get_template('got/system_pdf_template.html')
-    html = template.render(context)
-    main_pdf = BytesIO()
-    pisa_status = pisa.CreatePDF(html, dest=main_pdf)
-    
-    if pisa_status.err:
-        return HttpResponse('We had some errors creating the main PDF <pre>' + html + '</pre>')
-
-    # Comenzar la combinación de PDFs
-    pdf_merger = PyPDF2.PdfMerger()
-    main_pdf.seek(0)
-    pdf_merger.append(main_pdf)
-
-    # Adjuntar cada PDF relacionado
-    for ruta in rutas_data:
-        for pdf in ruta['ot_pdfs']:
-            if pdf:  # Asegurarse de que el archivo exista y no esté vacío
-                pdf_path = pdf.path  # Asumiendo que estás usando el modelo FileField o similar
-                try:
-                    pdf_merger.append(open(pdf_path, 'rb'))
-                except Exception as e:
-                    print(f"Failed to append PDF {pdf_path}: {str(e)}")
-
-    # Generar el PDF combinado
-    combined_pdf = BytesIO()
-    pdf_merger.write(combined_pdf)
-    pdf_merger.close()
-
-    # Establecer el PDF combinado como la respuesta
-    response.write(combined_pdf.getvalue())
-    return response
-
-
-class DocumentCreateView(generic.View):
-    form_class = DocumentForm
-    template_name = 'got/add-document.html'
-
-    def get(self, request, asset_id):
-        asset = get_object_or_404(Asset, pk=asset_id)
-        form = self.form_class()
-        return render(request, self.template_name, {'form': form, 'asset': asset})
-
-    def post(self, request, asset_id):
-        form = self.form_class(request.POST, request.FILES)
-        if form.is_valid():
-            document = form.save(commit=False)
-            document.asset = get_object_or_404(Asset, pk=asset_id)
-            document.save()
-            return redirect('got:asset-detail', pk=asset_id)
-        return render(request, self.template_name, {'form': form})
-
-
-def megger_view(request, pk):
-    megger = get_object_or_404(Megger, pk=pk) 
-    estator = get_object_or_404(Estator, megger=megger)
-    excitatriz = get_object_or_404(Excitatriz, megger=megger)
-    rotormain = get_object_or_404(RotorMain, megger=megger)
-    rotoraux = get_object_or_404(RotorAux, megger=megger)
-    rodamientosescudos = get_object_or_404(RodamientosEscudos, megger=megger)
-
-    estator_form = EstatorForm(request.POST or None, instance=estator)
-    excitatriz_form = ExcitatrizForm(request.POST or None, instance=excitatriz)
-    rotormain_form = RotorMainForm(request.POST or None, instance=rotormain)
-    rotoraux_form = RotorAuxForm(request.POST or None, instance=rotoraux)
-    rodamientosescudos_form = RodamientosEscudosForm(request.POST or None, instance=rodamientosescudos)
-
-    if request.method == 'POST':
-        estator_form = EstatorForm(request.POST, instance=estator)
-        excitatriz_form = ExcitatrizForm(request.POST, instance=excitatriz)
-        rotormain_form = RotorMainForm(request.POST, instance=rotormain)
-        rotoraux_form = RotorAuxForm(request.POST, instance=rotoraux)
-        rodamientosescudos_form = RodamientosEscudosForm(request.POST, instance=rodamientosescudos)
-
-        if 'submit_estator' in request.POST:
-            if estator_form.is_valid():
-                estator_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-        elif 'submit_excitatriz' in request.POST:
-            if excitatriz_form.is_valid():
-                excitatriz_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-        elif 'submit_rotormain' in request.POST:
-            if rotormain_form.is_valid():
-                rotormain_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-        elif 'submit_rotoraux' in request.POST:
-            if rotoraux_form.is_valid():
-                rotoraux_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-        elif 'submit_rodamientosescudos' in request.POST:
-            if rodamientosescudos_form.is_valid():
-                rodamientosescudos_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-
-    context = {
-        'megger': megger,
-        'estator_form': estator_form,
-        'excitatriz_form': excitatriz_form,
-        'rotormain_form': rotormain_form,
-        'rotoraux_form': rotoraux_form,
-        'rodamientosescudos_form': rodamientosescudos_form,
-    }
-    return render(request, 'got/meg/megger_form.html', context)
-
-
-def create_megger(request, ot_id):
-    if request.method == 'POST':
-        ot = get_object_or_404(Ot, num_ot=ot_id)
-        equipo_id = request.POST.get('equipo')
-        equipo = get_object_or_404(Equipo, code=equipo_id)
-
-        # Crear el registro Megger
-        megger = Megger.objects.create(ot=ot, equipo=equipo)
-
-        Estator.objects.create(megger=megger)
-        Excitatriz.objects.create(megger=megger)
-        RotorMain.objects.create(megger=megger)
-        RotorAux.objects.create(megger=megger)
-        RodamientosEscudos.objects.create(megger=megger)
-
-        return redirect('got:meg-detail', pk=megger.pk)
-
-
+'EXPERIMENTAL VIEWS'
 def add_location(request):
     if request.method == 'POST':
         form = LocationForm(request.POST)
@@ -1638,512 +2125,38 @@ def view_location(request, pk):
     return render(request, 'got/view_location.html', {'location': location})
 
 
-def buceomtto(request):
-
-    location_filter = request.GET.get('location', None)
-    buceo = Asset.objects.filter(area='b')
-
-    buceo_rowspan = len(buceo) + 1
-    total_oks = 0
-    total_non_dashes = 0
-
-    buceo_data = []
-    for asset in buceo:
-        mensual = asset.check_ruta_status(30, location_filter)
-        trimestral = asset.check_ruta_status(90, location_filter)
-        semestral = asset.check_ruta_status(180, location_filter)
-        anual = asset.check_ruta_status(365, location_filter)
-        bianual = asset.check_ruta_status(730, location_filter)
-
-        for status in [mensual, trimestral, semestral, anual, bianual]:
-            if status == "Ok":
-                total_oks += 1
-            if status != "---":
-                total_non_dashes += 1
-
-        buceo_data.append({
-            'asset': asset,
-            'mensual': mensual,
-            'trimestral': trimestral,
-            'semestral': semestral,
-            'anual': anual,
-            'bianual': bianual,
-            'buceo': buceo_data,
-        })
-    
-    ind_mtto = round((total_oks*100)/total_non_dashes, 2)
-
-    context = {
-        'buceo': buceo_data,
-        'ind_mtto': ind_mtto,
-        'buceo_rowspan': buceo_rowspan,
-    }
-    return render(request, 'got/buceomtto.html', context)
 
 
-def preoperacional_view(request):
-    if request.method == 'POST':
-        form = PreoperacionalForm(request.POST, user=request.user)
-        image_form = UploadImages(request.POST, request.FILES)
-
-        if form.is_valid() and image_form.is_valid():
-            preop = form.save(commit=False)
-            if request.user.is_authenticated:
-                preop.reporter = request.user
-            
-            selected_system = form.cleaned_data['vehiculo']
-            nuevo_kilometraje = form.cleaned_data['nuevo_kilometraje']
-            vehiculo = Equipo.objects.get(system=selected_system)
-
-            horometro_actual = vehiculo.initial_hours + (vehiculo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
-            kilometraje_reportado = nuevo_kilometraje - horometro_actual
-
-            history_hour, created = HistoryHour.objects.get_or_create(
-                component=vehiculo,
-                report_date=date.today(),
-                defaults={'hour': kilometraje_reportado}
-            )
-
-            if not created:
-                history_hour.hour = kilometraje_reportado
-                history_hour.save()
-
-            vehiculo.horometro = nuevo_kilometraje
-            vehiculo.save()
-
-            preop.kilometraje = nuevo_kilometraje
-            preop.save()
-
-            for file in request.FILES.getlist('file_field'):
-                Image.objects.create(preoperacional=preop, image=file)
-
-
-            return redirect('got:gracias')  # Redirecciona donde necesites
-    else:
-        form = PreoperacionalForm(user=request.user)
-        image_form = UploadImages()
-    
-    return render(request, 'got/preoperacional/preoperacionalform.html', {'form': form, 'image_form': image_form})
-
-def gracias_view(request, code):
-    equipo = get_object_or_404(Equipo, code=code)
-    return render(request, 'got/preoperacional/gracias.html', {'equipo': equipo})
-
-
-def preoperacional_especifico_view(request, code):
-    
-    equipo = get_object_or_404(Equipo, code=code)
-    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
-
-    if request.method == 'POST':
-        form = PreoperacionalEspecificoForm(request.POST, equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages(request.POST, request.FILES)
-        if form.is_valid() and image_form.is_valid():
-            preop = form.save(commit=False)
-            preop.reporter = request.user if request.user.is_authenticated else None
-            preop.vehiculo = equipo
-            nuevo_kilometraje = form.cleaned_data['nuevo_kilometraje']
-            preop.kilometraje = nuevo_kilometraje
-            preop.save()
-
-            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
-            kilometraje_reportado = nuevo_kilometraje - horometro_actual
-
-            history_hour, created = HistoryHour.objects.get_or_create(
-                component=equipo,
-                report_date=localdate(),
-                defaults={'hour': kilometraje_reportado}
-            )
-
-            if not created:
-                history_hour.hour = kilometraje_reportado
-                history_hour.save()
-
-            equipo.horometro = nuevo_kilometraje
-            equipo.save()
-
-            for file in request.FILES.getlist('file_field'):
-                Image.objects.create(preoperacional=preop, image=file)
-
-            return redirect('got:gracias', code=equipo.code)
-    else:
-        form = PreoperacionalEspecificoForm(equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages()
-
-    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas})
-
-
-def preoperacional_diario_view(request, code):
-    
-    equipo = get_object_or_404(Equipo, code=code)
-    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
-
-    existente = PreoperacionalDiario.objects.filter(vehiculo=equipo, fecha=localdate()).first()
-
-    if existente:
-        mensaje = f"El preoperacional del vehículo {equipo} de la fecha actual ya fue diligenciado y exitosamente enviado. El resultado fue: {'Aprobado' if existente.aprobado else 'No aprobado'}."
-        # Mostrar un modal o mensaje con Django messages framework
-        messages.error(request, mensaje)
-        return render(request, 'got/preoperacional/preoperacional_restricted.html', {'mensaje': mensaje})
-    
-    if request.method == 'POST':
-        form = PreoperacionalDiarioForm(request.POST, equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages(request.POST, request.FILES)
-        if form.is_valid() and image_form.is_valid():
-            preop = form.save(commit=False)
-            preop.reporter = request.user if request.user.is_authenticated else None
-            preop.vehiculo = equipo
-            preop.kilometraje = form.cleaned_data['kilometraje']
-            preop.save()
-
-            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
-            kilometraje_reportado = preop.kilometraje - horometro_actual
-
-            history_hour, created = HistoryHour.objects.get_or_create(
-                component=equipo,
-                report_date=localdate(),
-                defaults={'hour': kilometraje_reportado}
-            )
-
-            if not created:
-                history_hour.hour = kilometraje_reportado
-                history_hour.save()
-
-            equipo.horometro = preop.kilometraje
-            equipo.save()
-
-            for file in request.FILES.getlist('file_field'):
-                Image.objects.create(preoperacional=preop, image=file)
-
-            return redirect('got:gracias', code=equipo.code) 
-    else:
-        form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages()
-
-    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas, 'pre': True})
-
-
-class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
-
-    model = PreoperacionalDiario
-    paginate_by = 15
-    template_name = 'got/preoperacional/preoperacional_list.html'
-
-class SalidaListView(LoginRequiredMixin, generic.ListView):
-
-    model = Preoperacional
-    paginate_by = 15
-    template_name = 'got/preoperacional/salida_list.html'
-
-
-class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
-
-    model = PreoperacionalDiario
-    template_name = 'got/preoperacional/preoperacional_detail.html'
-
-
-class SalidaDetailView(LoginRequiredMixin, generic.DetailView):
-
-    model = Preoperacional
-    template_name = 'got/preoperacional/salida_detail.html'
-
-
-def asset_suministros_report(request, abbreviation):
-    asset = get_object_or_404(Asset, abbreviation=abbreviation)
-    suministros = Suministro.objects.filter(asset=asset)
-
-    ultima_fecha_transaccion = TransaccionSuministro.objects.filter(
-        suministro__asset=asset
-    ).aggregate(Max('fecha'))['fecha__max'] or "---"
-
-    if request.method == 'POST':
-        for suministro in suministros:
-            cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
-            cantidad_ingresada = int(request.POST.get(f'ingresado_{suministro.id}', 0))
-            
-            suministro.cantidad -= cantidad_consumida
-            suministro.cantidad += cantidad_ingresada
-            suministro.save()
-            TransaccionSuministro.objects.create(
-                suministro=suministro,
-                cantidad_ingresada=cantidad_ingresada,
-                cantidad_consumida=cantidad_consumida,
-                usuario=request.user
-            )
-        return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
-
-    return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros, 'ultima_fecha_transaccion': ultima_fecha_transaccion})
-
-
-class SolicitudesListView(LoginRequiredMixin, generic.ListView):
-    
-    model = Solicitud
-    paginate_by = 20
-    template_name = 'got/solicitud/solicitud_list.html'
+class ItemManagementView(generic.TemplateView):
+    template_name = 'got/item_management.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['assets'] = Asset.objects.all()
-
-        asset_filter = self.request.GET.get('asset')
-        context['asset'] = Asset.objects.filter(abbreviation=asset_filter).first() if asset_filter else None
-
-        context['current_asset'] = self.request.GET.get('asset', '')
-        context['current_state'] = self.request.GET.get('state', '')
-        context['current_keyword'] = self.request.GET.get('keyword', '')
+        context['items'] = Item.objects.all()
+        context['form'] = ItemForm()
         return context
 
-    def get_queryset(self):
-        queryset = Solicitud.objects.all()
-        state = self.request.GET.get('state')
-        asset_filter = self.request.GET.get('asset')
-
-        if asset_filter:
-            queryset = queryset.filter(asset__abbreviation=asset_filter)
-
-        if self.request.user.groups.filter(name='maq_members').exists():
-            supervised_assets = Asset.objects.filter(
-                supervisor=self.request.user)
-            queryset = queryset.filter(asset__in=supervised_assets)
-
-        keyword = self.request.GET.get('keyword')
-        if keyword:
-            queryset = queryset.filter(suministros__icontains=keyword)
-
-        if state == 'no_aprobada':
-            queryset = queryset.filter(approved=False, cancel=False)
-        elif state == 'aprobada':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=True, cancel=False)
-        elif state == 'tramitado':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=False, cancel=False)
-        elif state == 'cancel':
-            queryset = queryset.filter(cancel=True)
-
-        return queryset
-    
-
-
-def download_pdf(request):
-    state = request.GET.get('state', '')
-    asset_filter = request.GET.get('asset', '')
-    keyword = request.GET.get('keyword', '')
-
-    queryset = Solicitud.objects.all()
-
-    if asset_filter:
-        queryset = queryset.filter(asset__abbreviation=asset_filter)
-    if state:
-        if state == 'no_aprobada':
-            queryset = queryset.filter(approved=False)
-        elif state == 'aprobada':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=True)
-        elif state == 'tramitado':
-            queryset = queryset.filter(approved=True, sc_change_date__isnull=False)
-    if keyword:
-        queryset = queryset.filter(suministros__icontains=keyword)
-
-    context = {
-        'rqs': queryset,
-        'state': state, 
-        'asset': Asset.objects.filter(pk=asset_filter).first(),
-        'keyword': keyword,
-        }
-    return render_to_pdf('got/solicitud/rqs_report.html', context)
- 
-
-
-class CreateSolicitudOt(LoginRequiredMixin, View):
-    template_name = 'got/solicitud/create-solicitud-ot.html'
-
-    def get(self, request, asset_id, ot_num=None):
-        asset = get_object_or_404(Asset, abbreviation=asset_id)
-        ot = None if not ot_num else get_object_or_404(Ot, num_ot=ot_num)
-        items = Item.objects.all()
-
-        return render(request, self.template_name, {
-            'ot': ot,
-            'asset': asset,
-            'items': items
-        })
-
-    def post(self, request, asset_id, ot_num=None):
-            asset = get_object_or_404(Asset, abbreviation=asset_id)
-            ot = None if not ot_num else get_object_or_404(Ot, num_ot=ot_num)
-            items_ids = request.POST.getlist('item_id[]') 
-            cantidades = request.POST.getlist('cantidad[]')
-            suministros = request.POST.get('suministros', '')
-
-            solicitud = Solicitud.objects.create(
-                solicitante=request.user,
-                ot=ot,
-                asset=asset,
-                suministros=suministros
-            )
-
-            for item_id, cantidad in zip(items_ids, cantidades):
-                if item_id and cantidad:
-                    item = get_object_or_404(Item, id=item_id)
-                    Suministro.objects.create(
-                        item=item,
-                        cantidad=int(cantidad),
-                        Solicitud=solicitud
-                    )
-            return redirect('got:my-tasks')
-
-
-class EditSolicitudView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
-        solicitud = get_object_or_404(Solicitud, pk=kwargs['pk'])
-        suministros = request.POST.get('suministros')
-        if suministros:
-            solicitud.suministros = suministros
-            solicitud.save()
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
-    
-
-class ApproveSolicitudView(LoginRequiredMixin, View):
-    def get(self, request, *args, **kwargs):
-        solicitud = Solicitud.objects.get(id=kwargs['pk'])
-        solicitud.approved = not solicitud.approved
-        solicitud.save()
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
-    
-
-# @receiver(post_save, sender=Solicitud)
-# def send_email_on_new_solicitud(sender, instance, created, **kwargs):
-#     if created:
-#         suministros = Suministro.objects.filter(Solicitud=instance)
-#         suministros_list = "\n".join([f"{suministro.item}: {suministro.cantidad}" for suministro in suministros])
-#         subject = f'Nueva Solicitud de Suministros: {instance}'
-#         message = f'''
-#         Ha sido creada una nueva solicitud de suministros:
-#         Fecha de solicitud: {instance.creation_date.strftime("%d/%m/%Y")}
-#         Solicitante: {instance.solicitante.get_full_name()}
-#         Orden de trabajo: {instance.ot if instance.ot else "N/A"}
-#         Centro de costos: {instance.asset.name if instance.asset else "N/A"}
-#         Detalles de los Suministros Solicitados: 
-        
-#         {instance.suministros}
-#         {suministros_list}
-
-#         '''
-#         recipient_list = ['c.mantenimiento@serport.co']
-#         send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
-    
-
-@login_required
-def update_sc(request, pk):
-    if request.method == 'POST':
-        solicitud = get_object_or_404(Solicitud, pk=pk)
-        num_sc = request.POST.get('num_sc')
-        solicitud.num_sc = num_sc
-        solicitud.save()
-
-        query_params = {
-            'asset': request.POST.get('asset', ''),
-            'state': request.POST.get('state', ''),
-            'keyword': request.POST.get('keyword', ''),
-        }
-        
-        # Filtramos los parámetros vacíos
-        query_string = '&'.join([f'{key}={value}' for key, value in query_params.items() if value])
-
-        redirect_url = f'{reverse("got:rq-list")}'
-        if query_string:
-            redirect_url += f'?{query_string}'
-        return redirect(redirect_url)
-    return redirect('got:rq-list') 
-
-
-@login_required
-def cancel_sc(request, pk):
-    if request.method == 'POST':
-        solicitud = get_object_or_404(Solicitud, pk=pk)
-        reason = request.POST.get('cancel_reason')
-        solicitud.cancel_reason = reason
-        solicitud.cancel = True
-        solicitud.save()
-        return redirect('got:rq-list')
-    return redirect('got:rq-list')
-
-
-@login_required
-def transferir_equipo(request, equipo_id):
-    equipo = get_object_or_404(Equipo, pk=equipo_id)
-    if request.method == 'POST':
-        form = TransferenciaForm(request.POST)
+        form = ItemForm(request.POST, request.FILES)
         if form.is_valid():
-            nuevo_sistema = form.cleaned_data['destino']
-            observaciones = form.cleaned_data['observaciones']
-            
-            sistema_origen = equipo.system            
-            equipo.system = nuevo_sistema
-            equipo.save()
+            form.save()
+            return redirect(reverse('got:item_management'))
 
-            rutas = Ruta.objects.filter(equipo=equipo)
-            for ruta in rutas:
-                ruta.system = nuevo_sistema
-                ruta.save()
-            
-            # Crea el registro de la transferencia
-            Transferencia.objects.create(
-                equipo=equipo,
-                responsable=f"{request.user.first_name} {request.user.last_name}",
-                origen=sistema_origen,
-                destino=nuevo_sistema,
-                observaciones=observaciones
-            )
-            
-            # Redirige a la página de detalles del nuevo sistema
-            return redirect(nuevo_sistema.get_absolute_url())
+        context = self.get_context_data(**kwargs)
+        context['form'] = form
+        return self.render_to_response(context)
+
+
+def edit_item(request, item_id):
+    item = get_object_or_404(Item, id=item_id)
+    if request.method == 'POST':
+        form = ItemForm(request.POST, request.FILES, instance=item)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse('got:item_management'))
     else:
-        form = TransferenciaForm()
+        form = ItemForm(instance=item)
 
-    context = {
-        'form': form,
-        'equipo': equipo
-    }
-    return render(request, 'got/transferencia-equipo.html', context)
+    return render(request, 'got/edit_item.html', {'form': form, 'item': item})
 
-
-def detalle_pdf(request, pk):
-    registro = Solicitud.objects.get(pk=pk)
-    context = {'rq': registro}
-    return render_to_pdf('got/solicitud/solicitud_detail.html', context)
-
-
-
-def system_maintence_pdf(request, asset_id, system_id):
-    asset = get_object_or_404(Asset, pk=asset_id)
-    system = get_object_or_404(System, pk=system_id, asset=asset)
-    start_date = timezone.now()
-
-    sections = [
-        {'title': 'Resumen', 'id': 'summary'},
-        {'title': 'Información del Sistema', 'id': 'system-info'},
-        {'title': 'Equipos Asociados', 'id': 'associated-equipment'},
-        {'title': 'Rutinas de Mantenimiento', 'id': 'maintenance-routines'},
-        {'title': 'Bitácora de Mantenimientos', 'id': 'maintenance-log'},
-    ]
-
-    context = {
-        'asset': asset,
-        'system': system,
-        'sections': sections,
-        'current_date': start_date,
-    }
-
-    return render_to_pdf('got//systems/system_pdf_template.html', context)
-
-
-def megger_pdf(request, pk):
-    registro = Megger.objects.get(pk=pk)
-    context = {'meg': registro}
-    return render_to_pdf('got/meg/meg_detail.html', context)
-
-
-def fail_pdf(request, pk):
-    registro = FailureReport.objects.get(pk=pk)
-    context = {'fail': registro}
-    return render_to_pdf('got/fail/fail_pdf.html', context)
 

@@ -1261,3 +1261,42 @@ class DarBajaForm(forms.ModelForm):
         model = DarBaja
         fields = ['motivo', 'observaciones', 'disposicion', 'firma_responsable', 'firma_autorizado']
 
+
+class SalidaForm(forms.ModelForm):
+    class Meta:
+        model = Salida
+        fields = ['destino', 'motivo', 'recibe', 'vehiculo', 'propietario']
+        labels = {
+            'destino': 'Dirección de destino',
+            'motivo': 'Justificación de la salida',
+            'recibe': 'Transportado por',
+            'vehiculo': 'Matricula del vehiculo',
+            'propietario': 'Propietario'
+        }
+        widgets = {
+            'destino': forms.TextInput(attrs={'class': 'form-control'}),
+            'motivo': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'recibe': forms.TextInput(attrs={'class': 'form-control'}),
+            'vehiculo': forms.TextInput(attrs={'class': 'form-control'}),
+            'propietario': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+class ItemForm(forms.ModelForm):
+    class Meta:
+        model = Item
+        fields = ['name', 'reference', 'presentacion', 'code', 'seccion', 'imagen']
+        labels = {
+            'name': 'Articulo',
+            'reference': 'Referencia',
+            'presentacion': 'Presentación',
+            'code': 'Codigo Zeus',
+            'seccion': 'Categoria'
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'reference': forms.TextInput(attrs={'class': 'form-control'}),
+            'presentacion': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'seccion': forms.Select(attrs={'class': 'form-control'}),
+            'imagen': forms.FileInput(attrs={'class': 'form-control'})
+        }
