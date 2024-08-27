@@ -1271,7 +1271,8 @@ class SalidaForm(forms.ModelForm):
             'motivo': 'Justificación de la salida',
             'recibe': 'Transportado por',
             'vehiculo': 'Matricula del vehiculo',
-            'propietario': 'Propietario'
+            'propietario': 'Propietario',
+            # 'sign_recibe': 'Firma del receptor'
         }
         widgets = {
             'destino': forms.TextInput(attrs={'class': 'form-control'}),

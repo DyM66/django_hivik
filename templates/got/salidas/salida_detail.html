@@ -173,5 +173,10 @@
             </tbody>
         </table>
         {% endif %}
+
+        {% if rq.sign_recibe %}
+        <img src="{{ rq.sign_recibe.url }}" style="width: 200px; height: auto;">
+        {% endif %}
+
 </body>
 </html>

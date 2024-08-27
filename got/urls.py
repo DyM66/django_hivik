@@ -98,4 +98,5 @@ urlpatterns = [
 
     path('items/', views.ItemManagementView.as_view(), name='item_management'),
     path('items/edit/<int:item_id>/', views.edit_item, name='edit_item'),
+    path('asset/rutinas/<str:pk>/', views.preventivo_pdf, name='preventivo'),
 ]

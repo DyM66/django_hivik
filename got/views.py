@@ -170,16 +170,16 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             filtered_rutas = Ruta.objects.filter(system__in=systems, system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
             if show_execute == 'on':
                 filtered_rutas = [
-                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x') #or (ruta.percentage_remaining < 10)
+                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)
                     ]
             else:
                 filtered_rutas = [
-                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) #or (ruta.percentage_remaining < 10)
+                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.percentage_remaining < 15)
                     ]
 
         else:
             filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 10)]
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
 
         if asset.area == 'b':
             context['locations'] = System.objects.filter(asset=asset).values_list('location', flat=True).distinct()
@@ -198,12 +198,17 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['rutinas_filter_form'] = form
 
         return context
-    
+                
     def export_rutinas_to_excel(self):
         asset = self.get_object()
-        rutinas = Ruta.objects.filter(system__asset=asset).exclude(system__state__in=['x', 's'])
+        systems = asset.system_set.all()
+
+        # Obtén las rutas filtradas de acuerdo a los criterios que se aplican en la vista
+        filtered_rutas, _ = self.get_filtered_rutas(asset, systems)
         data = []
-        for ruta in rutinas:
+
+        for ruta in filtered_rutas:
+            # Información de la rutina
             days_left = (ruta.next_date - datetime.now().date()).days if ruta.next_date else '---'
             data.append({
                 'equipo_name': ruta.equipo.name if ruta.equipo else ruta.system.name,
@@ -214,18 +219,69 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
                 'daysleft': days_left,
                 'intervention_date': ruta.intervention_date.strftime('%d/%m/%Y') if ruta.intervention_date else '---',
                 'next_date': ruta.next_date.strftime('%d/%m/%Y') if ruta.next_date else '---',
-                'ot_num_ot': ruta.ot.num_ot if ruta.ot else '---'
+                'ot_num_ot': ruta.ot.num_ot if ruta.ot else '---',
+                'activity': '---',  # Placeholder para la fila de la rutina en la columna de actividades
+                'responsable': ''  # Columna vacía para la fila de la rutina
             })
 
+            # Actividades relacionadas con esta rutina
+            tasks = Task.objects.filter(ruta=ruta)
+            for task in tasks:
+                responsable_name = task.responsible.get_full_name() if task.responsible else '---'
+                data.append({
+                    'equipo_name': '',
+                    'location': '',
+                    'name': '',
+                    'frecuency': '',
+                    'control': '',
+                    'daysleft': '',
+                    'intervention_date': '',
+                    'next_date': '',
+                    'ot_num_ot': '',
+                    'activity': f'- {task.description}',  # Descripción de la tarea con un guion para indentación
+                    'responsable': responsable_name
+                })
+
+        # Convertimos la lista de diccionarios en un DataFrame
         df = pd.DataFrame(data)
-        df.columns = ['Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante', 'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo']
-        
+        df.columns = ['Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante', 'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo', 'Actividad', 'Responsable']
+
+        # Generamos la respuesta HTTP con el archivo Excel
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename="rutinas.xlsx"'
         with pd.ExcelWriter(response, engine='openpyxl') as writer:
             df.to_excel(writer, index=False)
 
         return response
+
+
+    def get_filtered_rutas(self, asset, systems):
+        form = RutinaFilterForm(self.request.GET or None, asset=asset)
+        current_month_name_en = datetime.now().strftime('%B')
+        current_month_name_es = traductor(current_month_name_en)
+
+        if form.is_valid():
+            current_month_name_en = form.cleaned_data.get('month')
+            current_month_name_es = traductor(calendar.month_name[int(current_month_name_en)])
+            month = int(form.cleaned_data['month'])
+            year = int(form.cleaned_data['year'])
+            show_execute = form.cleaned_data.get('execute', False)
+            selected_locations = form.cleaned_data.get('locations')
+
+            filtered_rutas = Ruta.objects.filter(system__in=systems, system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            if show_execute == 'on':
+                filtered_rutas = [
+                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x')
+                ]
+            else:
+                filtered_rutas = [
+                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year)
+                ]
+        else:
+            filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 10)]
+
+        return filtered_rutas, current_month_name_es
 
     def post(self, request, *args, **kwargs):
         asset = self.get_object()
@@ -242,6 +298,26 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         else:
             context = {'asset': asset, 'sys_form': sys_form}
             return render(request, self.template_name, context)
+
+
+def preventivo_pdf(request, pk):
+    asset = get_object_or_404(Asset, pk=pk)
+    
+    # Obtener los sistemas asociados al Asset
+    systems = asset.system_set.all()
+    
+    # Reutilizar la lógica de filtrado de rutas
+    asset_detail_view = AssetDetailView()
+    asset_detail_view.request = request  # Asignamos el request actual a la vista para utilizar su lógica
+    filtered_rutas, current_month_name_es = asset_detail_view.get_filtered_rutas(asset, systems)
+    
+    # Pasar los datos filtrados al contexto
+    context = {
+        'rq': asset,
+        'filtered_rutas': filtered_rutas,
+        'mes': current_month_name_es,
+    }
+    return render_to_pdf('got/assets/asset-routine.html', context)
 
 
 class AssetDocCreateView(generic.View):
@@ -1916,6 +1992,15 @@ class SalidaCreateView(LoginRequiredMixin, View):
             if form.is_valid() and image_form.is_valid():
                 solicitud = form.save(commit=False)
                 solicitud.responsable = self.request.user.get_full_name()
+
+                signature_data = request.POST.get('signature')
+                print(signature_data)
+                if signature_data:
+                    format, imgstr = signature_data.split(';base64,') 
+                    ext = format.split('/')[-1]
+                    filename = f'signature_{uuid.uuid4()}.{ext}'
+                    data = ContentFile(base64.b64decode(imgstr), name=filename)
+                    solicitud.sign_recibe.save(filename, data, save=True)
                 solicitud.save()
 
                 for item_id, cantidad in zip(items_ids, cantidades):
@@ -1943,7 +2028,7 @@ class SalidaCreateView(LoginRequiredMixin, View):
                     subject,
                     message,
                     settings.EMAIL_HOST_USER,
-                    ['analistamto@serport.co']
+                    ['analistamto@serport.co', 'seguridad@serport.co']
                 )
                 email.attach(f'Salida_{solicitud.pk}.pdf', pdf_buffer, 'application/pdf')
                 email.send()
@@ -2123,8 +2208,6 @@ def add_location(request):
 def view_location(request, pk):
     location = get_object_or_404(Location, pk=pk)
     return render(request, 'got/view_location.html', {'location': location})
-
-
 
 
 class ItemManagementView(generic.TemplateView):

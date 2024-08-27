@@ -1,0 +1,159 @@
+{% load my_tags %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        body {
+            font-family: monospace;
+        }
+
+        h1, h2, h3 {
+            color: #333366; 
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%; 
+            border: 0.2px solid #000; 
+        }
+
+        thead th, thead td { 
+            padding-top: 10px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        td {
+            padding: 5px 0 0 5px;
+        }
+
+
+        tbody th {
+            background-color: #a5a8b2;
+            text-align: left;
+            padding: 4px 0 0 4px;
+        }
+
+        img { 
+            width: 200px; 
+            height: auto; 
+        }
+
+        ul { 
+            list-style-type: none;
+            padding: 0; 
+        }
+
+        li { 
+            margin-bottom: 5px; 
+        }
+    </style>
+</head>
+<body>
+
+    <table>
+        <thead>
+            <tr>
+                <td rowspan="2" style="width: 220px; height: auto;">
+                    <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png">
+                </td>
+                <th colspan="3">
+                    <h1>PLAN DE MANTENIMIENTO</h1>
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    <h4>CODIGO: </h4>
+                </td>
+                <td>
+                    <h4>VERSION 001</h4>
+                </td>
+                <td>
+                    <h4>FECHA DE ACTUALIZACION: 20/08/2024</h4>
+                </td>
+            </tr>
+        </thead>
+    </table>
+
+    <br>
+    <table>
+        <tbody>
+            <tr>
+                <th style="width: 85px;">Embarcación</th>
+                <td colspan="3">{{ rq.abbreviation }}/{{ rq }}</td>
+                <th>Area:</th>    
+                <td>{{ rq.get_area_display }}</td>
+            </tr>
+            <tr>
+                <th>Responsable</th>
+                <td>{{ rq.supervisor.get_full_name }}</td>
+                <th style="width: 50px;">Cargo</th>
+                <td>{{ rq.supervisor.profile.cargo }}</td>
+                <th style="width: 45px;">Fecha</th>
+                <td>{{mes}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% for ruta in filtered_rutas %}
+    <br>
+    <table>
+        <tr>
+            <th style="width: 300px;">{% if ruta.equipo %}{{ruta.equipo.name}}{% else %}{{ruta.system.name}}{% endif %}</th>
+            <th colspan="2">{{ ruta.name }}</th>
+            <th style="width: 70px;">{{ ruta.frecuency }} {{ ruta.get_control_display }}</th>
+            <th>{{ ruta.next_date|date:"d/m/Y" }}</th>
+        </tr>
+    <!-- </table>
+
+    <table> -->
+        <tr>
+            <th style="width: 300px;">Actividades</th>
+            <th>Responsable</th>
+            <th style="width: 70px;">Realizado</th>
+            <th colspan="2">Observaciones</th>
+        </tr>
+        {% for task in ruta.task_set.all %}
+            <tr>
+                <td>{{ task.description }}</td>
+                <td style="width: 110px;">
+                    {{ task.responsible.get_full_name }}
+                </td>
+                <td style="text-align: center;">
+                
+                </td>
+                <td colspan="2"> </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center;">No hay actividades registradas para esta rutina.</td>
+            </tr>
+        {% endfor %}
+
+    </table>
+    {% endfor %}
+
+    <br>
+    <table>
+        <tr style="height: 60px;">
+            <td style="padding-left: 5px; text-align: center;">
+                {{fail.reporter.get_full_name}}
+            </td>
+            <td style="padding-left: 5px; text-align: center;">
+                
+            </td>
+        </tr>
+        <tr style="height: 20px;">
+            <th style="padding-top: 5px; text-align: center;">
+                <h4>Reportado por:</h4>
+            </th>
+            <th style="padding-top: 5px; text-align: center;">
+                <h4>Recibido por:</h4>
+            </th>
+        </tr>
+    </table>
+</body>
+</html>

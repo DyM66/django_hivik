@@ -1,5 +1,7 @@
 {% extends "got/base_generic.html" %}
-
+{% block headtag %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.2/signature_pad.umd.min.js"></script>
+{% endblock %}
 {% block content %}
 
     <h1>
@@ -9,7 +11,16 @@
     <form method="post" action="" id="solicitudForm"  enctype="multipart/form-data">{% csrf_token %}
 
         {{form}}
+        <br>
         {{ image_form }}
+        <br>
+        <div class="form-group">
+            <label for="signature">Firma del receptor</label>
+            <canvas id="signature-pad" class="signature-pad" width=500 height=200 style="border: 0.2px solid #000;"></canvas>
+            <input type="hidden" name="signature" id="signature">
+            <button type="button" class="btn btn-secondary" onclick="clearSignature()">Limpiar Firma</button>
+        </div>
+        
         <h4 class="mt-4">Artículos Añadidos</h4>
 
         <table class="table-list table-detail">
@@ -82,6 +93,25 @@
     </form>
 
     <script>
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var canvas = document.getElementById('signature-pad');
+            var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
+            var form = document.getElementById('solicitudForm');  // Asegúrate de asignar un ID único al formulario de firma
+
+            form.addEventListener('submit', function(event) {
+                if (signaturePad.isEmpty()) {
+                    alert("Por favor, proporciona una firma primero.");
+                    event.preventDefault();  // Detiene el envío del formulario si no hay firma
+                } else {
+                    var dataURL = signaturePad.toDataURL("image/png");
+                    document.getElementById('signature').value = dataURL;
+                }
+            });
+        });
+
+
         function addItem(itemId, itemName) {
             const quantityInput = document.getElementById('quantity-' + itemId);
             const quantity = quantityInput.value;
@@ -183,6 +213,8 @@
         }
 
         document.addEventListener("DOMContentLoaded", setupPagination);
+
+
 
     </script>
 {% endblock %}

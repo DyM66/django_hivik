@@ -22,6 +22,7 @@ class Migration(migrations.Migration):
                 ('vehiculo', models.CharField(max_length=100, null=True)),
                 ('auth', models.BooleanField(default=False)),
                 ('responsable', models.CharField(max_length=100)),
+                ('propietario', models.CharField(max_length=100)),
             ],
             options={
                 'ordering': ['-fecha'],

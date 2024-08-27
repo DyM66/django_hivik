@@ -575,6 +575,7 @@ class Salida(models.Model):
     recibe = models.CharField(max_length=100)
     vehiculo = models.CharField(max_length=100, null=True, blank=False)
     auth = models.BooleanField(default=False)
+    sign_recibe = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
 
     def __str__(self):
         return f"{self.motivo} - {self.fecha}"

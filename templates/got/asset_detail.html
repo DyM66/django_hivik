@@ -302,6 +302,8 @@
             {% csrf_token %}
             <button type="submit" name="download_excel" class="btn btn-info">Descargar Rutinas como Excel</button>
         </form>
+        <br>
+        <a class="btn btn-info" href="{% url 'got:preventivo' asset.abbreviation %}">Descargar Rutinas como PDF</a>
     </div>
 
 
