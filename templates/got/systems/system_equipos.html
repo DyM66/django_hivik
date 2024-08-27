@@ -53,6 +53,7 @@
 												Crear nueva OT
 											</button>
 										</li>
+										<li><a class="dropdown-item" href="{% url 'got:create-ot-from-ruta' ruta_id=ruta.code %}">Reportar</a></li>
 										<li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
 										<li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
 									</ul>

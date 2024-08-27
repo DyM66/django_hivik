@@ -1301,3 +1301,11 @@ class ItemForm(forms.ModelForm):
             'seccion': forms.Select(attrs={'class': 'form-control'}),
             'imagen': forms.FileInput(attrs={'class': 'form-control'})
         }
+
+
+class ActivityForm(forms.Form):
+    realizado = forms.BooleanField(required=False, label='Realizado')
+    observaciones = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-class'}))
+
+class CustomSignatureForm(forms.Form):
+    signature = forms.CharField(widget=forms.HiddenInput())

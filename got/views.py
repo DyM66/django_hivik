@@ -1478,6 +1478,75 @@ def crear_ot_desde_ruta(request, ruta_id):
     return redirect('got:ot-detail', pk=nueva_ot.pk)
 
 
+
+
+def rutina_form_view(request, ruta_id):
+    ruta = get_object_or_404(Ruta, code=ruta_id)
+    tasks = Task.objects.filter(ruta=ruta)
+    fecha_actual = timezone.now().date()
+    fecha_seleccionada = request.POST.get('fecha', fecha_actual)
+    ot_state = 'f' 
+
+    if request.method == 'POST':
+        formset_data = []
+        for task in tasks:
+            realizado = request.POST.get(f'realizado_{task.id}') == 'on'
+            observaciones = request.POST.get(f'observaciones_{task.id}')
+            evidencias = request.FILES.getlist(f'evidencias_{task.id}')
+            
+            if not realizado:
+                ot_state = 'x'
+            
+            formset_data.append({
+                'task': task,
+                'realizado': realizado,
+                'observaciones': observaciones,
+                'evidencias': evidencias
+            })
+
+        signature_data = request.POST.get('signature')
+        signature_file = None
+        if signature_data:
+            format, imgstr = signature_data.split(';base64,')
+            ext = format.split('/')[-1]
+            filename = f'signature_{uuid.uuid4()}.{ext}'
+            signature_file = ContentFile(base64.b64decode(imgstr), name=filename)
+
+        new_ot = Ot.objects.create(
+            system=ruta.system,
+            description=f"Rutina de mantenimiento con código {ruta.name}",
+            supervisor=request.user.get_full_name(),
+            state=ot_state,
+            tipo_mtto='p',
+            sign_supervision=signature_file
+        )
+            
+        for form_data in formset_data:
+            new_task = Task.objects.create(
+                ot=new_ot,
+                description=form_data['task'].description,
+                responsible=request.user,
+                news=form_data['observaciones'],
+                finished=form_data['realizado'],
+                start_date=fecha_seleccionada
+            )
+            # Guardar evidencias si las hay
+            for evidencia in form_data['evidencias']:
+                Image.objects.create(task=new_task, image=evidencia)
+        ruta.intervention_date = fecha_seleccionada
+        ruta.save()
+        print("Nueva OT creada con éxito:", new_ot)
+        return redirect(ruta.sys.get_absolute_url)
+
+    else:
+        formset_data = [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages()} for task in tasks]
+
+    return render(request, 'got/ruta_ot_form.html', 
+                  {'formset_data': formset_data, 'ruta': ruta, 'fecha_seleccionada': fecha_seleccionada,}
+                  )
+
+
+
 def buceomtto(request):
 
     location_filter = request.GET.get('location', None)
@@ -1994,7 +2063,6 @@ class SalidaCreateView(LoginRequiredMixin, View):
                 solicitud.responsable = self.request.user.get_full_name()
 
                 signature_data = request.POST.get('signature')
-                print(signature_data)
                 if signature_data:
                     format, imgstr = signature_data.split(';base64,') 
                     ext = format.split('/')[-1]

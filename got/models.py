@@ -196,9 +196,17 @@ class System(models.Model):
 class Equipo(models.Model):
 
     TIPO = (
-        ('r', 'Rotativo'),
+        ('r', 'Motor a combustión'),
         ('nr', 'No rotativo'),
         ('e', 'Motor eléctrico'),
+        ('b', 'Bomba'),
+        ('bb', 'Banco de baterias'),
+        ('t', 'Tanque de almacenamiento'),
+        ('g', 'Gato hidraulico'),
+        ('v', 'Valvulas'),
+        ('v', 'Reductor'),
+        ('v', 'Compresor'),
+
     )
 
     code = models.CharField(primary_key=True, max_length=50)
@@ -215,6 +223,7 @@ class Equipo(models.Model):
 
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
     subsystem = models.CharField(max_length=100, null=True, blank=True)
+    # proceso = models.CharField(max_length=100, null=True, blank=True)
 
     'Motores'
     potencia  = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

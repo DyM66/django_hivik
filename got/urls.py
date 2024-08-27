@@ -99,4 +99,6 @@ urlpatterns = [
     path('items/', views.ItemManagementView.as_view(), name='item_management'),
     path('items/edit/<int:item_id>/', views.edit_item, name='edit_item'),
     path('asset/rutinas/<str:pk>/', views.preventivo_pdf, name='preventivo'),
+
+    path('ruta/<int:ruta_id>/create_ot/', views.rutina_form_view, name='create-ot-from-ruta'),
 ]

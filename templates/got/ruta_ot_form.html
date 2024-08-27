@@ -1,0 +1,93 @@
+{% extends "got/base_generic.html" %}
+{% block headtag %}
+<style>
+    /* Estilos personalizados para ajustar los campos */
+    .observaciones-textarea {
+        resize: vertical;
+        height: 100px;
+    }
+    .evidencias-input {
+        width: 200px;
+    }
+    /* Centrar contenido en la columna de 'Realizado' */
+    .realizado-checkbox {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+    }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.2/signature_pad.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<h1>Reporte de Rutina: {{ ruta.name }}</h1>
+
+<form method="post" enctype="multipart/form-data" id="foorm">
+    {% csrf_token %}
+    <label for="fecha">Fecha:</label>
+    <input type="date" name="fecha" id="fecha" class="form-control" value="{{ fecha_seleccionada }}">
+
+    <br>
+    <table class="table table-bordered">
+        <thead class="thead-light">
+            <tr>
+                <th style="width: 40%;">Actividad</th>
+                <th style="width: 10%; text-align: center;">Realizado</th>
+                <th style="width: 30%;">Observaciones</th>
+                <th style="width: 20%;">Evidencias</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in formset_data %}
+            <tr>
+                <td>{{ item.task.description }}</td>
+                <td class="realizado-checkbox">
+                    <input type="checkbox" name="realizado_{{ item.task.id }}" class="form-check-input" style="width: 20px; height: 20px;">
+                </td>
+                <td>
+                    <textarea name="observaciones_{{ item.task.id }}" class="form-control observaciones-textarea" placeholder="Añadir observaciones..."></textarea>
+                </td>
+                <td>
+                    <input type="file" name="evidencias_{{ item.task.id }}" class="form-control evidencias-input" multiple>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+
+
+    <br>
+    <div class="form-group">
+        <label for="signature">Firma del receptor</label>
+        <canvas id="signature-pad" class="signature-pad" width=500 height=200 style="border: 0.2px solid #000;"></canvas>
+        <input type="hidden" name="signature" id="signature">
+    </div>
+    <button type="submit" class="btn btn-primary">Enviar</button>
+</form>
+
+
+<script>
+
+
+    document.addEventListener("DOMContentLoaded", function() {
+        var canvas = document.getElementById('signature-pad');
+        var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
+        var form = document.getElementById('foorm');  // Asegúrate de asignar un ID único al formulario de firma
+
+        form.addEventListener('submit', function(event) {
+            if (signaturePad.isEmpty()) {
+                alert("Por favor, proporciona una firma primero.");
+                event.preventDefault();  // Detiene el envío del formulario si no hay firma
+            } else {
+                var dataURL = signaturePad.toDataURL("image/png");
+                document.getElementById('signature').value = dataURL;
+            }
+        });
+    });
+
+</script>
+{% endblock %}
+
