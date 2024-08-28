@@ -1536,7 +1536,7 @@ def rutina_form_view(request, ruta_id):
         ruta.intervention_date = fecha_seleccionada
         ruta.save()
         print("Nueva OT creada con éxito:", new_ot)
-        return redirect(ruta.sys.get_absolute_url)
+        return redirect(ruta.system.get_absolute_url)
 
     else:
         formset_data = [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages()} for task in tasks]
