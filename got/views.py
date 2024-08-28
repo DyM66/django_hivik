@@ -2083,26 +2083,63 @@ class SalidaCreateView(LoginRequiredMixin, View):
                 for file in request.FILES.getlist('file_field'):
                     Image.objects.create(salida=solicitud, image=file)
                 
-                pdf_buffer = salida_email_pdf(solicitud.pk)
-                subject = f'Solicitud salida de materiales: {solicitud}'
-                message = f'''
-                Cordial saludo,
+                # pdf_buffer = salida_email_pdf(solicitud.pk)
+                # subject = f'Solicitud salida de materiales: {solicitud}'
+                # message = f'''
+                # Cordial saludo,
                 
-                Notificación de salida.
+                # Notificación de salida.
                 
-                Por favor, revise el archivo adjunto para más detalles.
-                '''
-                email = EmailMessage(
-                    subject,
-                    message,
-                    settings.EMAIL_HOST_USER,
-                    ['analistamto@serport.co', 'seguridad@serport.co']
-                )
-                email.attach(f'Salida_{solicitud.pk}.pdf', pdf_buffer, 'application/pdf')
-                email.send()
+                # Por favor, revise el archivo adjunto para más detalles.
+                # '''
+                # email = EmailMessage(
+                #     subject,
+                #     message,
+                #     settings.EMAIL_HOST_USER,
+                #     ['analistamto@serport.co']#, 'seguridad@serport.co']
+                # )
+                # email.attach(f'Salida_{solicitud.pk}.pdf', pdf_buffer, 'application/pdf')
+                # email.send()
                 return redirect('got:salida-list')
             return render(request, self.template_name, context)
 
+
+
+class NotifySalidaView(LoginRequiredMixin, View):
+
+    def post(self, request, pk):
+        salida = get_object_or_404(Salida, pk=pk)
+        
+        # Obtener y guardar la firma
+        signature_data = request.POST.get('signature')
+        if signature_data:
+            format, imgstr = signature_data.split(';base64,')
+            ext = format.split('/')[-1]
+            filename = f'signature_{uuid.uuid4()}.{ext}'
+            signature_file = ContentFile(base64.b64decode(imgstr), name=filename)
+            salida.sign_recibe.save(filename, signature_file, save=True)
+
+        # Enviar el correo electrónico con el PDF adjunto
+        pdf_buffer = salida_email_pdf(salida.pk)
+        subject = f'Solicitud salida de materiales: {salida}'
+        message = f'''
+        Cordial saludo,
+
+        Notificación de salida.
+
+        Por favor, revise el archivo adjunto para más detalles.
+        '''
+        email = EmailMessage(
+            subject,
+            message,
+            settings.EMAIL_HOST_USER,
+            ['analistamto@serport.co']  # Puedes añadir más destinatarios aquí
+        )
+        email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
+        email.send()
+
+        # Redirigir al usuario a la página anterior
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 def salida_pdf(request, pk):
     salida = Salida.objects.get(pk=pk)

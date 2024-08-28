@@ -1,6 +1,10 @@
 {% extends "got/base_generic.html" %}
 {% load my_tags %}
-
+{% block headtag %}
+<!-- Cargar jQuery desde CDN sin atributo integrity -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.2/signature_pad.umd.min.js"></script>
+{% endblock %}
 
 {% block header %}
     Salidas de materiales 
@@ -8,120 +12,169 @@
 
 {% block content %}
 
-
 <aside>
-
     <div class="btn-group box-shadow" role="group">
         <a class="btn btn-primary" href="{% url 'got:create-salida' %}">Reportar salida</a>
     </div>
     <div class="btn-group box-shadow" role="group">
         <a class="btn btn-primary" href="{% url 'got:item_management' %}">Articulos</a>
     </div>
-    
 </aside>
 
-
-    <table class="table-list deta">
-        <thead>
+<table class="table-list deta">
+    <thead>
+        <tr>
+            <th scope="col">Salidas</th>
+            <th scope="col" class="nowrap">Destino</th>
+            <th scope="col">Responsable</th>
+            <th scope="col">Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rq in salida_list %}
             <tr>
-                <th scope="col">Salidas</th>
-                <th scope="col" class="nowrap">Destino</th>
-                <th scope="col">Responsable</th>
-                <th scope="col">Estado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for rq in salida_list %}
-				<tr>
-					<td data-cell="Justificación">
-                        <h6 id="{{ rq.id }}">
-                            {{ rq.id }} - {{ rq.motivo }}
-                        </h6>
-                    </td>
-					
-					<td data-cell="Destino" class="nowrap"><strong>{{ rq.destino }}</strong></td>
-					<td data-cell="Responsable" class="nowrap">{{ rq.responsable }}/ {{ rq.recibe}}</td>
-					<td data-cell="Estado">
-                        <div class="dropdown">
-							<button class="btn status {% if rq.auth %}finished{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-								{% if rq.auth %}Aprobado{% else %}No aprobado{% endif %}
-							</button>
-							<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-								<li><a class="dropdown-item" href="{% url 'got:salida_pdf' rq.id %}">Ver detalle</a></li>
-                                {% if not rq.auth %}
-                                    {% if perms.got.can_approve_it %}
-								        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editOutModal{{ rq.id }}">Editar</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'got:approve-salida' rq.id %}">Aprobar</a></li>
-                                    {% endif %}
+                <td data-cell="Justificación">
+                    <h6 id="{{ rq.id }}">
+                        {{ rq.id }} - {{ rq.motivo }}
+                    </h6>
+                </td>
+                <td data-cell="Destino" class="nowrap"><strong>{{ rq.destino }}</strong></td>
+                <td data-cell="Responsable" class="nowrap">{{ rq.responsable }}/ {{ rq.recibe}}</td>
+                <td data-cell="Estado">
+                    <div class="dropdown">
+                        <button class="btn status {% if rq.auth %}finished{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if rq.auth %}Aprobado{% else %}No aprobado{% endif %}
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                            <li><a class="dropdown-item" href="{% url 'got:salida_pdf' rq.id %}">Ver detalle</a></li>
+                            {% if not rq.auth %}
+                                {% if perms.got.can_approve_it %}
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editOutModal{{ rq.id }}">Editar</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'got:approve-salida' rq.id %}">Aprobar</a></li>
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#notifyModal{{ rq.id }}">Notificar</a></li>
                                 {% endif %}
-							</ul>
-						</div>
-                    </td>
-                    
-				</tr>
-                <tr>
-                    <td colspan="2">
-                        <ul>
-                            {% for suministro in rq.suministros.all %}
-                                <li onclick="openModal{{ suministro.id }}()" style="cursor: pointer;">
-                                    {{ suministro.cantidad }} {{ suministro.item.presentacion }} {{ suministro.item.name }} {{ suministro.item.reference }} - {{ suministro.item.code }}
-                                </li>
-                                <div class="modal fade" id="itemModal{{ suministro.id }}" tabindex="-1" aria-labelledby="itemModalLabel{{ suministro.id }}" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="itemModalLabel{{ suministro.id }}">{{ suministro.item.name }}</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                {% if suministro.item.imagen %}
-                                                    <img src="{{ suministro.item.imagen.url }}" alt="Imagen de {{ suministro.item.name }}" class="img-fluid">
-                                                {% endif %}
-                                                <p>Referencia: {{ suministro.item.reference }}</p>
-                                                <p>Presentación: {{ suministro.item.presentacion }}</p>
-                                                <p>Código: {{ suministro.item.code }}</p>
-                                                <p>Sección: {{ suministro.item.get_seccion_display }}</p>
-                                            </div>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+
+            <!-- Modal para notificar y firmar -->
+            <div class="modal fade" id="notifyModal{{ rq.id }}" tabindex="-1" role="dialog" aria-labelledby="notifyModalLabel{{ rq.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <form id="notifyForm{{ rq.id }}" method="post" action="{% url 'got:notify-salida' rq.id %}">
+                            {% csrf_token %}
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="notifyModalLabel{{ rq.id }}">Firmar y Notificar</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="signature">Firma del receptor</label>
+                                    <canvas id="signature-pad-{{ rq.id }}" class="signature-pad" width=400 height=200 style="border: 0.2px solid #000;"></canvas>
+                                    <input type="hidden" name="signature" id="signature-{{ rq.id }}">
+                                    <button type="button" class="btn btn-secondary" onclick="clearSignature({{ rq.id }})">Limpiar Firma</button>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                                <button type="submit" class="btn btn-primary">Notificar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <tr>
+                <td colspan="2">
+                    <ul>
+                        {% for suministro in rq.suministros.all %}
+                            <li onclick="openModal{{ suministro.id }}()" style="cursor: pointer;">
+                                {{ suministro.cantidad }} {{ suministro.item.presentacion }} {{ suministro.item.name }} {{ suministro.item.reference }} - {{ suministro.item.code }}
+                            </li>
+                            <div class="modal fade" id="itemModal{{ suministro.id }}" tabindex="-1" aria-labelledby="itemModalLabel{{ suministro.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="itemModalLabel{{ suministro.id }}">{{ suministro.item.name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            {% if suministro.item.imagen %}
+                                                <img src="{{ suministro.item.imagen.url }}" alt="Imagen de {{ suministro.item.name }}" class="img-fluid">
+                                            {% endif %}
+                                            <p>Referencia: {{ suministro.item.reference }}</p>
+                                            <p>Presentación: {{ suministro.item.presentacion }}</p>
+                                            <p>Código: {{ suministro.item.code }}</p>
+                                            <p>Sección: {{ suministro.item.get_seccion_display }}</p>
                                         </div>
                                     </div>
                                 </div>
-                                <script>
-                                    function openModal{{ suministro.id }}() {
-                                        new bootstrap.Modal(document.getElementById('itemModal{{ suministro.id }}')).show();
-                                    }
-                                </script>
-                            {% endfor %}
-                        </ul>
+                            </div>
+                            <script>
+                                function openModal{{ suministro.id }}() {
+                                    new bootstrap.Modal(document.getElementById('itemModal{{ suministro.id }}')).show();
+                                }
+                            </script>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td colspan="2">
+                    <strong>Fecha: {{ rq.fecha }}</strong>
+                    <strong>Vehiculo: {{ rq.vehiculo }}</strong>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="6">No hay reportes de salida registradas.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-                        
-                    </td>
-                    <td colspan="2">
-                        <strong>Fecha: {{rq.fecha}}</strong>
-                        <strong>Vehiculo: {{rq.vehiculo}}</strong>
+<script>
+    function clearSignature(id) {
+        var canvas = document.getElementById('signature-pad-' + id);
+        var signaturePad = new SignaturePad(canvas);
+        signaturePad.clear();
+    }
 
-                    </td>
-                </tr>
+    document.addEventListener("DOMContentLoaded", function() {
+        {% for rq in salida_list %}
+            $('#notifyModal{{ rq.id }}').on('shown.bs.modal', function () {
+                var canvas = document.getElementById('signature-pad-{{ rq.id }}');
 
+                // Redimensionar canvas para asegurar que se inicializa correctamente
+                resizeCanvas(canvas);
 
-            {% empty %}
-                <tr>
-                    <td colspan="6">No hay reportes de salida registradas.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const rows = document.querySelectorAll("tr[data-href]");
+                var form = document.getElementById('notifyForm{{ rq.id }}');
+                form.addEventListener('submit', function(event) {
+                    if (signaturePad.isEmpty()) {
+                        alert("Por favor, proporciona una firma primero.");
+                        event.preventDefault();
+                    } else {
+                        var dataURL = signaturePad.toDataURL("image/png");
+                        document.getElementById('signature-{{ rq.id }}').value = dataURL;
+                    }
+                });
+            });
+        {% endfor %}
+    });
 
-            rows.forEach(row => {
-                row.addEventListener("click", () => {
-                    window.location.href = row.dataset.href;
-                })
-            })
-        })
-
-    </script>
+    function resizeCanvas(canvas) {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        canvas.getContext("2d").scale(ratio, ratio);
+    }
+</script>
 
 {% endblock %}
+
+
+

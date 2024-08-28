@@ -85,36 +85,37 @@
         <thead>
             <tr>
                 <th>
-                    <strong>Dirección de desti:</strong>
-                    <ul>
-                        <li>{{ rq.destino }}</li>
-                    </ul>
+                    <strong>Dirección de despacho:</strong>
+                    <li>
+                        <ol>SERPORT, DG 21E CALLE CAUCA #54 A86</ol>
+                    </li> 
                 </th>
                 <th>
-                    Justificación:
+                    Propiertario
                     <ul>
-                        <li>{{ rq.propietario }}/{{ rq.motivo }}</li>
+                        <li>{{ rq.propietario }}</li>
                     </ul> 
                 </th>
                 <th>
-                    Fecha:
+                    Fecha y ciudad:
                     <li>
-                        <ol>{{ rq.fecha }}</ol>
+                        <ol>Cartagena, {{ rq.fecha }}</ol>
                     </li> 
                 </th>
 
             </tr>
             <tr>
                 <th>
-                    <strong>Responsable:</strong>
-                    <li>
-                        <ol>{{ rq.responsable }}</ol>
-                    </li> 
+                    <strong>Dirección de destino:</strong>
+                    <ul>
+                        <li>{{ rq.destino }}</li>
+                    </ul>
+
                 </th>
                 <th>
-                    <strong>Cargo:</strong>
+                    <strong>Justificación:</strong>
                     <li>
-                        <ol>{{ pro }}</ol>
+                        <ol>{{ rq.motivo }} </ol>
                     </li> 
                 </th>
                 <th>
@@ -150,7 +151,7 @@
         {% if rq.images.all %}
         <table>
             <tr>
-                <th colspan="3" style="text-align: center;"> </th>
+                <th colspan="3" style="text-align: center;">EVIDENCIAS </th>
             </tr>
             <tbody>
                 {% for i in rq.images.all %}
@@ -175,8 +176,35 @@
         {% endif %}
 
         {% if rq.sign_recibe %}
-        <img src="{{ rq.sign_recibe.url }}" style="width: 200px; height: auto;">
+        
         {% endif %}
 
+
+        <br>
+        <table>
+            <tr style="height: 60px;">
+                <td style="padding-left: 5px; text-align: center;">
+                    {{ rq.responsable }} <br>
+                    {{ pro }}
+                </td>
+                <td style="padding-left: 5px; text-align: center;">
+                    <img src="{{ rq.sign_recibe.url }}" style="width: 200px; height: auto;">
+                </td>
+                <td style="padding-left: 5px; text-align: center;">
+                    {% if rq.auth %}Elkin Hernandez{% endif %}
+                </td>
+            </tr>
+            <tr style="height: 20px;">
+                <th style="padding-top: 5px; text-align: center;">
+                    <h4>Elaborado por:</h4>
+                </th>
+                <th style="padding-top: 5px; text-align: center;">
+                    <h4>Recibido por:</h4>
+                </th>
+                <th style="padding-top: 5px; text-align: center;">
+                    <h4>Visto Bueno:</h4>
+                </th>
+            </tr>
+        </table>
 </body>
 </html>
