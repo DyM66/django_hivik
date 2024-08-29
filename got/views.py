@@ -716,6 +716,7 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
 
     model = FailureReport
     paginate_by = 15
+    template_name = 'got/fail/failurereport_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -725,9 +726,17 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         asset_id = self.request.GET.get('asset_id')
+        state = self.request.GET.get('state')
 
         if asset_id:
             queryset = queryset.filter(equipo__system__asset_id=asset_id)
+
+        if state == 'abierto':
+            queryset = queryset.filter(closed=False, related_ot__isnull=True)
+        elif state == 'proceso':
+            queryset = queryset.filter(closed=False, related_ot__isnull=False)
+        elif state == 'cerrado':
+            queryset = queryset.filter(closed=True)
 
         if self.request.user.groups.filter(name='maq_members').exists():
             supervised_assets = Asset.objects.filter(

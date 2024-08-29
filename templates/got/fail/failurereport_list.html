@@ -11,7 +11,7 @@
 		<aside>
 			<div class="btn-group" role="group">
 				<button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-					Filtrar por equipo
+					Filtrar por:
 				</button>
 				<ul class="dropdown-menu">
 					<li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Mostrar todas</a></li>
@@ -19,6 +19,18 @@
 					{% for asset in assets %}
 						<li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}?asset_id={{ asset.abbreviation }}">{{ asset.name }}</a></li>
 					{% endfor %}
+				</ul>
+			</div>
+
+			<div class="btn-group" role="group">
+				<button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+					Estado
+				</button>
+				<ul class="dropdown-menu">
+					<li><a href="{% url 'got:failure-report-list' %}?state=&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Mostrar todos</a></li>
+					<li><a href="{% url 'got:failure-report-list' %}?state=abierto&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Abiertos</a></li>
+					<li><a href="{% url 'got:failure-report-list' %}?state=proceso&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">En proceso</a></li>
+					<li><a href="{% url 'got:failure-report-list' %}?state=cerrado&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Cerrados</a></li>
 				</ul>
 			</div>
 		</aside>
