@@ -137,27 +137,26 @@ class SysForm(forms.ModelForm):
 
 class EquipoForm(forms.ModelForm):
 
-    def clean_code(self):
-        code = self.cleaned_data.get('code')
+    # def clean_code(self):
+    #     code = self.cleaned_data.get('code')
 
-        if re.search(r'[/?¿!&%$#"\'<]', code):
-            raise ValidationError(
-                '''El código no puede contener los siguientes caracteres: / ? ¿ ! & % $ # " ' <'''
-            )
+    #     if re.search(r'[/?¿!&%$#"\'<]', code):
+    #         raise ValidationError(
+    #             '''El código no puede contener los siguientes caracteres: / ? ¿ ! & % $ # " ' <'''
+    #         )
     
-        if Equipo.objects.filter(code=code).exists():
-            raise ValidationError(
-                '''Este código ya está en uso. Por favor,
-                ingresa un código diferente.'''
-                )
-        return code
+    #     if Equipo.objects.filter(code=code).exists():
+    #         raise ValidationError(
+    #             '''Este código ya está en uso. Por favor,
+    #             ingresa un código diferente.'''
+    #             )
+    #     return code
 
     class Meta:
         model = Equipo
-        exclude = ['system', 'horometro', 'prom_hours']
+        exclude = ['system', 'horometro', 'prom_hours', 'code']
         labels = {
             'name': 'Nombre',
-            'code': 'Codigo interno',
             'model': 'Modelo',
             'serial': '# Serial',
             'marca': 'Marca',
@@ -174,7 +173,6 @@ class EquipoForm(forms.ModelForm):
             }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
             'model': forms.TextInput(attrs={'class': 'form-control'}),
             'serial': forms.TextInput(attrs={'class': 'form-control'}),
             'marca': forms.TextInput(attrs={'class': 'form-control'}),

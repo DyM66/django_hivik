@@ -133,7 +133,8 @@ class Migration(migrations.Migration):
                 ('Solicitud', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.solicitud')),
                 ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.item')),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.equipo'),),
-                ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.asset'),),
+                ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.asset')),
+                ('salida', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.salida')),
             ],
         ),
 
@@ -288,5 +289,24 @@ class Migration(migrations.Migration):
                 ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
                 ('usuario', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
+        ),
+        migrations.CreateModel(
+            name='Salida',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('destino', models.CharField(max_length=200)),
+                ('fecha', models.DateField(auto_now_add=True)),
+                ('motivo', models.TextField()),
+                ('recibe', models.CharField(max_length=100)),
+                ('vehiculo', models.CharField(max_length=100, null=True)),
+                ('auth', models.BooleanField(default=False)),
+                ('responsable', models.CharField(max_length=100)),
+                ('propietario', models.CharField(max_length=100)),
+                ('sign_recibe', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
+            ],
+            options={
+                'ordering': ['-fecha'],
+                'permissions': (('can_approve_it', 'Aprobar salidas'),),
+            },
         ),
     ]

@@ -196,17 +196,23 @@ class System(models.Model):
 class Equipo(models.Model):
 
     TIPO = (
-        ('r', 'Motor a combustión'),
-        ('nr', 'No rotativo'),
-        ('e', 'Motor eléctrico'),
+        ('a', 'Climatización'),
         ('b', 'Bomba'),
-        ('bb', 'Banco de baterias'),
-        ('t', 'Tanque de almacenamiento'),
-        ('g', 'Gato hidraulico'),
-        ('v', 'Valvulas'),
-        ('v', 'Reductor'),
-        ('v', 'Compresor'),
-
+        ('c', 'Compresor'),
+        ('e', 'Motor eléctrico'),
+        ('g', 'Generador'),
+        ('h', 'Cilindro hidraulico'),
+        ('i', 'Instrumentos y herramientas'),
+        ('k', 'Tanque de almacenamiento'),
+        ('m', 'Comunicación'),
+        ('n', 'Navegación'),
+        ('nr', 'No rotativo'),
+        ('r', 'Motor a combustión'),
+        ('t', 'Transmisión'),
+        ('v', 'Valvula'),
+        ('w', 'Winche'),
+        ('y', 'Soporte de vida'),
+        ('z', 'Banco de baterias'),
     )
 
     code = models.CharField(primary_key=True, max_length=50)

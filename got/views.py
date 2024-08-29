@@ -548,7 +548,20 @@ class EquipoCreateView(CreateView):
     template_name = 'got/equipo_form.html'
 
     def form_valid(self, form):
-        form.instance.system = System.objects.get(pk=self.kwargs['pk'])
+        system = System.objects.get(pk=self.kwargs['pk'])
+        form.instance.system = system
+        asset_abbreviation = system.asset.abbreviation
+        group_number = system.group
+        tipo = form.cleaned_data['tipo'].upper()
+
+        similar_equipments = Equipo.objects.filter(
+            code__startswith=f"{asset_abbreviation}-{group_number}-{tipo}"
+        )
+        sequence_number = similar_equipments.count() + 1
+        sequence_str = str(sequence_number).zfill(3) 
+        generated_code = f"{asset_abbreviation}-{group_number}-{tipo}-{sequence_str}"
+        form.instance.code = generated_code
+
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -1534,6 +1547,7 @@ def rutina_form_view(request, ruta_id):
             for evidencia in form_data['evidencias']:
                 Image.objects.create(task=new_task, image=evidencia)
         ruta.intervention_date = fecha_seleccionada
+        ruta.ot = new_ot
         ruta.save()
         print("Nueva OT creada con éxito:", new_ot)
         return redirect(ruta.system.get_absolute_url)

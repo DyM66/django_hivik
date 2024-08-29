@@ -2,8 +2,8 @@
 {% load my_tags %}
 {% block headtag %}
 <!-- Cargar jQuery desde CDN sin atributo integrity -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.2/signature_pad.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.3/signature_pad.umd.min.js"></script>
+
 {% endblock %}
 
 {% block header %}
@@ -51,8 +51,8 @@
                                 {% if perms.got.can_approve_it %}
                                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editOutModal{{ rq.id }}">Editar</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:approve-salida' rq.id %}">Aprobar</a></li>
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#notifyModal{{ rq.id }}">Notificar</a></li>
                                 {% endif %}
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#notifyModal{{ rq.id }}">Notificar</a></li>
                             {% endif %}
                         </ul>
                     </div>
@@ -67,9 +67,8 @@
                             {% csrf_token %}
                             <div class="modal-header">
                                 <h5 class="modal-title" id="notifyModalLabel{{ rq.id }}">Firmar y Notificar</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                
                             </div>
                             <div class="modal-body">
                                 <div class="form-group">
@@ -80,7 +79,6 @@
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
                                 <button type="submit" class="btn btn-primary">Notificar</button>
                             </div>
                         </form>
@@ -144,24 +142,17 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         {% for rq in salida_list %}
-            $('#notifyModal{{ rq.id }}').on('shown.bs.modal', function () {
-                var canvas = document.getElementById('signature-pad-{{ rq.id }}');
-
-                // Redimensionar canvas para asegurar que se inicializa correctamente
-                resizeCanvas(canvas);
-
-                var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
-
-                var form = document.getElementById('notifyForm{{ rq.id }}');
-                form.addEventListener('submit', function(event) {
-                    if (signaturePad.isEmpty()) {
-                        alert("Por favor, proporciona una firma primero.");
-                        event.preventDefault();
-                    } else {
-                        var dataURL = signaturePad.toDataURL("image/png");
-                        document.getElementById('signature-{{ rq.id }}').value = dataURL;
-                    }
-                });
+            var canvas = document.getElementById('signature-pad-{{ rq.id }}');
+            var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
+            var form = document.getElementById('notifyForm{{ rq.id }}');
+            form.addEventListener('submit', function(event) {
+                if (signaturePad.isEmpty()) {
+                    alert("Por favor, proporciona una firma primero.");
+                    event.preventDefault();
+                } else {
+                    var dataURL = signaturePad.toDataURL("image/png");
+                    document.getElementById('signature-{{ rq.id }}').value = dataURL;
+                }
             });
         {% endfor %}
     });

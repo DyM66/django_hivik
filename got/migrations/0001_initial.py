@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('manual_pdf', models.FileField(blank=True, null=True, upload_to=got.models.get_upload_pdfs)),
                 ('lubricante', models.CharField(blank=True, max_length=100, null=True)),
-                ('volumen', models.IntegerField(blank=True, default=0, null=True)),
+                ('volumen', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='equipos', to='got.system')),
                 ('tipo', models.CharField(choices=[('r', 'Rotativo'), ('nr', 'No rotativo'), ('e', 'Motor eléctrico')], default='nr', max_length=2)),
                 ('subsystem', models.CharField(blank=True, max_length=100, null=True)),
