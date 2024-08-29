@@ -559,6 +559,15 @@ class failureForm(forms.ModelForm):
             'suggest_repair': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        equipo = cleaned_data.get('equipo')
+
+        if not equipo:
+            self.add_error('equipo', 'El campo "Equipo que presenta la falla" es obligatorio.')
+
+        return cleaned_data
+
 
 # ---------------- Operaciones ------------------- #
 class OperationForm(forms.ModelForm):
