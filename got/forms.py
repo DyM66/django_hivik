@@ -137,21 +137,6 @@ class SysForm(forms.ModelForm):
 
 class EquipoForm(forms.ModelForm):
 
-    # def clean_code(self):
-    #     code = self.cleaned_data.get('code')
-
-    #     if re.search(r'[/?¿!&%$#"\'<]', code):
-    #         raise ValidationError(
-    #             '''El código no puede contener los siguientes caracteres: / ? ¿ ! & % $ # " ' <'''
-    #         )
-    
-    #     if Equipo.objects.filter(code=code).exists():
-    #         raise ValidationError(
-    #             '''Este código ya está en uso. Por favor,
-    #             ingresa un código diferente.'''
-    #             )
-    #     return code
-
     class Meta:
         model = Equipo
         exclude = ['system', 'horometro', 'prom_hours', 'code']
@@ -173,43 +158,6 @@ class EquipoForm(forms.ModelForm):
             }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'model': forms.TextInput(attrs={'class': 'form-control'}),
-            'serial': forms.TextInput(attrs={'class': 'form-control'}),
-            'marca': forms.TextInput(attrs={'class': 'form-control'}),
-            'fabricante': forms.TextInput(attrs={'class': 'form-control'}),
-            'lubricante': forms.TextInput(attrs={'class': 'form-control'}),
-            'subsystem': forms.TextInput(attrs={'class': 'form-control'}),
-            'initial_hours': forms.NumberInput(attrs={'class': 'form-control'}),
-            'volumen': forms.NumberInput(attrs={'class': 'form-control'}),
-            'potencia': forms.NumberInput(attrs={'class': 'form-control'}),
-            'feature': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
-            'imagen': forms.FileInput(attrs={'class': 'form-control'}),
-            'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
-            'tipo': forms.Select(attrs={'class': 'form-control'}),
-            }
-
-
-class EquipoFormUpdate(forms.ModelForm):
-
-    class Meta:
-        model = Equipo
-        exclude = ['system', 'horometro', 'prom_hours', 'code']
-        labels = {
-            'name': 'Nombre',
-            'date_inv': 'Fecha de ingreso al inventario',
-            'model': 'Modelo',
-            'serial': '# Serial',
-            'marca': 'Marca',
-            'fabricante': 'Fabricante',
-            'feature': 'Caracteristicas',
-            'imagen': 'Imagen',
-            'manual_pdf': 'Manual',
-            'tipo': 'tipo de equipo:',
-            'initial_hours': 'Horas iniciales (si aplica)'
-            }
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
             'model': forms.TextInput(attrs={'class': 'form-control'}),
             'serial': forms.TextInput(attrs={'class': 'form-control'}),
             'marca': forms.TextInput(attrs={'class': 'form-control'}),

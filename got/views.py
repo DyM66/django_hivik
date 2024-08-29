@@ -571,7 +571,7 @@ class EquipoCreateView(CreateView):
 class EquipoUpdate(UpdateView):
 
     model = Equipo
-    form_class = EquipoFormUpdate
+    form_class = EquipoForm
     template_name = 'got/equipo_form.html'
     http_method_names = ['get', 'post']
 
