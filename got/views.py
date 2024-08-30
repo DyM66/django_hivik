@@ -365,55 +365,49 @@ def asset_suministros_report(request, abbreviation):
 
     return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros, 'ultima_fecha_transaccion': ultima_fecha_transaccion})
 
-
+from calendar import month_name
+from django.utils.translation import gettext as _
+from collections import OrderedDict
 @login_required
 def schedule(request, pk):
+    asset = Asset.objects.get(pk=pk)
+    systems = asset.system_set.all()
 
-    tasks = Task.objects.filter(ot__system__asset=pk, ot__isnull=False, start_date__isnull=False, ot__state='x')
-    ots = Ot.objects.filter(system__asset=pk, state='x')
-    asset = get_object_or_404(Asset, pk=pk)
-    systems = System.objects.filter(asset=asset)
-    min_date = tasks.aggregate(Min('start_date'))['start_date__min']
+    routines_by_system = OrderedDict()
+    for system in systems:
+        routines = system.rutas.all()
+        if routines.exists():
+            routines_by_system[system] = [
+                {
+                    'routine': routine,
+                    'repeticiones': calcular_repeticiones2(routine, 'anual')[0],
+                    'meses_ejecucion': calcular_repeticiones2(routine, 'anual')[1],
+                } 
+                for routine in routines
+            ]
 
-    color_palette = itertools.cycle([
-        'rgba(255, 99, 132, 0.2)',   # rojo
-        'rgba(54, 162, 235, 0.2)',   # azul
-        'rgba(255, 206, 86, 0.2)',   # amarillo
-        'rgba(75, 192, 192, 0.2)',   # verde agua
-        'rgba(153, 102, 255, 0.2)',  # púrpura
-        'rgba(255, 159, 64, 0.2)',   # naranja
-    ])
+    current_date = datetime.now()
+    months = []
+    months_with_year = []
+    year_months = OrderedDict()
 
-    n = 0
-    responsibles = set(task.responsible.username for task in tasks if task.responsible)
-    responsible_colors = {res: next(color_palette) for res in responsibles}
-
-    chart_data = []
-    n = 0
-    for task in tasks:
-        if task.finished:
-            color = "rgba(192, 192, 192, 0.5)"
-            border_color = "rgba(192, 192, 192, 1)"
-        else:
-            color = responsible_colors.get(task.responsible.username, "rgba(54, 162, 235, 0.2)")
-            border_color = color.replace('0.2', '1') 
-        
-        chart_data.append({
-            'start_date': task.start_date,
-            'final_date': task.final_date,
-            'description': truncate_text(task.ot.description),
-            'name': f"{task.responsible.first_name} {task.responsible.last_name}",
-            'activity_description': task.description,
-            'background_color': color,
-            'border_color': border_color,
-        })
-        n += 1
+    for i in range(13):  # De este mes hasta 12 meses después
+        month = (current_date.month + i - 1) % 12 + 1
+        year = current_date.year + (current_date.month + i - 1) // 12
+        month_name = _(calendar.month_name[month]).capitalize()
+        months.append(month_name)
+        month_name_with_year = f"{calendar.month_name[month]} {year}"
+        months_with_year.append(month_name_with_year)
+        if year not in year_months:
+            year_months[year] = []
+        year_months[year].append(month_name)
 
     context = {
-        'tasks': chart_data,
         'asset': asset,
-        'min_date': min_date,
-        'responsibles': responsible_colors,
+        'routines_by_system': routines_by_system,
+        'months': months,
+        'months_with_year': months_with_year,
+        'year_months': year_months,
     }
     return render(request, 'got/schedule.html', context)
 
@@ -1599,7 +1593,7 @@ def rutina_form_view(request, ruta_id):
         ruta.ot = new_ot
         ruta.save()
         print("Nueva OT creada con éxito:", new_ot)
-        return redirect(ruta.system.get_absolute_url)
+        return redirect(reverse('got:sys-detail', args=[ruta.system.id]))
 
     else:
         formset_data = [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages()} for task in tasks]

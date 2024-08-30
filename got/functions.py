@@ -75,8 +75,8 @@ def copiar_rutas_de_sistema(system_id):
                     )
     print(f"Rutas y tareas copiadas exitosamente a otros sistemas en el mismo activo {asset.name}.")
 
-
-def calcular_repeticiones(ruta, periodo):
+from datetime import datetime, timedelta
+def calcular_repeticiones(ruta, periodo='anual'):
     periodos = {
         'trimestral': 90,
         'semestral': 180,
@@ -85,18 +85,76 @@ def calcular_repeticiones(ruta, periodo):
     }
 
     dias_periodo = periodos.get(periodo, 0)
-    if ruta.get_control_display() == 'Dias':
+    today = datetime.now().date()
+    if ruta.control == 'd':
         frecuencia_dias = ruta.frecuency
-        repeticiones = dias_periodo // frecuencia_dias
+        next_date = ruta.next_date
+
+        repeticiones = 0
+        if next_date and next_date <= today + timedelta(days=dias_periodo):
+            repeticiones += 1
+            # Calcular cuántas veces más ocurrirá la rutina dentro del periodo
+            remaining_days = (today + timedelta(days=dias_periodo) - next_date).days
+            repeticiones += remaining_days // frecuencia_dias
     
     elif ruta.get_control_display() == 'Horas':
         diferencia_dias = (ruta.next_date - ruta.intervention_date).days
+        repeticiones = 0
+
         if diferencia_dias > 0:
-            repeticiones = dias_periodo // diferencia_dias
-        else:
-            repeticiones = 0 
+            # Calcular la primera repetición
+            next_date = ruta.next_date
+            if next_date and next_date <= (today + timedelta(days=dias_periodo)):
+                repeticiones += 1
+                remaining_days = (today + timedelta(days=dias_periodo) - next_date).days
+                repeticiones += remaining_days // diferencia_dias
     
     return repeticiones
+
+
+
+def calcular_repeticiones2(ruta, periodo='anual'):
+    periodos = {
+        'trimestral': 90,
+        'semestral': 180,
+        'anual': 365,
+        'quinquenal': 1825,  # 5 años
+    }
+
+    dias_periodo = periodos.get(periodo, 0)
+    today = datetime.now().date()
+    meses_ejecucion = []
+    
+    if ruta.control == 'd':
+        frecuencia_dias = ruta.frecuency
+        next_date = ruta.next_date
+
+        repeticiones = 0
+        if next_date and next_date <= today + timedelta(days=dias_periodo):
+            repeticiones += 1
+            meses_ejecucion.append(next_date.strftime('%B %Y'))
+            remaining_days = (today + timedelta(days=dias_periodo) - next_date).days
+            for _ in range(remaining_days // frecuencia_dias):
+                next_date += timedelta(days=frecuencia_dias)
+                meses_ejecucion.append(next_date.strftime('%B %Y'))
+            repeticiones += remaining_days // frecuencia_dias
+    
+    elif ruta.get_control_display() == 'Horas':
+        diferencia_dias = (ruta.next_date - ruta.intervention_date).days
+        repeticiones = 0
+
+        if diferencia_dias > 0:
+            next_date = ruta.next_date
+            if next_date and next_date <= (today + timedelta(days=dias_periodo)):
+                repeticiones += 1
+                meses_ejecucion.append(next_date.strftime('%B %Y'))
+                remaining_days = (today + timedelta(days=dias_periodo) - next_date).days
+                for _ in range(remaining_days // diferencia_dias):
+                    next_date += timedelta(days=diferencia_dias)
+                    meses_ejecucion.append(next_date.strftime('%B %Y'))
+                repeticiones += remaining_days // diferencia_dias
+
+    return repeticiones, meses_ejecucion
 
 
 def consumibles_summary(asset):

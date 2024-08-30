@@ -193,6 +193,7 @@ class System(models.Model):
         return round((total_value / max_possible_value) * 100, 2)
 
 
+
 class Equipo(models.Model):
 
     TIPO = (

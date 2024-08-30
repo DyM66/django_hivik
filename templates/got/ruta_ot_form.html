@@ -25,7 +25,7 @@
 <form method="post" enctype="multipart/form-data" id="foorm">
     {% csrf_token %}
     <label for="fecha">Fecha:</label>
-    <input type="date" name="fecha" id="fecha" class="form-control" value="{{ fecha_seleccionada }}">
+    <input type="date" name="fecha" id="fecha" class="form-control" value="{{ fecha_seleccionada }}" required>
 
     <br>
     <table class="table table-bordered">

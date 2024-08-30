@@ -1,336 +1,50 @@
 {% extends "got/base_generic.html" %}
 
 {% block headtag %}
-<style>
-    .chartMenu {
-		width: 100vw;
-		height: 40px;
-		background: #1A1A1A;
-		color: rgba(54, 162, 235, 1);
-	}
-	.chartMenu p {
-		padding: 10px;
-		font-size: 20px;
-	}
-	.chartCard {
-		width: 100vw;
-		height: calc(100vh - 40px);
-		background: rgba(54, 162, 235, 0.2);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.chartBox {
-		width: 100%;
-		padding: 0px;
-		border-radius: 20px;
-		/* border: solid 3px rgba(54, 162, 235, 1); */
-		background: white;
-        overflow-x: auto; /* Permite el desplazamiento horizontal */
-        min-width: 1200px;
-	}
-</style>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
+<!-- Puedes incluir aquí cualquier CSS o JavaScript adicional que necesites -->
 {% endblock %}
 
 {% block header %}
-
     {{ asset.name }}
-
 {% endblock %}
 
 {% block content %}
-<h3 id="chartTitle"></h3>
-
-    <div class="chartBox mt-5 rounded shadow">
-
-        <input type="month" onchange="chartFilter(this)" />
-
-        <canvas id="myChart"></canvas>
-        <br>
-        <hr>
-        <br>
-
-        
-        <br>
-    </div>
-
-    <!-- <form id="taskForm">
-        <label for="otName">Orden de Trabajo (OT):</label>
-        <select id="otName" required>
-            {% for ot in ots %}
-                <option value="{{ ot.num_ot }}">{{ ot.description }}</option>
-            {% endfor %}
-        </select>
-    
-        <label for="descriptionTask">Descripción de la Actividad:</label>
-        <input type="text" id="descriptionTask" required />
-    
-        <label for="startDateTask">Fecha de Inicio:</label>
-        <input type="date" id="startDateTask" required />
-    
-        <label for="endDateTask">Fecha de Fin:</label>
-        <input type="date" id="endDateTask" required />
-    
-        <label for="teamMemberTask">Responsable:</label>
-        <select id="teamMemberTask" required>
-            {% for user in responsibles %}
-                <option value="{{ user.id }}">{{ user.username }}</option>
-            {% endfor %}
-        </select>
-    
-        <button type="submit">Añadir actividad</button>
-    </form> -->
-
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
-    <script>
-
-    function getFirstAndLastDayOfCurrentMonth() {
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
-            return [firstDay, lastDay];
-        }
-
-        function getMonthName(year, month) {
-            const date = new Date(year, month - 1);
-            return date.toLocaleString('default', { month: 'long' });
-        }
-
-        function updateChartTitle(year, month) {
-            const monthName = getMonthName(year, month);
-            document.getElementById('chartTitle').innerText = `Actividades para ${monthName} ${year}`;
-        }
-
-        const [firstDay, lastDay] = getFirstAndLastDayOfCurrentMonth();
-        const currentYear = new Date().getFullYear();
-        const currentMonth = new Date().getMonth() + 1;
-
-        updateChartTitle(currentYear, currentMonth);
-    // setup 
-    const data = {
-
-        datasets: [{
-            label: 'Cronograma de actividades',
-            data: [
-                {% for task in tasks %}
-                    {
-                        x: ['{{task.start_date|date:"Y-m-d"}}', '{{task.final_date|date:"Y-m-d"}}'],
-                        y: '{{task.description|escapejs}}',
-                        name: '{{task.name|escapejs}}',
-                        // statuss: {{task.statuss|yesno:"true,false"}},
-                        // status: '{{task.status_code}}',
-                        activityDescription: '{{ task.activity_description|escapejs }}'
-                    },
-                {% endfor %}         
-            ],
-            backgroundColor: [
-                {% for task in tasks %}
-                    '{{ task.background_color }}',
+<div class="container">
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th rowspan="2">Sistemas</th>
+                <th rowspan="2">Rutinas</th>
+                <th rowspan="2">-</th>
+                {% for year, months_in_year in year_months.items %}
+                    <th colspan="{{ months_in_year|length }}" style="text-align: center;">{{ year }}</th>
                 {% endfor %}
-            ],
-            borderColor: [
-                {% for task in tasks %}
-                    '{{ task.border_color }}',
+            </tr>
+            <tr>
+                {% for month in months %}
+                    <th>{{ month }}</th>
                 {% endfor %}
-            ],
-            borderWidth: 1,
-            borderSkipped: false,
-            borderRadius: 15,
-            barPercentage: 0.5,
-        }]
-    }
-
-        const todayLine = {
-            id: 'todayLine',
-            afterDatasetsDraw(chart, arg, pluginOptions) {
-                const {ctx, data, chartArea: {top, bottom, left, right }, scales: {x, y} } = chart;
-                ctx.save();
-
-                if(x.getPixelForValue(new Date()) >= left && x.getPixelForValue(new Date()) <= right) {
-
-                    ctx.beginPath();
-                    ctx.lineWidth = 3;
-                    ctx.strokeStyle = 'rgba(102, 102, 10, 1)';
-                    ctx.setLineDash([6, 6]);
-                    ctx.moveTo(x.getPixelForValue(new Date()), top);
-                    ctx.lineTo(x.getPixelForValue(new Date()), bottom);
-                    ctx.stroke();
-                    ctx.restore();
-
-                    ctx.setLineDash([]);
-
-                    ctx.beginPath();
-                    ctx.lineWidth = 1;
-                    ctx.strokeStyle = 'rgba(102, 102, 102, 1)';
-                    ctx.fillStyle = 'rgba(102, 102, 102, 1)';
-                    ctx.moveTo(x.getPixelForValue(new Date()), top + 3);
-                    ctx.lineTo(x.getPixelForValue(new Date()) - 8, top - 8);
-                    ctx.lineTo(x.getPixelForValue(new Date()) + 8, top - 8);
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.fill();
-                    ctx.restore();
-
-                    ctx.font = 'bold 16px sans-serif';
-                    ctx.fillStyle = 'rgba(102, 102, 102, 1)';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Hoy', x.getPixelForValue(new Date()), bottom + 20);
-                    ctx.restore();
-
-                }
-
-                
-            }
-        }
-
-    // const status = {
-    //     id: 'status',
-    //     afterDatasetsDraw(chart, args, pluginOptions) {
-    //         const {ctx, data, options, chartArea: {top, bottom, left, right}, scales: {x, y}} = chart;
-            
-    //         const paddingRight = options.layout.padding.right;
-    //         const icons = ['\uf00d', '\uf110', '\uf00c'];
-    //         const colours = ['rgba(255, 26, 104, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'];
-
-    //         ctx.save();
-    //         ctx.font = 'bolder 12px FontAwesome';
-    //         ctx.textBaseline = 'middle';
-    //         ctx.textAlign = 'center';
-    //         data.datasets[0].data.forEach((datapoint, index) => {
-    //             ctx.beginPath();
-    //             ctx.fillStyle = colours[datapoint.status];
-    //             ctx.arc(right + (paddingRight / 2), y.getPixelForValue(index), 12, 0, (Math.PI/180)*360, false);
-    //             ctx.closePath();
-    //             ctx.fill();
-    //             ctx.fillStyle = 'white';
-    //             ctx.fillText(icons[datapoint.status], right + (paddingRight / 2), y.getPixelForValue(index));})
-    //         ctx.restore();
-    //     }
-    // }
-
-        const weekend = {
-            id: 'weekend',
-            beforeDatasetsDraw(chart, args, pluginOptions) {
-                const {ctx, chartArea: {top, bottom, left, right, width, height }, scales: {x, y}} = chart;
-                ctx.save();
-
-                x.ticks.forEach((tick, index) => {
-                    const day = new Date(tick.value).getDay();
-                    if(day === 6 || day === 0) {
-                        ctx.fillStyle = 'rgba(102, 102, 102, 0.2)';
-                        ctx.fillRect(x.getPixelForValue(tick.value), top, x.getPixelForValue(new Date(tick.value).setHours(24)) - x.getPixelForValue(tick.value), height);
-                    }
-                })
-
-                
-            }
-        }
-
-        // config 
-        const config = {
-            type: 'bar',
-            data,
-            options: {
-                responsive: true,
-                indexAxis: 'y',
-                layout: {
-                    padding: {
-                        left: 0,
-                        right: 100,
-                        bottom: 30
-                    },
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        position: 'top',
-                        type: 'time',
-                        time: {
-                            // unit: 'day'
-                            displayFormats: {
-                                day: 'd'
-                            }
-                        },
-                        min: firstDay,
-                        max: lastDay,
-                        padding: {top: 20, left: 0, right: 0, bottom: 0}
-                    },
-                    y: {
-                        display: true,
-                        position: 'left',
-                        ticks: {
-                            font: {
-                                size: 16,  
-                                weight: 'bold', 
-                            }
-                        }
-                    },
-                },
-                
-                plugins: {
-                    tooltip: {
-                        enabled: true,
-                        callbacks: {
-                            title: function(tooltipItems, data) {
-                            // Cambiar el título por la descripción de la actividad
-                                return tooltipItems[0].raw.activityDescription;
-                            },
-                            label: function(context) {
-                                var dataPoint = context.raw;
-                                // var statussBoolean = dataPoint.statuss === 'true';
-                                return [
-                                    `Fecha inicio: ${dataPoint.x[0]}`,
-                                    `Fecha fin: ${dataPoint.x[1]}`,
-                                    `Responsable: ${dataPoint.name}`,
-                                    // `Estado2: ${dataPoint.statuss}`,
-                                    // `Estado: ${statussBoolean ? 'Finalizado' : 'En proceso'}`,
-                                ];
-                            }
-                        }
-                    },
-                    legend: {
-                        display: false
-                    },
-                },
-
-            },
-            plugins: [
-                todayLine, weekend //status, 
-            ]
-        };
-
-    
-        const myChart = new Chart(
-        document.getElementById('myChart'),
-        config
-        );
-
-        // Instantly assign Chart.js version
-        const chartVersion = document.getElementById('chartVersion');
-        chartVersion.innerText = Chart.version;
-
-        function chartFilter(date) {
-            const year = date.value.substring(0, 4);
-            const month = date.value.substring(5, 7);
-            const lastDay = (y, m) => {
-                return new Date(y, m, 0).getDate();
-            }
-
-            const startDate = `${year}-${month}-01`;
-            const endDate = `${year}-${month}-${lastDay(year, month)}`;
-
-            updateChartTitle(year, month);
-
-            myChart.config.options.scales.x.min = startDate;
-            myChart.config.options.scales.x.max = endDate;
-            myChart.update();
-        }
-
-    </script>
-
+            </tr>
+        </thead>
+        <tbody>
+            {% for system, routines in routines_by_system.items %}
+                {% if routines %}
+                    <tr>
+                        <td rowspan="{{ routines|length }}">{{ system.name }}</td>
+                        {% for routine_info in routines %}
+                            {% if not forloop.first %}
+                                </tr><tr>
+                            {% endif %}
+                            <td>{{ routine_info.routine.name }}</td>
+                            <td>{{ routine_info.repeticiones }}</td>
+                            {% for month_with_year in months_with_year %}
+                                <td {% if month_with_year in routine_info.meses_ejecucion %} style="background-color: #f0ad4e;" {% endif %}>-</td>
+                            {% endfor %}
+                        {% endfor %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
