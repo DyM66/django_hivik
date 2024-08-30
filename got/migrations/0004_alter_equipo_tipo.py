@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='equipo',
             name='tipo',
-            field=models.CharField(choices=[('r', 'Motor a combustión'), ('nr', 'No rotativo'), ('e', 'Motor eléctrico/Generador'), ('b', 'Bomba'), ('z', 'Banco de baterias'), ('t', 'Tanque de almacenamiento'), ('g', 'Cilindro hidraulico'), ('v', 'Valvulas'), ('t', 'Transmisión'), ('c', 'Compresor'), ('aa', 'Climatización'), ('i', 'Instrumentos y herramientas'), ('sn', 'Navegación'), ('sc', 'Comunicación'), ('w', 'Winche'), ('y', 'Soporte de vida')], default='nr', max_length=2),
+            field=models.CharField(choices=[('a', 'Climatización'), ('b', 'Bomba'), ('c', 'Compresor'), ('e', 'Motor eléctrico'), ('g', 'Generador'), ('h', 'Cilindro hidraulico'), ('i', 'Instrumentos y herramientas'), ('k', 'Tanque de almacenamiento'), ('m', 'Comunicación'), ('n', 'Navegación'), ('nr', 'No rotativo'), ('r', 'Motor a combustión'), ('t', 'Transmisión'), ('v', 'Valvula'), ('w', 'Winche'), ('y', 'Soporte de vida'), ('z', 'Banco de baterias')], default='nr', max_length=2),
         ),
     ]

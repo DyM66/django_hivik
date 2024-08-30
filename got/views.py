@@ -537,7 +537,7 @@ def system_maintence_pdf(request, asset_id, system_id):
         'current_date': start_date,
     }
 
-    return render_to_pdf('got//systems/system_pdf_template.html', context)
+    return render_to_pdf('got/systems/system_pdf_template.html', context)
 
 
 'EQUIPMENTS VIEW'
@@ -545,7 +545,15 @@ class EquipoCreateView(CreateView):
 
     model = Equipo
     form_class = EquipoForm
-    template_name = 'got/equipo_form.html'
+    template_name = 'got/systems/equipo_form.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
+        else:
+            context['upload_form'] = UploadImages()
+        return context
 
     def form_valid(self, form):
         system = System.objects.get(pk=self.kwargs['pk'])
@@ -561,8 +569,14 @@ class EquipoCreateView(CreateView):
         sequence_str = str(sequence_number).zfill(3) 
         generated_code = f"{asset_abbreviation}-{group_number}-{tipo}-{sequence_str}"
         form.instance.code = generated_code
+        response = super().form_valid(form)
 
-        return super().form_valid(form)
+        upload_form = self.get_context_data()['upload_form']
+        if upload_form.is_valid():
+            for file in self.request.FILES.getlist('file_field'):
+                Image.objects.create(image=file, equipo=self.object)
+
+        return response
 
     def get_success_url(self):
         return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
@@ -572,9 +586,35 @@ class EquipoUpdate(UpdateView):
 
     model = Equipo
     form_class = EquipoForm
-    template_name = 'got/equipo_form.html'
+    template_name = 'got/systems/equipo_form.html'
     http_method_names = ['get', 'post']
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
+        else:
+            context['upload_form'] = UploadImages()
+        context['image_formset'] = modelformset_factory(Image, fields=('image',), extra=0)(queryset=self.object.images.all())
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        upload_form = self.get_context_data()['upload_form']
+
+        if upload_form.is_valid():
+            for file in self.request.FILES.getlist('file_field'):
+                Image.objects.create(image=file, equipo=self.object)
+                print(file)
+        return response
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if "delete_image" in request.POST:
+            image_id = request.POST.get("delete_image")
+            Image.objects.filter(id=image_id).delete()
+            return redirect(self.get_success_url())
+        return super().post(request, *args, **kwargs)
 
 class EquipoDelete(DeleteView):
 

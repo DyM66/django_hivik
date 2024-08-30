@@ -1,5 +1,4 @@
 
-<!-- Incluir CSS de Bootstrap -->
 <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 
 <!-- Incluir jQuery y JavaScript de Bootstrap -->
@@ -111,13 +110,39 @@
                     <li><strong>Especificaciones:</strong> {{ equipo.feature|linebreaks }}</li>
                 </ul>
             </div>
-            <div class="col-md-7 image-container">
-                {% if equipo.imagen %}
-                    <img src="{{ equipo.imagen.url }}" alt="Imagen del Equipo">
-                {% else %}
-                    <p>No hay imagen disponible.</p>
-                {% endif %}
+            <div class="col-md-7 d-flex">
+                <div class="row w-100">
+                    <!-- Carrusel de Imágenes -->
+                    <div id="equipoCarousel" class="carousel slide col-9" data-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for image in equipo.images.all %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <img src="{{ image.image.url }}" class="d-block w-100" alt="Imagen del equipo">
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <a class="carousel-control-prev" href="#equipoCarousel" role="button" data-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="sr-only">Previous</span>
+                        </a>
+                        <a class="carousel-control-next" href="#equipoCarousel" role="button" data-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="sr-only">Next</span>
+                        </a>
+                    </div>
+                    <!-- Vista Previa de Imágenes -->
+                    <div class="col-3 preview-container">
+                        <div class="row flex-column">
+                            {% for image in equipo.images.all %}
+                                <div class="col preview-thumbnail mb-2">
+                                    <img src="{{ image.image.url }}" class="img-thumbnail" onclick="document.querySelector('#equipoCarousel .carousel-item.active').classList.remove('active'); document.querySelectorAll('#equipoCarousel .carousel-item')[{{ forloop.counter0 }}].classList.add('active');">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
             </div>
+            
         </div>
     </div>
 </div>
@@ -376,4 +401,12 @@
         // Cambiar el estilo de la fila para indicar si está expandida o no
         trigger.style.fontWeight = (detailRow.style.display === 'none') ? 'normal' : 'bold';
     }
+
+    document.querySelectorAll('.preview-thumbnail img').forEach((thumbnail, index) => {
+        thumbnail.addEventListener('click', () => {
+            document.querySelector('#equipoCarousel .carousel-item.active').classList.remove('active');
+            document.querySelectorAll('#equipoCarousel .carousel-item')[index].classList.add('active');
+        });
+    });
+
 </script>

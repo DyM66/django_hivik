@@ -139,7 +139,7 @@ class EquipoForm(forms.ModelForm):
 
     class Meta:
         model = Equipo
-        exclude = ['system', 'horometro', 'prom_hours', 'code']
+        exclude = ['system', 'horometro', 'prom_hours', 'code', 'imagen']
         labels = {
             'name': 'Nombre',
             'model': 'Modelo',
@@ -147,7 +147,7 @@ class EquipoForm(forms.ModelForm):
             'marca': 'Marca',
             'fabricante': 'Fabricante',
             'feature': 'Caracteristicas',
-            'imagen': 'Imagen',
+            # 'imagen': 'Imagen',
             'manual_pdf': 'Manual',
             'tipo': 'tipo de equipo:',
             'initial_hours': 'Horas iniciales (Si aplica)',
@@ -168,7 +168,7 @@ class EquipoForm(forms.ModelForm):
             'volumen': forms.NumberInput(attrs={'class': 'form-control'}),
             'potencia': forms.NumberInput(attrs={'class': 'form-control'}),
             'feature': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
-            'imagen': forms.FileInput(attrs={'class': 'form-control'}),
+            # 'imagen': forms.FileInput(attrs={'class': 'form-control'}),
             'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
             }

@@ -959,15 +959,14 @@ class DarBaja(models.Model):
 
 class Image(models.Model):
 
+    image = models.ImageField(upload_to=get_upload_path)
     failure = models.ForeignKey(FailureReport, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    equipo = models.ForeignKey(Equipo, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     solicitud = models.ForeignKey(Solicitud, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     salida= models.ForeignKey(Salida, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    image = models.ImageField(upload_to=get_upload_path)
-
     preoperacional = models.ForeignKey(Preoperacional, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacionaldiario = models.ForeignKey(PreoperacionalDiario, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-
     darbaja = models.ForeignKey(DarBaja, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
 

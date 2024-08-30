@@ -1,0 +1,22 @@
+{% extends "got/base_generic.html" %}
+{% block header %}Equipos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <form action="" method="post" enctype="multipart/form-data" class="adap shadow">{% csrf_token %}
+        <table>{{ form }}</table>    
+
+        <h4>Subir Imágenes</h4>
+        {{ upload_form.file_field }}
+
+        {% for image in image_formset %}
+            <div class="image-preview">
+                <img src="{{ image.instance.image.url }}" alt="Imagen del equipo" style="width: 100px; height: 100px;">
+                <button type="submit" name="delete_image" value="{{ image.instance.id }}" class="btn btn-danger">Eliminar</button>
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-success submit-button">Guardar</button>
+    </form>
+</div>
+{% endblock %}
