@@ -52,7 +52,8 @@
                                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editOutModal{{ rq.id }}">Editar</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:approve-salida' rq.id %}">Aprobar</a></li>
                                 {% endif %}
-                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#notifyModal{{ rq.id }}">Notificar</a></li>
+                                <li><a class="dropdown-item" href="{% url 'got:salida-update' rq.id %}">Notificar</a></li>
+
                             {% endif %}
                         </ul>
                     </div>
@@ -145,7 +146,7 @@
             var canvas = document.getElementById('signature-pad-{{ rq.id }}');
             var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
             var form = document.getElementById('notifyForm{{ rq.id }}');
-            form.addEventListener('submit', function(event) {
+            form.addEventListener('submit-{{rq.id}}', function(event) {
                 if (signaturePad.isEmpty()) {
                     alert("Por favor, proporciona una firma primero.");
                     event.preventDefault();

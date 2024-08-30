@@ -24,13 +24,13 @@ from .forms import *
 from datetime import timedelta, date, datetime
 from xhtml2pdf import pisa
 from io import BytesIO
-import itertools
-import PyPDF2
 import logging
 import base64
 import uuid
 import pandas as pd
 import calendar
+from django.utils.translation import gettext as _
+from collections import OrderedDict
 
 from .functions import *
 
@@ -365,9 +365,7 @@ def asset_suministros_report(request, abbreviation):
 
     return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros, 'ultima_fecha_transaccion': ultima_fecha_transaccion})
 
-from calendar import month_name
-from django.utils.translation import gettext as _
-from collections import OrderedDict
+
 @login_required
 def schedule(request, pk):
     asset = Asset.objects.get(pk=pk)
@@ -2161,7 +2159,6 @@ class SalidaCreateView(LoginRequiredMixin, View):
             return render(request, self.template_name, context)
 
 
-
 class NotifySalidaView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
@@ -2197,6 +2194,7 @@ class NotifySalidaView(LoginRequiredMixin, View):
 
         # Redirigir al usuario a la página anterior
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
 
 def salida_pdf(request, pk):
     salida = Salida.objects.get(pk=pk)
@@ -2257,6 +2255,91 @@ class ApproveSalidaView(LoginRequiredMixin, View):
         solicitud.save()
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
+
+class SalidaUpdateView(LoginRequiredMixin, View):
+    form_class = SalidaForm
+    template_name = 'got/salidas/update-salida.html'
+
+    def get(self, request, pk):
+        salida = get_object_or_404(Salida, pk=pk)
+        form = self.form_class(instance=salida)
+        image_form = UploadImages()
+        items = Item.objects.all()
+        suministros = salida.suministros.all()
+
+        return render(request, self.template_name, {
+            'form': form,
+            'image_form': image_form,
+            'items': items,
+            'suministros': suministros,
+            'salida': salida,
+        })
+
+    def post(self, request, pk):
+        salida = get_object_or_404(Salida, pk=pk)
+        form = self.form_class(request.POST, request.FILES, instance=salida)
+        image_form = UploadImages(request.POST, request.FILES)
+        items_ids = request.POST.getlist('item_id[]') 
+        cantidades = request.POST.getlist('cantidad[]')
+
+        context = {
+            'form': form,
+            'image_form': image_form,
+            'items': Item.objects.all(),
+            'suministros': salida.suministros.all(),
+            'salida': salida,
+        }
+
+        if form.is_valid() and image_form.is_valid():
+            salida = form.save()
+
+            # Manejo de la firma
+            signature_data = request.POST.get('signature')
+            if signature_data:
+                format, imgstr = signature_data.split(';base64,')
+                ext = format.split('/')[-1]
+                filename = f'signature_{uuid.uuid4()}.{ext}'
+                data = ContentFile(base64.b64decode(imgstr), name=filename)
+                salida.sign_recibe.save(filename, data, save=True)
+
+            # Actualizar Suministros
+            salida.suministros.all().delete()  # Eliminar suministros existentes
+            for item_id, cantidad in zip(items_ids, cantidades):
+                if item_id and cantidad:
+                    item = get_object_or_404(Item, id=item_id)
+                    Suministro.objects.create(
+                        item=item,
+                        cantidad=int(cantidad),
+                        salida=salida
+                    )
+
+            # Manejo de imágenes
+            for file in request.FILES.getlist('file_field'):
+                Image.objects.create(salida=salida, image=file)
+
+            # Enviar correo electrónico con el PDF adjunto
+            pdf_buffer = salida_email_pdf(salida.pk)
+            subject = f'Solicitud salida de materiales: {salida}'
+            message = f'''
+            Cordial saludo,
+
+            Notificación de salida.
+
+            Por favor, revise el archivo adjunto para más detalles.
+            '''
+            email = EmailMessage(
+                subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                ['analistamto@serport.co', 'seguridad@serport.co']  # Puedes añadir más destinatarios aquí
+            )
+            email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
+            email.send()
+
+
+            return redirect('got:salida-list')
+        return render(request, self.template_name, context)
+
 
 'GENERAL VIEWS'
 @login_required

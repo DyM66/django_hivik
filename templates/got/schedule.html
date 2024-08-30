@@ -1,7 +1,24 @@
 {% extends "got/base_generic.html" %}
 
 {% block headtag %}
-<!-- Puedes incluir aquí cualquier CSS o JavaScript adicional que necesites -->
+<style>
+    .table-responsive {
+        max-height: 400px; /* Ajusta esta altura según lo necesites */
+        overflow-y: auto;
+        position: relative;
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background-color: white; /* Asegúrate de que el fondo del encabezado sea blanco */
+    }
+
+    .table thead th {
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+    }
+</style>
 {% endblock %}
 
 {% block header %}
@@ -13,14 +30,17 @@
     <table class="table table-bordered">
         <thead>
             <tr>
-                <th rowspan="2">Sistemas</th>
-                <th rowspan="2">Rutinas</th>
-                <th rowspan="2">-</th>
+                <th></th>
+                <th></th>
+                <th></th>
                 {% for year, months_in_year in year_months.items %}
                     <th colspan="{{ months_in_year|length }}" style="text-align: center;">{{ year }}</th>
                 {% endfor %}
             </tr>
             <tr>
+                <th>Sistemas</th>
+                <th>Rutinas</th>
+                <th>Reps</th>
                 {% for month in months %}
                     <th>{{ month }}</th>
                 {% endfor %}
@@ -36,6 +56,7 @@
                                 </tr><tr>
                             {% endif %}
                             <td>{{ routine_info.routine.name }}</td>
+                            <!-- <td>{{ routine_info.routine.name }}</td> -->
                             <td>{{ routine_info.repeticiones }}</td>
                             {% for month_with_year in months_with_year %}
                                 <td {% if month_with_year in routine_info.meses_ejecucion %} style="background-color: #f0ad4e;" {% endif %}>-</td>
