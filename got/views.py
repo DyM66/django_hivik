@@ -2116,14 +2116,6 @@ class SalidaCreateView(LoginRequiredMixin, View):
             if form.is_valid() and image_form.is_valid():
                 solicitud = form.save(commit=False)
                 solicitud.responsable = self.request.user.get_full_name()
-
-                signature_data = request.POST.get('signature')
-                if signature_data:
-                    format, imgstr = signature_data.split(';base64,') 
-                    ext = format.split('/')[-1]
-                    filename = f'signature_{uuid.uuid4()}.{ext}'
-                    data = ContentFile(base64.b64decode(imgstr), name=filename)
-                    solicitud.sign_recibe.save(filename, data, save=True)
                 solicitud.save()
 
                 for item_id, cantidad in zip(items_ids, cantidades):
@@ -2137,24 +2129,6 @@ class SalidaCreateView(LoginRequiredMixin, View):
                 
                 for file in request.FILES.getlist('file_field'):
                     Image.objects.create(salida=solicitud, image=file)
-                
-                # pdf_buffer = salida_email_pdf(solicitud.pk)
-                # subject = f'Solicitud salida de materiales: {solicitud}'
-                # message = f'''
-                # Cordial saludo,
-                
-                # Notificación de salida.
-                
-                # Por favor, revise el archivo adjunto para más detalles.
-                # '''
-                # email = EmailMessage(
-                #     subject,
-                #     message,
-                #     settings.EMAIL_HOST_USER,
-                #     ['analistamto@serport.co']#, 'seguridad@serport.co']
-                # )
-                # email.attach(f'Salida_{solicitud.pk}.pdf', pdf_buffer, 'application/pdf')
-                # email.send()
                 return redirect('got:salida-list')
             return render(request, self.template_name, context)
 
@@ -2331,7 +2305,8 @@ class SalidaUpdateView(LoginRequiredMixin, View):
                 subject,
                 message,
                 settings.EMAIL_HOST_USER,
-                ['analistamto@serport.co', 'seguridad@serport.co']  # Puedes añadir más destinatarios aquí
+                #['seguridad@serport.co']
+                ['analistamto@serport.co']
             )
             email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
             email.send()

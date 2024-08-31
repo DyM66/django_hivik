@@ -86,7 +86,7 @@ class Migration(migrations.Migration):
                 ('lubricante', models.CharField(blank=True, max_length=100, null=True)),
                 ('volumen', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='equipos', to='got.system')),
-                ('tipo', models.CharField(choices=[('r', 'Rotativo'), ('nr', 'No rotativo'), ('e', 'Motor eléctrico')], default='nr', max_length=2)),
+                ('tipo', models.CharField(choices=[('a', 'Climatización'), ('b', 'Bomba'), ('c', 'Compresor'), ('e', 'Motor eléctrico'), ('g', 'Generador'), ('h', 'Cilindro hidraulico'), ('i', 'Instrumentos y herramientas'), ('k', 'Tanque de almacenamiento'), ('m', 'Comunicación'), ('n', 'Navegación'), ('nr', 'No rotativo'), ('r', 'Motor a combustión'), ('t', 'Transmisión'), ('v', 'Valvula'), ('w', 'Winche'), ('y', 'Soporte de vida'), ('z', 'Banco de baterias')], default='nr', max_length=2)),
                 ('subsystem', models.CharField(blank=True, max_length=100, null=True)),
                 ('potencia', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
             ],

@@ -137,6 +137,9 @@
             </tr>
             <tr>
                 <td colspan="2">
+                    {% if rq.adicional %}
+                    {{ rq.adicional|linebreaks }} 
+                    {% endif %}
                     <ul>
                         {% for i in rq.suministros.all %}
                             <li>{{i}}</li>

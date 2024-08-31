@@ -8,7 +8,6 @@ from django.dispatch import receiver
 import uuid
 from django.urls import reverse
 from django.utils import timezone
-from django.core.validators import MinValueValidator
 from django.utils.formats import number_format
 from django.utils.translation import gettext as _
 
@@ -33,6 +32,7 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username}'s profile"
 
+
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -44,7 +44,7 @@ class Item(models.Model):
 
     SECCION = (
         ('c', 'Consumibles'),
-        ('h', 'Herramientas'),
+        ('h', 'Herramientas y equipos'),
         ('r', 'Repuestos'),
     )
 
@@ -193,7 +193,6 @@ class System(models.Model):
         return round((total_value / max_possible_value) * 100, 2)
 
 
-
 class Equipo(models.Model):
 
     TIPO = (
@@ -230,7 +229,6 @@ class Equipo(models.Model):
 
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
     subsystem = models.CharField(max_length=100, null=True, blank=True)
-    # proceso = models.CharField(max_length=100, null=True, blank=True)
 
     'Motores'
     potencia  = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -558,7 +556,7 @@ class Solicitud(models.Model):
     suministros = models.TextField()
     num_sc = models.TextField(null=True, blank=True)
 
-    # approved_by = models.CharField(max_length=100, null=True, blank=True, default='Jader Aguilar')
+    approved_by = models.CharField(max_length=100, null=True, blank=True, default='Jader Aguilar')
     approved = models.BooleanField(default=False)
 
     approval_date = models.DateTimeField(null=True, blank=True) 
@@ -592,6 +590,8 @@ class Salida(models.Model):
     vehiculo = models.CharField(max_length=100, null=True, blank=False)
     auth = models.BooleanField(default=False)
     sign_recibe = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+
+    adicional = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.motivo} - {self.fecha}"

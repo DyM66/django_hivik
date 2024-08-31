@@ -1,10 +1,4 @@
 {% extends "got/base_generic.html" %}
-{% load my_tags %}
-{% block headtag %}
-<!-- Cargar jQuery desde CDN sin atributo integrity -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.3/signature_pad.umd.min.js"></script>
-
-{% endblock %}
 
 {% block header %}
     Salidas de materiales 
@@ -42,14 +36,13 @@
                 <td data-cell="Responsable" class="nowrap">{{ rq.responsable }}/ {{ rq.recibe}}</td>
                 <td data-cell="Estado">
                     <div class="dropdown">
-                        <button class="btn status {% if rq.auth %}finished{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                            {% if rq.auth %}Aprobado{% else %}No aprobado{% endif %}
+                        <button class="btn status {% if rq.auth %}finished{% elif not rq.sign_recibe %}exe{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if rq.auth %}Aprobado{% elif not rq.sign_recibe %}Por firmar{% else %}No aprobado{% endif %}
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                             <li><a class="dropdown-item" href="{% url 'got:salida_pdf' rq.id %}">Ver detalle</a></li>
                             {% if not rq.auth %}
                                 {% if perms.got.can_approve_it %}
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editOutModal{{ rq.id }}">Editar</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:approve-salida' rq.id %}">Aprobar</a></li>
                                 {% endif %}
                                 <li><a class="dropdown-item" href="{% url 'got:salida-update' rq.id %}">Notificar</a></li>
@@ -60,35 +53,12 @@
                 </td>
             </tr>
 
-            <!-- Modal para notificar y firmar -->
-            <div class="modal fade" id="notifyModal{{ rq.id }}" tabindex="-1" role="dialog" aria-labelledby="notifyModalLabel{{ rq.id }}" aria-hidden="true">
-                <div class="modal-dialog modal-lg" role="document">
-                    <div class="modal-content">
-                        <form id="notifyForm{{ rq.id }}" method="post" action="{% url 'got:notify-salida' rq.id %}">
-                            {% csrf_token %}
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="notifyModalLabel{{ rq.id }}">Firmar y Notificar</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                
-                            </div>
-                            <div class="modal-body">
-                                <div class="form-group">
-                                    <label for="signature">Firma del receptor</label>
-                                    <canvas id="signature-pad-{{ rq.id }}" class="signature-pad" width=400 height=200 style="border: 0.2px solid #000;"></canvas>
-                                    <input type="hidden" name="signature" id="signature-{{ rq.id }}">
-                                    <button type="button" class="btn btn-secondary" onclick="clearSignature({{ rq.id }})">Limpiar Firma</button>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="submit" class="btn btn-primary">Notificar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
 
             <tr>
                 <td colspan="2">
+                    {% if rq.adicional %}
+                    {{ rq.adicional|linebreaks }} 
+                    {% endif %}
                     <ul>
                         {% for suministro in rq.suministros.all %}
                             <li onclick="openModal{{ suministro.id }}()" style="cursor: pointer;">
@@ -134,37 +104,6 @@
     </tbody>
 </table>
 
-<script>
-    function clearSignature(id) {
-        var canvas = document.getElementById('signature-pad-' + id);
-        var signaturePad = new SignaturePad(canvas);
-        signaturePad.clear();
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        {% for rq in salida_list %}
-            var canvas = document.getElementById('signature-pad-{{ rq.id }}');
-            var signaturePad = new SignaturePad(canvas, {backgroundColor: 'rgb(255, 255, 255)'});
-            var form = document.getElementById('notifyForm{{ rq.id }}');
-            form.addEventListener('submit-{{rq.id}}', function(event) {
-                if (signaturePad.isEmpty()) {
-                    alert("Por favor, proporciona una firma primero.");
-                    event.preventDefault();
-                } else {
-                    var dataURL = signaturePad.toDataURL("image/png");
-                    document.getElementById('signature-{{ rq.id }}').value = dataURL;
-                }
-            });
-        {% endfor %}
-    });
-
-    function resizeCanvas(canvas) {
-        const ratio = Math.max(window.devicePixelRatio || 1, 1);
-        canvas.width = canvas.offsetWidth * ratio;
-        canvas.height = canvas.offsetHeight * ratio;
-        canvas.getContext("2d").scale(ratio, ratio);
-    }
-</script>
 
 {% endblock %}
 

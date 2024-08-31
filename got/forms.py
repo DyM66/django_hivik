@@ -1220,14 +1220,14 @@ class DarBajaForm(forms.ModelForm):
 class SalidaForm(forms.ModelForm):
     class Meta:
         model = Salida
-        fields = ['destino', 'motivo', 'recibe', 'vehiculo', 'propietario']
+        fields = ['destino', 'motivo', 'recibe', 'vehiculo', 'propietario', 'adicional']
         labels = {
             'destino': 'Dirección de destino',
             'motivo': 'Justificación de la salida',
             'recibe': 'Transportado por',
             'vehiculo': 'Matricula del vehiculo',
             'propietario': 'Propietario',
-            # 'sign_recibe': 'Firma del receptor'
+            'adicional': 'Información adicional'
         }
         widgets = {
             'destino': forms.TextInput(attrs={'class': 'form-control'}),
@@ -1235,6 +1235,7 @@ class SalidaForm(forms.ModelForm):
             'recibe': forms.TextInput(attrs={'class': 'form-control'}),
             'vehiculo': forms.TextInput(attrs={'class': 'form-control'}),
             'propietario': forms.TextInput(attrs={'class': 'form-control'}),
+            'adicional': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
 class ItemForm(forms.ModelForm):
