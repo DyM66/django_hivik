@@ -119,7 +119,7 @@
                     <td>L1+TIERRA</td>
                     <td>{{ meg.estator.pi_1min_l1_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pi_10min_l1_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pi_obs_l1_tierra|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pi_obs_l1_tierra|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pf_1min_l1_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pf_10min_l1_tierra|format_number|default_if_none:"---" }}</td>
                     <td>-{{ megger.estator.pf_obs_l1_tierra|default_if_none:"---" }}</td>
@@ -128,51 +128,51 @@
                     <td>L2+TIERRA</td>
                     <td>{{ meg.estator.pi_1min_l2_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pi_10min_l2_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pi_obs_l2_tierra|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pi_obs_l2_tierra|default_if_none:"---" }}</td>
     
                     <td>{{ meg.estator.pf_1min_l2_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pf_10min_l2_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pf_obs_l2_tierra|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pf_obs_l2_tierra|default_if_none:"---" }}</td>
                 </tr>
                 <tr>
                     <td>L3 +TIERRA</td>
                     <td>{{ meg.estator.pi_1min_l3_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pi_10min_l3_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pi_obs_l3_tierra|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pi_obs_l3_tierra|default_if_none:"---" }}</td>
     
                     <td>{{ meg.estator.pf_1min_l3_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pf_10min_l3_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pf_obs_l3_tierra|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pf_obs_l3_tierra|default_if_none:"---" }}</td>
                 </tr>
                 <tr>
                     <td>L1+L2</td>
                     <td>{{ meg.estator.pi_1min_l1_l2|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pi_10min_l1_l2|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pi_obs_l1_l2|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pi_obs_l1_l2|default_if_none:"---" }}</td>
     
                     <td>{{ meg.estator.pf_1min_l1_l2|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pf_10min_l1_l2|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pf_obs_l1_l2|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pf_obs_l1_l2|default_if_none:"---" }}</td>
                 </tr>
                 <tr>
                     <td>L2+L3</td>
                     <td>{{ meg.estator.pi_1min_l2_l3|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pi_10min_l2_l3|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pi_obs_l2_l3|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pi_obs_l2_l3|default_if_none:"---" }}</td>
     
                     <td>{{ meg.estator.pf_1min_l2_l3|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pf_10min_l2_l3|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pf_obs_l2_l3|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pf_obs_l2_l3|default_if_none:"---" }}</td>
                 </tr>
                 <tr>
                     <td>L3+L1</td>
                     <td>{{ meg.estator.pi_1min_l3_l1|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pi_10min_l3_l1|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pi_obs_l3_l1|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pi_obs_l3_l1|default_if_none:"---" }}</td>
     
                     <td>{{ meg.estator.pf_1min_l3_l1|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.estator.pf_10min_l3_l1|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.estator.pf_obs_l3_l1|default_if_none:"---" }}</td>
+                    <td> {{ meg.estator.pf_obs_l3_l1|default_if_none:"---" }}</td>
                 </tr>
                 <tr>
                     <th>-</th>
@@ -183,11 +183,15 @@
                     <td>L+Tierra</td>
                     <td>{{ meg.excitatriz.pi_1min_l_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.excitatriz.pi_10min_l_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.excitatriz.pi_obs_l_tierra|default_if_none:"---" }}</td>
+                    <td> 
+                        {{ meg.excitatriz.pi_obs_l_tierra|default_if_none:"---" }}
+                    </td>
         
                     <td>{{ meg.excitatriz.pf_1min_l_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.excitatriz.pf_10min_l_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.excitatriz.pf_obs_l_tierra|default_if_none:"---" }}</td>
+                    <td>
+                        {{ meg.excitatriz.pf_obs_l_tierra|default_if_none:"---" }}
+                    </td>
                 </tr>
                 <tr>
                     <th>-</th>
@@ -198,11 +202,15 @@
                     <td>L+Tierra</td>
                     <td>{{ meg.rotormain.pi_1min_l_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.rotormain.pi_10min_l_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.rotormain.pi_obs_l_tierra|default_if_none:"---" }}</td>
+                    <td>
+                        {{ meg.rotormain.pi_obs_l_tierra|default_if_none:"---" }}
+                    </td>
         
                     <td>{{ meg.rotormain.pf_1min_l_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.rotormain.pf_10min_l_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.rotormain.pf_obs_l_tierra|default_if_none:"---" }}</td>
+                    <td>
+                        {{ meg.rotormain.pf_obs_l_tierra|default_if_none:"---" }}
+                    </td>
                 </tr>
                 <tr>
                     <th>-</th>
@@ -213,11 +221,15 @@
                     <td>L+Tierra</td>
                     <td>{{ meg.rotoraux.pi_1min_l_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.rotoraux.pi_10min_l_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.rotoraux.pi_obs_l_tierra|default_if_none:"---" }}</td>
+                    <td>
+                        {{ meg.rotoraux.pi_obs_l_tierra|default_if_none:"---" }}
+                    </td>
         
                     <td>{{ meg.rotoraux.pf_1min_l_tierra|format_number|default_if_none:"---" }}</td>
                     <td>{{ meg.rotoraux.pf_10min_l_tierra|format_number|default_if_none:"---" }}</td>
-                    <td>-{{ meg.rotoraux.pf_obs_l_tierra|default_if_none:"---" }}</td>
+                    <td>
+                        {{ meg.rotoraux.pf_obs_l_tierra|default_if_none:"---" }}
+                    </td>
                 </tr>
             </tbody>
         </table>

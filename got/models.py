@@ -216,7 +216,7 @@ class Equipo(models.Model):
     )
 
     code = models.CharField(primary_key=True, max_length=50)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
     date_inv = models.DateField(auto_now_add=True)
 
     model = models.CharField(max_length=50, null=True, blank=True)
