@@ -244,7 +244,6 @@ class Equipo(models.Model):
     # rod_as = models.CharField(max_length=100, null=True, blank=True)
     # rod_bs = models.CharField(max_length=100, null=True, blank=True)
 
-    imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True)
 
     def calculate_horometro(self):
