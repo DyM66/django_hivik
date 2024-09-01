@@ -213,6 +213,7 @@ class Equipo(models.Model):
         ('u', 'Unidad Hidráulica'),
         ('v', 'Valvula'),
         ('w', 'Winche'),
+        ('x', 'Estructuras'),
         ('y', 'Soporte de vida'),
         ('z', 'Banco de baterias'),
     )
