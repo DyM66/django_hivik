@@ -999,8 +999,8 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         context['equipos'] = set([ruta.equipo for ruta in rutas])
 
         system = self.get_object().system
-        context['electric_motors'] = system.equipos.filter(tipo='e')
-        context['has_electric_motors'] = system.equipos.filter(tipo='e').exists()
+        context['electric_motors'] = system.equipos.filter(Q(tipo='e') | Q(tipo='g'))
+        context['has_electric_motors'] = system.equipos.filter(Q(tipo='e') | Q(tipo='g')).exists()
         context['megger_tests'] = Megger.objects.filter(ot=self.get_object())
 
         return context
@@ -2305,8 +2305,7 @@ class SalidaUpdateView(LoginRequiredMixin, View):
                 subject,
                 message,
                 settings.EMAIL_HOST_USER,
-                #['seguridad@serport.co']
-                ['analistamto@serport.co']
+                ['seguridad@serport.co']
             )
             email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
             email.send()

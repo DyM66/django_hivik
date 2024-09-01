@@ -209,6 +209,7 @@ class Equipo(models.Model):
         ('nr', 'No rotativo'),
         ('r', 'Motor a combustión'),
         ('t', 'Transmisión'),
+        ('u', 'Unidad Hidráulica'),
         ('v', 'Valvula'),
         ('w', 'Winche'),
         ('y', 'Soporte de vida'),
