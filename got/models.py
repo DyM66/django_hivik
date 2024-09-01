@@ -199,6 +199,7 @@ class Equipo(models.Model):
         ('a', 'Climatización'),
         ('b', 'Bomba'),
         ('c', 'Compresor'),
+        ('d', 'Grúa'),
         ('e', 'Motor eléctrico'),
         ('g', 'Generador'),
         ('h', 'Cilindro hidraulico'),
