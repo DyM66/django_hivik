@@ -202,13 +202,13 @@ class Equipo(models.Model):
         ('d', 'Grúa'),
         ('e', 'Motor eléctrico'),
         ('g', 'Generador'),
-        ('h', 'Cilindro hidraulico'),
+        ('h', 'Cilindro hidráulico'),
         ('i', 'Instrumentos y herramientas'),
         ('k', 'Tanque de almacenamiento'),
         ('m', 'Comunicación'),
         ('n', 'Navegación'),
         ('nr', 'No rotativo'),
-        ('r', 'Motor a combustión'),
+        ('r', 'Motor a combustión'),    
         ('t', 'Transmisión'),
         ('u', 'Unidad Hidráulica'),
         ('v', 'Valvula'),
@@ -221,15 +221,12 @@ class Equipo(models.Model):
     code = models.CharField(primary_key=True, max_length=50)
     name = models.CharField(max_length=100)
     date_inv = models.DateField(auto_now_add=True)
-
     model = models.CharField(max_length=50, null=True, blank=True)
     serial = models.CharField(max_length=50, null=True, blank=True)
     marca = models.CharField(max_length=50, null=True, blank=True)
     fabricante = models.CharField(max_length=50, null=True, blank=True)
     feature = models.TextField()
-
     tipo = models.CharField(choices=TIPO, default='nr', max_length=2)
-
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
     subsystem = models.CharField(max_length=100, null=True, blank=True)
 
@@ -240,12 +237,14 @@ class Equipo(models.Model):
     initial_hours = models.IntegerField(default=0)
     horometro = models.IntegerField(default=0, null=True, blank=True)
     prom_hours = models.IntegerField(default=0, null=True, blank=True)
-    lubricante = models.CharField(max_length=100, null=True, blank=True)
-    volumen = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     'Motores eléctricos'
     # rod_as = models.CharField(max_length=100, null=True, blank=True)
     # rod_bs = models.CharField(max_length=100, null=True, blank=True)
+
+    'Tanques'
+    tipo_almacenamiento = models.CharField(max_length=100, null=True, blank=True)
+    volumen = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
 
     manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True)
 
@@ -746,14 +745,6 @@ class RodamientosEscudos(models.Model):
     escudobs = models.TextField(null=True, blank=True)
 
 
-class Document(models.Model):
-
-    asset = models.ForeignKey(Asset, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
-    ot = models.ForeignKey(Ot, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
-    file = models.FileField(upload_to=get_upload_pdfs)
-    description = models.CharField(max_length=200)
-
-
 class Preoperacional(models.Model):
 
     RUTA = (
@@ -973,5 +964,11 @@ class Image(models.Model):
     darbaja = models.ForeignKey(DarBaja, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
 
+class Document(models.Model):
 
+    asset = models.ForeignKey(Asset, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
+    ot = models.ForeignKey(Ot, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
+    equipo = models.ForeignKey(Equipo, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
+    file = models.FileField(upload_to=get_upload_pdfs)
+    description = models.CharField(max_length=200)
 
