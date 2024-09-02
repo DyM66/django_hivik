@@ -1,0 +1,77 @@
+{% extends "got/base_generic.html" %}
+{% load my_tags %}
+
+{% block headtag %}
+<style>
+    .assets-masonry {
+        /* column-width: 300px; */
+        column-count: 3;
+        column-gap: 5px; /* Espacio entre columnas */
+    }
+
+    .assets-item {
+        break-inside: avoid; /* Evita que las tablas se corten entre columnas */
+        margin-bottom: 5px;
+        display: inline-block;
+        width: 100%;
+    }
+
+
+    .assets-item h4 {
+        /* text-align: center; */
+        font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+        .assets-masonry {
+            column-width: 100%; /* Ajuste a una sola columna en pantallas pequeñas */
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block header %}
+    Listado de Activos
+{% endblock %}
+
+
+
+{% block content %}
+    <div class="assets-masonry">
+        {% for area, assets in assets_by_area.items %}
+            {% if assets %}
+                <div class="assets-item">
+                    <h4>{{ area }}</h4>
+                    <table class="table-list">
+                        <thead>
+                            <tr>
+                                <th scope="col">Nombre</th>
+                                <th scope="col">Supervisor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asset in assets %}
+                            <tr data-href="{{ asset.get_absolute_url }}">
+                                <td data-cell="Nombre" class="nowrap">{{ asset.abbreviation }} - {{ asset.name }}</td>
+                                <td data-cell="Supervisor">{{ asset.supervisor.get_full_name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const rows = document.querySelectorAll("tr[data-href]");
+        rows.forEach(row => {
+            row.addEventListener("click", () => {
+                window.location.href = row.dataset.href;
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -118,18 +118,31 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 class AssetsListView(LoginRequiredMixin, generic.ListView):
 
     model = Asset
-    paginate_by = 20
+    template_name = 'got/assets/asset_list.html'
 
-    def get_queryset(self):
-        queryset = Asset.objects.all()
-        area = self.request.GET.get('area')
-        user_groups = self.request.user.groups.values_list('name', flat=True)
-        if 'buzos_members' in user_groups:
-            queryset = queryset.filter(area='b')
-        if area:
-            queryset = queryset.filter(area=area)
-
-        return queryset
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.groups.filter(name='maq_members').exists():
+            asset = Asset.objects.get(supervisor=request.user)
+            return redirect('got:asset-detail', pk=asset.abbreviation)
+        elif request.user.groups.filter(name='serport_members').exists():
+            return redirect('got:my-tasks')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        areas = {
+            'a': 'Motonave',
+            'b': 'Buceo',
+            'o': 'Oceanografía',
+            'l': 'Locativo',
+            'v': 'Vehiculos',
+            'x': 'Apoyo'
+        }
+        context['assets_by_area'] = {
+            area: Asset.objects.filter(area=code)
+            for code, area in areas.items()
+        }
+        return context
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
@@ -140,6 +153,42 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
         systems = asset.system_set.all()
+
+
+        # Consumos de combustible
+        transacciones = TransaccionSuministro.objects.filter(
+            suministro__asset=asset, suministro__item__id=132
+        ).order_by('fecha')
+
+        labels = [trans.fecha.strftime('%Y-%m-%d') for trans in transacciones]
+        total_consumo = [float(trans.cantidad_consumida) for trans in transacciones]
+
+        consumos_por_equipo = {}
+        consumos = DailyFuelConsumption.objects.filter(equipo__system__asset=asset).order_by('fecha')
+        for consumo in consumos:
+            equipo_name = consumo.equipo.name
+            if equipo_name not in consumos_por_equipo:
+                consumos_por_equipo[equipo_name] = {
+                    'labels': [],
+                    'data': []
+                }
+            consumos_por_equipo[equipo_name]['labels'].append(consumo.fecha.strftime('%Y-%m-%d'))
+            consumos_por_equipo[equipo_name]['data'].append(float(consumo.com_estimado_motor))
+
+        # Horas trabajadas por equipo
+        horas_por_equipo = {}
+        for equipo in Equipo.objects.filter(system__asset=asset, tipo='r'):
+            horas = HistoryHour.objects.filter(component=equipo).order_by('-report_date')
+            horas_por_equipo[equipo.name] = {
+                'labels': [hora.report_date.strftime('%Y-%m-%d') for hora in horas],
+                'data': [float(hora.hour) for hora in horas]
+            }
+
+        # Añadir los datos al contexto
+        context['labels'] = labels
+        context['total_consumo'] = total_consumo
+        context['consumos_por_equipo'] = consumos_por_equipo
+        context['horas_por_equipo'] = horas_por_equipo
 
         other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
         combined_systems = (systems.union(other_asset_systems)).order_by('group')
@@ -338,10 +387,15 @@ class AssetDocCreateView(generic.View):
             return redirect('got:asset-detail', pk=asset_id)
         return render(request, self.template_name, {'form': form})
 
-
+from itertools import groupby
+from operator import attrgetter
 def asset_suministros_report(request, abbreviation):
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
-    suministros = Suministro.objects.filter(asset=asset)
+    suministros = Suministro.objects.filter(asset=asset, item__seccion='c').select_related('item').order_by('item__presentacion')
+
+    grouped_suministros = {}
+    for key, group in groupby(suministros, key=attrgetter('item.presentacion')):
+        grouped_suministros[key] = list(group)
 
     ultima_fecha_transaccion = TransaccionSuministro.objects.filter(
         suministro__asset=asset
@@ -363,7 +417,13 @@ def asset_suministros_report(request, abbreviation):
             )
         return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
 
-    return render(request, 'got/asset_suministros_report.html', {'asset': asset, 'suministros': suministros, 'ultima_fecha_transaccion': ultima_fecha_transaccion})
+    context = {
+        'asset': asset, 
+        'suministros': suministros, 
+        'grouped_suministros': grouped_suministros,
+        'ultima_fecha_transaccion': ultima_fecha_transaccion}
+
+    return render(request, 'got/asset_suministros_report.html', context)
 
 
 @login_required

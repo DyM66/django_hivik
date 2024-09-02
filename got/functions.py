@@ -5,9 +5,11 @@ from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
 from django.http import HttpResponse
-from got.models import System, Ruta, Task, Suministro, Equipo
+from got.models import *
 from collections import defaultdict
 from datetime import date
+
+import pandas as pd
 
 
 def actualizar_rutas_dependientes(ruta):
@@ -256,3 +258,56 @@ def calculate_status_code(t):
     return None
 
 
+
+def export_rutinas_to_excel(systems, filename="rutinas.xlsx"):
+    data = []
+
+    for system in systems:
+        filtered_rutas = Ruta.objects.filter(system=system).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+
+        for ruta in filtered_rutas:
+            days_left = (ruta.next_date - datetime.now().date()).days if ruta.next_date else '---'
+            data.append({
+                'asset': ruta.system.asset.name,  # Añadir el nombre del Asset
+                'equipo_name': ruta.equipo.name if ruta.equipo else ruta.system.name,
+                'location': ruta.equipo.system.location if ruta.equipo else ruta.system.location,
+                'name': ruta.name,
+                'frecuency': ruta.frecuency,
+                'control': ruta.get_control_display(),
+                'daysleft': days_left,
+                'intervention_date': ruta.intervention_date.strftime('%d/%m/%Y') if ruta.intervention_date else '---',
+                'next_date': ruta.next_date.strftime('%d/%m/%Y') if ruta.next_date else '---',
+                'ot_num_ot': ruta.ot.num_ot if ruta.ot else '---',
+                'activity': '---',  # Placeholder para la fila de la rutina en la columna de actividades
+                'responsable': ''  # Columna vacía para la fila de la rutina
+            })
+
+            tasks = Task.objects.filter(ruta=ruta)
+            for task in tasks:
+                responsable_name = task.responsible.get_full_name() if task.responsible else '---'
+                data.append({
+                    'asset': ruta.system.asset.name,  # Mantener el nombre del Asset para las tareas
+                    'equipo_name': '',
+                    'location': '',
+                    'name': '',
+                    'frecuency': '',
+                    'control': '',
+                    'daysleft': '',
+                    'intervention_date': '',
+                    'next_date': '',
+                    'ot_num_ot': '',
+                    'activity': f'- {task.description}',
+                    'responsable': responsable_name
+                })
+
+    # Convertimos la lista de diccionarios en un DataFrame
+    df = pd.DataFrame(data)
+    df.columns = ['Asset', 'Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante', 'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo', 'Actividad', 'Responsable']
+
+    # Generamos la respuesta HTTP con el archivo Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+
+    return response

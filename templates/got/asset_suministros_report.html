@@ -4,10 +4,14 @@
 {% block content %}
 
 <div class="container">
-    <h1>Reporte de Consumos de lubricantes y filtros para {{ asset.name }}</h1>
+    <h1>
+        Reporte consumos de Lubricantes, Combustibles y Filtros<br>
+        {{ asset.name }}
+    </h1>
     <p>Ultimo reporte realizado: {{ultima_fecha_transaccion}}</p>
 
     <form method="post">{% csrf_token %}
+        {% for presentacion, group in grouped_suministros.items %}
         <table class="table-list table-detail">
             <thead>
                 <tr>
@@ -18,16 +22,17 @@
                 </tr>
             </thead>
             <tbody>
-                {% for suministro in suministros %}
+                {% for suministro in group %}
                 <tr>
-                    <td>{{ suministro.item }}</td>
+                    <td>{{ suministro.item }} ({{presentacion}})</td>
                     <td>{{ suministro.cantidad }}</td>
-                    <td><input type="number" name="consumido_{{ suministro.id }}" value="0" min="0"></td>
-                    <td><input type="number" name="ingresado_{{ suministro.id }}" value="0" min="0"></td>
+                    <td><input class="form-control" type="number" name="consumido_{{ suministro.id }}" value="0" min="0"></td>
+                    <td><input class="form-control" type="number" name="ingresado_{{ suministro.id }}" value="0" min="0"></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        {% endfor %}
         <button type="submit" class="btn btn-primary">Actualizar Consumos</button>
     </form>
 </div>

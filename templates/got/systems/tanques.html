@@ -1,0 +1,32 @@
+<div class="col-md-5 d-flex flex-column"> 
+    <h3 class="card-title">{{ equipo.name }}</h3>
+    <ul class="card-text mb-0">
+        <li>
+            <div class="detail-item">
+                <div class="detail-key">Código Interno:</div>
+                <div class="detail-value">{{ equipo.code }}</div>
+            </div>
+        </li>
+        <li>
+            <div class="detail-item">
+                <div class="detail-key">Almacenamiento:</div>
+                <div class="detail-value">{{ equipo.tipo_almacenamiento }}</div>
+            </div>
+        </li>
+        <li>
+            <div class="detail-item">
+                <div class="detail-key">Capacidad:</div>
+                <div class="detail-value">
+                    {{ equipo.volumen_format }} Gls
+                </div>
+            </div>
+        </li>
+        <li>
+            <div class="detail-item">
+                <div class="detail-key">Ubicación:</div>
+                <div class="detail-value">{{ equipo.system.location }}</div>
+            </div>
+        </li>
+        <li><strong>Especificaciones:</strong> {{ equipo.feature|linebreaks }}</li>
+    </ul>
+</div>

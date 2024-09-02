@@ -1,12 +1,3 @@
-
-<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- Incluir jQuery y JavaScript de Bootstrap -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-
-
-
 <div class="container">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -21,95 +12,100 @@
             <span class="header-right-text">{{ equipo.date_inv|date:"d M, Y" }}</span>
         </div>
         <div class="card-body row">
-            <div class="col-md-5 d-flex flex-column"> 
-                <h3 class="card-title">{{ equipo.name }}</h3>
-                <ul class="card-text mb-0">
-                    <li>
-                        <div class="detail-item">
-                            <div class="detail-key">Código Interno:</div>
-                            <div class="detail-value">{{ equipo.code }}</div>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="detail-item">
-                            <div class="detail-key">Modelo:</div>
-                            <div class="detail-value">{% if not equipo.model == None %}{{ equipo.model }}{% else %}---{% endif %}</div>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="detail-item">
-                            <div class="detail-key">Marca:</div>
-                            <div class="detail-value">{% if not equipo.marca == None %}{{ equipo.marca }}{% else %}---{% endif %}</div>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="detail-item">
-                            <div class="detail-key">Serial:</div>
-                            <div class="detail-value">{% if not equipo.serial == None %}{{ equipo.serial }}{% else %}---{% endif %}</div>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="detail-item">
-                            <div class="detail-key">Fabricante:</div>
-                            <div class="detail-value">{% if not equipo.fabricante == None %}{{ equipo.fabricante }}{% else %}---{% endif %}</div>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="detail-item">
-                            <div class="detail-key">Ubicación:</div>
-                            <div class="detail-value">{{ equipo.system.location }}</div>
-                        </div>
-                    </li>
-                    {% if equipo.system.asset.area == 'v' %}
+
+            {% if equipo.tipo == 'k' %}	
+			    {% include 'got/systems/tanques.html' %} 
+            {% else %}
+                <div class="col-md-5 d-flex flex-column"> 
+                    <h3 class="card-title">{{ equipo.name }}</h3>
+                    <ul class="card-text mb-0">
                         <li>
                             <div class="detail-item">
-                                <div class="detail-key">Kilometraje:</div>
-                                <div class="detail-value">{{ equipo.horometro }} km</div>
-                            </div>
-                        </li>
-                    {% elif equipo.tipo == 'r' %}
-                        <li>
-                            <div class="detail-item">
-                                <div class="detail-key">Tipo:</div>
-                                <div class="detail-value">{{ equipo.get_tipo_display }}</div>
+                                <div class="detail-key">Código Interno:</div>
+                                <div class="detail-value">{{ equipo.code }}</div>
                             </div>
                         </li>
                         <li>
                             <div class="detail-item">
-                                <div class="detail-key">Horómetro:</div>
-                                <div class="detail-value">{{ equipo.horometro }} horas</div>
+                                <div class="detail-key">Modelo:</div>
+                                <div class="detail-value">{% if not equipo.model == None %}{{ equipo.model }}{% else %}---{% endif %}</div>
                             </div>
                         </li>
                         <li>
                             <div class="detail-item">
-                                <div class="detail-key">Promedio Horas/Día:</div>
-                                <div class="detail-value">{{ equipo.prom_hours }}</div>
+                                <div class="detail-key">Marca:</div>
+                                <div class="detail-value">{% if not equipo.marca == None %}{{ equipo.marca }}{% else %}---{% endif %}</div>
                             </div>
                         </li>
                         <li>
                             <div class="detail-item">
-                                <div class="detail-key">Lubricante</div>
-                                <div class="detail-value">{{ equipo.lubricante }}</div>
+                                <div class="detail-key">Serial:</div>
+                                <div class="detail-value">{% if not equipo.serial == None %}{{ equipo.serial }}{% else %}---{% endif %}</div>
                             </div>
                         </li>
                         <li>
                             <div class="detail-item">
-                                <div class="detail-key">Capacidad</div>
-                                <div class="detail-value">{{ equipo.volumen }} Gls</div>
+                                <div class="detail-key">Fabricante:</div>
+                                <div class="detail-value">{% if not equipo.fabricante == None %}{{ equipo.fabricante }}{% else %}---{% endif %}</div>
                             </div>
                         </li>
-                    {% endif %}
-                    {% if equipo.manual_pdf %}
                         <li>
                             <div class="detail-item">
-                                <div class="detail-key">Manual:</div>
-                                <div class="detail-value"><a href="{{ equipo.manual_pdf.url }}" target="_blank">Descargar PDF</a></div>
+                                <div class="detail-key">Ubicación:</div>
+                                <div class="detail-value">{{ equipo.system.location }}</div>
                             </div>
                         </li>
-                    {% endif %}
-                    <li><strong>Especificaciones:</strong> {{ equipo.feature|linebreaks }}</li>
-                </ul>
-            </div>
+                        {% if equipo.system.asset.area == 'v' %}
+                            <li>
+                                <div class="detail-item">
+                                    <div class="detail-key">Kilometraje:</div>
+                                    <div class="detail-value">{{ equipo.horometro }} km</div>
+                                </div>
+                            </li>
+                        {% elif equipo.tipo == 'r' %}
+                            <li>
+                                <div class="detail-item">
+                                    <div class="detail-key">Tipo:</div>
+                                    <div class="detail-value">{{ equipo.get_tipo_display }}</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="detail-item">
+                                    <div class="detail-key">Horómetro:</div>
+                                    <div class="detail-value">{{ equipo.horometro }} horas</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="detail-item">
+                                    <div class="detail-key">Promedio Horas/Día:</div>
+                                    <div class="detail-value">{{ equipo.prom_hours }}</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="detail-item">
+                                    <div class="detail-key">Lubricante</div>
+                                    <div class="detail-value">{{ equipo.lubricante }}</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="detail-item">
+                                    <div class="detail-key">Capacidad</div>
+                                    <div class="detail-value">{{ equipo.volumen }} Gls</div>
+                                </div>
+                            </li>
+                        {% endif %}
+                        {% if equipo.manual_pdf %}
+                            <li>
+                                <div class="detail-item">
+                                    <div class="detail-key">Manual:</div>
+                                    <div class="detail-value"><a href="{{ equipo.manual_pdf.url }}" target="_blank">Descargar PDF</a></div>
+                                </div>
+                            </li>
+                        {% endif %}
+                        <li><strong>Especificaciones:</strong> {{ equipo.feature|linebreaks }}</li>
+                    </ul>
+                </div>
+            {% endif %}
             <div class="col-md-7 d-flex">
                 <div class="row w-100">
                     <!-- Carrusel de Imágenes -->

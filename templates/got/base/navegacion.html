@@ -22,18 +22,10 @@
                         </a>
                     </li>
                 {% else %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'asset-list' %}active{% endif %}" href="{% url 'got:asset-list' %}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'asset-list' %}active{% endif %}" href="{% url 'got:asset-list' %}">
                             Equipos
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'got:asset-list' %}?area=a">Barcos</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:asset-list' %}?area=b">Buceo</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:asset-list' %}?area=o">Oceanografia</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:asset-list' %}?area=l">Locativo</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:asset-list' %}?area=v">Vehiculos</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:asset-list' %}?area=x">Apoyo</a></li>
-                        </ul>
                     </li>
                 {% endif %}
 

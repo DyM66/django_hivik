@@ -56,6 +56,7 @@ class Migration(migrations.Migration):
                 ('description', models.CharField(max_length=200)),
                 ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.asset')),
                 ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.ot')),
+                ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.equipo')),
             ],
         ),
 

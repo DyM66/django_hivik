@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.formats import number_format
 from django.utils.translation import gettext as _
+from django.contrib.humanize.templatetags.humanize import intcomma
 
 
 def get_upload_path(instance, filename):
@@ -77,9 +78,7 @@ class Asset(models.Model):
     name = models.CharField(max_length=50)
     area = models.CharField(max_length=1, choices=AREA, default='a')
     supervisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-
     imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
-
     bandera = models.CharField(default='Colombia', max_length=50, null=True, blank=True)
     eslora = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True)
     manga = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True)
@@ -247,6 +246,28 @@ class Equipo(models.Model):
     volumen = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
 
     manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True)
+
+    def volumen_format(self):
+        if self.volumen is not None:
+            return f'{self.volumen:,.2f}'
+        return None
+    
+    @property
+    def consumo_promedio_por_hora(self):
+        if self.tipo != 'r':
+            return None
+
+        # Tomar los últimos 30 registros de consumo de combustible
+        consumos = self.fuel_consumptions.order_by('-fecha')[:30]
+        total_consumo = consumos.aggregate(Sum('com_estimado_motor'))['com_estimado_motor__sum'] or 0
+
+        # Tomar la suma de las horas correspondientes a esos días
+        fechas_consumo = consumos.values_list('fecha', flat=True)
+        total_horas = HistoryHour.objects.filter(component=self, report_date__in=fechas_consumo).aggregate(Sum('hour'))['hour__sum'] or 0
+
+        if total_horas > 0:
+            return total_consumo / total_horas
+        return None
 
     def calculate_horometro(self):
         total_hours = self.hours.aggregate(total=Sum('hour'))['total'] or 0
@@ -642,6 +663,19 @@ class TransaccionSuministro(models.Model):
 
     def __str__(self):
         return f"{self.suministro.item.name}: +{self.cantidad_ingresada}/-{self.cantidad_consumida} el {self.fecha.strftime('%Y-%m-%d')}"
+
+
+class DailyFuelConsumption(models.Model):
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='fuel_consumptions')
+    fecha = models.DateField(default=timezone.now)
+    com_estimado_motor = models.DecimalField(max_digits=1000, decimal_places=2, default=0)
+
+    class Meta:
+        unique_together = ('equipo', 'fecha')
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f'{self.equipo}: {self.com_estimado_motor} - {self.fecha}'
 
 
 class Megger(models.Model):

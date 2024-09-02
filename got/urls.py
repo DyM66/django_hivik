@@ -4,20 +4,20 @@ from . import views
 app_name = 'got'
 
 urlpatterns = [
-    path("", views.AssignedTaskByUserListView.as_view(), name="my-tasks"),
+    path("tasks/", views.AssignedTaskByUserListView.as_view(), name="my-tasks"),
 
-    path("asset/", views.AssetsListView.as_view(), name="asset-list"),
+    path("", views.AssetsListView.as_view(), name="asset-list"),
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
     path('asset/<str:asset_id>/add-document/', views.AssetDocCreateView.as_view(), name='add-document'),
     path('asset/<str:abbreviation>/suministros/', views.asset_suministros_report, name='asset-suministros'),
     path("asset/<str:pk>/schedule/", views.schedule, name="schedule"),
     path('assets/<str:asset_id>/generate-pdf/', views.generate_asset_pdf, name='generate_asset_pdf'),
     
-    path("sys/<int:pk>/", views.SysDetailView.as_view(), name="sys-detail"), # VERIFICAR USO
-    path('sys/<int:pk>/<str:view_type>/', views.SysDetailView.as_view(), name='sys-detail-view'),
-    path('system/<int:pk>/update/', views.SysUpdate.as_view(), name='sys-update'),
-    path('sys/<int:pk>/delete/', views.SysDelete.as_view(), name='sys-delete'),
-    path('system/<str:asset_id>/<int:system_id>/pdf/', views.system_maintence_pdf, name='generate-system-pdf'),
+    path("systems/<int:pk>/", views.SysDetailView.as_view(), name="sys-detail"), # VERIFICAR USO
+    path('systems/<int:pk>/<str:view_type>/', views.SysDetailView.as_view(), name='sys-detail-view'),
+    path('systems/<int:pk>/update/', views.SysUpdate.as_view(), name='sys-update'),
+    path('systems/<int:pk>/delete/', views.SysDelete.as_view(), name='sys-delete'),
+    path('systems/<str:asset_id>/<int:system_id>/pdf/', views.system_maintence_pdf, name='generate-system-pdf'),
 
     path('system/<int:pk>/new_equipo/', views.EquipoCreateView.as_view(), name='equipo-create'),
     path('equipo/<str:pk>/update/', views.EquipoUpdate.as_view(), name='equipo-update'),
