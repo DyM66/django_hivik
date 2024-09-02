@@ -472,38 +472,26 @@ def schedule(request, pk):
 
 def generate_asset_pdf(request, asset_id):
     asset = get_object_or_404(Asset, pk=asset_id)
-    systems = asset.system_set.all()
+    location_based_systems = System.objects.filter(location=asset.name).exclude(asset=asset).order_by('group')
 
-    systems_with_rutas = []
-    for system in systems:
-        rutas_data = []
-        rutas = Ruta.objects.filter(system=system).prefetch_related('task_set')
-        for ruta in rutas:
-            # Recoger las tareas para cada ruta
-            tasks = ruta.task_set.all()
-            rutas_data.append({
-                'ruta': ruta,
-                'tasks': tasks,
-                'ot_num': ruta.ot.num_ot if ruta.ot else 'N/A'  # Asegúrate que ruta.ot es accesible y no nulo
-            })
-        systems_with_rutas.append({
-            'system': system,
-            'rutas_data': rutas_data
-        })
+    # Filtrar solo los sistemas que tienen equipos asociados
+    location_based_systems = [system for system in location_based_systems if system.equipos.exists()]
+
+    # Obtener sistemas directamente asociados al asset y ordenarlos por el campo 'group'
+    direct_systems = asset.system_set.all().order_by('group')
+
+    # Filtrar solo los sistemas que tienen equipos asociados
+    direct_systems = [system for system in direct_systems if system.equipos.exists()]
+
+    # Unir ambos conjuntos de sistemas, primero los basados en ubicación y luego los directos
+    all_systems = location_based_systems + direct_systems
 
     context = {
         'asset': asset,
-        'systems_with_rutas': systems_with_rutas
+        'systems': all_systems,
     }
 
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="Asset_{}.pdf"'.format(asset.pk)
-    template = get_template('got/asset_pdf_template.html')
-    html = template.render(context)
-    pisa_status = pisa.CreatePDF(html, dest=response)
-    if pisa_status.err:
-        return HttpResponse('We had some errors <pre>' + html + '</pre>')
-    return response
+    return render_to_pdf('got/assets/asset_pdf_template.html', context)
 
 
 'SYSTEMS VIEW'

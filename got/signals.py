@@ -82,13 +82,16 @@ def update_fuel_consumption_for_asset(equipo, fecha):
 def create_daily_fuel_consumption(sender, instance, **kwargs):
     suministro = instance.suministro
 
-    fecha_primer_reporte = TransaccionSuministro.objects.filter(
-        suministro__asset=asset,
-        suministro__item__id=132  # ID del combustible
-    ).aggregate(primer_fecha=Min('fecha'))['primer_fecha'] 
+
     
     if suministro.item.id == 132:  # ID del combustible
         asset = suministro.asset
+
+        fecha_primer_reporte = TransaccionSuministro.objects.filter(
+            suministro__asset=asset,
+            suministro__item__id=132  # ID del combustible
+        ).aggregate(primer_fecha=Min('fecha'))['primer_fecha']  
+               
         today = instance.fecha.date()
         
         equipos = Equipo.objects.filter(system__asset=asset, tipo='r')
