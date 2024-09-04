@@ -658,7 +658,7 @@ class TransaccionSuministro(models.Model):
     suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
     cantidad_ingresada = models.IntegerField(default=0, help_text="Cantidad que se añade al inventario")
     cantidad_consumida = models.IntegerField(default=0, help_text="Cantidad que se consume del inventario")
-    fecha = models.DateTimeField(auto_now_add=True)
+    fecha = models.DateField()
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):

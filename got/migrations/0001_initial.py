@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Equipo',
             fields=[
-                ('name', models.CharField(max_length=50)),
+                ('name', models.CharField(max_length=100)),
                 ('date_inv', models.DateField(auto_now_add=True)),
                 ('code', models.CharField(max_length=50, primary_key=True, serialize=False)),
                 ('model', models.CharField(blank=True, max_length=50, null=True)),
@@ -81,7 +81,6 @@ class Migration(migrations.Migration):
                 ('horometro', models.IntegerField(blank=True, default=0, null=True)),
                 ('initial_hours', models.IntegerField(default=0)),
                 ('prom_hours', models.IntegerField(blank=True, default=0, null=True)),
-                ('imagen', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('manual_pdf', models.FileField(blank=True, null=True, upload_to=got.models.get_upload_pdfs)),
                 ('tipo_almacenamiento', models.CharField(blank=True, max_length=100, null=True)),
                 ('volumen', models.DecimalField(blank=True, decimal_places=2, max_digits=14, null=True)),

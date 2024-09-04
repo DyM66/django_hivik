@@ -11,6 +11,12 @@
     <p>Ultimo reporte realizado: {{ultima_fecha_transaccion}}</p>
 
     <form method="post">{% csrf_token %}
+
+        <div class="form-group">
+            <label for="fecha_reporte">Fecha del Reporte</label>
+            <input type="date" id="fecha_reporte" name="fecha_reporte" class="form-control" value="{{ fecha_actual }}" required>
+        </div>
+                
         {% for presentacion, group in grouped_suministros.items %}
         <table class="table-list table-detail">
             <thead>

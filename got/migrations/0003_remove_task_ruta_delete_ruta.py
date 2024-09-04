@@ -162,4 +162,18 @@ class Migration(migrations.Migration):
                 ('megger', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
             ],
         ),
+
+        migrations.CreateModel(
+            name='DailyFuelConsumption',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('fecha', models.DateField(default=django.utils.timezone.now)),
+                ('com_estimado_motor', models.DecimalField(decimal_places=2, default=0, max_digits=1000)),
+                ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='fuel_consumptions', to='got.equipo')),
+            ],
+            options={
+                'ordering': ['-fecha'],
+                'unique_together': {('equipo', 'fecha')},
+            },
+        ),
     ]

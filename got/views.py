@@ -31,6 +31,8 @@ import pandas as pd
 import calendar
 from django.utils.translation import gettext as _
 from collections import OrderedDict
+from itertools import groupby
+from operator import attrgetter
 
 from .functions import *
 
@@ -44,14 +46,6 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
     model = Task
     template_name = 'got/task/assignedtasks_list_pendient.html'
     paginate_by = 20
-
-    def dispatch(self, request, *args, **kwargs):
-        current_user = request.user
-        if current_user.groups.filter(name='gerencia').exists():
-            return redirect('got:asset-list')
-        elif request.user.username == 'elkin':
-            return redirect('got:asset-detail', pk='VEH')
-        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -154,8 +148,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         asset = self.get_object()
         systems = asset.system_set.all()
 
-
-        # Consumos de combustible
         transacciones = TransaccionSuministro.objects.filter(
             suministro__asset=asset, suministro__item__id=132
         ).order_by('fecha')
@@ -387,8 +379,7 @@ class AssetDocCreateView(generic.View):
             return redirect('got:asset-detail', pk=asset_id)
         return render(request, self.template_name, {'form': form})
 
-from itertools import groupby
-from operator import attrgetter
+
 def asset_suministros_report(request, abbreviation):
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
     suministros = Suministro.objects.filter(asset=asset, item__seccion='c').select_related('item').order_by('item__presentacion')
@@ -402,6 +393,7 @@ def asset_suministros_report(request, abbreviation):
     ).aggregate(Max('fecha'))['fecha__max'] or "---"
 
     if request.method == 'POST':
+        fecha_reporte = request.POST.get('fecha_reporte', timezone.now().date())
         for suministro in suministros:
             cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
             cantidad_ingresada = int(request.POST.get(f'ingresado_{suministro.id}', 0))
@@ -413,6 +405,7 @@ def asset_suministros_report(request, abbreviation):
                 suministro=suministro,
                 cantidad_ingresada=cantidad_ingresada,
                 cantidad_consumida=cantidad_consumida,
+                fecha=fecha_reporte,
                 usuario=request.user
             )
         return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
@@ -421,7 +414,9 @@ def asset_suministros_report(request, abbreviation):
         'asset': asset, 
         'suministros': suministros, 
         'grouped_suministros': grouped_suministros,
-        'ultima_fecha_transaccion': ultima_fecha_transaccion}
+        'ultima_fecha_transaccion': ultima_fecha_transaccion,
+        'fecha_actual': timezone.now().date()
+        }
 
     return render(request, 'got/asset_suministros_report.html', context)
 
