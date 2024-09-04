@@ -22,18 +22,21 @@
             <thead>
                 <tr>
                     <th>Descripción</th>
+                    
+                    <th>Ultima cantidad reportada</th>
                     <th>Cantidad Ingresada</th>
-                    <th class="nowrap">Cantidad Actual</th>
                     <th>Cantidad Consumida</th>
+                    <th>Total</th>
                 </tr>
             </thead>
             <tbody>
                 {% for suministro in group %}
                 <tr>
                     <td>{{ suministro.item }} ({{presentacion}})</td>
-                    <td><input class="form-control" type="number" name="ingresado_{{ suministro.id }}" value="0" min="0"></td>
                     <td>{{ suministro.cantidad }}</td>
-                    <td><input class="form-control" type="number" name="consumido_{{ suministro.id }}" value="0" min="0"></td>
+                    <td><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0" min="0" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
+                    <td><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0" min="0" data-row-id="{{ suministro.id }}"></td>
+                    <td><span id="total_{{ suministro.id }}"> {{ suministro.cantidad }} </span></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -43,5 +46,27 @@
     </form>
 </div>
 
+<script>
+    // Función para actualizar el total basado en la cantidad ingresada y consumida
+    function actualizarTotal(rowId) {
+        const cantidadActual = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).getAttribute('data-cantidad-actual')) || 0;
+        const cantidadIngresada = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).value) || 0;
+        const cantidadConsumida = parseFloat(document.querySelector(`input[name="consumido_${rowId}"]`).value) || 0;
+
+        // Calcular el nuevo total
+        const total = cantidadActual + cantidadIngresada - cantidadConsumida;
+
+        // Actualizar el valor en la columna Total
+        document.getElementById(`total_${rowId}`).innerText = total.toFixed(2);
+    }
+
+    // Event listeners para los inputs de cantidad ingresada y consumida
+    document.querySelectorAll('.cantidad-ingresada, .cantidad-consumida').forEach(input => {
+        input.addEventListener('input', function() {
+            const rowId = this.getAttribute('data-row-id');
+            actualizarTotal(rowId);
+        });
+    });
+</script>
 
 {% endblock %}
