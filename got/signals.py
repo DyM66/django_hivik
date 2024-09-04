@@ -43,7 +43,7 @@ def update_fuel_consumption_for_asset(equipo, fecha):
     suministro_combustible = TransaccionSuministro.objects.filter(
         suministro__asset=asset,
         suministro__item__id=132,
-        fecha__date=fecha
+        fecha=fecha
     ).aggregate(Sum('cantidad_consumida'))['cantidad_consumida__sum'] or 0
 
     if suministro_combustible > 0 and total_horas_asset > 0:
