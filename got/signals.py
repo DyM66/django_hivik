@@ -107,7 +107,7 @@ def create_daily_fuel_consumption(sender, instance, **kwargs):
             suministro_consumido_hoy = TransaccionSuministro.objects.filter(
                 suministro__asset=asset,
                 suministro__item__id=132,
-                fecha__date=today
+                fecha=today
             ).aggregate(Sum('cantidad_consumida'))['cantidad_consumida__sum'] or 0
 
             if total_horas_asset > 0 and suministro_consumido_hoy > 0:
