@@ -16,24 +16,24 @@
             <label for="fecha_reporte">Fecha del Reporte</label>
             <input type="date" id="fecha_reporte" name="fecha_reporte" class="form-control" value="{{ fecha_actual }}" required>
         </div>
-                
+
         {% for presentacion, group in grouped_suministros.items %}
         <table class="table-list table-detail">
             <thead>
                 <tr>
                     <th>Descripción</th>
+                    <th>Cantidad Ingresada</th>
                     <th class="nowrap">Cantidad Actual</th>
                     <th>Cantidad Consumida</th>
-                    <th>Cantidad Ingresada</th>
                 </tr>
             </thead>
             <tbody>
                 {% for suministro in group %}
                 <tr>
                     <td>{{ suministro.item }} ({{presentacion}})</td>
+                    <td><input class="form-control" type="number" name="ingresado_{{ suministro.id }}" value="0" min="0"></td>
                     <td>{{ suministro.cantidad }}</td>
                     <td><input class="form-control" type="number" name="consumido_{{ suministro.id }}" value="0" min="0"></td>
-                    <td><input class="form-control" type="number" name="ingresado_{{ suministro.id }}" value="0" min="0"></td>
                 </tr>
                 {% endfor %}
             </tbody>
