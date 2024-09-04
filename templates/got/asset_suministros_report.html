@@ -41,12 +41,47 @@
                 {% endfor %}
             </tbody>
         </table>
+        <button type="button" class="btn btn-link" onclick="mostrarHistorial()">Ver historial de Transacciones</button>
+
+        <!-- Tabla oculta del historial -->
+        <table id="historial_transacciones" class="table-list table-detail" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Suministro</th>
+                    <th>Cantidad Ingresada</th>
+                    <th>Cantidad Consumida</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaccion in transacciones_historial %}
+                <tr>
+                    <td>{{ transaccion.fecha }}</td>
+                    <td>{{ transaccion.suministro.item }}</td>
+                    <td>{{ transaccion.cantidad_ingresada }}</td>
+                    <td>{{ transaccion.cantidad_consumida }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">No hay transacciones recientes.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         {% endfor %}
         <button type="submit" class="btn btn-primary">Actualizar Consumos</button>
     </form>
 </div>
 
 <script>
+    function mostrarHistorial() {
+        const historial = document.getElementById('historial_transacciones');
+        if (historial.style.display === 'none') {
+            historial.style.display = 'table'; // Mostrar la tabla
+        } else {
+            historial.style.display = 'none'; // Ocultar la tabla
+        }
+    }
     // Función para actualizar el total basado en la cantidad ingresada y consumida
     function actualizarTotal(rowId) {
         const cantidadActual = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).getAttribute('data-cantidad-actual')) || 0;

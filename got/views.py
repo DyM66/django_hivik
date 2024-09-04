@@ -392,6 +392,10 @@ def asset_suministros_report(request, abbreviation):
         suministro__asset=asset
     ).aggregate(Max('fecha'))['fecha__max'] or "---"
 
+    transacciones_historial = TransaccionSuministro.objects.filter(
+        suministro__asset=asset
+    ).order_by('-fecha')[:30]
+
     if request.method == 'POST':
         fecha_reporte = request.POST.get('fecha_reporte', timezone.now().date())
         for suministro in suministros:
@@ -415,6 +419,7 @@ def asset_suministros_report(request, abbreviation):
         'suministros': suministros, 
         'grouped_suministros': grouped_suministros,
         'ultima_fecha_transaccion': ultima_fecha_transaccion,
+        'transacciones_historial': transacciones_historial,
         'fecha_actual': timezone.now().date()
         }
 

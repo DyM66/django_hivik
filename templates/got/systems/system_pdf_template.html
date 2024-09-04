@@ -196,9 +196,9 @@
                         </li>
                     </ul>
                 </td>
-                <td colspan="2">
-                    {% if equipo.imagen %}
-                        <img src="{{ equipo.imagen.url }}" alt="{{ equipo.name }}" width="500px">
+                <td colspan="2" style="vertical-align: top; text-align: center;">
+                    {% if equipo.images.all %}
+                        <img src="{{ equipo.images.first.image.url }}" alt="{{ equipo.name }}" width="500px">
                     {% endif %}
                 </td>
             </tr>
