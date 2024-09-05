@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.formats import number_format
 from django.utils.translation import gettext as _
 from django.contrib.humanize.templatetags.humanize import intcomma
+from decimal import Decimal
 
 
 def get_upload_path(instance, filename):
@@ -643,7 +644,7 @@ def update_solicitud_dates(sender, instance, **kwargs):
 class Suministro(models.Model):
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    cantidad = models.IntegerField()
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00')) 
     Solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')

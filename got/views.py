@@ -2127,7 +2127,6 @@ def preoperacional_diario_view(request, code):
 
     if existente:
         mensaje = f"El preoperacional del vehículo {equipo} de la fecha actual ya fue diligenciado y exitosamente enviado. El resultado fue: {'Aprobado' if existente.aprobado else 'No aprobado'}."
-        # Mostrar un modal o mensaje con Django messages framework
         messages.error(request, mensaje)
         return render(request, 'got/preoperacional/preoperacional_restricted.html', {'mensaje': mensaje})
     
