@@ -1,5 +1,5 @@
 {% extends "got/base/base_detail.html" %}
-
+{% load my_tags %}
 
 {% block content %}
 
@@ -41,11 +41,14 @@
                 {% endfor %}
             </tbody>
         </table>
-        <button type="button" class="btn btn-link" onclick="mostrarHistorial()">Ver historial de Transacciones</button>
+        <button type="button" class="btn btn-link" onclick="mostrarHistorial('{{ presentacion }}')">Ver historial</button><br>
 
-        <!-- Tabla oculta del historial -->
-        <table id="historial_transacciones" class="table-list table-detail" style="display: none;">
+        
+        <table id="historial_transacciones_{{ presentacion }}" class="table-list table-detail" style="display: none;">
             <thead>
+                <tr>
+                    <th colspan="4"><h3>Historial de reportes</h3></th>
+                </tr>
                 <tr>
                     <th>Fecha</th>
                     <th>Suministro</th>
@@ -54,7 +57,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for transaccion in transacciones_historial %}
+                {% for transaccion in transacciones_por_presentacion|get_item:presentacion %}
                 <tr>
                     <td>{{ transaccion.fecha }}</td>
                     <td>{{ transaccion.suministro.item }}</td>
@@ -74,8 +77,8 @@
 </div>
 
 <script>
-    function mostrarHistorial() {
-        const historial = document.getElementById('historial_transacciones');
+    function mostrarHistorial(presentacion) {
+        const historial = document.getElementById(`historial_transacciones_${presentacion}`);
         if (historial.style.display === 'none') {
             historial.style.display = 'table'; // Mostrar la tabla
         } else {

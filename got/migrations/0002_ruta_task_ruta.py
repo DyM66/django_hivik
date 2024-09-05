@@ -103,6 +103,7 @@ class Migration(migrations.Migration):
                 ('cancel', models.BooleanField(default=False)),
                 ('cancel_reason', models.TextField(blank=True, null=True)),
                 ('cancel_date', models.DateTimeField(blank=True, null=True)),
+                ('approved_by', models.CharField(blank=True, default='Jader Aguilar', max_length=100, null=True)),
             ],
             options={
                 'ordering': ['-creation_date'],
@@ -121,7 +122,7 @@ class Migration(migrations.Migration):
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('presentacion', models.CharField(max_length=10)),
                 ('code', models.CharField(blank=True, max_length=50, null=True)),
-                ('seccion', models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas'), ('r', 'Repuestos')], default='c', max_length=1)),
+                ('seccion', models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas y equipos'), ('r', 'Repuestos')], default='c', max_length=1)),
             ],
             options={'ordering': ['name', 'reference']},
         ),
@@ -286,7 +287,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('cantidad_ingresada', models.IntegerField(default=0, help_text='Cantidad que se añade al inventario')),
                 ('cantidad_consumida', models.IntegerField(default=0, help_text='Cantidad que se consume del inventario')),
-                ('fecha', models.DateTimeField(auto_now_add=True)),
+                ('fecha', models.DateField()),
                 ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
                 ('usuario', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
@@ -304,6 +305,7 @@ class Migration(migrations.Migration):
                 ('responsable', models.CharField(max_length=100)),
                 ('propietario', models.CharField(max_length=100)),
                 ('sign_recibe', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
+                ('adicional', models.TextField(blank=True, null=True)),
             ],
             options={
                 'ordering': ['-fecha'],

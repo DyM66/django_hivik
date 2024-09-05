@@ -239,13 +239,7 @@
             </nav>
         {% endif %}
 
-        <div style="width: 100%; height: 400px;">
-            <canvas id="fuelConsumptionChart"></canvas>
-        </div>
 
-        <div style="width: 100%; height: 400px; margin-top: 20px;">
-            <canvas id="workHoursChart"></canvas>
-        </div>
         
 
         <table class="table-list table-detail">
@@ -428,6 +422,14 @@
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<div style="width: 100%; height: 400px;">
+    <canvas id="fuelConsumptionChart"></canvas>
+</div>
+
+<div style="width: 100%; height: 400px; margin-top: 20px;">
+    <canvas id="workHoursChart"></canvas>
 </div>
 {% endif %}
 <script>

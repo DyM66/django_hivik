@@ -664,6 +664,9 @@ class TransaccionSuministro(models.Model):
     def __str__(self):
         return f"{self.suministro.item.name}: +{self.cantidad_ingresada}/-{self.cantidad_consumida} el {self.fecha.strftime('%Y-%m-%d')}"
 
+    class Meta:
+        unique_together = ('suministro', 'fecha')
+
 
 class DailyFuelConsumption(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='fuel_consumptions')

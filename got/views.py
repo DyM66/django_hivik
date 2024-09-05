@@ -394,25 +394,46 @@ def asset_suministros_report(request, abbreviation):
 
     transacciones_historial = TransaccionSuministro.objects.filter(
         suministro__asset=asset
-    ).order_by('-fecha')[:30]
+    ).order_by('-fecha') #[:30]
 
     if request.method == 'POST':
         fecha_reporte = request.POST.get('fecha_reporte', timezone.now().date())
         for suministro in suministros:
             cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
             cantidad_ingresada = int(request.POST.get(f'ingresado_{suministro.id}', 0))
+            if cantidad_consumida == 0 and cantidad_ingresada == 0:
+                continue
             
+            try:
+                transaccion_existente = TransaccionSuministro.objects.get(suministro=suministro, fecha=fecha_reporte)
+
+                suministro.cantidad -= transaccion_existente.cantidad_ingresada
+                suministro.cantidad += transaccion_existente.cantidad_consumida
+            except TransaccionSuministro.DoesNotExist:
+                transaccion_existente = None
+
             suministro.cantidad -= cantidad_consumida
             suministro.cantidad += cantidad_ingresada
             suministro.save()
-            TransaccionSuministro.objects.create(
-                suministro=suministro,
-                cantidad_ingresada=cantidad_ingresada,
-                cantidad_consumida=cantidad_consumida,
-                fecha=fecha_reporte,
-                usuario=request.user
-            )
+
+            if transaccion_existente:
+                transaccion_existente.cantidad_ingresada = cantidad_ingresada
+                transaccion_existente.cantidad_consumida = cantidad_consumida
+                transaccion_existente.usuario = request.user
+                transaccion_existente.save()
+            else:
+                TransaccionSuministro.objects.create(
+                    suministro=suministro,
+                    cantidad_ingresada=cantidad_ingresada,
+                    cantidad_consumida=cantidad_consumida,
+                    fecha=fecha_reporte,
+                    usuario=request.user
+                )
         return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
+
+    transacciones_por_presentacion = {}
+    for presentacion, suministros_group in grouped_suministros.items():
+        transacciones_por_presentacion[presentacion] = transacciones_historial.filter(suministro__in=suministros_group)
 
     context = {
         'asset': asset, 
@@ -420,6 +441,7 @@ def asset_suministros_report(request, abbreviation):
         'grouped_suministros': grouped_suministros,
         'ultima_fecha_transaccion': ultima_fecha_transaccion,
         'transacciones_historial': transacciones_historial,
+        'transacciones_por_presentacion': transacciones_por_presentacion,
         'fecha_actual': timezone.now().date()
         }
 
