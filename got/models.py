@@ -644,7 +644,6 @@ class Suministro(models.Model):
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     cantidad = models.IntegerField()
-
     Solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')

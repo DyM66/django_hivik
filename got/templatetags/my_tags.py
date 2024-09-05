@@ -119,3 +119,7 @@ def range_filter(value):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+@register.filter(name='range')
+def custom_range(value):
+    return range(value)

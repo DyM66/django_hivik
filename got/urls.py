@@ -103,4 +103,6 @@ urlpatterns = [
     path('ruta/<int:ruta_id>/create_ot/', views.rutina_form_view, name='create-ot-from-ruta'),
     path('salida/<int:pk>/notify/', views.NotifySalidaView.as_view(), name='notify-salida'),
     path('salida/<int:pk>/update/', views.SalidaUpdateView.as_view(), name='salida-update'),
+    path('preoperacional/excel/', views.export_preoperacional_to_excel, name='export-preoperacional-excel'),
+    path('preoperacionaldiario/export/excel/', views.export_preoperacionaldiario_excel, name='export-preoperacionaldiario-excel'),
 ]

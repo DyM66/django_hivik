@@ -4,7 +4,27 @@
 {% block header %}Consolidado preoperacional{% endblock %}
 
 {% block content %}
-    
+<form method="get" action="{% url 'got:export-preoperacionaldiario-excel' %}">
+    <div class="form-group">
+        <label for="mes">Mes:</label>
+        <select id="mes" name="mes" class="form-control">
+            {% for i, mes_nombre in meses %}
+                <option value="{{ i }}" {% if i == fecha_actual.month %}selected{% endif %}>
+                    {{ mes_nombre }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="anio">Año:</label>
+        <select id="anio" name="anio" class="form-control">
+            {% for i in anios %}
+                <option value="{{ i }}" {% if i == fecha_actual.year %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-success">Descargar Excel</button>
+</form>
     <div class="table-responsive">
         <table class="table-list">
             <thead>

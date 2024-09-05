@@ -8,7 +8,7 @@ from django.http import HttpResponse
 from got.models import *
 from collections import defaultdict
 from datetime import date
-
+import openpyxl
 import pandas as pd
 
 
@@ -311,3 +311,88 @@ def export_rutinas_to_excel(systems, filename="rutinas.xlsx"):
         df.to_excel(writer, index=False)
 
     return response
+
+
+def update_equipo_code(old_code):
+
+    equipo = Equipo.objects.get(code=old_code)
+    system = equipo.system
+    asset_abbreviation = system.asset.abbreviation
+    group_number = system.group
+    tipo = equipo.tipo.upper()
+
+    similar_equipments = Equipo.objects.filter(
+        code__startswith=f"{asset_abbreviation}-{group_number}-{tipo}"
+    )
+    sequence_number = similar_equipments.count() + 1
+    sequence_str = str(sequence_number).zfill(3) 
+    generated_code = f"{asset_abbreviation}-{group_number}-{tipo}-{sequence_str}"
+
+    try:
+        # Iniciar una transacción para asegurar que todo se actualice correctamente
+        with transaction.atomic():
+            # Obtener el equipo cuyo código se va a cambiar
+            equipo = Equipo.objects.get(code=old_code)
+            equipo.code = generated_code
+            equipo.save()
+
+
+            # Actualizar todas las relaciones donde esté relacionado el equipo
+            print(f"Actualizando código de equipo de '{old_code}' a '{generated_code}'...")
+
+            # HistoryHour
+            updated_history_hours = HistoryHour.objects.filter(component__code=old_code).update(component=equipo)
+            print(f"HistoryHour actualizado: {updated_history_hours} registros")
+
+            # Suministro
+            updated_suministros = Suministro.objects.filter(equipo__code=old_code).update(equipo=equipo)
+            print(f"Suministro actualizado: {updated_suministros} registros")
+
+            # Ruta
+            updated_rutas = Ruta.objects.filter(equipo__code=old_code).update(equipo=equipo)
+            print(f"Ruta actualizado: {updated_rutas} registros")
+
+            # DailyFuelConsumption
+            updated_daily_fuel = DailyFuelConsumption.objects.filter(equipo__code=old_code).update(equipo=equipo)
+            print(f"DailyFuelConsumption actualizado: {updated_daily_fuel} registros")
+
+            # FailureReport
+            updated_failure_reports = FailureReport.objects.filter(equipo__code=old_code).update(equipo=equipo)
+            print(f"FailureReport actualizado: {updated_failure_reports} registros")
+
+            # Megger
+            updated_megger = Megger.objects.filter(equipo__code=old_code).update(equipo=equipo)
+            print(f"Megger actualizado: {updated_megger} registros")
+
+            # Preoperacional
+            updated_preoperacional = Preoperacional.objects.filter(vehiculo__code=old_code).update(vehiculo=equipo)
+            print(f"Preoperacional actualizado: {updated_preoperacional} registros")
+
+            # PreoperacionalDiario
+            updated_preoperacional_diario = PreoperacionalDiario.objects.filter(vehiculo__code=old_code).update(vehiculo=equipo)
+            print(f"PreoperacionalDiario actualizado: {updated_preoperacional_diario} registros")
+
+            # Transferencia
+            updated_transferencia_origen = Transferencia.objects.filter(origen__equipos__code=old_code).update(origen=equipo.system)
+            updated_transferencia_destino = Transferencia.objects.filter(destino__equipos__code=old_code).update(destino=equipo.system)
+            print(f"Transferencia actualizado: {updated_transferencia_origen + updated_transferencia_destino} registros")
+
+            # DarBaja
+            updated_darbaja = DarBaja.objects.filter(equipo__code=old_code).update(equipo=equipo)
+            print(f"DarBaja actualizado: {updated_darbaja} registros")
+
+            # Image
+            updated_images = Image.objects.filter(equipo__code=old_code).update(equipo=equipo)
+            print(f"Image actualizado: {updated_images} registros")
+
+            # Document
+            updated_documents = Document.objects.filter(equipo__code=old_code).update(equipo=equipo)
+            print(f"Document actualizado: {updated_documents} registros")
+
+            print(f"El código del equipo '{old_code}' ha sido actualizado a '{generated_code}' en todas las tablas relacionadas.")
+    
+    except Equipo.DoesNotExist:
+        print(f"El equipo con código '{old_code}' no existe.")
+    except Exception as e:
+        print(f"Ha ocurrido un error: {str(e)}")
+

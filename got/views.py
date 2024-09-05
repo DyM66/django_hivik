@@ -1849,16 +1849,83 @@ def megger_pdf(request, pk):
 
 'PREOPERACIONAL VIEW'
 class SalidaListView(LoginRequiredMixin, generic.ListView):
-
     model = Preoperacional
     paginate_by = 15
     template_name = 'got/preoperacional/salida_list.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Obtener la fecha actual
+        fecha_actual = timezone.now()
+
+        # Generar rangos de meses y años
+        meses = [(i, _(calendar.month_name[i])) for i in range(1, 13)]  # De enero a diciembre
+        anios = range(fecha_actual.year - 5, fecha_actual.year + 1)  # Últimos 5 años hasta el actual
+
+        # Pasar estos valores al contexto
+        context['fecha_actual'] = fecha_actual
+        context['meses'] = meses
+        context['anios'] = anios
+
+        return context
 
 class SalidaDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = Preoperacional
     template_name = 'got/preoperacional/salida_detail.html'
+
+
+def export_preoperacional_to_excel(request):
+    # Obtener el mes y año del request
+    mes = int(request.GET.get('mes', datetime.now().month))
+    anio = int(request.GET.get('anio', datetime.now().year))
+
+    # Filtrar los registros por el mes y año seleccionados
+    preoperacionales = Preoperacional.objects.filter(fecha__month=mes, fecha__year=anio)
+
+    # Crear un archivo de Excel
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = f"Preoperacional {mes}-{anio}"
+
+    # Escribir el encabezado
+    headers = [
+        'Fecha', 'Vehiculo', 'Responsable', 'Kilometraje', 'Salida', 'Destino', 
+        'Autorizado', 'Horas trabajo', 'Medicamentos', 'Molestias', 'Enfermo', 
+        'Condiciones', 'Agua', 'Dormido', 'Control', 'Sueño', 'Radio Aire', 
+        'Observaciones'
+    ]
+    for col_num, header in enumerate(headers, 1):
+        sheet.cell(row=1, column=col_num).value = header
+
+    # Escribir los datos
+    for row_num, preop in enumerate(preoperacionales, 2):
+        sheet.cell(row=row_num, column=1).value = preop.fecha.strftime('%d/%m/%Y')
+        sheet.cell(row=row_num, column=2).value = str(preop.vehiculo)
+        sheet.cell(row=row_num, column=3).value = f"{preop.reporter.first_name} {preop.reporter.last_name}" if preop.reporter else preop.nombre_no_registrado
+        sheet.cell(row=row_num, column=4).value = preop.kilometraje
+        sheet.cell(row=row_num, column=5).value = preop.salida
+        sheet.cell(row=row_num, column=6).value = preop.destino
+        sheet.cell(row=row_num, column=7).value = preop.get_autorizado_display()
+        sheet.cell(row=row_num, column=8).value = 'Sí' if preop.horas_trabajo else 'No'
+        sheet.cell(row=row_num, column=9).value = 'Sí' if preop.medicamentos else 'No'
+        sheet.cell(row=row_num, column=10).value = 'Sí' if preop.molestias else 'No'
+        sheet.cell(row=row_num, column=11).value = 'Sí' if preop.enfermo else 'No'
+        sheet.cell(row=row_num, column=12).value = 'Sí' if preop.condiciones else 'No'
+        sheet.cell(row=row_num, column=13).value = 'Sí' if preop.agua else 'No'
+        sheet.cell(row=row_num, column=14).value = 'Sí' if preop.dormido else 'No'
+        sheet.cell(row=row_num, column=15).value = 'Sí' if preop.control else 'No'
+        sheet.cell(row=row_num, column=16).value = 'Sí' if preop.sueño else 'No'
+        sheet.cell(row=row_num, column=17).value = 'Sí' if preop.radio_aire else 'No'
+        sheet.cell(row=row_num, column=18).value = preop.observaciones
+
+    # Preparar el archivo para la descarga
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Preoperacional_{mes}-{anio}.xlsx'
+    workbook.save(response)
+    
+    return response
 
 
 def preoperacional_especifico_view(request, code):
@@ -1906,10 +1973,143 @@ def preoperacional_especifico_view(request, code):
 
 'PREOPERACIONAL DIARIO VIEW'
 class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
-
     model = PreoperacionalDiario
     paginate_by = 15
     template_name = 'got/preoperacional/preoperacional_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Obtener la fecha actual
+        fecha_actual = timezone.now()
+
+        # Generar rangos de meses y años
+        meses = [(i, _(calendar.month_name[i])) for i in range(1, 13)]  # De enero a diciembre
+        anios = range(fecha_actual.year - 5, fecha_actual.year + 1)  # Últimos 5 años hasta el actual
+
+        # Pasar estos valores al contexto
+        context['fecha_actual'] = fecha_actual
+        context['meses'] = meses
+        context['anios'] = anios
+
+        return context
+    
+
+def export_preoperacionaldiario_excel(request):
+    mes = request.GET.get('mes', timezone.now().month)
+    anio = request.GET.get('anio', timezone.now().year)
+
+    # Filtrar los registros por el mes y el año seleccionados
+    preoperacional_diarios = PreoperacionalDiario.objects.filter(
+        fecha__year=anio,
+        fecha__month=mes
+    )
+
+    # Crear el libro de Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"Preoperacional Diario {mes}-{anio}"
+
+    # Escribir los encabezados
+    headers = [
+        'Fecha', 'Vehículo', 'Responsable', 'Kilometraje', 'Nivel de Combustible',
+        'Nivel de Aceite', 'Nivel de Refrigerante', 'Nivel de Hidráulico', 'Nivel de Líquido de Frenos',
+        'Poleas', 'Correas', 'Mangueras', 'Acoples', 'Tanques', 'Radiador', 'Terminales', 'Bujes', 'Rótulas', 
+        'Ejes', 'Cruceta', 'Puertas', 'Chapas', 'Manijas', 'Elevavidrios', 'Lunas', 'Espejos', 
+        'Vidrio Panorámico', 'Asiento', 'Apoyacabezas', 'Cinturón', 'Aire', 'Caja de Cambios', 
+        'Dirección', 'Batería', 'Luces Altas', 'Luces Medias', 'Luces Direccionales', 'Cocuyos', 'Luz de Placa',
+        'Luz Interna', 'Pito', 'Alarma de Retroceso', 'Arranque', 'Alternador', 'Rines', 'Tuercas', 
+        'Esparragos', 'Freno de Servicio', 'Freno de Seguridad', 'Llanta de Repuesto', 'Llantas', 'Suspensión',
+        'Capó', 'Persiana', 'Bumper Delantero', 'Parabrisas', 'Guardafango', 'Stop', 'Bumper Trasero',
+        'Vidrio Panorámico Trasero', 'Placa Delantera', 'Placa Trasera', 'Aseo Externo', 'Aseo Interno', 
+        'Kit de Carreteras', 'Kit de Herramientas', 'Kit de Botiquín', 'Chaleco Reflectivo', 'Aprobado', 
+        'Observaciones'
+    ]
+    ws.append(headers)
+
+    # Escribir los datos
+    for preop in preoperacional_diarios:
+        ws.append([
+            preop.fecha.strftime('%d/%m/%Y'),
+            preop.vehiculo.name,
+            f"{preop.reporter.first_name} {preop.reporter.last_name}" if preop.reporter else preop.nombre_no_registrado,
+            preop.kilometraje,
+            preop.get_combustible_level_display(),
+            preop.get_aceite_level_display(),
+            preop.get_refrigerante_level_display(),
+            preop.get_hidraulic_level_display(),
+            preop.get_liq_frenos_level_display(),
+            preop.get_poleas_display(),
+            preop.get_correas_display(),
+            preop.get_mangueras_display(),
+            preop.get_acoples_display(),
+            preop.get_tanques_display(),
+            preop.get_radiador_display(),
+            preop.get_terminales_display(),
+            preop.get_bujes_display(),
+            preop.get_rotulas_display(),
+            preop.get_ejes_display(),
+            preop.get_cruceta_display(),
+            preop.get_puertas_display(),
+            preop.get_chapas_display(),
+            preop.get_manijas_display(),
+            preop.get_elevavidrios_display(),
+            preop.get_lunas_display(),
+            preop.get_espejos_display(),
+            preop.get_vidrio_panoramico_display(),
+            preop.get_asiento_display(),
+            preop.get_apoyacabezas_display(),
+            preop.get_cinturon_display(),
+            preop.get_aire_display(),
+            preop.get_caja_cambios_display(),
+            preop.get_direccion_display(),
+            preop.get_bateria_display(),
+            preop.get_luces_altas_display(),
+            preop.get_luces_medias_display(),
+            preop.get_luces_direccionales_display(),
+            preop.get_cocuyos_display(),
+            preop.get_luz_placa_display(),
+            preop.get_luz_interna_display(),
+            preop.get_pito_display(),
+            preop.get_alarma_retroceso_display(),
+            preop.get_arranque_display(),
+            preop.get_alternador_display(),
+            preop.get_rines_display(),
+            preop.get_tuercas_display(),
+            preop.get_esparragos_display(),
+            preop.get_freno_servicio_display(),
+            preop.get_freno_seguridad_display(),
+            'Sí' if preop.is_llanta_repuesto else 'No',
+            preop.get_llantas_display(),
+            preop.get_suspencion_display(),
+            preop.get_capo_display(),
+            preop.get_persiana_display(),
+            preop.get_bumper_delantero_display(),
+            preop.get_panoramico_display(),
+            preop.get_guardafango_display(),
+            preop.get_stop_display(),
+            preop.get_bumper_trasero_display(),
+            preop.get_vidrio_panoramico_trasero_display(),
+            preop.get_placa_delantera_display(),
+            preop.get_placa_trasera_display(),
+            'Sí' if preop.aseo_externo else 'No',
+            'Sí' if preop.aseo_interno else 'No',
+            'Sí' if preop.kit_carreteras else 'No',
+            'Sí' if preop.kit_herramientas else 'No',
+            'Sí' if preop.kit_botiquin else 'No',
+            'Sí' if preop.chaleco_reflectivo else 'No',
+            'Sí' if preop.aprobado else 'No',
+            preop.observaciones
+        ])
+
+    # Preparar la respuesta HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=PreoperacionalDiario_{mes}_{anio}.xlsx'
+
+    # Guardar el archivo de Excel en la respuesta
+    wb.save(response)
+
+    return response
 
 
 class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
