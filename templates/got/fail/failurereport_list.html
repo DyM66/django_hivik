@@ -36,6 +36,21 @@
 		</aside>
 	{% endif %}
 
+	<div class="container mt-5">
+        <div class="card rounded shadow">
+            <div class="row">
+                <div class="card-body col-md-6">
+                    <h5 class="card-title">Reportes de falla abiertos</h5>
+                    <h1 class="display-1">{{ count_abierto }}</h1> 
+                </div>
+                <div class="card-body col-md-6">
+                    <h5 class="card-title">Reportes de falla en proceso</h5>
+                    <h1 class="display-1">{{ count_proceso }}</h1> 
+                </div>
+            </div>
+        </div>
+    </div>
+
 	<table class="table-list">
     	<thead>
         	<tr>

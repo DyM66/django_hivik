@@ -3,25 +3,22 @@
 
 <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
-        <!-- Logo de serport -->
         <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" width="150px">
-        <!-- <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" width="150px"> -->
-        <!-- Boton para barra de navegación responsive -->
+
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
               <span class="navbar-toggler-icon"></span>
         </button>
-        <!-- Enlaces de navegación -->
+
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
-                <!-- Muestra el enlace directo al equipo del supervisor -->
                 {% if asset_del_supervisor %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.path == asset_del_supervisor.get_absolute_url %}active{% endif %}" href="{{ asset_del_supervisor.get_absolute_url }}">
                             {{ asset_del_supervisor.name }}
                         </a>
                     </li>
-                {% else %}
+                {% elif perms.got.view_asset %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'asset-list' %}active{% endif %}" href="{% url 'got:asset-list' %}">
                             Equipos
@@ -36,12 +33,14 @@
                         </a>
                     </li>
                 {% endif %}
+                
+                {% if perms.got.view_ot %}
                     <li class="nav-item">
                         <a class="nav-link  {% if request.resolver_match.url_name == 'ot-list' %}active{% endif %}" href="{% url 'got:ot-list' %}">
                             Ordenes de trabajo
                         </a>
                     </li>
-
+                {% endif %}
 
                 {% if perms.got.view_failurereport %}
                     <li class="nav-item">
@@ -51,8 +50,15 @@
                     </li>
                 {% endif %}
 
-                <!-- Opciones limitadas para supervisores de serport -->
-                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                {% if perms.got.view_solicitud %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'rq-list' %}active{% endif %}" href="{% url 'got:rq-list' %}">
+                            Solicitudes
+                        </a>
+                    </li>
+                {% endif %}
+
+                <!-- {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'ruta-list' %}active{% endif %}" href="{% url 'got:ruta-list' %}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Rutinas
@@ -62,14 +68,8 @@
                             <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
                         </ul>
                     </li>
-                {% endif %}
-                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" or request.user|has_group:"maq_members"  %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'rq-list' %}active{% endif %}" href="{% url 'got:rq-list' %}">
-                            Solicitudes
-                        </a>
-                    </li>
-                {% endif %}
+                {% endif %} -->
+
                 {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'got:dashboard' %}">
@@ -77,13 +77,15 @@
                         </a>
                     </li>
                 {% endif %}
-                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+
+                {% if perms.got.view_operation %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'operation-list' %}active{% endif %}" href="{% url 'got:operation-list' %}">
                             Proyectos
                         </a>
                     </li>
                 {% endif %}
+
                 {% if perms.got.view_salida %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'salida-list' %}active{% endif %}" href="{% url 'got:salida-list' %}">

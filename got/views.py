@@ -822,6 +822,8 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['assets'] = Asset.objects.filter(area='a')
+        context['count_proceso'] = FailureReport.objects.filter(closed=False, related_ot__isnull=False).count()
+        context['count_abierto'] = FailureReport.objects.filter(closed=False).count()
         return context
 
     def get_queryset(self):
@@ -1673,14 +1675,6 @@ def rutina_form_view(request, ruta_id):
                 actualizar_ruta_y_dependencias(ruta.dependencia, ot, fecha)
         actualizar_ruta_y_dependencias(ruta, new_ot, fecha_seleccionada)
 
-        # ruta.intervention_date = fecha_seleccionada
-        # ruta.ot = new_ot
-        # ruta.save()
-
-        # for dependencia in dependencias:
-        #     dependencia.intervention_date = fecha_seleccionada
-        #     dependencia.ot = new_ot
-        #     dependencia.save()
 
         print("Nueva OT creada con éxito:", new_ot)
         return redirect(reverse('got:sys-detail', args=[ruta.system.id]))
