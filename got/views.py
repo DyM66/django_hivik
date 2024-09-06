@@ -1601,24 +1601,23 @@ def crear_ot_desde_ruta(request, ruta_id):
     return redirect('got:ot-detail', pk=nueva_ot.pk)
 
 
-
-
 def rutina_form_view(request, ruta_id):
     ruta = get_object_or_404(Ruta, code=ruta_id)
-    tasks = Task.objects.filter(ruta=ruta)
+
+    tasks_ruta_principal = Task.objects.filter(ruta=ruta)
     fecha_actual = timezone.now().date()
     fecha_seleccionada = request.POST.get('fecha', fecha_actual)
     ot_state = 'f' 
 
-    if request.method == 'POST':
-        formset_data = []
+    def procesar_tasks_y_dependencias(ruta, formset_data):
+        tasks = Task.objects.filter(ruta=ruta)
         for task in tasks:
             realizado = request.POST.get(f'realizado_{task.id}') == 'on'
             observaciones = request.POST.get(f'observaciones_{task.id}')
             evidencias = request.FILES.getlist(f'evidencias_{task.id}')
             
             if not realizado:
-                ot_state = 'x'
+                ot_state = 'x'  # Si alguna tarea no está realizada, la OT no estará finalizada
             
             formset_data.append({
                 'task': task,
@@ -1626,6 +1625,15 @@ def rutina_form_view(request, ruta_id):
                 'observaciones': observaciones,
                 'evidencias': evidencias
             })
+
+        
+        if ruta.dependencia:
+            procesar_tasks_y_dependencias(ruta.dependencia, formset_data)
+
+
+    if request.method == 'POST':
+        formset_data = []
+        procesar_tasks_y_dependencias(ruta, formset_data)
 
         signature_data = request.POST.get('signature')
         signature_file = None
@@ -1656,17 +1664,44 @@ def rutina_form_view(request, ruta_id):
             # Guardar evidencias si las hay
             for evidencia in form_data['evidencias']:
                 Image.objects.create(task=new_task, image=evidencia)
-        ruta.intervention_date = fecha_seleccionada
-        ruta.ot = new_ot
-        ruta.save()
+
+        def actualizar_ruta_y_dependencias(ruta, ot, fecha):
+            ruta.intervention_date = fecha
+            ruta.ot = ot
+            ruta.save()
+            if ruta.dependencia:
+                actualizar_ruta_y_dependencias(ruta.dependencia, ot, fecha)
+        actualizar_ruta_y_dependencias(ruta, new_ot, fecha_seleccionada)
+
+        # ruta.intervention_date = fecha_seleccionada
+        # ruta.ot = new_ot
+        # ruta.save()
+
+        # for dependencia in dependencias:
+        #     dependencia.intervention_date = fecha_seleccionada
+        #     dependencia.ot = new_ot
+        #     dependencia.save()
+
         print("Nueva OT creada con éxito:", new_ot)
         return redirect(reverse('got:sys-detail', args=[ruta.system.id]))
 
     else:
-        formset_data = [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages()} for task in tasks]
+        formset_data = [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages()} for task in tasks_ruta_principal]
+        dependencias = []
+        
+        # Agregar las tareas de las rutas dependientes
+        print(f'Hola{ruta.dependencia}')
+        if ruta.dependencia:
+            dependencias = [ruta.dependencia]
+            while dependencias[-1].dependencia:
+                dependencias.append(dependencias[-1].dependencia)
+
+            for dependencia in dependencias:
+                tasks_dependencia = Task.objects.filter(ruta=dependencia)
+                formset_data += [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages(), 'dependencia': dependencia.name} for task in tasks_dependencia]
 
     return render(request, 'got/ruta_ot_form.html', 
-                  {'formset_data': formset_data, 'ruta': ruta, 'fecha_seleccionada': fecha_seleccionada,}
+                  {'formset_data': formset_data, 'ruta': ruta, 'dependencias': dependencias, 'fecha_seleccionada': fecha_seleccionada}
                   )
 
 
