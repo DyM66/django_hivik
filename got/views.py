@@ -148,39 +148,38 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         asset = self.get_object()
         systems = asset.system_set.all()
 
-        transacciones = TransaccionSuministro.objects.filter(
-            suministro__asset=asset, suministro__item__id=132
-        ).order_by('fecha')
+        hoy = timezone.now().date() - timedelta(days=1)
+        hace_30_dias = hoy - timedelta(days=30)
 
-        labels = [trans.fecha.strftime('%Y-%m-%d') for trans in transacciones]
-        total_consumo = [float(trans.cantidad_consumida) for trans in transacciones]
+        consumos = TransaccionSuministro.objects.filter(
+            suministro__asset=asset,
+            suministro__item__id=132,
+            fecha__range=[hace_30_dias, hoy]
+        ).values('fecha').annotate(total_consumido=Sum('cantidad_consumida')).order_by('fecha')
 
-        consumos_por_equipo = {}
-        consumos = DailyFuelConsumption.objects.filter(equipo__system__asset=asset).order_by('fecha')
-        for consumo in consumos:
-            equipo_name = consumo.equipo.name
-            if equipo_name not in consumos_por_equipo:
-                consumos_por_equipo[equipo_name] = {
-                    'labels': [],
-                    'data': []
-                }
-            consumos_por_equipo[equipo_name]['labels'].append(consumo.fecha.strftime('%Y-%m-%d'))
-            consumos_por_equipo[equipo_name]['data'].append(float(consumo.com_estimado_motor))
+        fechas = [(hace_30_dias + timedelta(days=i)).strftime('%d/%m') for i in range(31)]
+        consumos_dict = {consumo['fecha'].strftime('%d/%m'): consumo['total_consumido'] for consumo in consumos}
+        consumos_grafica = [consumos_dict.get(fecha, 0) for fecha in fechas]
 
-        # Horas trabajadas por equipo
-        horas_por_equipo = {}
-        for equipo in Equipo.objects.filter(system__asset=asset, tipo='r'):
-            horas = HistoryHour.objects.filter(component=equipo).order_by('-report_date')
-            horas_por_equipo[equipo.name] = {
-                'labels': [hora.report_date.strftime('%Y-%m-%d') for hora in horas],
-                'data': [float(hora.hour) for hora in horas]
-            }
+        # Obtener los sistemas asociados al asset
+        systems = System.objects.filter(asset=asset)
 
-        # Añadir los datos al contexto
-        context['labels'] = labels
-        context['total_consumo'] = total_consumo
-        context['consumos_por_equipo'] = consumos_por_equipo
-        context['horas_por_equipo'] = horas_por_equipo
+        # Obtener los equipos que pertenecen a los sistemas del asset
+        equipos = Equipo.objects.filter(system__in=systems)
+
+        # Horas de operación (HistoryHour) para los equipos relacionados con los sistemas del asset
+        horas_operacion = HistoryHour.objects.filter(
+            component__in=equipos,
+            report_date__range=[hace_30_dias, hoy]
+        ).values('report_date').annotate(total_horas=Sum('hour')).order_by('report_date')
+
+
+        horas_dict = {hora['report_date'].strftime('%d/%m'): hora['total_horas'] for hora in horas_operacion}
+        horas_grafica = [horas_dict.get(fecha, 0) for fecha in fechas]
+
+        context['fechas'] = fechas  # Fechas para el eje X
+        context['consumos_grafica'] = consumos_grafica 
+        context['horas_grafica'] = horas_grafica
 
         other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
         combined_systems = (systems.union(other_asset_systems)).order_by('group')

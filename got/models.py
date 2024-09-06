@@ -14,6 +14,7 @@ from django.contrib.humanize.templatetags.humanize import intcomma
 from decimal import Decimal
 
 
+# Funciones auxiliares
 def get_upload_path(instance, filename):
     ext = filename.split('.')[-1]
     filename = f"media/{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
@@ -26,6 +27,7 @@ def get_upload_pdfs(instance, filename):
     return filename
 
 
+# Model 1: Carasteristicas del usuario
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     cargo = models.CharField(max_length=100, null=True, blank=True)
@@ -34,7 +36,6 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username}'s profile"
 
-
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -42,6 +43,7 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
     instance.profile.save()
 
 
+# Model 2: Articulos
 class Item(models.Model):
 
     SECCION = (
