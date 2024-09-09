@@ -64,6 +64,37 @@
         {% endfor %}
     </div>
 
+        <!-- Nueva sección para mostrar los assets del área 'a' y sus OTs en ejecución -->
+        <div class="assets-motonave-section">
+            <h2>Assets - Área Motonave y OTs en Ejecución</h2>
+            <table class="table-list">
+                <thead>
+                    <tr>
+                        <th>Asset</th>
+                        <th>OTs en Ejecución</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset, ots in assets_with_ots.items %}
+                        <tr>
+                            <td>{{ asset.name }}</td>
+                            <td>
+                                {% if ots %}
+                                    <ul>
+                                        {% for ot in ots %}
+                                            <li><a href="{% url 'got:ot-detail' ot.num_ot %}">{{ ot.description }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    No hay OTs en ejecución
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         const rows = document.querySelectorAll("tr[data-href]");

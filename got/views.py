@@ -64,6 +64,12 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
             area: Asset.objects.filter(area=code)
             for code, area in areas.items()
         }
+        assets_motonave = Asset.objects.filter(area='a')
+        assets_with_ots = {
+            asset: Ot.objects.filter(system__asset=asset, state='x')
+            for asset in assets_motonave
+        }
+        context['assets_with_ots'] = assets_with_ots
         return context
 
 
