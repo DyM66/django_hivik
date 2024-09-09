@@ -396,6 +396,10 @@
                     <div class="modal-body">
                         <form id="signature-form" method="post" action="{% url 'got:ot-detail' ot.num_ot %}" enctype="multipart/form-data">
                             {% csrf_token %}
+                            <label for="signature-image">Subir imagen de firma (opcional):</label>
+                            <input type="file" id="signature-image" name="signature_image" accept="image/*" class="form-control">
+                            
+                            <hr>
                             <label for="signature-pad">Firma de recepción a sactisfacción de la orden de trabajo:</label>
                             <canvas id="signature-pad" class="signature-pad" width="450" height="200"></canvas>
                             <input type="hidden" id="signature-data" name="sign_supervisor">
@@ -415,7 +419,8 @@
             var form = document.getElementById('signature-form');  // Asegúrate de asignar un ID único al formulario de firma
 
             form.addEventListener('submit', function(event) {
-                if (signaturePad.isEmpty()) {
+                var signatureImage = document.getElementById('signature-image').files[0];
+                if (!signatureImage && signaturePad.isEmpty()) {
                     alert("Por favor, proporciona una firma primero.");
                     event.preventDefault();  // Detiene el envío del formulario si no hay firma
                 } else {

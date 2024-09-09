@@ -42,27 +42,26 @@
 
         <tbody>
             {% for item in formset_data %}
-            {% if not item.dependencia %}
-            <tr>
-                <td>{{ item.task.description }}</td>
-                <td class="realizado-checkbox">
-                    <input type="checkbox" name="realizado_{{ item.task.id }}" class="form-check-input" style="width: 20px; height: 20px;">
-                </td>
-                <td>
-                    <textarea name="observaciones_{{ item.task.id }}" class="form-control observaciones-textarea" placeholder="Añadir observaciones..."></textarea>
-                </td>
-                <td>
-                    <input type="file" name="evidencias_{{ item.task.id }}" class="form-control evidencias-input" multiple>
-                </td>
-            </tr>
-            {% endif %}
+                {% if not item.dependencia %}
+                    <tr>
+                        <td>{{ item.task.description }}</td>
+                        <td class="realizado-checkbox">
+                            <input type="checkbox" name="realizado_{{ item.task.id }}" class="form-check-input" style="width: 20px; height: 20px;">
+                        </td>
+                        <td>
+                            <textarea name="observaciones_{{ item.task.id }}" class="form-control observaciones-textarea" placeholder="Añadir observaciones..."></textarea>
+                        </td>
+                        <td>
+                            <input type="file" name="evidencias_{{ item.task.id }}" class="form-control evidencias-input" multiple>
+                        </td>
+                    </tr>
+                {% endif %}
             {% endfor %}
         </tbody>
     </table>
 
     <br>
  
-    <!-- Sección para las dependencias -->
     {% for dependencia in dependencias %}
         <h3 class="mt-4">Actividades para la Ruta Dependiente: {{ dependencia.name }}</h3>
         <table class="table table-bordered">
@@ -97,7 +96,11 @@
     {% endfor %}
 
     <br>
-    <div class="form-group">
+    <div class="form-group mt-4">
+        <label for="signature-image">Subir imagen de la firma (opcional):</label>
+        <input type="file" id="signature-image" name="signature_image" accept="image/*" class="form-control">
+
+        <hr>
         <label for="signature">Firma del receptor</label>
         <canvas id="signature-pad" class="signature-pad" width=500 height=200 style="border: 0.2px solid #000;"></canvas>
         <input type="hidden" name="signature" id="signature">
@@ -113,10 +116,14 @@
         var form = document.getElementById('foorm');
 
         form.addEventListener('submit', function(event) {
-            if (signaturePad.isEmpty()) {
-                alert("Por favor, proporciona una firma primero.");
+            var signatureImage = document.getElementById('signature-image').files[0];
+
+            // Si no se subió una imagen y no se dibujó la firma, prevenir el envío
+            if (!signatureImage && signaturePad.isEmpty()) {
+                alert("Por favor, proporciona una firma o sube una imagen de la firma.");
                 event.preventDefault();
-            } else {
+            } else if (!signatureImage && !signaturePad.isEmpty()) {
+                // Si no se ha subido una imagen pero se dibujó la firma, guardar el dibujo
                 var dataURL = signaturePad.toDataURL("image/png");
                 document.getElementById('signature').value = dataURL;
             }

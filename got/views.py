@@ -272,15 +272,12 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 def preventivo_pdf(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
     
-    # Obtener los sistemas asociados al Asset
     systems = asset.system_set.all()
     
-    # Reutilizar la lógica de filtrado de rutas
     asset_detail_view = AssetDetailView()
-    asset_detail_view.request = request  # Asignamos el request actual a la vista para utilizar su lógica
+    asset_detail_view.request = request  
     filtered_rutas, current_month_name_es = asset_detail_view.get_filtered_rutas(asset, systems)
     
-    # Pasar los datos filtrados al contexto
     context = {
         'rq': asset,
         'filtered_rutas': filtered_rutas,
@@ -1006,7 +1003,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         if 'delete_task' in request.POST:
             task_id = request.POST.get('delete_task_id')
             task = Task.objects.get(id=task_id, ot=ot)
-            task.modified_by = request.user  # Asignar el usuario al campo `modified_by` en Task
+            task.modified_by = request.user 
             task.save()
             task.delete()
             return redirect(ot.get_absolute_url()) 
@@ -1029,7 +1026,8 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         if 'finish_ot' in request.POST and state_form.is_valid():
             self.object.state = 'f'
             self.object.modified_by = request.user
-            signature_data = request.POST.get('sign_supervisor')
+            signature_image = request.FILES.get('signature_image', None)
+            signature_data = request.POST.get('sign_supervisor', None)
 
             rutas_relacionadas = Ruta.objects.filter(ot=ot)
             for ruta in rutas_relacionadas:
@@ -1041,55 +1039,16 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
                 fail.modified_by = request.user
                 fail.save()
 
-            # supervisor = ot.system.asset.supervisor
-            # if supervisor and supervisor.email:
-            #     supervisor_email = supervisor.email
-
-            if signature_data:
+            if signature_image:
+                self.object.sign_supervision = signature_image
+            elif signature_data:
                 format, imgstr = signature_data.split(';base64,')
                 ext = format.split('/')[-1]
                 filename = f'supervisor_signature_{uuid.uuid4()}.{ext}'
                 data = ContentFile(base64.b64decode(imgstr), name=filename)
                 self.object.sign_supervision.save(filename, data, save=True)
-                self.object.save()
-
-                # Enviar correo electrónico al finalizar la OT
-                # subject = f'Orden de Trabajo {ot.num_ot} Finalizada'
-                # message = render_to_string('got/ot_finished_email.txt', {'ot': ot})
-                # from_email = settings.EMAIL_HOST_USER
-                # to_email = supervisor_email
-
-                # email = EmailMessage(
-                #     subject, message, from_email, [to_email]
-                #     )
-
-                # # Adjuntar el PDF al correo
-                # pdf_content_dynamic = generate_pdf_content(ot)
-                # pdf_filename_dynamic = f'OT_{ot.num_ot}_Detalle.pdf'
-                # email.attach(
-                #     pdf_filename_dynamic,
-                #     pdf_content_dynamic,
-                #     'application/pdf'
-                #     )
-
-                # Adjuntar el PDF almacenado en el campo info_contratista_pdf
-                # if ot.info_contratista_pdf:
-                #     pdf_filename_stored = f'OT_{ot.num_ot}_Contratista.pdf'
-                #     email.attach(
-                #         pdf_filename_stored,
-                #         ot.info_contratista_pdf.read(),
-                #         'application/pdf'
-                #         )
-
-                # try:
-                #     # Preparar y enviar el correo electrónico
-                #     email.send()
-                # except smtplib.SMTPSenderRefused as e:
-                #     # Manejar adecuadamente el error
-                #     logger.error(f"Error al enviar correo: {str(e)}")
-                #     messages.error(request, "No se pudo enviar el correo. El tamaño del mensaje excede el límite permitido.")
-                #     return redirect(ot.get_absolute_url())
-
+            
+            self.object.save()
             return redirect(ot.get_absolute_url())
 
         elif 'submit_task' in request.POST and task_form.is_valid():
@@ -1623,9 +1582,12 @@ def rutina_form_view(request, ruta_id):
         formset_data = []
         procesar_tasks_y_dependencias(ruta, formset_data)
 
+        signature_image = request.FILES.get('signature_image')
         signature_data = request.POST.get('signature')
         signature_file = None
-        if signature_data:
+        if signature_image:
+            signature_file = signature_image
+        elif signature_data:
             format, imgstr = signature_data.split(';base64,')
             ext = format.split('/')[-1]
             filename = f'signature_{uuid.uuid4()}.{ext}'
