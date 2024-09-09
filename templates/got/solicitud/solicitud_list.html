@@ -76,7 +76,7 @@
 				<tr>
 					<td data-cell="Orden de trabajo">
                         <h6 id="{{rq.id}}">
-                            {% if rq.ot %}Orden de trabajo OT{{ rq.ot }}{% else %}Consumibles/ Repuestos/ Herramientas{% endif %}
+                            {% if rq.ot %}Orden de trabajo OT{{ rq.ot }} - {{ rq.ot.get_tipo_mtto_display }} {% else %}Consumibles/ Repuestos/ Herramientas{% endif %}
                         </h6>
                     </td>
 					

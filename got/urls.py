@@ -25,7 +25,6 @@ urlpatterns = [
     path('equipment/<str:code>/add_supply/', views.add_supply_to_equipment, name='supply'),
     path('transferir-equipo/<str:equipo_id>/', views.transferir_equipo, name='transferir_equipo'),
 
-    path("reportehoras/<str:component>/", views.reporthours, name='horas'),
     path("reportehorasasset/<str:asset_id>/",views.reportHoursAsset,name='horas-asset'),
 
     path("report-failure/", views.FailureListView.as_view(), name="failure-report-list"),
@@ -93,8 +92,6 @@ urlpatterns = [
 
     path("dash/", views.indicadores, name='dashboard'),
 
-    path('add-location/', views.add_location, name='add-location'),
-    path('location/<int:pk>/', views.view_location, name='view-location'),
 
     path('items/', views.ItemManagementView.as_view(), name='item_management'),
     path('items/edit/<int:item_id>/', views.edit_item, name='edit_item'),

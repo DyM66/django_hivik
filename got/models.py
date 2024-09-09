@@ -25,6 +25,19 @@ def get_upload_pdfs(instance, filename):
     filename = f"pdfs/{uuid.uuid4()}.{ext}"
     return filename
 
+class ActivityLog(models.Model):
+    user_name = models.CharField(max_length=100)
+    action = models.CharField(max_length=100)
+    model_name = models.CharField(max_length=100)
+    object_id = models.CharField(max_length=100, null=True, blank=True)
+    field_name = models.CharField(max_length=100, null=True, blank=True)
+    old_value = models.TextField(null=True, blank=True)
+    new_value = models.TextField(null=True, blank=True)
+    timestamp = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.user_name} {self.action} {self.model_name} {self.field_name} at {self.timestamp}"
+
 
 # Model 1: Carasteristicas del usuario
 class UserProfile(models.Model):
@@ -58,6 +71,7 @@ class Item(models.Model):
     presentacion = models.CharField(max_length=10)
     code = models.CharField(max_length=50, null=True, blank=True)
     seccion = models.CharField(max_length=1, choices=SECCION, default='c')
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return f"{self.name} {self.reference}"
@@ -90,6 +104,7 @@ class Asset(models.Model):
     deadweight = models.IntegerField(default=0, null=True, blank=True)
     arqueo_bruto = models.IntegerField(default=0, null=True, blank=True)
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_assets')
 
     def check_ruta_status(self, frecuency, location=None):
         if location:
@@ -158,8 +173,8 @@ class System(models.Model):
     group = models.IntegerField()
     location = models.CharField(max_length=50, default="Cartagena", null=True, blank=True)
     state = models.CharField(choices=STATUS, default='m', max_length=1)
-
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return '%s/ %s' % (self.asset, self.name)
@@ -249,6 +264,7 @@ class Equipo(models.Model):
     volumen = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
 
     manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True)
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def volumen_format(self):
         if self.volumen is not None:
@@ -302,25 +318,13 @@ class Equipo(models.Model):
         return reverse('got:sys-detail-view', args=[self.system.id, self.code])
 
 
-class Location(models.Model):
-
-    name = models.CharField(max_length=50)
-    direccion = models.CharField(max_length=100)
-    contact = models.CharField(max_length=50, null=True, blank=True)
-    num_contact = models.CharField(max_length=50, null=True, blank=True)
-    latitude = models.DecimalField(max_digits=20, decimal_places=20, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=20, decimal_places=20, null=True, blank=True)
-
-    def __str__(self):
-        return self.name
-
-
 class HistoryHour(models.Model):
 
     report_date = models.DateField()
     hour = models.DecimalField(max_digits=10, decimal_places=2)
     reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     component = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='hours')
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_hours')
 
     def __str__(self):
         return '%s: %s - %s (%s) /%s' % (self.report_date, self.component, self.hour, self.reporter, self.component.system.asset)
@@ -357,6 +361,7 @@ class Ot(models.Model):
     tipo_mtto = models.CharField(choices=TIPO_MTTO, max_length=1)
 
     sign_supervision = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_ots')
 
     @property
     def formatted_presupuesto(self):
@@ -408,7 +413,7 @@ class Ruta(models.Model):
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='rutas')
     equipo = models.ForeignKey(Equipo, on_delete=models.SET_NULL, null=True, blank=True, related_name='equipos')
     dependencia = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependiente')
-
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     @property
     def next_date(self):
@@ -492,13 +497,12 @@ class Task(models.Model):
     procedimiento = models.TextField(default="", blank=True, null=True)
     hse = models.TextField(default="", blank=True, null=True)
     news = models.TextField(blank=True, null=True)
-    
     evidence = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
-    
     priority = models.IntegerField(default=0, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     men_time = models.IntegerField(default=0)
     finished = models.BooleanField()
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_tasks')
 
     def __str__(self):
         return self.description
@@ -543,6 +547,7 @@ class FailureReport(models.Model):
     closed = models.BooleanField(default=False)
     impact = ArrayField(models.CharField(max_length=1, choices=IMPACT), default=list, blank=True)
     related_ot = models.ForeignKey('Ot', on_delete=models.SET_NULL, null=True, blank=True, related_name='failure_report')
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_failures')
 
     class Meta:
         ordering = ['-moment']
@@ -590,7 +595,7 @@ class Solicitud(models.Model):
     cancel_date = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.TextField(null=True, blank=True)
     cancel = models.BooleanField(default=False)
-
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_solicitudes')
     # proveedor = models.CharField(max_length=100, null=True, blank=True)
     # inversion = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Inversión (COP)")
 
@@ -617,6 +622,7 @@ class Salida(models.Model):
     sign_recibe = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
 
     adicional = models.TextField(null=True, blank=True)
+    
 
     def __str__(self):
         return f"{self.motivo} - {self.fecha}"

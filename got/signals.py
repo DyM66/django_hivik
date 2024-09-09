@@ -1,6 +1,6 @@
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
-from .models import HistoryHour, TransaccionSuministro, DailyFuelConsumption, Equipo, Item
+from .models import *
 from django.db.models import Avg, Sum, Min
 from decimal import Decimal
 from datetime import datetime
@@ -135,3 +135,64 @@ def create_daily_fuel_consumption(sender, instance, **kwargs):
                     fecha=today,
                     defaults={'com_estimado_motor': consumo_estimado}
                 )
+
+
+@receiver(pre_save)
+def track_model_changes_pre_save(sender, instance, **kwargs):
+    # Solo rastrear los modelos que tienen el campo modified_by
+    if hasattr(instance, 'modified_by'):
+        # Almacenar los valores anteriores
+        if instance.pk:  # Solo si el objeto ya existe
+            try:
+                instance._original_state = sender.objects.get(pk=instance.pk)
+            except sender.DoesNotExist:
+                instance._original_state = None
+
+
+@receiver(post_save)
+def track_model_changes_post_save(sender, instance, **kwargs):
+    if hasattr(instance, 'modified_by'):
+        # Si hay un estado anterior guardado en pre_save
+        if hasattr(instance, '_original_state') and instance._original_state:
+            original_instance = instance._original_state
+            # Comparar los campos modificados
+            for field in instance._meta.fields:
+                field_name = field.name
+                old_value = getattr(original_instance, field_name)
+                new_value = getattr(instance, field_name)
+
+                if old_value != new_value:  # Si el valor cambió
+                    # Guardar en el registro de actividad
+                    ActivityLog.objects.create(
+                        user_name=instance.modified_by.username,
+                        action='updated',
+                        model_name=sender.__name__,
+                        object_id=instance.pk,
+                        field_name=field_name,
+                        old_value=str(old_value),
+                        new_value=str(new_value),
+                        timestamp=timezone.now()
+                    )
+        else:
+            # Si es una creación
+            ActivityLog.objects.create(
+                user_name=instance.modified_by.username,
+                action='created',
+                model_name=sender.__name__,
+                object_id=instance.pk,
+                timestamp=timezone.now()
+            )
+
+
+@receiver(pre_delete)
+def track_model_deletion(sender, instance, **kwargs):
+    # Solo rastrear los modelos que tienen el campo modified_by
+    if hasattr(instance, 'modified_by'):
+        # Guardar el registro de eliminación
+        ActivityLog.objects.create(
+            user_name=instance.modified_by.username if instance.modified_by else "Unknown",
+            action='deleted',
+            model_name=sender.__name__,
+            object_id=instance.pk,
+            timestamp=timezone.now()
+        )

@@ -613,14 +613,6 @@ class OperationForm(forms.ModelForm):
         }
 
 
-class LocationForm(forms.ModelForm):
-    class Meta:
-        model = Location
-        fields = ['name', 'direccion', 'contact', 'num_contact', 'latitude', 'longitude']
-        widgets = {
-            'latitude': forms.HiddenInput(),
-            'longitude': forms.HiddenInput()
-        }
 
 
 class DocumentForm(forms.ModelForm):

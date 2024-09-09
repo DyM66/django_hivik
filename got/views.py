@@ -89,13 +89,8 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         consumos_dict = {consumo['fecha'].strftime('%d/%m'): consumo['total_consumido'] for consumo in consumos}
         consumos_grafica = [consumos_dict.get(fecha, 0) for fecha in fechas]
 
-        # Obtener los sistemas asociados al asset
         systems = System.objects.filter(asset=asset)
-
-        # Obtener los equipos que pertenecen a los sistemas del asset
         equipos = Equipo.objects.filter(system__in=systems)
-
-        # Horas de operación (HistoryHour) para los equipos relacionados con los sistemas del asset
         horas_operacion = HistoryHour.objects.filter(
             component__in=equipos,
             report_date__range=[hace_30_dias, hoy]
@@ -302,6 +297,7 @@ class AssetDocCreateView(generic.View):
         if form.is_valid():
             document = form.save(commit=False)
             document.asset = get_object_or_404(Asset, pk=asset_id)
+            document.modified_by = request.user
             document.save()
             return redirect('got:asset-detail', pk=asset_id)
         return render(request, self.template_name, {'form': form})
@@ -423,16 +419,10 @@ def generate_asset_pdf(request, asset_id):
     asset = get_object_or_404(Asset, pk=asset_id)
     location_based_systems = System.objects.filter(location=asset.name).exclude(asset=asset).order_by('group')
 
-    # Filtrar solo los sistemas que tienen equipos asociados
     location_based_systems = [system for system in location_based_systems if system.equipos.exists()]
-
-    # Obtener sistemas directamente asociados al asset y ordenarlos por el campo 'group'
     direct_systems = asset.system_set.all().order_by('group')
 
-    # Filtrar solo los sistemas que tienen equipos asociados
     direct_systems = [system for system in direct_systems if system.equipos.exists()]
-
-    # Unir ambos conjuntos de sistemas, primero los basados en ubicación y luego los directos
     all_systems = location_based_systems + direct_systems
 
     context = {
@@ -494,10 +484,25 @@ class SysUpdate(UpdateView):
     form_class = SysForm
     template_name = 'got/systems/system_form.html'
 
+    def form_valid(self, form):
+        system = form.save(commit=False)
+        system.modified_by = self.request.user
+        system.save()
+        return super().form_valid(form)
+
 
 class SysDelete(DeleteView):
 
     model = System
+
+    def delete(self, request, *args, **kwargs):
+        # Obtener el objeto que se va a eliminar
+        system = self.get_object()
+        # Establecer el modified_by antes de la eliminación
+        system.modified_by = request.user
+        system.save()  # Guardar la modificación antes de la eliminación
+
+        return super().delete(request, *args, **kwargs)
 
     def get_success_url(self):
         asset_code = self.object.asset.id
@@ -558,6 +563,7 @@ class EquipoCreateView(CreateView):
         sequence_str = str(sequence_number).zfill(3) 
         generated_code = f"{asset_abbreviation}-{group_number}-{tipo}-{sequence_str}"
         form.instance.code = generated_code
+        form.instance.modified_by = self.request.user
         response = super().form_valid(form)
 
         upload_form = self.get_context_data()['upload_form']
@@ -588,6 +594,7 @@ class EquipoUpdate(UpdateView):
         return context
     
     def form_valid(self, form):
+        form.instance.modified_by = self.request.user
         response = super().form_valid(form)
         upload_form = self.get_context_data()['upload_form']
 
@@ -667,35 +674,6 @@ def transferir_equipo(request, equipo_id):
     return render(request, 'got/transferencia-equipo.html', context)
 
 
-'HOURS VIEW'
-@login_required
-def reporthours(request, component):
-
-    hours = HistoryHour.objects.filter(component=component)[:30]
-    equipo = get_object_or_404(Equipo, pk=component)
-
-    if request.method == 'POST':
-        # Si se envió el formulario, procesarlo
-        form = ReportHours(request.POST)
-        if form.is_valid():
-            # Guardar el formulario si es válido
-            instance = form.save(commit=False)
-            instance.component = equipo
-            instance.reporter = request.user
-            instance.save()
-            return redirect(request.path)
-    else:
-        form = ReportHours()
-
-    context = {
-        'form': form,
-        'horas': hours,
-        'component': equipo
-    }
-
-    return render(request, 'got/hours.html', context)
-
-
 @login_required
 def reportHoursAsset(request, asset_id):
 
@@ -709,6 +687,7 @@ def reportHoursAsset(request, asset_id):
         if form.is_valid():
             instance = form.save(commit=False)
             instance.reporter = request.user
+            instance.modified_by = request.user
             instance.save()
             return redirect(request.path)
     else:
@@ -855,6 +834,7 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
         
         if form.is_valid() and image_form.is_valid():
             form.instance.reporter = request.user
+            form.instance.modified_by = request.user
             response = super().form_valid(form)
             # context = self.get_email_context()  
             # self.send_email(context)
@@ -1132,7 +1112,7 @@ class OtCreate(CreateView):
 
     def form_valid(self, form):
         ot = form.save(commit=False)
-
+        ot.modified_by = self.request.user
         if isinstance(form, OtFormNoSup):
             ot.supervisor = self.request.user.get_full_name()
         ot.save()
@@ -1252,6 +1232,7 @@ class TaskCreate(CreateView):
 
         form.instance.ruta = ruta
         form.instance.finished = False
+        form.instance.modified_by = self.request.user
 
         return super().form_valid(form)
 
@@ -2215,9 +2196,9 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         elif state == 'cancel':
             queryset = queryset.filter(cancel=True)
 
-        if self.request.user.username == 'jcastillo':
+        # if self.request.user.username == 'jcastillo':
             # Filtrar solicitudes relacionadas con OT de tipo "Preventivo"
-            queryset = queryset.filter(ot__tipo_mtto='p')
+            # queryset = queryset.filter(ot__tipo_mtto='p')
 
         return queryset
 
@@ -2685,19 +2666,7 @@ def indicadores(request):
 
 
 'EXPERIMENTAL VIEWS'
-def add_location(request):
-    if request.method == 'POST':
-        form = LocationForm(request.POST)
-        if form.is_valid():
-            location = form.save()
-            return redirect('view-location', pk=location.pk)
-    else:
-        form = LocationForm()
-    return render(request, 'got/add_location.html', {'form': form})
 
-def view_location(request, pk):
-    location = get_object_or_404(Location, pk=pk)
-    return render(request, 'got/view_location.html', {'location': location})
 
 
 class ItemManagementView(generic.TemplateView):
