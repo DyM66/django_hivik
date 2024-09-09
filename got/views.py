@@ -735,8 +735,8 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['assets'] = Asset.objects.filter(area='a')
-        context['count_proceso'] = FailureReport.objects.filter(closed=False, related_ot__isnull=False).count()
-        context['count_abierto'] = FailureReport.objects.filter(closed=False).count()
+        context['count_proceso'] = self.get_queryset().filter(closed=False, related_ot__isnull=False).count()
+        context['count_abierto'] = self.get_queryset().filter(closed=False).count()
         return context
 
     def get_queryset(self):
