@@ -9,6 +9,7 @@ from got.models import *
 from collections import defaultdict
 from datetime import date
 import openpyxl
+from django.contrib.auth.models import Group
 import pandas as pd
 
 
@@ -202,20 +203,6 @@ def consumibles_summary(asset):
     return items_by_subsystem
 
 
-def buzos_station_filter(user):
-
-    location_filters = {
-        'santamarta_station': 'Santa Marta',
-        'ctg_station': 'Cartagena',
-        'guyana_station': 'Guyana',
-    }
-    
-    locations = [loc for group, loc in location_filters.items() if user.groups.filter(name=group).exists()]
-    if locations:
-        return locations
-    pass
-
-
 def traductor(word):
     context = {
         "January": "Enero",
@@ -256,7 +243,6 @@ def calculate_status_code(t):
         return 2
 
     return None
-
 
 
 def export_rutinas_to_excel(systems, filename="rutinas.xlsx"):
@@ -336,7 +322,6 @@ def update_equipo_code(old_code):
             equipo.code = generated_code
             equipo.save()
 
-
             # Actualizar todas las relaciones donde esté relacionado el equipo
             print(f"Actualizando código de equipo de '{old_code}' a '{generated_code}'...")
 
@@ -396,3 +381,12 @@ def update_equipo_code(old_code):
     except Exception as e:
         print(f"Ha ocurrido un error: {str(e)}")
 
+
+def operational_users(current_user):
+    if current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
+        talleres = Group.objects.get(name='serport_members')
+        taller_list = list(talleres.user_set.all())
+        taller_list.append(current_user)
+        return User.objects.filter(id__in=[user.id for user in taller_list])
+    elif current_user.groups.filter(name='super_members').exists():
+        return User.objects.exclude(groups__name='gerencia')

@@ -4,11 +4,9 @@ from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group, User
 from django.core.files.base import ContentFile
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template, render_to_string
@@ -17,9 +15,6 @@ from django.utils import timezone
 from django.utils.timezone import localdate
 from django.views import generic, View
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
-
-from .models import *
-from .forms import *
 
 from datetime import timedelta, date, datetime
 from xhtml2pdf import pisa
@@ -35,79 +30,12 @@ from itertools import groupby
 from operator import attrgetter
 
 from .functions import *
+from .models import *
+from .forms import *
 
 
 logger = logging.getLogger(__name__)
 
-
-'HOME PAGE'
-class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
-
-    model = Task
-    template_name = 'got/task/assignedtasks_list_pendient.html'
-    paginate_by = 20
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        current_user = self.request.user
-        all_users = User.objects.none()
-
-        asset_id = self.request.GET.get('asset_id')
-        if asset_id:
-            context['selected_asset_name'] = Asset.objects.get(abbreviation=asset_id)
-            context['asset_id'] = asset_id
-
-        worker_id = self.request.GET.get('worker')
-        if worker_id: 
-            worker = User.objects.get(id=worker_id)
-            context['worker'] = f'{worker.first_name} {worker.last_name}'
-            context['worker_id'] = worker_id
-
-        if current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
-            talleres = Group.objects.get(name='serport_members')
-            taller_list = list(talleres.user_set.all())
-            taller_list.append(current_user)
-            all_users = User.objects.filter(id__in=[user.id for user in taller_list])
-        elif current_user.groups.filter(name='super_members').exists():
-            all_users = User.objects.all()
-
-        context['assets'] = Asset.objects.all()
-        context['serport_members'] = all_users
-
-        return context
-
-    def get_queryset(self):
-
-        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('start_date')
-        current_user = self.request.user
-
-        asset_id = self.request.GET.get('asset_id')
-        if asset_id:
-            queryset = queryset.filter(ot__system__asset_id=asset_id)
-
-        responsable_id = self.request.GET.get('worker')
-        if responsable_id:
-            queryset = queryset.filter(responsible=responsable_id)
-
-        if current_user.groups.filter(name='serport_members').exists():
-            return queryset.filter(responsible=current_user)
-
-        if current_user.groups.filter(name='super_members').exists():
-            return queryset
-
-
-        if current_user.groups.filter(name='maq_members').exists():
-            return queryset.filter(ot__system__asset__supervisor=current_user)
-
-        if current_user.groups.filter(name='buzos_members').exists():
-            locations = buzos_station_filter(self.request.user)
-            if locations:
-                return queryset.filter(ot__system__asset__area='b', ot__system__location__in=locations)
-            return queryset.filter(ot__system__asset__area='b')
-
-        return queryset.none() 
-    
- 
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, generic.ListView):
 
@@ -1265,6 +1193,48 @@ def ot_pdf(request, num_ot):
 
 
 'TASKS VIEW'
+class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
+
+    model = Task
+    template_name = 'got/task/assignedtasks_list_pendient.html'
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.groups.filter(name='buzos_members').exists():
+            context['assets'] = Asset.objects.filter(area='b')
+        else:
+            context['assets'] = Asset.objects.all()
+        context['all_users'] = operational_users(self.request.user)
+        context['total_tasks'] = self.get_queryset().count()
+        return context
+
+    def get_queryset(self):
+        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('start_date')
+        current_user = self.request.user
+
+        asset_id = self.request.GET.get('asset_id')
+        if asset_id:
+            queryset = queryset.filter(ot__system__asset_id=asset_id)
+        responsable_id = self.request.GET.get('worker')
+        if responsable_id:
+            queryset = queryset.filter(responsible=responsable_id)
+
+        if current_user.groups.filter(name='serport_members').exists():
+            return queryset.filter(responsible=current_user)
+        elif current_user.groups.filter(name='super_members').exists():
+            return queryset
+        elif current_user.groups.filter(name='maq_members').exists():
+            return queryset.filter(ot__system__asset__supervisor=current_user)
+        elif current_user.groups.filter(name='buzos_members').exists():
+            user_station = self.request.user.profile.station
+            if user_station:
+                return queryset.filter(ot__system__asset__area='b', ot__system__location__in=user_station)
+            return queryset.filter(ot__system__asset__area='b')
+        
+        return queryset.none() 
+
+
 class TaskDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = Task
@@ -2244,6 +2214,10 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
             queryset = queryset.filter(approved=True, sc_change_date__isnull=False, cancel=False)
         elif state == 'cancel':
             queryset = queryset.filter(cancel=True)
+
+        if self.request.user.username == 'jcastillo':
+            # Filtrar solicitudes relacionadas con OT de tipo "Preventivo"
+            queryset = queryset.filter(ot__tipo_mtto='p')
 
         return queryset
 

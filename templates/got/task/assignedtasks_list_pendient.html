@@ -2,40 +2,53 @@
 {% load my_tags %}
 
 {% block header %}
-    Actividades pendientes {% if selected_asset_name %} - {{ selected_asset_name }}{% endif %}{% if worker %}/{{ worker }}{% endif %}
+    Actividades pendientes
 {% endblock %}
-
 {% block content %}
-<aside>
-    {% if not request.user|has_group:"buzos_members" %}
-        {% if not request.user|has_group:"maq_members" %}
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    Filtrar por equipo
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Mostrar todos</a></li>
-                    {% for asset in assets %}
-                        <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}?asset_id={{ asset.abbreviation }}{% if worker_id %}&worker={{ worker_id }}{% endif %}">{{ asset.name }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-        {% if not request.user|has_group:"serport_members" %}
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    Filtrar por taller
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Mostrar todos</a></li>
-                    {% for u in serport_members %}
-                        <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}?{% if asset_id %}asset_id={{ asset_id }}&{% endif %}worker={{ u.id }}">{{ u.first_name }} {{ u.last_name }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
+
+    <div class="card" style="max-width: 18rem;">
+        <div class="card-header">
+            <h5 class="card-title">Total de actividades:</h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text">
+                {% if request.GET.asset_id %}
+                {{ request.GET.asset_id|asset_info }}<br>
+                {% endif %}
+                {% if request.GET.worker %}
+                {{ request.GET.worker|user_info }}
+                {% endif %}
+            </p>
+            <h1 class="display-1 text-end">{{ total_tasks }}</h1> 
+        </div>
+    </div>
+
+    {% if not request.user|has_group:"maq_members" %}
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Filtrar por equipo
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}&worker={{ request.GET.worker }}">Mostrar todos</a></li>
+                {% for asset in assets %}
+                    <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}?asset_id={{ asset.abbreviation }}&worker={{ request.GET.worker }}">{{ asset.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
     {% endif %}
-</aside>
+    {% if not request.user|has_group:"serport_members" %}
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Filtrar por taller
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Mostrar todos</a></li>
+                {% for u in all_users %}
+                    <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}?asset_id={{ request.GET.asset_id }}&worker={{ u.id }}">{{ u.first_name }} {{ u.last_name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
 
 <section class="table-responsive">
     <table class="table-list">
@@ -51,7 +64,7 @@
         </thead>
         <tbody>
             {% for act in task_list %}
-                <tr data-href="{% url 'got:finish-task' act.id %}">
+                <tr data-dropdown-target="#dropdown-{{ act.id }}">
                     <td data-cell="Orden de trabajo" class="nowrap"><strong>OT-{{ act.ot.num_ot }}</strong></td>
                     <td data-cell="Sistema">{{ act.ot.system.asset }}/{{ act.ot.system.name }}</td>
                     <td data-cell="Descripción">{{ act.description }}</td>
@@ -59,12 +72,14 @@
                     <td data-cell="Tiempo de ejecución">{{ act.start_date|date:"d/m/Y" }}-{{ act.final_date|date:"d/m/Y" }}</td>
                     <td data-cell="Estado">
                         <div class="dropdown">
-                            <button class="btn status {% if act.is_overdue %}close{% else %}pending{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button class="btn status {% if act.is_overdue %}close{% else %}pending{% endif %} btn-sm dropdown-toggle" type="button" id="dropdown-{{ act.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                 {% if act.is_overdue %}Retrasado{% else %}En progreso{% endif %}
                             </button>
-                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                            <ul class="dropdown-menu" aria-labelledby="dropdown-{{ act.id }}">
                                 <li><a class="dropdown-item" href="{{ act.get_absolute_url }}">Ver detalle</a></li>
-                                <li><a class="dropdown-item {% if not request.user|can_edit_task:act %}disabled{% endif %}" href="{% url 'got:finish-task' act.id %}">Finalizar</a></li>
+                                {% if not request.user|can_edit_task:act %}
+                                    <li><a class="dropdown-item" href="{% url 'got:finish-task' act.id %}">Finalizar</a></li>
+                                {% endif %}
                                 {% if perms.got.can_reschedule_task %}
                                     <li><a class="dropdown-item" href="{% url 'got:reschedule-task' act.id %}">Reprogramar</a></li>
                                 {% endif %}
@@ -73,23 +88,16 @@
                         </div>
                     </td>
                 </tr>
+            {% empty %}
+                <tr>
+                    <td>No hay actividades registradas</td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
 </section>
 
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const rows = document.querySelectorAll("tr[data-href]");
 
-        rows.forEach(row => {
-            row.addEventListener("click", (event) => {
-                if (!event.target.matches('.dropdown, .dropdown *, .dropdown-toggle, .dropdown-menu, .dropdown-item')) {
-                    window.location.href = row.dataset.href;
-                }
-            });
-        });
-    });
-</script>
+
 
 {% endblock %}

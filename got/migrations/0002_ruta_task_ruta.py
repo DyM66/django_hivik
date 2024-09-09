@@ -4,7 +4,7 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 import got.models
-import simple_history.models
+from decimal import Decimal
 
 
 class Migration(migrations.Migration):
@@ -114,23 +114,10 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Item',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50)),
-                ('reference', models.CharField(blank=True, max_length=100, null=True)),
-                ('imagen', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
-                ('presentacion', models.CharField(max_length=10)),
-                ('code', models.CharField(blank=True, max_length=50, null=True)),
-                ('seccion', models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas y equipos'), ('r', 'Repuestos')], default='c', max_length=1)),
-            ],
-            options={'ordering': ['name', 'reference']},
-        ),
-        migrations.CreateModel(
             name='Suministro',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cantidad', models.IntegerField()),
+                ('cantidad', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10)),
                 ('Solicitud', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.solicitud')),
                 ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.item')),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.equipo'),),
@@ -152,16 +139,6 @@ class Migration(migrations.Migration):
                 ('darbaja', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.darbaja')),
                 ('salida', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.salida')),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.equipo')),
-            ],
-        ),
-
-        migrations.CreateModel(
-            name='UserProfile',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cargo', models.CharField(blank=True, max_length=100, null=True)),
-                ('firma', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
             ],
         ),
 

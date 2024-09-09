@@ -58,8 +58,6 @@ class MultipleFileField(forms.FileField):
         return result
     
     
-
-
 class RutinaFilterForm(forms.Form):
     current_year = datetime.now().year
     max_year = current_year + 5
@@ -121,6 +119,7 @@ class Rq_Info(forms.Form):
     class Meta:
         model = Solicitud
         fields = ['proveedor', 'inversion']
+
 
 class SysForm(forms.ModelForm):
 

@@ -1,8 +1,7 @@
 from django import template
 from got.models import Asset, FailureReport, Solicitud
 from django.contrib.auth.models import Group
-from simple_history.models import HistoricalRecords
-from math import ceil
+from django.contrib.auth.models import User
 
 
 register = template.Library()
@@ -21,12 +20,6 @@ def obtener_asset_del_supervisor(context):
         except Asset.DoesNotExist:
             return None
     return None
-    # if user.groups.filter(name='maq_members').exists():
-    #     try:
-    #         return Asset.objects.get(supervisor=user)
-    #     except Asset.DoesNotExist:
-    #         pass
-    # return False
 
 
 @register.filter(name='has_group')
@@ -84,7 +77,6 @@ def get_page(solicitud_id, paginate_by=20):
         return None
     
 
-
 @register.filter
 def calcular_repeticiones(ruta, periodo):
     # Definir los días que representa cada periodo
@@ -123,3 +115,27 @@ def get_item(dictionary, key):
 @register.filter(name='range')
 def custom_range(value):
     return range(value)
+
+@register.filter(name='asset_info')
+def return_asset(id):
+    if not id:
+        return ''
+    try:
+        return Asset.objects.get(abbreviation=id)
+    except Asset.DoesNotExist:
+        return '' 
+
+@register.filter(name='user_info')
+def return_name(id):
+    if not id:
+        return ''  # Si no se pasa un ID o es vacío, devuelve una cadena vacía
+    try:
+        u = User.objects.get(id=id)
+        return u.get_full_name()
+    except User.DoesNotExist:
+        return ''
+    
+
+@register.filter(name='counter')
+def counter(value):
+    return value.count()
