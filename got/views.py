@@ -869,6 +869,7 @@ class FailureReportUpdate(LoginRequiredMixin, UpdateView):
         return form
 
     def form_valid(self, form):
+        form.instance.modified_by = self.request.user 
         return super().form_valid(form)
     
 
@@ -887,6 +888,7 @@ def crear_ot_failure_report(request, fail_id):
         supervisor=f"{request.user.first_name} {request.user.last_name}",
         tipo_mtto='c',
         system=fail.equipo.system,
+        modified_by=request.user
     )
     nueva_ot.save()
 
@@ -998,6 +1000,8 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         if 'delete_task' in request.POST:
             task_id = request.POST.get('delete_task_id')
             task = Task.objects.get(id=task_id, ot=ot)
+            task.modified_by = request.user  # Asignar el usuario al campo `modified_by` en Task
+            task.save()
             task.delete()
             return redirect(ot.get_absolute_url()) 
     
@@ -1008,6 +1012,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         if task_form.is_valid() and image_form.is_valid():
             task = task_form.save(commit=False)
             task.ot = ot
+            task.modified_by = request.user 
             task.save()
 
             for file in request.FILES.getlist('file_field'):
@@ -1017,6 +1022,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
 
         if 'finish_ot' in request.POST and state_form.is_valid():
             self.object.state = 'f'
+            self.object.modified_by = request.user
             signature_data = request.POST.get('sign_supervisor')
 
             rutas_relacionadas = Ruta.objects.filter(ot=ot)
@@ -1026,6 +1032,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
             fallas_relacionadas = FailureReport.objects.filter(related_ot=ot)
             for fail in fallas_relacionadas:
                 fail.closed = True
+                fail.modified_by = request.user
                 fail.save()
 
             # supervisor = ot.system.asset.supervisor
@@ -1084,6 +1091,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
             act.ot = ot
             if isinstance(task_form, ActFormNoSup):
                 act.responsible = request.user
+            act.modified_by = request.user
             act.save()
             return redirect(ot.get_absolute_url())
 
@@ -1136,11 +1144,18 @@ class OtUpdate(UpdateView):
         kwargs['asset'] = ot_instance.system.asset
         return kwargs
 
+    def form_valid(self, form):
+        ot = form.save(commit=False)
+        ot.modified_by = self.request.user  # Asignar el usuario que modifica
+        ot.save()
+        return super().form_valid(form)
+
 
 class OtDelete(DeleteView):
 
     model = Ot
     success_url = reverse_lazy('got:ot-list')
+
 
 
 def ot_pdf(request, num_ot):
@@ -1270,6 +1285,7 @@ class TaskUpdate(UpdateView):
             return self.form_invalid(form)
 
     def form_valid(self, form):
+        form.instance.modified_by = self.request.user
         return super().form_valid(form)
 
     def form_invalid(self, form, **kwargs):
@@ -1288,6 +1304,10 @@ class TaskUpdaterut(UpdateView):
     form_class = RutActForm
     template_name = 'got/task_form.html'
     http_method_names = ['get', 'post']
+
+    def form_valid(self, form):
+        form.instance.modified_by = self.request.user  # Asignar el usuario que modifica la tarea
+        return super().form_valid(form)
 
     def get_success_url(self):
         sys_id = self.object.ruta.system.id
@@ -1334,6 +1354,7 @@ class Finish_task(UpdateView):
             return self.form_invalid(form)
 
     def form_valid(self, form):
+        form.instance.modified_by = self.request.user  # Asignar el usuario actual
         return super().form_valid(form)
 
     def form_invalid(self, form, **kwargs):
@@ -1364,6 +1385,7 @@ class Finish_task_ot(UpdateView):
             return self.form_invalid(form)
 
     def form_valid(self, form, image_form):
+        form.instance.modified_by = self.request.user 
         self.object = form.save()
 
         for img in self.request.FILES.getlist('file_field'):
@@ -1385,6 +1407,7 @@ class Reschedule_task(UpdateView):
     success_url = reverse_lazy('got:my-tasks')
 
     def form_valid(self, form):
+        form.instance.modified_by = self.request.user
         return super().form_valid(form)
     
 
@@ -1484,7 +1507,7 @@ class RutaCreate(CreateView):
         system = get_object_or_404(System, pk=pk)
 
         form.instance.system = system
-
+        form.instance.modified_by = self.request.user
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -1501,6 +1524,10 @@ class RutaUpdate(UpdateView):
 
     model = Ruta
     form_class = RutaForm
+
+    def form_valid(self, form):
+        form.instance.modified_by = self.request.user  # Asignar el usuario actual al campo modified_by
+        return super().form_valid(form)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -1527,6 +1554,7 @@ def crear_ot_desde_ruta(request, ruta_id):
         supervisor=f"{request.user.first_name} {request.user.last_name}",
         tipo_mtto='p',
         system=ruta.system,
+        modified_by=request.user 
     )
     nueva_ot.save()
 
@@ -1542,6 +1570,7 @@ def crear_ot_desde_ruta(request, ruta_id):
                 start_date=timezone.now().date(),
                 men_time=1,
                 finished=False,
+                modified_by=request.user 
             )
 
         ruta.ot = ot
@@ -1602,7 +1631,8 @@ def rutina_form_view(request, ruta_id):
             supervisor=request.user.get_full_name(),
             state=ot_state,
             tipo_mtto='p',
-            sign_supervision=signature_file
+            sign_supervision=signature_file,
+            modified_by=request.user
         )
             
         for form_data in formset_data:
@@ -1612,7 +1642,8 @@ def rutina_form_view(request, ruta_id):
                 responsible=request.user,
                 news=form_data['observaciones'],
                 finished=form_data['realizado'],
-                start_date=fecha_seleccionada
+                start_date=fecha_seleccionada,
+                modified_by=request.user
             )
             # Guardar evidencias si las hay
             for evidencia in form_data['evidencias']:
@@ -2681,6 +2712,8 @@ class ItemManagementView(generic.TemplateView):
     def post(self, request, *args, **kwargs):
         form = ItemForm(request.POST, request.FILES)
         if form.is_valid():
+            item = form.save(commit=False)
+            item.modified_by = request.user
             form.save()
             return redirect(reverse('got:item_management'))
 
