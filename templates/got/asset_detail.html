@@ -63,6 +63,7 @@
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'got:ot-create' asset.abbreviation %}">Nueva orden de trabajo</a>
             </li>
+            {% endif %}
             {% if rotativos %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'got:horas-asset' asset.abbreviation %}">
