@@ -59,6 +59,7 @@
                     <button type="submit" class="nav-link">Plan de mantenimiento</button>
                 </form>
             </li>
+            {% if perms.got.add_ot %}
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'got:ot-create' asset.abbreviation %}">Nueva orden de trabajo</a>
             </li>

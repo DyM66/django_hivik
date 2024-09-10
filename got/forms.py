@@ -359,6 +359,14 @@ class ActForm(forms.ModelForm):
 
 class ActFormNoSup(forms.ModelForm):
 
+    finished = forms.ChoiceField(
+        choices=[(True, 'Sí'), (False, 'No')],
+        widget=forms.RadioSelect,
+        label='Finalizado',
+        initial=False,
+        required=False
+    )
+
     class Meta:
         model = Task
         fields = ['description', 'news', 'start_date', 'men_time', 'finished']
