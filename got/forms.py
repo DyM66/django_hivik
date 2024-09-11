@@ -125,7 +125,7 @@ class SysForm(forms.ModelForm):
 
     class Meta:
         model = System
-        exclude = ['asset',]
+        exclude = ['asset', 'modified_by']
         labels = {
             'name': 'Sistema',
             'group': 'Grupo',
@@ -138,7 +138,7 @@ class EquipoForm(forms.ModelForm):
 
     class Meta:
         model = Equipo
-        exclude = ['system', 'horometro', 'prom_hours', 'code', 'imagen']
+        exclude = ['system', 'horometro', 'prom_hours', 'code', 'imagen', 'modified_by']
         labels = {
             'name': 'Nombre',
             'model': 'Modelo',
@@ -219,7 +219,7 @@ class OtFormNoSup(forms.ModelForm):
 
     class Meta:
         model = Ot
-        exclude = ['description', 'system', 'state', 'tipo_mtto']
+        exclude = ['description', 'system', 'state', 'tipo_mtto', 'modified_by']
         labels = {
             'description': 'Descripción',
             'system': 'Sistema',
@@ -245,21 +245,6 @@ class FinishOtForm(forms.Form):
         required=False,
         initial=True,
     )
-
-    # sign_supervisor = forms.CharField(widget=forms.HiddenInput(), required=False)
-
-    # def clean_sign_supervisor(self):
-    #     data = self.cleaned_data.get('sign_supervisor')
-    #     if data:
-    #         try:
-    #             format, imgstr = data.split(';base64,')
-    #             ext = format.split('/')[-1]
-    #             filename = f'supervisor_signature_{uuid.uuid4()}.{ext}'
-    #             data = ContentFile(base64.b64decode(imgstr), name=filename)
-    #             return data
-    #         except Exception as e:
-    #             raise forms.ValidationError("Error processing signature: " + str(e))
-    #     return None
 
 
 # ---------------- Actividades ------------------- #
@@ -432,7 +417,7 @@ class RutaForm(forms.ModelForm):
 
     class Meta:
         model = Ruta
-        exclude = ['system', 'astillero']
+        exclude = ['system', 'astillero', 'modified_by']
         labels = {
             'name': 'Codigo interno',
             'frecuency': 'Frecuencia',
@@ -461,25 +446,6 @@ class RutaForm(forms.ModelForm):
 
 
 # ---------------- Hours ------------------- #
-class ReportHours(forms.ModelForm):
-    def clean_hour(self):
-        hour = self.cleaned_data['hour']
-        if hour < 0 or hour > 24:
-            raise forms.ValidationError(
-                'El valor de horas debe estar entre 0 y 24.'
-                )
-        return hour
-
-    class Meta:
-        model = HistoryHour
-        fields = ['hour', 'report_date']
-        labels = {
-            'hour': 'Horas',
-            'report_date': 'Fecha'
-        }
-        widgets = {'report_date': XYZ_DateInput(format=['%Y-%m-%d'],), }
-
-
 class ReportHoursAsset(forms.ModelForm):
 
     class Meta:
@@ -549,7 +515,7 @@ class failureForm(forms.ModelForm):
 
     class Meta:
         model = FailureReport
-        exclude = ['reporter', 'related_ot', 'closed', 'evidence']
+        exclude = ['reporter', 'related_ot', 'closed', 'evidence', 'modified_by']
         labels = {
             'equipo': 'Equipo que presenta la falla',
             'critico': '¿Equipo/sistema que presenta la falla es critico?',
@@ -619,8 +585,6 @@ class OperationForm(forms.ModelForm):
             'end': 'Fecha de Fin',
             'requirements': 'Requerimientos',
         }
-
-
 
 
 class DocumentForm(forms.ModelForm):
