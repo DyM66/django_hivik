@@ -146,7 +146,7 @@
 <table class="table-list table-detail mt-4">
     <thead>
         <tr>
-            <th colspan="8">
+            <th colspan="7">
                 Rutinas de mantenimiento
                 {% if perms.got.add_ruta %}
                     <a href="{% url 'got:ruta-create' system.id %}"><i class="bi bi-plus-circle add-sys"></i></a>
@@ -156,7 +156,6 @@
         <tr>
             <th scope="col">Codigo</th>
             <th scope="col">Frecuencia</th>
-            <th scope="col">Control</th>
             <th scope="col">Tiempo restante</th>
             <th scope="col">Ultima intervención</th>
             <th scope="col">Proxima intervención</th>
@@ -168,8 +167,7 @@
         {% for ruta in equipo.equipos.all %}
             <tr id="row{{forloop.counter}}" onclick="toggleDetails('details{{forloop.counter}}', this, event)">
                 <td data-cell="Codigo">{{ ruta.name }}</td>
-                <td data-cell="Frecuencia">{{ ruta.frecuency }}</td>
-                <td data-cell="Control">{{ ruta.get_control_display }}</td>
+                <td data-cell="Frecuencia">{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
                 <td data-cell="Ultima intervención">{{ ruta.daysleft }}</td>
                 <td data-cell="Ultima intervención">{{ ruta.intervention_date }}</td>
                 <td data-cell="Proxima intervención">{% if ruta.ot %}{{ ruta.next_date }}{% else %}---{% endif %}</td>
@@ -218,7 +216,7 @@
 
 
             <tr id="details{{forloop.counter}}" class="detail-row" style="display:none;">
-                <td colspan="8">
+                <td colspan="7">
                     <table style="width:100%;">
                         <tr>
                             <th colspan="2">
@@ -267,7 +265,7 @@
             </tr>
         {% empty %}
             <tr>
-                <td colspan="8">No hay rutinas de mantenimiento registradas.</td>
+                <td colspan="7">No hay rutinas de mantenimiento registradas.</td>
             </tr>
         {% endfor %}
     </tbody>
