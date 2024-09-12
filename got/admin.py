@@ -9,8 +9,9 @@ from django.utils import timezone
 
 # Definición de la clase SuministroAdmin
 class SuministroAdmin(admin.ModelAdmin):
-    list_display = ('item', 'cantidad', 'display_asset')
+    list_display = ('item', 'cantidad', 'display_asset', 'display_equipo')
     list_filter = ('asset',)  # Filtro para Asset
+    search_fields = ('item__name', 'item__reference')
 
     def display_asset(self, obj):
         return obj.asset if obj.asset else "---"

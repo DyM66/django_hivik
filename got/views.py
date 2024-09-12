@@ -1587,7 +1587,7 @@ def rutina_form_view(request, ruta_id):
         signature_file = None
         if signature_image:
             signature_file = signature_image
-        elif signature_data:
+        if signature_data:
             format, imgstr = signature_data.split(';base64,')
             ext = format.split('/')[-1]
             filename = f'signature_{uuid.uuid4()}.{ext}'
