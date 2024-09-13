@@ -29,7 +29,6 @@
 							<td>{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
 							<td data-cell="Ultima intervención">{{ ruta.daysleft }}</td>
 							<td>{{ ruta.intervention_date|date:"d/m/Y" }}</td>
-							<!-- <td>{% if ruta.ot %}{{ ruta.next_date|date:"d/m/Y" }}{% else %}---{% endif %}</td> -->
 							<td>{{ ruta.next_date|date:"d/m/Y" }}</td>
 							<td><a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a></td>
 							<td data-cell="Acciones">

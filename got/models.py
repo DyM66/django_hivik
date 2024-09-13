@@ -435,7 +435,11 @@ class Ruta(models.Model):
                 ndays = int(inv/self.equipo.prom_hours)
             except (ZeroDivisionError, AttributeError):
                 ndays = int(inv/12)
-        
+        MAX_DAYS = 365 * 4
+        if ndays > MAX_DAYS:
+            ndays = MAX_DAYS
+        if ndays < 0:
+            ndays = 0
         return date.today() + timedelta(days=ndays)
 
     @property
