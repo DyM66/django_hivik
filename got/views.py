@@ -114,7 +114,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         month = datetime.now().strftime('%B')
         current_month_name_es = traductor(month)
 
-        paginator = Paginator(get_full_systems(asset), 10)
+        paginator = Paginator(get_full_systems(asset), 15)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
@@ -129,9 +129,9 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             
             filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset), system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
             if show_execute == 'on':
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and (ruta.next_date.month <= month or ruta.next_date.year == year)) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
             else:
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.percentage_remaining < 15)]
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and (ruta.next_date.month <= month and ruta.next_date.year == year)) or (ruta.percentage_remaining < 15)]
         else:
             filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset)).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
             filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
