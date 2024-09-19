@@ -258,11 +258,15 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
 def preventivo_pdf(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
-    
-    systems = get_full_systems_ids(asset)
-    
+
+    # Instancia de AssetDetailView para acceder al contexto
     asset_detail_view = AssetDetailView()
     asset_detail_view.request = request  
+    
+    # Asigna el objeto asset a self.object para que la vista pueda usarlo
+    asset_detail_view.object = asset
+
+    # Genera el contexto completo, incluida filtered_rutas
     context = asset_detail_view.get_context_data(object=asset)
 
     filtered_rutas = context.get('page_obj_rutas')
