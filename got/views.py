@@ -129,9 +129,9 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             
             filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset), system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
             if show_execute == 'on':
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and (ruta.next_date.month <= month or ruta.next_date.year == year)) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
             else:
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and (ruta.next_date.month <= month or ruta.next_date.year == year)) or (ruta.percentage_remaining < 15)]
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.percentage_remaining < 15)]
         else:
             filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset)).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
             filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
@@ -259,7 +259,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 def preventivo_pdf(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
     
-    systems = asset.system_set.all()
+    systems = get_full_systems_ids(asset)
     
     asset_detail_view = AssetDetailView()
     asset_detail_view.request = request  
