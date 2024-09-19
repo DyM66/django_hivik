@@ -263,7 +263,10 @@ def preventivo_pdf(request, pk):
     
     asset_detail_view = AssetDetailView()
     asset_detail_view.request = request  
-    filtered_rutas, current_month_name_es = asset_detail_view.get_filtered_rutas(asset, systems)
+    context = asset_detail_view.get_context_data(object=asset)
+
+    filtered_rutas = context.get('page_obj_rutas')
+    current_month_name_es = context.get('mes')
     
     context = {
         'rq': asset,
