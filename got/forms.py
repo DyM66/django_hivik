@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User, Group
 from .models import *
+from .functions import *
 from datetime import datetime
 
 from django.forms import modelformset_factory
@@ -94,8 +95,15 @@ class RutinaFilterForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         if asset:
-            # Obtener ubicaciones únicas
-            locations = System.objects.filter(asset=asset).values_list('location', flat=True).distinct()
+            systems = asset.system_set.all().distinct()
+            other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset).distinct()
+
+            # Unir los dos conjuntos
+            full_systems = systems.union(other_asset_systems).order_by('group')
+
+            # Extraer las ubicaciones únicas de esos sistemas
+            locations = full_systems.values_list('location', flat=True)
+            
             unique_locations = list(set(locations))  # Eliminar duplicados
             location_choices = [(location, location) for location in unique_locations]
             self.fields['locations'] = forms.MultipleChoiceField(
