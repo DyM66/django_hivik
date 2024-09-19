@@ -73,99 +73,86 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
         return context
 
 
+def export_asset_system_equipo_excel(request):
+    # Crear un nuevo libro de trabajo (Excel)
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.title = 'Asset-System-Equipo'
+
+    # Definir los encabezados de la hoja de Excel
+    headers = ['Asset', 'System', 'System Code', 'Equipo', 'Equipo Code']
+    worksheet.append(headers)
+
+    # Obtener los datos de los Assets, Systems y Equipos
+    assets = Asset.objects.prefetch_related('system_set__equipos')
+
+    for asset in assets:
+        for system in asset.system_set.all():
+            for equipo in system.equipos.all():
+                # Agregar una fila para cada Asset, System, Equipo y Equipo Code
+                worksheet.append([asset.name, system.name, system.group, equipo.name, equipo.code])
+
+    # Establecer el tipo de contenido de la respuesta HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=Asset_System_Equipo.xlsx'
+
+    # Guardar el libro de trabajo en la respuesta
+    workbook.save(response)
+
+    return response
+
+
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = Asset
+    template_name = 'got/assets/asset_detail.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
-        systems = asset.system_set.all()
 
-        hoy = timezone.now().date() - timedelta(days=1)
-        hace_30_dias = hoy - timedelta(days=30)
+        month = datetime.now().strftime('%B')
+        current_month_name_es = traductor(month)
 
-        consumos = TransaccionSuministro.objects.filter(
-            suministro__asset=asset,
-            suministro__item__id=132,
-            fecha__range=[hace_30_dias, hoy]
-        ).values('fecha').annotate(total_consumido=Sum('cantidad_consumida')).order_by('fecha')
-
-        fechas = [(hace_30_dias + timedelta(days=i)).strftime('%d/%m') for i in range(31)]
-        consumos_dict = {consumo['fecha'].strftime('%d/%m'): consumo['total_consumido'] for consumo in consumos}
-        consumos_grafica = [consumos_dict.get(fecha, 0) for fecha in fechas]
-
-        systems = System.objects.filter(asset=asset)
-        equipos = Equipo.objects.filter(system__in=systems)
-        horas_operacion = HistoryHour.objects.filter(
-            component__in=equipos,
-            report_date__range=[hace_30_dias, hoy]
-        ).values('report_date').annotate(total_horas=Sum('hour')).order_by('report_date')
-
-
-        horas_dict = {hora['report_date'].strftime('%d/%m'): hora['total_horas'] for hora in horas_operacion}
-        horas_grafica = [horas_dict.get(fecha, 0) for fecha in fechas]
-
-        context['fechas'] = fechas  # Fechas para el eje X
-        context['consumos_grafica'] = consumos_grafica 
-        context['horas_grafica'] = horas_grafica
-
-        other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
-        combined_systems = (systems.union(other_asset_systems)).order_by('group')
-        paginator = Paginator(combined_systems, 10)
-
+        paginator = Paginator(get_full_systems(asset), 10)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
+        rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
+
+        form = RutinaFilterForm(self.request.GET or None, asset=asset)
+        if form.is_valid():
+            month = int(form.cleaned_data['month'])
+            year = int(form.cleaned_data['year'])
+            show_execute = form.cleaned_data.get('execute', False)
+            selected_locations = form.cleaned_data.get('locations')
+            current_month_name_es = traductor(calendar.month_name[month])
+            
+            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset), system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            if show_execute == 'on':
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
+            else:
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.percentage_remaining < 15)]
+        else:
+            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset)).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
+        
+        context['mes'] = current_month_name_es
+        context['consumibles'] = Suministro.objects.filter(asset=asset).exists()
+        context['page_obj'] = page_obj
+        context['rotativos'] = rotativos
+        context['page_obj_rutas'] = filtered_rutas
+        context['items_by_subsystem'] = consumibles_summary(asset)
+        context['fechas'] = fechas_range()
+        context['consumos_grafica'] = consumos_combustible_asset(asset)
+        context['horas_grafica'] = horas_total_asset(asset)
+        context['rutinas_filter_form'] = form
+        context['sys_form'] = SysForm()
 
         # if self.request.user.groups.filter(name='buzos_members').exists():
         #     locations = buzos_station_filter(self.request.user)
         #     if locations:
         #         return asset.system_set.filter(location__in=locations)
         #     return asset.system_set.all()
-
-        current_month_name_en = datetime.now().strftime('%B')
-        current_month_name_es = traductor(current_month_name_en)
-
-        form = RutinaFilterForm(self.request.GET or None, asset=asset)
-
-        if form.is_valid():
-            current_month_name_en = form.cleaned_data.get('month')
-            current_month_name_es = traductor(calendar.month_name[int(current_month_name_en)])
-            month = int(form.cleaned_data['month'])
-            year = int(form.cleaned_data['year'])
-            show_execute = form.cleaned_data.get('execute', False)
-            selected_locations = form.cleaned_data.get('locations')
-
-            filtered_rutas = Ruta.objects.filter(system__in=systems, system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            if show_execute == 'on':
-                filtered_rutas = [
-                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)
-                    ]
-            else:
-                filtered_rutas = [
-                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.percentage_remaining < 15)
-                    ]
-
-        else:
-            filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
-
-        if asset.area == 'b':
-            context['locations'] = System.objects.filter(asset=asset).values_list('location', flat=True).distinct()
-
-        context['sys_form'] = SysForm()
-        context['page_obj'] = page_obj
-        context['page_obj_rutas'] = filtered_rutas
-        context['mes'] = current_month_name_es
-
-        rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
-        context['rotativos'] = rotativos
-        context['other_asset_systems'] = other_asset_systems
-        context['add_sys'] = combined_systems
-
-        context['items_by_subsystem'] = consumibles_summary(asset)
-        context['rutinas_filter_form'] = form
-
         return context
                 
     def export_rutinas_to_excel(self):

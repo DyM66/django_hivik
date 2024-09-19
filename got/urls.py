@@ -102,4 +102,6 @@ urlpatterns = [
     path('salida/<int:pk>/update/', views.SalidaUpdateView.as_view(), name='salida-update'),
     path('preoperacional/excel/', views.export_preoperacional_to_excel, name='export-preoperacional-excel'),
     path('preoperacionaldiario/export/excel/', views.export_preoperacionaldiario_excel, name='export-preoperacionaldiario-excel'),
+
+    path('export/excel/', views.export_asset_system_equipo_excel, name='export_excel'),
 ]

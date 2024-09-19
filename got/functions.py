@@ -160,49 +160,6 @@ def calcular_repeticiones2(ruta, periodo='anual'):
     return repeticiones, meses_ejecucion
 
 
-def consumibles_summary(asset):
-
-    '''
-    Función utilizada para calcular la cantidad de articulos de tipo consumible que se repiten dentro de un mismo
-    Asset y asociarlo a un grupo Subsystem o General.
-    '''
-
-    equipos = Equipo.objects.filter(system__asset=asset).prefetch_related('suministros__item')
-    item_subsystems = defaultdict(set)
-    items_by_subsystem = defaultdict(set)
-    item_cant = defaultdict(set)
-
-    inventory_counts = defaultdict(int)
-    suministros = Suministro.objects.filter(asset=asset)
-
-    for suministro in suministros:
-        inventory_counts[suministro.item] += suministro.cantidad
-
-    for equipo in equipos:
-        subsystem = equipo.subsystem if equipo.subsystem else "General"
-        for suministro in equipo.suministros.all():
-                item_subsystems[suministro.item].add(subsystem)
-                if suministro.item in item_cant:
-                    item_cant[suministro.item] += suministro.cantidad
-                else:
-                    item_cant[suministro.item] = suministro.cantidad
-    
-    duplicated_items = {item for item, subsystems in item_subsystems.items() if len(subsystems) > 1}
-
-    for equipo in equipos:
-        subsystem = equipo.subsystem if equipo.subsystem else "General"
-        for suministro in equipo.suministros.all():
-            item_tuple = (suministro.item, item_cant[suministro.item], inventory_counts[suministro.item], item_cant[suministro.item] * 2)
-            if suministro.item in duplicated_items:
-                items_by_subsystem["General"].add(item_tuple)
-            else:
-                items_by_subsystem[subsystem].add(item_tuple)
-    
-    items_by_subsystem = {k: list(v) for k, v in items_by_subsystem.items() if v}
-
-    return items_by_subsystem
-
-
 def traductor(word):
     context = {
         "January": "Enero",
@@ -390,3 +347,92 @@ def operational_users(current_user):
         return User.objects.filter(id__in=[user.id for user in taller_list])
     elif current_user.groups.filter(name='super_members').exists():
         return User.objects.exclude(groups__name='gerencia')
+
+
+def fechas_range():
+    hoy = timezone.now().date() - timedelta(days=1)
+    hace_30_dias = hoy - timedelta(days=30)
+    return [(hace_30_dias + timedelta(days=i)).strftime('%d/%m') for i in range(31)]
+
+
+def consumos_combustible_asset(asset):
+    hoy = timezone.now().date() - timedelta(days=1)
+    hace_30_dias = hoy - timedelta(days=30)
+    consumos = TransaccionSuministro.objects.filter(
+        suministro__asset=asset,
+        suministro__item__id=132,
+        fecha__range=[hace_30_dias, hoy]
+    ).values('fecha').annotate(total_consumido=Sum('cantidad_consumida')).order_by('fecha')
+    fechas = [(hace_30_dias + timedelta(days=i)).strftime('%d/%m') for i in range(31)]
+    consumos_dict = {consumo['fecha'].strftime('%d/%m'): consumo['total_consumido'] for consumo in consumos}
+    consumos_grafica = [consumos_dict.get(fecha, 0) for fecha in fechas]
+    return consumos_grafica
+
+
+def horas_total_asset(asset):
+    hoy = timezone.now().date() - timedelta(days=1)
+    hace_30_dias = hoy - timedelta(days=30)
+    systems = System.objects.filter(asset=asset)
+    equipos = Equipo.objects.filter(system__in=systems)
+    horas_operacion = HistoryHour.objects.filter(
+        component__in=equipos,
+        report_date__range=[hace_30_dias, hoy]
+    ).values('report_date').annotate(total_horas=Sum('hour')).order_by('report_date')
+    horas_dict = {hora['report_date'].strftime('%d/%m'): hora['total_horas'] for hora in horas_operacion}
+    horas_grafica = [horas_dict.get(fecha, 0) for fecha in fechas_range()]
+    return horas_grafica
+
+
+def get_full_systems(asset):
+    systems = asset.system_set.all()
+    other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
+    return (systems.union(other_asset_systems)).order_by('group')
+
+
+def get_full_systems_ids(asset):
+    systems = asset.system_set.values_list('id', flat=True)
+    other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
+    return systems.union(other_asset_systems)
+
+
+def consumibles_summary(asset):
+
+    '''
+    Función utilizada para calcular la cantidad de articulos de tipo consumible que se repiten dentro de un mismo
+    Asset y asociarlo a un grupo Subsystem o General.
+    '''
+
+    equipos = Equipo.objects.filter(system__asset=asset).prefetch_related('suministros__item')
+    item_subsystems = defaultdict(set)
+    items_by_subsystem = defaultdict(set)
+    item_cant = defaultdict(set)
+
+    inventory_counts = defaultdict(int)
+    suministros = Suministro.objects.filter(asset=asset)
+
+    for suministro in suministros:
+        inventory_counts[suministro.item] += suministro.cantidad
+
+    for equipo in equipos:
+        subsystem = equipo.subsystem if equipo.subsystem else "General"
+        for suministro in equipo.suministros.all():
+                item_subsystems[suministro.item].add(subsystem)
+                if suministro.item in item_cant:
+                    item_cant[suministro.item] += suministro.cantidad
+                else:
+                    item_cant[suministro.item] = suministro.cantidad
+    
+    duplicated_items = {item for item, subsystems in item_subsystems.items() if len(subsystems) > 1}
+
+    for equipo in equipos:
+        subsystem = equipo.subsystem if equipo.subsystem else "General"
+        for suministro in equipo.suministros.all():
+            item_tuple = (suministro.item, item_cant[suministro.item], inventory_counts[suministro.item], item_cant[suministro.item] * 2)
+            if suministro.item in duplicated_items:
+                items_by_subsystem["General"].add(item_tuple)
+            else:
+                items_by_subsystem[subsystem].add(item_tuple)
+    
+    items_by_subsystem = {k: list(v) for k, v in items_by_subsystem.items() if v}
+
+    return items_by_subsystem

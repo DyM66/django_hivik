@@ -573,6 +573,35 @@
         border-bottom: none;
     }
 
+    .filter-form {
+        margin: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        width: 100%;
+    }
+
+    .filter-form .form-group {
+        display: block;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .status-gradient {
+        background-image: linear-gradient(to right, red, yellow, green);
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease-in-out;
+    }
+
+    .status-gradient span {
+        display: block;
+        text-align: center;
+    }
+
 
     @media (max-width: 780px) {
 
@@ -744,5 +773,7 @@
             margin: auto;
         }
 	}
+
+
 
 </style>

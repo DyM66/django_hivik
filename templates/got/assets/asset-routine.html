@@ -8,28 +8,43 @@
     <style>
         body {
             font-family: monospace;
+            margin: 0;
         }
 
-        h1, h2, h3 {
-            color: #333366; 
-            font-size: 16px;
+        .portada {
+            text-align: center;
         }
 
+        img {
+            width: 450px;  /* Tamaño del logo */
+            height: auto;
+            margin-bottom: 150px;
+        }
+
+        h1 {
+            font-size: 36px;
+        }
+
+        h2 {
+            font-size: 28px;
+        }
+
+        /* Forzar salto de página después de la portada */
+        .page-break {
+            page-break-after: always;
+        }
+
+        /* Estilo de la segunda página */
         table {
-            width: 100%; 
-            border: 0.2px solid #000; 
+            width: 100%;
+            border: 0.2px solid #000;
         }
 
-        thead th, thead td { 
+        thead th, thead td {
             padding-top: 10px;
             text-align: center;
             vertical-align: top;
         }
-
-        td {
-            padding: 5px 0 0 5px;
-        }
-
 
         tbody th {
             background-color: #a5a8b2;
@@ -37,23 +52,45 @@
             padding: 4px 0 0 4px;
         }
 
+        td {
+            padding: 5px;
+        }
+
         img { 
             width: 200px; 
             height: auto; 
         }
 
-        ul { 
+        ul {
             list-style-type: none;
-            padding: 0; 
+            padding: 0;
         }
 
-        li { 
-            margin-bottom: 5px; 
+        li {
+            margin-bottom: 5px;
         }
+
     </style>
 </head>
 <body>
 
+
+    <!-- Portada -->
+    <div class="portada">
+        <div class="content">
+            <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" alt="Logo" width="500px">
+            <h1 style="margin-bottom: 0px; padding-bottom: 0px;">PLAN DE MANTENIMIENTO</h1>
+            <h2 style="margin-top: 0px; padding-top: 0px;">{{ rq.name }}</h2> <!-- Subtítulo con el nombre del asset -->
+
+        </div>
+        <footer>
+            <h3 style="padding-top: 400px">DEPARTAMENTO DE MANTENIMIENTO</h3>
+        </footer>
+    </div>
+
+    <div class="page-break"></div>
+
+    {% for ruta in filtered_rutas %}
     <table>
         <thead>
             <tr>
@@ -61,7 +98,7 @@
                     <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png">
                 </td>
                 <th colspan="3">
-                    <h1>PLAN DE MANTENIMIENTO</h1>
+                    <h2 style="padding-bottom: 0px;">REPORTE ORDEN DE TRABAJO</h2>
                 </th>
             </tr>
             <tr>
@@ -82,7 +119,7 @@
     <table>
         <tbody>
             <tr>
-                <th style="width: 85px;">Embarcación</th>
+                <th style="width: 125px;">Embarcación</th>
                 <td colspan="3">{{ rq.abbreviation }}/{{ rq }}</td>
                 <th>Area:</th>    
                 <td>{{ rq.get_area_display }}</td>
@@ -92,24 +129,33 @@
                 <td>{{ rq.supervisor.get_full_name }}</td>
                 <th style="width: 50px;">Cargo</th>
                 <td>{{ rq.supervisor.profile.cargo }}</td>
-                <th style="width: 45px;">Fecha</th>
-                <td>{{mes}}</td>
+                <th style="width: 85px;">Fecha</th>
+                <td>
+                    
+                </td>
+            </tr>
+            <tr>
+                <th>Componente</th>
+                <td colspan="5">
+                    {% if ruta.equipo %}{{ruta.equipo.name}}{% else %}{{ruta.system.name}}{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Ruta de mantenimiento</th>
+                <td colspan="3">
+                    {{ ruta.name }}
+                </td>
+                <th>Frecuencia</th>
+                <td>
+                    {{ ruta.frecuency }} {{ ruta.get_control_display }}
+                </td>
             </tr>
         </tbody>
     </table>
 
-    {% for ruta in filtered_rutas %}
+
     <br>
     <table>
-        <tr>
-            <th style="width: 300px;">{% if ruta.equipo %}{{ruta.equipo.name}}{% else %}{{ruta.system.name}}{% endif %}</th>
-            <th colspan="2">{{ ruta.name }}</th>
-            <th style="width: 70px;">{{ ruta.frecuency }} {{ ruta.get_control_display }}</th>
-            <th>{{ ruta.next_date|date:"d/m/Y" }}</th>
-        </tr>
-    <!-- </table>
-
-    <table> -->
         <tr>
             <th style="width: 300px;">Actividades</th>
             <th>Responsable</th>
@@ -134,7 +180,36 @@
         {% endfor %}
 
     </table>
-    {% endfor %}
+
+    <br>
+    <table>
+        <tr>
+            <th style="text-align: center;">
+                PENDIENTE:
+            </td>
+        </tr>
+        <tr>
+            <td style="height: 20px;">      
+            </td>
+        </tr>
+        <tr>
+            <td style="height: 20px;">
+            </td>
+        </tr>
+        <tr>
+            <td style="height: 20px;">
+            </td>
+        </tr>
+        <tr>
+            <td style="height: 20px;">
+            </td>
+        </tr>
+        <tr>
+            <td style="height: 20px;">
+            </td>
+        </tr>
+
+    </table>
 
     <br>
     <table>
@@ -155,5 +230,8 @@
             </th>
         </tr>
     </table>
+
+    <div class="page-break"></div>
+    {% endfor %}
 </body>
 </html>
