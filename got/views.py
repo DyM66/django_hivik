@@ -20,6 +20,7 @@ from datetime import timedelta, date, datetime
 from xhtml2pdf import pisa
 from io import BytesIO
 import logging
+import time
 import base64
 import uuid
 import pandas as pd
@@ -51,6 +52,7 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
+        start_time = time.time()
         context = super().get_context_data(**kwargs)
         areas = {
             'a': 'Motonave',
@@ -70,6 +72,8 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
             for asset in assets_motonave
         }
         context['assets_with_ots'] = assets_with_ots
+        end_time = time.time()
+        logger.debug(f"Tiempo de ejecución: {end_time - start_time} segundos")
         return context
 
 
@@ -108,6 +112,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
     template_name = 'got/assets/asset_detail.html'
 
     def get_context_data(self, **kwargs):
+        # asset = kwargs.get('object', self.get_object())
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
 
@@ -210,32 +215,26 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
         return response
 
-
-    def get_filtered_rutas(self, asset, systems):
+    def get_filtered_rutas(self, asset):
         form = RutinaFilterForm(self.request.GET or None, asset=asset)
         current_month_name_en = datetime.now().strftime('%B')
         current_month_name_es = traductor(current_month_name_en)
 
         if form.is_valid():
-            current_month_name_en = form.cleaned_data.get('month')
-            current_month_name_es = traductor(calendar.month_name[int(current_month_name_en)])
             month = int(form.cleaned_data['month'])
             year = int(form.cleaned_data['year'])
             show_execute = form.cleaned_data.get('execute', False)
             selected_locations = form.cleaned_data.get('locations')
-
-            filtered_rutas = Ruta.objects.filter(system__in=systems, system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            current_month_name_es = traductor(calendar.month_name[month])
+            
+            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset), system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
             if show_execute == 'on':
-                filtered_rutas = [
-                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year) or (ruta.ot and ruta.ot.state == 'x')
-                ]
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
             else:
-                filtered_rutas = [
-                    ruta for ruta in filtered_rutas if (ruta.next_date and ruta.next_date.month <= month and ruta.next_date.year == year)
-                ]
+                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.percentage_remaining < 15)]
         else:
-            filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 10)]
+            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset)).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
 
         return filtered_rutas, current_month_name_es
 
@@ -259,25 +258,41 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 def preventivo_pdf(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
 
-    # Instancia de AssetDetailView para acceder al contexto
-    asset_detail_view = AssetDetailView()
-    asset_detail_view.request = request  
-    
-    # Asigna el objeto asset a self.object para que la vista pueda usarlo
-    asset_detail_view.object = asset
+    # Obtener los filtros del request GET
+    month = request.GET.get('month')
+    year = request.GET.get('year')
+    show_execute = request.GET.get('execute', False)
+    selected_locations = request.GET.getlist('locations')
 
-    # Genera el contexto completo, incluida filtered_rutas
-    context = asset_detail_view.get_context_data(object=asset)
+    # Obtener los sistemas completos del activo usando get_full_systems
+    systems = get_full_systems_ids(asset)
 
-    filtered_rutas = context.get('page_obj_rutas')
-    current_month_name_es = context.get('mes')
-    
+    # Filtrar rutinas basado en los filtros recibidos
+    filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+
+    if selected_locations:
+        filtered_rutas = filtered_rutas.filter(system__location__in=selected_locations)
+
+    if month and year:
+        month = int(month)
+        year = int(year)
+        if show_execute == 'on':
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
+        else:
+            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.percentage_remaining < 15)]
+
+    current_month_name_es = traductor(calendar.month_name[month]) if month else traductor(datetime.now().strftime('%B'))
+
+    # Preparar el contexto para generar el PDF
     context = {
         'rq': asset,
         'filtered_rutas': filtered_rutas,
         'mes': current_month_name_es,
     }
+
+    # Renderizar el PDF usando la plantilla
     return render_to_pdf('got/assets/asset-routine.html', context)
+
 
 
 class AssetDocCreateView(generic.View):
@@ -532,7 +547,7 @@ def system_maintence_pdf(request, asset_id, system_id):
 
 
 'EQUIPMENTS VIEW'
-class EquipoCreateView(CreateView):
+class EquipoCreateView(LoginRequiredMixin, CreateView):
 
     model = Equipo
     form_class = EquipoForm

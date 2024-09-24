@@ -24,7 +24,7 @@
 				<tbody>
 					{% for ruta in system.rutas.all %}
 						<tr id="row{{forloop.counter}}" onclick="toggleDetails('details{{forloop.counter}}', this, event)" class="{% if ruta.maintenance_status == 'c' %}table-success{%elif ruta.maintenance_status == 'p' %}table-warning{%elif ruta.maintenance_status == 'e' %}table-secondary{% else %}table-danger{% endif %}">
-							<td class="nowrap">{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}</td>
+							<td>{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}</td>
 							<td class="nowrap">{{ ruta.name }}</td>
 							<td>{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
 							<td data-cell="Ultima intervención">{{ ruta.daysleft }}</td>

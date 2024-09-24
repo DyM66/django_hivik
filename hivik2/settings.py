@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'rest_framework',
     'corsheaders',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
@@ -45,6 +46,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'got.middleware.RequestTimingMiddleware',
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True 
@@ -167,3 +170,37 @@ STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',  # Puedes cambiar a 'simple' si prefieres
+        },
+    },
+    'loggers': {
+        # Configuración para tu aplicación
+        'got': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Asegúrate de que el nivel sea DEBUG
+            'propagate': False,
+        },
+        # Configuración para Django
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Puedes cambiar a DEBUG si deseas más detalles
+            'propagate': False,
+        },
+    },
+}

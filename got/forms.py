@@ -309,6 +309,7 @@ class FinishTask(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(FinishTask, self).__init__(*args, **kwargs)
         self.fields['finished'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
+        self.fields['news'].required = True
 
 
 class ActForm(forms.ModelForm):
