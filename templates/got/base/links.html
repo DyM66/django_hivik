@@ -31,7 +31,7 @@
 
 
 <style>
-
+    /* Variables y Colores */
     :root {
         --color-primary: #191645;
         --color-aux: #0157a4;
@@ -48,6 +48,7 @@
         --bs-btn-active-border-color: #191645;
     }
 
+    /* Estilos Globales */
     * {
         margin: 0;
         font-family: "Poppins", sans-serif;
@@ -55,6 +56,87 @@
         box-sizing: border-box;
     }
 
+    h1 {
+        margin-top: 15px; 
+        color: var(--color-primary);
+    }
+
+    h4 {
+        font-weight: bold;
+    }
+
+    /* Estilos de Navegación */
+    .navbar {
+        background-color: var(--color-primary);
+    }
+
+    .navbar .nav-link, .nav a, .nav button {
+        color: #fff;
+    }
+
+    .navbar-nav .nav-link.active, .navbar-nav .nav-link.show, .nav-link:hover, .nav-link:focus {
+        color: var(--color-secondary);
+        background-color: transparent;
+    }
+
+    .navbar-toggler-icon {
+        background-image: url('data:image/svg+xml;charset=UTF8,%3Csvg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath stroke="rgba(255, 255, 255, 0.5)" stroke-width="2" stroke-linecap="round" stroke-miterlimit="10" d="M4 7h22M4 15h22M4 23h22"/%3E%3C/svg%3E');
+    }
+
+    .nav {
+        margin-top: 10px;
+        background-color: var(--color-aux);
+        border-top: 1px solid var(--color-primary);
+    }
+
+    .nav .nav-item:hover {
+        color: var(--color-secondary);
+        background-color: var(--color-primary);
+    }
+
+    .page-link {
+        color: var(--color-primary);
+    }
+
+    .pagination {
+        --bs-pagination-active-bg: var(--color-primary);
+    }
+
+    tr[data-href] {
+        cursor: pointer;
+    }
+
+
+    /* Estilos de la Sección listado de Activos */
+    .assets-item {
+        break-inside: avoid; 
+        margin-bottom: 1rem;
+        box-sizing: border-box;
+    }
+
+    .assets-masonry {
+        column-gap: 1rem;
+    }
+
+    @media (min-width: 1200px) {
+        .assets-masonry {
+            column-count: 3;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 1199px) {
+        .assets-masonry {
+            column-count: 2;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .assets-masonry {
+            column-count: 1;
+        }
+    }
+
+    /* Otros */
     .status {
         padding: 0.3rem;
         border-radius: 3rem;
@@ -99,59 +181,9 @@
         background-color: var(--color-shipped);
     }
 
-    .navbar {
-        background-color: var(--color-primary);
-    }
-
-    .navbar .nav-link, .nav a, .nav button {
-        color: #fff;
-    }
-
-    .navbar-nav .nav-link.active, .navbar-nav .nav-link.show, .nav-link:hover, .nav-link:focus {
-        color: var(--color-secondary);
-        background-color: transparent;
-    }
-
-    .navbar-toggler-icon {
-        background-image: url('data:image/svg+xml;charset=UTF8,%3Csvg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath stroke="rgba(255, 255, 255, 0.5)" stroke-width="2" stroke-linecap="round" stroke-miterlimit="10" d="M4 7h22M4 15h22M4 23h22"/%3E%3C/svg%3E');
-    }
-
-    .nav {
-        margin-top: 10px;
-        background-color: var(--color-aux);
-        border-top: 1px solid var(--color-primary);
-    }
-
-    .nav .nav-item:hover {
-        color: var(--color-secondary);
-        background-color: var(--color-primary);
-    }
-
-    .page-link {
-        color: var(--color-primary);
-    }
-
-    .pagination {
-        --bs-pagination-active-bg: var(--color-primary);
-    }
-
-    h1 {
-        margin-top: 15px; 
-        color: var(--color-primary);
-    }
-
-    .container {
-        padding-right: 20px;
-        padding-left: 15px;
-    }
-
-    tr[data-href] {
-        cursor: pointer;
-    }
-
     .table-list {
 		border-collapse: collapse;
-        margin: 20px 0;
+        margin: 0;
         font-size: 0.85em;
         overflow: visible;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);

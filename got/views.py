@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group, User
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
@@ -45,14 +46,17 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.groups.filter(name='maq_members').exists():
-            asset = Asset.objects.get(supervisor=request.user)
-            return redirect('got:asset-detail', pk=asset.abbreviation)
+            try:
+                asset = Asset.objects.get(supervisor=request.user)
+                return redirect('got:asset-detail', pk=asset.abbreviation)
+            except ObjectDoesNotExist:
+                messages.error(request, "No tienes un asset asignado.")
+                return redirect('got:assets-list')
         elif request.user.groups.filter(name='serport_members').exists():
             return redirect('got:my-tasks')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
-        start_time = time.time()
         context = super().get_context_data(**kwargs)
         areas = {
             'a': 'Motonave',
@@ -62,48 +66,12 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
             'v': 'Vehiculos',
             'x': 'Apoyo'
         }
+        assets = Asset.objects.all()
         context['assets_by_area'] = {
-            area: Asset.objects.filter(area=code)
-            for code, area in areas.items()
+            area_name: [asset for asset in assets if asset.area == area_code]
+            for area_code, area_name in areas.items()
         }
-        assets_motonave = Asset.objects.filter(area='a')
-        assets_with_ots = {
-            asset: Ot.objects.filter(system__asset=asset, state='x')
-            for asset in assets_motonave
-        }
-        context['assets_with_ots'] = assets_with_ots
-        end_time = time.time()
-        logger.debug(f"Tiempo de ejecución: {end_time - start_time} segundos")
         return context
-
-
-def export_asset_system_equipo_excel(request):
-    # Crear un nuevo libro de trabajo (Excel)
-    workbook = openpyxl.Workbook()
-    worksheet = workbook.active
-    worksheet.title = 'Asset-System-Equipo'
-
-    # Definir los encabezados de la hoja de Excel
-    headers = ['Asset', 'System', 'System Code', 'Equipo', 'Equipo Code']
-    worksheet.append(headers)
-
-    # Obtener los datos de los Assets, Systems y Equipos
-    assets = Asset.objects.prefetch_related('system_set__equipos')
-
-    for asset in assets:
-        for system in asset.system_set.all():
-            for equipo in system.equipos.all():
-                # Agregar una fila para cada Asset, System, Equipo y Equipo Code
-                worksheet.append([asset.name, system.name, system.group, equipo.name, equipo.code])
-
-    # Establecer el tipo de contenido de la respuesta HTTP
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=Asset_System_Equipo.xlsx'
-
-    # Guardar el libro de trabajo en la respuesta
-    workbook.save(response)
-
-    return response
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
@@ -112,14 +80,15 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
     template_name = 'got/assets/asset_detail.html'
 
     def get_context_data(self, **kwargs):
-        # asset = kwargs.get('object', self.get_object())
+        start_time = time.time()
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
+        user = self.request.user
 
         month = datetime.now().strftime('%B')
         current_month_name_es = traductor(month)
 
-        paginator = Paginator(get_full_systems(asset), 15)
+        paginator = Paginator(get_full_systems(asset, user), 15)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
@@ -132,13 +101,13 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             selected_locations = form.cleaned_data.get('locations')
             current_month_name_es = traductor(calendar.month_name[month])
             
-            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset), system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset, user), system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
             if show_execute == 'on':
                 filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
             else:
                 filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.percentage_remaining < 15)]
         else:
-            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset)).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset, user)).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
             filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
         
         context['mes'] = current_month_name_es
@@ -153,11 +122,8 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['rutinas_filter_form'] = form
         context['sys_form'] = SysForm()
 
-        # if self.request.user.groups.filter(name='buzos_members').exists():
-        #     locations = buzos_station_filter(self.request.user)
-        #     if locations:
-        #         return asset.system_set.filter(location__in=locations)
-        #     return asset.system_set.all()
+        end_time = time.time()
+        logger.debug(f"Tiempo de ejecución: {end_time - start_time} segundos")
         return context
                 
     def export_rutinas_to_excel(self):
@@ -2711,4 +2677,32 @@ def edit_item(request, item_id):
 
     return render(request, 'got/edit_item.html', {'form': form, 'item': item})
 
+
+def export_asset_system_equipo_excel(request):
+    # Crear un nuevo libro de trabajo (Excel)
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.title = 'Asset-System-Equipo'
+
+    # Definir los encabezados de la hoja de Excel
+    headers = ['Asset', 'System', 'System Code', 'Equipo', 'Equipo Code']
+    worksheet.append(headers)
+
+    # Obtener los datos de los Assets, Systems y Equipos
+    assets = Asset.objects.prefetch_related('system_set__equipos')
+
+    for asset in assets:
+        for system in asset.system_set.all():
+            for equipo in system.equipos.all():
+                # Agregar una fila para cada Asset, System, Equipo y Equipo Code
+                worksheet.append([asset.name, system.name, system.group, equipo.name, equipo.code])
+
+    # Establecer el tipo de contenido de la respuesta HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=Asset_System_Equipo.xlsx'
+
+    # Guardar el libro de trabajo en la respuesta
+    workbook.save(response)
+
+    return response
 

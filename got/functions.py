@@ -1,6 +1,9 @@
-from django.template.loader import get_template
-from django.shortcuts import get_object_or_404
+from django.apps import apps
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.template.loader import get_template
 from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
@@ -11,6 +14,55 @@ from datetime import date
 import openpyxl
 from django.contrib.auth.models import Group
 import pandas as pd
+from django.contrib.admin.models import LogEntry
+from django.contrib.contenttypes.models import ContentType
+
+def remove_invalid_permissions():
+    """
+    Elimina los permisos asociados a los modelos que ya no existen en el proyecto.
+    """
+    # Obtén todos los content types registrados
+    # existing_content_types = ContentType.objects.all()
+
+    # # Lista para almacenar los content types que ya no existen
+    # invalid_content_types = []
+
+    # # Recorremos todos los content types existentes
+    # for content_type in existing_content_types:
+    #     model = content_type.model
+    #     app_label = content_type.app_label
+        
+    #     # Verifica si el modelo aún existe en la app correspondiente
+    #     if not apps.is_installed(app_label) or not apps.get_models(include_auto_created=True):
+    #         invalid_content_types.append(content_type)
+
+    #     # También verificar si el modelo ya no existe en las apps registradas
+    #     try:
+    #         apps.get_model(app_label, model)
+    #     except LookupError:
+    #         invalid_content_types.append(content_type)
+
+    # # Elimina los permisos asociados a esos content types que ya no existen
+    # for content_type in invalid_content_types:
+    #     print(f"Eliminando permisos para el modelo {content_type.model} en la app {content_type.app_label}")
+        
+    #     # Elimina los permisos asociados a este content type
+    #     Permission.objects.filter(content_type=content_type).delete()
+        
+    #     # Elimina el content type en sí
+    #     content_type.delete()
+
+    # print(f"Se eliminaron {len(invalid_content_types)} content types inválidos y sus permisos asociados.")
+
+    invalid_log_entries = LogEntry.objects.filter(
+        content_type_id__isnull=False
+    ).exclude(content_type_id__in=ContentType.objects.values_list('id', flat=True))
+
+    print(f"Found {invalid_log_entries.count()} invalid log entries")
+
+    invalid_log_entries.delete()
+    print("Deleted invalid log entries.")
+
 
 
 def actualizar_rutas_dependientes(ruta):
@@ -383,16 +435,33 @@ def horas_total_asset(asset):
     return horas_grafica
 
 
-def get_full_systems(asset):
+def get_full_systems(asset, user):
     systems = asset.system_set.all()
+    if user.groups.filter(name='buzos_members').exists():
+        station = user.profile.station
+        if station:
+            return systems.filter(location__iexact=station)
+        else:
+            return System.objects.none()
     other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
     return (systems.union(other_asset_systems)).order_by('group')
 
 
-def get_full_systems_ids(asset):
+def get_full_systems_ids(asset, user):
     systems = asset.system_set.values_list('id', flat=True)
-    other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
-    return systems.union(other_asset_systems)
+    other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset).values_list('id', flat=True)
+
+    all_systems_ids = systems.union(other_asset_systems)
+
+    if user.groups.filter(name='buzos_members').exists():
+        station = user.profile.station
+        if station:
+            all_systems_ids = System.objects.filter(id__in=all_systems_ids, location__iexact=station).values_list('id', flat=True)
+        else:
+            all_systems_ids = System.objects.none().values_list('id', flat=True)
+
+    return all_systems_ids
+
 
 
 def consumibles_summary(asset):
