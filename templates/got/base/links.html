@@ -136,6 +136,45 @@
         }
     }
 
+    /* Estilos de la Sección detalle de Activos */
+    .main-asset {
+        margin: 15px;
+        display: grid;
+        grid-template-columns: 1fr 1.2fr 0.8fr;
+        gap: 10px;
+        grid-template-areas: 
+            "title title title"
+            "sistemas sistemas detail"
+            "ruta ruta  acciones"
+            /* "ruta ruta ."; */
+    }
+
+    .main-asset .title-asset {
+        margin-top: 10px;
+        margin-right: 20px;
+        grid-area: title;
+        border-bottom: 1px solid #191645;
+    }
+
+    .main-asset .info-asset {
+        margin-right: 20px;
+        grid-area: detail;
+    }
+
+    .main-asset .sistemas {
+        margin-right: 20px;
+        grid-area: sistemas;
+    }
+
+    .main-asset .rutinas {
+        /* margin-right: 20px; */
+        grid-area: ruta;
+    }
+
+    .main-asset .acciones {
+        grid-area: acciones;
+    }
+    
     /* Otros */
     .status {
         padding: 0.3rem;
@@ -322,44 +361,6 @@
 
     .table-detail {
         width: 100%;
-    }
-
-    .main-asset {
-        margin: 15px;
-        display: grid;
-        grid-template-columns: 1fr 1.2fr 0.8fr;
-        gap: 10px;
-        grid-template-areas: 
-            "title title title"
-            "sistemas sistemas detail"
-            "ruta ruta  acciones"
-            /* "ruta ruta ."; */
-    }
-
-    .main-asset .title-asset {
-        margin-top: 10px;
-        margin-right: 20px;
-        grid-area: title;
-        border-bottom: 1px solid #191645;
-    }
-
-    .main-asset .info-asset {
-        margin-right: 20px;
-        grid-area: detail;
-    }
-
-    .main-asset .sistemas {
-        margin-right: 20px;
-        grid-area: sistemas;
-    }
-
-    .main-asset .rutinas {
-        /* margin-right: 20px; */
-        grid-area: ruta;
-    }
-
-    .main-asset .acciones {
-        grid-area: acciones;
     }
 
     .add-sys {

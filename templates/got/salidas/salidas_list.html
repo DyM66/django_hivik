@@ -33,11 +33,8 @@
                     </h6>
                 </td>
                 <td data-cell="Destino" class="nowrap"><strong>{{ rq.destino }}</strong></td>
-                <td data-cell="Responsable" class="nowrap">{{ rq.responsable }}/ {{ rq.recibe}}
-                    <a class="dropdown-item" href="{% url 'got:salida-update' rq.id %}">Notificar</a>
-                </td>
+                <td data-cell="Responsable" class="nowrap">{{ rq.responsable }}/ {{ rq.recibe}}</td>
                 <li></li>
-
                 <td data-cell="Estado">
                     <div class="dropdown">
                         <button class="btn status {% if rq.auth %}finished{% elif not rq.sign_recibe %}exe{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">

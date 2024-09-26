@@ -22,37 +22,37 @@ def remove_invalid_permissions():
     Elimina los permisos asociados a los modelos que ya no existen en el proyecto.
     """
     # Obtén todos los content types registrados
-    # existing_content_types = ContentType.objects.all()
+    existing_content_types = ContentType.objects.all()
 
-    # # Lista para almacenar los content types que ya no existen
-    # invalid_content_types = []
+    # Lista para almacenar los content types que ya no existen
+    invalid_content_types = []
 
-    # # Recorremos todos los content types existentes
-    # for content_type in existing_content_types:
-    #     model = content_type.model
-    #     app_label = content_type.app_label
+    # Recorremos todos los content types existentes
+    for content_type in existing_content_types:
+        model = content_type.model
+        app_label = content_type.app_label
         
-    #     # Verifica si el modelo aún existe en la app correspondiente
-    #     if not apps.is_installed(app_label) or not apps.get_models(include_auto_created=True):
-    #         invalid_content_types.append(content_type)
+        # Verifica si el modelo aún existe en la app correspondiente
+        if not apps.is_installed(app_label) or not apps.get_models(include_auto_created=True):
+            invalid_content_types.append(content_type)
 
-    #     # También verificar si el modelo ya no existe en las apps registradas
-    #     try:
-    #         apps.get_model(app_label, model)
-    #     except LookupError:
-    #         invalid_content_types.append(content_type)
+        # También verificar si el modelo ya no existe en las apps registradas
+        try:
+            apps.get_model(app_label, model)
+        except LookupError:
+            invalid_content_types.append(content_type)
 
-    # # Elimina los permisos asociados a esos content types que ya no existen
-    # for content_type in invalid_content_types:
-    #     print(f"Eliminando permisos para el modelo {content_type.model} en la app {content_type.app_label}")
+    # Elimina los permisos asociados a esos content types que ya no existen
+    for content_type in invalid_content_types:
+        print(f"Eliminando permisos para el modelo {content_type.model} en la app {content_type.app_label}")
         
-    #     # Elimina los permisos asociados a este content type
-    #     Permission.objects.filter(content_type=content_type).delete()
+        # Elimina los permisos asociados a este content type
+        Permission.objects.filter(content_type=content_type).delete()
         
-    #     # Elimina el content type en sí
-    #     content_type.delete()
+        # Elimina el content type en sí
+        content_type.delete()
 
-    # print(f"Se eliminaron {len(invalid_content_types)} content types inválidos y sus permisos asociados.")
+    print(f"Se eliminaron {len(invalid_content_types)} content types inválidos y sus permisos asociados.")
 
     invalid_log_entries = LogEntry.objects.filter(
         content_type_id__isnull=False
@@ -62,7 +62,6 @@ def remove_invalid_permissions():
 
     invalid_log_entries.delete()
     print("Deleted invalid log entries.")
-
 
 
 def actualizar_rutas_dependientes(ruta):

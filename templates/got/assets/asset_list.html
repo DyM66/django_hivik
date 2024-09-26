@@ -1,11 +1,10 @@
 {% extends "got/base/base_generic.html" %}
 {% load my_tags %}
 
-{% block header %}
-    Listado de activos
-{% endblock %}
-
 {% block content %}
+<main class="container">
+    <h1>Listado de activos</h1>
+
     <!-- <a href="{% url 'got:export_excel' %}" class="btn btn-success">Descargar Excel</a> -->
     <div class="assets-masonry">
         {% for area, assets in assets_by_area.items %}
@@ -32,15 +31,15 @@
             {% endif %}
         {% endfor %}
     </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const rows = document.querySelectorAll("tr[data-href]");
-            rows.forEach(row => {
-                row.addEventListener("click", () => {
-                    window.location.href = row.dataset.href;
-                });
+</main>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const rows = document.querySelectorAll("tr[data-href]");
+        rows.forEach(row => {
+            row.addEventListener("click", () => {
+                window.location.href = row.dataset.href;
             });
         });
-    </script>
+    });
+</script>
 {% endblock %}

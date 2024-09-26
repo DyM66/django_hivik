@@ -8,56 +8,50 @@
 
 	{% include 'got/base/navegacion.html' %}
 
-	<!-- Bloque main -->
-	<main class="container">
+	<!-- Contenido -->
+	{% block content %}{% endblock %}
 
-		<!-- Titulo de la pagina -->
-		<h1>{% block header %}{% endblock %}</h1>
-
-		<!-- Contenido -->
-		{% block content %}{% endblock %}
-
-		{% if is_paginated %}
-			<div style="overflow-x: auto;">
-				<nav aria-label="Page navigation example">
-					<ul class="pagination">
-						{% if page_obj.has_previous %}
-							<li class="page-item">
-								<a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page=1" tabindex="-1" aria-disabled="true">Primera</a>
-							</li>
-							<li class="page-item">
-								<a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}"><i class="bi bi-caret-left-fill"></i></a>
-							</li>
-						{% endif %}
+	{% if is_paginated %}
+		<div style="overflow-x: auto;">
+			<nav aria-label="Page navigation example">
+				<ul class="pagination">
+					{% if page_obj.has_previous %}
+						<li class="page-item">
+							<a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page=1" tabindex="-1" aria-disabled="true">Primera</a>
+						</li>
+						<li class="page-item">
+							<a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}"><i class="bi bi-caret-left-fill"></i></a>
+						</li>
+					{% endif %}
 	
-						{% for num in page_obj.paginator.page_range %}
-							{% if page_obj.number == num %}
-								<li class="page-item active" aria-current="page"><a class="page-link" href="#">{{ num }}</a></li>
-							{% elif num > page_obj.number|add:'-20' and num < page_obj.number|add:'20' %}
-								<li class="page-item"><a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page={{ num }}">{{ num }}</a></li>
-							{% endif %}
-						{% endfor %}
-	
-						{% if page_obj.has_next %}
-							<li class="page-item">
-								<a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}"><i class="bi bi-caret-right-fill"></i></a>
-							</li>
-							<li class="page-item">
-								<a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page={{ page_obj.paginator.num_pages }}">Última</a>
-							</li>
+					{% for num in page_obj.paginator.page_range %}
+						{% if page_obj.number == num %}
+							<li class="page-item active" aria-current="page"><a class="page-link" href="#">{{ num }}</a></li>
+						{% elif num > page_obj.number|add:'-20' and num < page_obj.number|add:'20' %}
+							<li class="page-item"><a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page={{ num }}">{{ num }}</a></li>
 						{% endif %}
-					</ul>
-				</nav>
-			</div>
-		{% endif %}
-	</main>
+					{% endfor %}
+	
+					{% if page_obj.has_next %}
+						<li class="page-item">
+							<a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}"><i class="bi bi-caret-right-fill"></i></a>
+						</li>
+						<li class="page-item">
+							<a class="page-link" href="{{ request.path }}?{{ request.GET.urlencode }}&page={{ page_obj.paginator.num_pages }}">Última</a>
+						</li>
+					{% endif %}
+				</ul>
+			</nav>
+		</div>
+	{% endif %}
+
 
 	<hr class="bottom-line">
 	<footer class="container">
 		<p>
 			Departamento de mantenimiento - Servicios portuarios SERPORT SAS
 	  	</p>
-	  	<p>Version v2.0.1 </p>
+	  	<p>Version v2.0.2 </p>
 	</footer>
 
 	<!-- javascript -->
