@@ -84,31 +84,12 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
         user = self.request.user
-
-        month = datetime.now().strftime('%B')
-        current_month_name_es = traductor(month)
-
         paginator = Paginator(get_full_systems(asset, user), 15)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
 
-        form = RutinaFilterForm(self.request.GET or None, asset=asset)
-        if form.is_valid():
-            month = int(form.cleaned_data['month'])
-            year = int(form.cleaned_data['year'])
-            show_execute = form.cleaned_data.get('execute', False)
-            selected_locations = form.cleaned_data.get('locations')
-            current_month_name_es = traductor(calendar.month_name[month])
-            
-            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset, user), system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            if show_execute == 'on':
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
-            else:
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.percentage_remaining < 15)]
-        else:
-            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset, user)).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
+        filtered_rutas, current_month_name_es = self.get_filtered_rutas(asset, user)
         
         context['mes'] = current_month_name_es
         context['consumibles'] = Suministro.objects.filter(asset=asset).exists()
@@ -119,19 +100,59 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['fechas'] = fechas_range()
         context['consumos_grafica'] = consumos_combustible_asset(asset)
         context['horas_grafica'] = horas_total_asset(asset)
-        context['rutinas_filter_form'] = form
+        context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
         context['sys_form'] = SysForm()
 
         end_time = time.time()
         logger.debug(f"Tiempo de ejecución: {end_time - start_time} segundos")
         return context
-                
+
+    def get_filtered_rutas(self, asset, user):
+        form = RutinaFilterForm(self.request.GET or None, asset=asset)
+        current_month_name_es = traductor(datetime.now().strftime('%B'))
+
+        if form.is_valid():
+            month = int(form.cleaned_data['month'])
+            year = int(form.cleaned_data['year'])
+            show_execute = form.cleaned_data.get('execute', False)
+            selected_locations = form.cleaned_data.get('locations')
+            current_month_name_es = traductor(calendar.month_name[month])
+            
+            filtered_rutas = Ruta.objects.filter(
+                system__in=get_full_systems_ids(asset, user),
+                system__location__in=selected_locations
+            ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+
+            if show_execute == 'on':
+                filtered_rutas = [
+                    ruta for ruta in filtered_rutas
+                    if (ruta.next_date.month <= month or ruta.next_date.year <= year)
+                    or (ruta.ot and ruta.ot.state == 'x')
+                    or (ruta.percentage_remaining < 15)
+                ]
+            else:
+                filtered_rutas = [
+                    ruta for ruta in filtered_rutas
+                    if (ruta.next_date.month <= month or ruta.next_date.year <= year)
+                    or (ruta.percentage_remaining < 15)
+                ]
+        else:
+            filtered_rutas = Ruta.objects.filter(
+                system__in=get_full_systems_ids(asset, user)
+            ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            filtered_rutas = [
+                ruta for ruta in filtered_rutas
+                if (ruta.percentage_remaining < 15)
+            ]
+
+        return filtered_rutas, current_month_name_es
+
     def export_rutinas_to_excel(self):
         asset = self.get_object()
-        systems = asset.system_set.all()
+        user = self.request.user
 
-        # Obtén las rutas filtradas de acuerdo a los criterios que se aplican en la vista
-        filtered_rutas, _ = self.get_filtered_rutas(asset, systems)
+        # Obtener las rutas filtradas
+        filtered_rutas, _ = self.get_filtered_rutas(asset, user)
         data = []
 
         for ruta in filtered_rutas:
@@ -180,29 +201,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             df.to_excel(writer, index=False)
 
         return response
-
-    def get_filtered_rutas(self, asset):
-        form = RutinaFilterForm(self.request.GET or None, asset=asset)
-        current_month_name_en = datetime.now().strftime('%B')
-        current_month_name_es = traductor(current_month_name_en)
-
-        if form.is_valid():
-            month = int(form.cleaned_data['month'])
-            year = int(form.cleaned_data['year'])
-            show_execute = form.cleaned_data.get('execute', False)
-            selected_locations = form.cleaned_data.get('locations')
-            current_month_name_es = traductor(calendar.month_name[month])
-            
-            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset), system__location__in=selected_locations).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            if show_execute == 'on':
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
-            else:
-                filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.percentage_remaining < 15)]
-        else:
-            filtered_rutas = Ruta.objects.filter(system__in=get_full_systems_ids(asset)).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.percentage_remaining < 15)]
-
-        return filtered_rutas, current_month_name_es
 
     def post(self, request, *args, **kwargs):
         asset = self.get_object()

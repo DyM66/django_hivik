@@ -212,5 +212,17 @@
                 </th>
             </tr>
         </table>
+
+        <br>
+        <table>
+            <tr>
+                <th>Ingreso:</th>
+                <th>Fecha de ingreso:</th>
+            </tr>
+            <tr>
+                <td>{% if rq.approved %}Jader Aguilar{% else %}---{% endif %}</td>
+                <td>{% if rq.approved %}{{rq.approval_date|date:"d/m/Y H:i"}}{% else %}---{% endif %}</td>
+            </tr>
+        </table>
 </body>
 </html>

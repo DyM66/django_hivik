@@ -34,7 +34,6 @@
                 </td>
                 <td data-cell="Destino" class="nowrap"><strong>{{ rq.destino }}</strong></td>
                 <td data-cell="Responsable" class="nowrap">{{ rq.responsable }}/ {{ rq.recibe}}</td>
-                <li></li>
                 <td data-cell="Estado">
                     <div class="dropdown">
                         <button class="btn status {% if rq.auth %}finished{% elif not rq.sign_recibe %}exe{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
@@ -46,7 +45,7 @@
                                 {% if perms.got.can_approve_it %}
                                     <li><a class="dropdown-item" href="{% url 'got:approve-salida' rq.id %}">Aprobar</a></li>
                                 {% endif %}
-
+                                <li><a class="dropdown-item" href="{% url 'got:salida-update' rq.id %}">Notificar</a></li>
                             {% endif %}
                         </ul>
                     </div>

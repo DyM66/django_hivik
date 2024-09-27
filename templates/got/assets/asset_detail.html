@@ -65,7 +65,6 @@
         </ul>
     </div>
 
-   
     <div class="info-asset"> 
         <table class="table-list">
             <thead>
@@ -130,56 +129,58 @@
         </table>
     </div>
 
-    <div class="sistemas">
-        <table class="table-list table-detail">
-            <thead>
-                <tr>
-                    <th colspan="{% if asset.area == 'a' %}4{% else %}5{% endif %}">
-                        Sistemas
-                        {% if perms.got.add_system %}
-                            <button type="button" class="add-sys" data-bs-toggle="modal" data-bs-target="#sysModal"><i class="bi bi-plus-circle"></i></button>
-                        {% endif %}
-                    </th>
-                </tr>
-                <tr>
-                    <th scope="col">Grupo</th>
-                    <th scope="col">Nombre</th>
-                    {% if not asset.area == 'a' %}
-                        <th scope="col">Ubicación</th>
-                    {% endif %}
-                    <th scope="col">Estado</th>
-                    <th scope="col">Mantenimiento</th>
-                </tr>    
-            </thead>
-            <tbody>
-                {% for sys in page_obj %}
+    {% if page_obj %}
+        <div class="sistemas">
+            <table class="table-list table-detail">
+                <thead>
                     <tr>
-                        <td data-cell="Grupo" scope="row">{{sys.group}}</td>
-                        <td data-cell="Sistema"><a href="{{ sys.get_absolute_url }}">{{sys.name}}</a></td>
-                        {% if not asset.area == 'a' %}
-                            <td data-cell="Ubicación">{{ sys.location }}</td>
-                        {% endif %}
-                        <td data-cell="Mantenimiento">{% if sys.maintenance_percentage %}{{ sys.maintenance_percentage }}%{% else %} --- {% endif %}</td>
-                        <td data-cell="Estado">
-                            <div class="dropdown">
-                                <button class="btn status {% if sys.state == 'o' %}finished{% elif sys.state == 'm' %}pending{% elif sys.state == 's' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                                    {{ sys.get_state_display }}
-                                </button>
-                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                                    <li><a class="dropdown-item" href="{{ sys.get_absolute_url }}">Ver detalle</a></li>
-                                    {% if perms.got.change_system %}
-                                        <li><a class="dropdown-item" href="{% url 'got:sys-update' sys.id %}">Editar</a></li>
-                                    {% endif %}
-                                    {% if perms.got.delete_system %}
-                                        <li><a class="dropdown-item" href="{% url 'got:sys-delete' sys.id %}">Eliminar</a></li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </td>
+                        <th colspan="{% if asset.area == 'a' %}4{% else %}5{% endif %}">
+                            Sistemas
+                            {% if perms.got.add_system %}
+                                <button type="button" class="btn-add-table" data-bs-toggle="modal" data-bs-target="#sysModal"><i class="bi bi-plus-circle"></i></button>
+                            {% endif %}
+                        </th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    <tr>
+                        <th scope="col">Grupo</th>
+                        <th scope="col">Nombre</th>
+                        {% if not asset.area == 'a' %}
+                            <th scope="col">Ubicación</th>
+                        {% endif %}
+                        <th scope="col">Estado</th>
+                        <th scope="col">Mantenimiento</th>
+                    </tr>    
+                </thead>
+                <tbody>
+                    {% for sys in page_obj %}
+                        <tr>
+                            <td data-cell="Grupo" scope="row">{{sys.group}}</td>
+                            <td data-cell="Sistema"><a href="{{ sys.get_absolute_url }}">{{sys.name}}</a></td>
+                            {% if not asset.area == 'a' %}
+                                <td data-cell="Ubicación">{{ sys.location }}</td>
+                            {% endif %}
+                            <td data-cell="Mantenimiento">{% if sys.maintenance_percentage %}{{ sys.maintenance_percentage }}%{% else %} --- {% endif %}</td>
+                            <td data-cell="Estado">
+                                <div class="dropdown">
+                                    <button class="btn status {% if sys.state == 'o' %}finished{% elif sys.state == 'm' %}pending{% elif sys.state == 's' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                        {{ sys.get_state_display }}
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                        <li><a class="dropdown-item" href="{{ sys.get_absolute_url }}">Ver detalle</a></li>
+                                        {% if perms.got.change_system %}
+                                            <li><a class="dropdown-item" href="{% url 'got:sys-update' sys.id %}">Editar</a></li>
+                                        {% endif %}
+                                        {% if perms.got.delete_system %}
+                                            <li><a class="dropdown-item" href="{% url 'got:sys-delete' sys.id %}">Eliminar</a></li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
         
         {% if page_obj.has_other_pages %}
             <nav>
