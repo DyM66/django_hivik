@@ -2640,7 +2640,7 @@ class SalidaUpdateView(LoginRequiredMixin, View):
 @login_required
 def indicadores(request):
 
-    m = 8
+    m = 9
 
     area_filter = request.GET.get('area', None)
 
