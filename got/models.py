@@ -25,6 +25,7 @@ def get_upload_pdfs(instance, filename):
     filename = f"pdfs/{uuid.uuid4()}.{ext}"
     return filename
 
+
 class ActivityLog(models.Model):
     user_name = models.CharField(max_length=100)
     action = models.CharField(max_length=100)

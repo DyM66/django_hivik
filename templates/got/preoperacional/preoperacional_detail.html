@@ -1,7 +1,11 @@
 {% extends "got/base_generic.html" %}
 {% load my_tags %}
 
-{% block header %}Detalle del preoperacional{% endblock %}
+{% block header %}
+Detalle del preoperacional
+- <a href="{% url 'got:preoperacional-edit' preoperacionaldiario.pk %}" class="btn btn-warning">Editar Preoperacional</a>
+
+{% endblock %}
 
 {% block content %}
 

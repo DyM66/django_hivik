@@ -77,32 +77,67 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = Asset
-    template_name = 'got/assets/asset_detail.html'
+    template_name = 'got/assets/asset_base.html'
 
     def get_context_data(self, **kwargs):
         start_time = time.time()
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
         user = self.request.user
+
         paginator = Paginator(get_full_systems(asset, user), 15)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
-
-        filtered_rutas, current_month_name_es = self.get_filtered_rutas(asset, user)
         
-        context['mes'] = current_month_name_es
+        context['rotativos'] = rotativos
+        context['view_type'] = 'detail'
         context['consumibles'] = Suministro.objects.filter(asset=asset).exists()
         context['page_obj'] = page_obj
-        context['rotativos'] = rotativos
-        context['page_obj_rutas'] = filtered_rutas
         context['items_by_subsystem'] = consumibles_summary(asset)
         context['fechas'] = fechas_range()
         context['consumos_grafica'] = consumos_combustible_asset(asset)
         context['horas_grafica'] = horas_total_asset(asset)
-        context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
         context['sys_form'] = SysForm()
 
+        end_time = time.time()
+        logger.debug(f"Tiempo de ejecución: {end_time - start_time} segundos")
+        return context
+
+    def post(self, request, *args, **kwargs):
+        asset = self.get_object()
+        sys_form = SysForm(request.POST)
+        
+        if sys_form.is_valid():
+            sys = sys_form.save(commit=False)
+            sys.asset = asset
+            sys.save()
+            return redirect(request.path)
+        else:
+            context = {'asset': asset, 'sys_form': sys_form}
+            return render(request, self.template_name, context)
+        
+
+class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
+    model = Asset
+    template_name = 'got/assets/asset_base.html'
+
+    def get_context_data(self, **kwargs):
+        start_time = time.time()
+        context = super().get_context_data(**kwargs)
+        asset = self.get_object()
+        user = self.request.user
+
+        filtered_rutas, current_month_name_es = self.get_filtered_rutas(asset, user)
+        rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
+
+        context['rotativos'] = rotativos
+        context['view_type'] = 'rutas'
+        context['asset'] = asset
+        context['mes'] = current_month_name_es
+        context['page_obj_rutas'] = filtered_rutas
+        context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
+        context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
         end_time = time.time()
         logger.debug(f"Tiempo de ejecución: {end_time - start_time} segundos")
         return context
@@ -147,16 +182,21 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
         return filtered_rutas, current_month_name_es
 
+    def post(self, request, *args, **kwargs):
+        if 'download_excel' in request.POST:
+            return self.export_rutinas_to_excel()
+        else:
+            # Maneja otros casos si es necesario
+            return redirect(request.path)
+
     def export_rutinas_to_excel(self):
         asset = self.get_object()
         user = self.request.user
 
-        # Obtener las rutas filtradas
         filtered_rutas, _ = self.get_filtered_rutas(asset, user)
         data = []
 
         for ruta in filtered_rutas:
-            # Información de la rutina
             days_left = (ruta.next_date - datetime.now().date()).days if ruta.next_date else '---'
             data.append({
                 'equipo_name': ruta.equipo.name if ruta.equipo else ruta.system.name,
@@ -168,11 +208,10 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
                 'intervention_date': ruta.intervention_date.strftime('%d/%m/%Y') if ruta.intervention_date else '---',
                 'next_date': ruta.next_date.strftime('%d/%m/%Y') if ruta.next_date else '---',
                 'ot_num_ot': ruta.ot.num_ot if ruta.ot else '---',
-                'activity': '---',  # Placeholder para la fila de la rutina en la columna de actividades
-                'responsable': ''  # Columna vacía para la fila de la rutina
+                'activity': '---',
+                'responsable': '' 
             })
 
-            # Actividades relacionadas con esta rutina
             tasks = Task.objects.filter(ruta=ruta)
             for task in tasks:
                 responsable_name = task.responsible.get_full_name() if task.responsible else '---'
@@ -186,52 +225,27 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
                     'intervention_date': '',
                     'next_date': '',
                     'ot_num_ot': '',
-                    'activity': f'- {task.description}',  # Descripción de la tarea con un guion para indentación
+                    'activity': f'- {task.description}', 
                     'responsable': responsable_name
                 })
 
-        # Convertimos la lista de diccionarios en un DataFrame
         df = pd.DataFrame(data)
         df.columns = ['Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante', 'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo', 'Actividad', 'Responsable']
-
-        # Generamos la respuesta HTTP con el archivo Excel
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename="rutinas.xlsx"'
         with pd.ExcelWriter(response, engine='openpyxl') as writer:
             df.to_excel(writer, index=False)
-
         return response
-
-    def post(self, request, *args, **kwargs):
-        asset = self.get_object()
-        sys_form = SysForm(request.POST)
-
-        if 'download_excel' in request.POST:
-            return self.export_rutinas_to_excel()
-        
-        if sys_form.is_valid():
-            sys = sys_form.save(commit=False)
-            sys.asset = asset
-            sys.save()
-            return redirect(request.path)
-        else:
-            context = {'asset': asset, 'sys_form': sys_form}
-            return render(request, self.template_name, context)
 
 
 def preventivo_pdf(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
 
-    # Obtener los filtros del request GET
     month = request.GET.get('month')
     year = request.GET.get('year')
     show_execute = request.GET.get('execute', False)
     selected_locations = request.GET.getlist('locations')
-
-    # Obtener los sistemas completos del activo usando get_full_systems
     systems = get_full_systems_ids(asset)
-
-    # Filtrar rutinas basado en los filtros recibidos
     filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
 
     if selected_locations:
@@ -247,21 +261,18 @@ def preventivo_pdf(request, pk):
 
     current_month_name_es = traductor(calendar.month_name[month]) if month else traductor(datetime.now().strftime('%B'))
 
-    # Preparar el contexto para generar el PDF
     context = {
         'rq': asset,
         'filtered_rutas': filtered_rutas,
         'mes': current_month_name_es,
     }
 
-    # Renderizar el PDF usando la plantilla
     return render_to_pdf('got/assets/asset-routine.html', context)
-
 
 
 class AssetDocCreateView(generic.View):
     form_class = DocumentForm
-    template_name = 'got/add-document.html'
+    template_name = 'got/assets/add-document.html'
 
     def get(self, request, asset_id):
         asset = get_object_or_404(Asset, pk=asset_id)
@@ -333,6 +344,8 @@ def asset_suministros_report(request, abbreviation):
     transacciones_por_presentacion = {}
     for presentacion, suministros_group in grouped_suministros.items():
         transacciones_por_presentacion[presentacion] = transacciones_historial.filter(suministro__in=suministros_group)
+    
+    articles = sorted(set(transaccion.suministro.item.name for transaccion in transacciones_historial))
 
     context = {
         'asset': asset, 
@@ -341,10 +354,32 @@ def asset_suministros_report(request, abbreviation):
         'ultima_fecha_transaccion': ultima_fecha_transaccion,
         'transacciones_historial': transacciones_historial,
         'transacciones_por_presentacion': transacciones_por_presentacion,
-        'fecha_actual': timezone.now().date()
+        'fecha_actual': timezone.now().date(),
+        'articles': articles,
         }
+    
+    if request.method == 'POST' and 'download_excel' in request.POST:
+        df = pd.DataFrame(list(transacciones_historial.values(
+            'fecha',
+            'suministro__item__presentacion',
+            'suministro__item__nombre',
+            'cantidad_ingresada',
+            'cantidad_consumida'
+        )))
+        df.rename(columns={
+            'fecha': 'Fecha',
+            'suministro__item__presentacion': 'Presentación',
+            'suministro__item__nombre': 'Artículo',
+            'cantidad_ingresada': 'Cantidad Ingresada',
+            'cantidad_consumida': 'Cantidad Consumida'
+        }, inplace=True)
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="historial_suministros.xlsx"'
+        with pd.ExcelWriter(response, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+        return response
 
-    return render(request, 'got/asset_suministros_report.html', context)
+    return render(request, 'got/assets/asset_suministros_report.html', context)
 
 
 @login_required
@@ -472,16 +507,13 @@ class SysDelete(DeleteView):
     model = System
 
     def delete(self, request, *args, **kwargs):
-        # Obtener el objeto que se va a eliminar
         system = self.get_object()
-        # Establecer el modified_by antes de la eliminación
         system.modified_by = request.user
-        system.save()  # Guardar la modificación antes de la eliminación
 
         return super().delete(request, *args, **kwargs)
 
     def get_success_url(self):
-        asset_code = self.object.asset.id
+        asset_code = self.object.asset.abbreviation
         success_url = reverse_lazy(
             'got:asset-detail', kwargs={'pk': asset_code})
         return str(success_url)
@@ -1264,7 +1296,7 @@ class TaskDeleterut(DeleteView):
         context = {'task': self.get_object()}
         return render(request, 'got/task_confirm_delete.html', context)
 
-    
+
 class Finish_task(UpdateView):
 
     model = Task
@@ -1486,39 +1518,63 @@ class RutaDelete(DeleteView):
 @login_required
 def crear_ot_desde_ruta(request, ruta_id):
     ruta = get_object_or_404(Ruta, pk=ruta_id)
-    nueva_ot = Ot(
-        description=f"Rutina de mantenimiento con código {ruta.name}",
-        state='x',
-        supervisor=f"{request.user.first_name} {request.user.last_name}",
-        tipo_mtto='p',
-        system=ruta.system,
-        modified_by=request.user 
-    )
-    nueva_ot.save()
 
-    def copiar_tasks_y_actualizar_ot(ruta, ot):
-        for task in ruta.task_set.all():
-            Task.objects.create(
-                ot=ot,
-                responsible=task.responsible,
-                description=task.description,
-                procedimiento=task.procedimiento,
-                hse=task.hse,
-                evidence=task.evidence,
-                start_date=timezone.now().date(),
-                men_time=1,
-                finished=False,
-                modified_by=request.user 
-            )
+    if request.method == 'POST':
+        asociar_otros = request.POST.get('asociar_otros', 'off') == 'on'
+        rutinas_seleccionadas_ids = [str(ruta_id)]
+        if asociar_otros:
+            # Obtener rutinas seleccionadas
+            rutinas_seleccionadas_ids += request.POST.getlist('rutinas_seleccionadas')
 
-        ruta.ot = ot
-        ruta.save()
+        rutinas_seleccionadas = Ruta.objects.filter(pk__in=rutinas_seleccionadas_ids)
+        num_rutinas = rutinas_seleccionadas.count()
 
-        if ruta.dependencia:
-            copiar_tasks_y_actualizar_ot(ruta.dependencia, ot)
+        primera_ruta = rutinas_seleccionadas.first()
+        nueva_ot = Ot(
+            description=f"Rutina de mantenimiento con código {primera_ruta.name}",
+            state='x',
+            supervisor=f"{request.user.first_name} {request.user.last_name}",
+            tipo_mtto='p',
+            system=primera_ruta.system,
+            modified_by=request.user 
+        )
+        nueva_ot.save()
 
-    copiar_tasks_y_actualizar_ot(ruta, nueva_ot)
-    return redirect('got:ot-detail', pk=nueva_ot.pk)
+        def copiar_tasks_y_actualizar_ot(ruta, ot, modify_description=False):
+            for task in ruta.task_set.all():
+                if modify_description:
+                    equipo_sistema = ruta.equipo.name if ruta.equipo else ruta.system.name
+                    description = f"{task.description} ({equipo_sistema})"
+                else:
+                    description = task.description
+                Task.objects.create(
+                    ot=ot,
+                    responsible=task.responsible,
+                    description=description,
+                    procedimiento=task.procedimiento,
+                    hse=task.hse,
+                    evidence=task.evidence,
+                    start_date=timezone.now().date(),
+                    men_time=1,
+                    finished=False,
+                    modified_by=request.user 
+                )
+
+            ruta.ot = ot
+            ruta.save()
+
+            if ruta.dependencia:
+                copiar_tasks_y_actualizar_ot(ruta.dependencia, ot)
+
+        modify_description = num_rutinas > 1
+        for selected_ruta in rutinas_seleccionadas:
+            copiar_tasks_y_actualizar_ot(selected_ruta, nueva_ot, modify_description)
+
+        # copiar_tasks_y_actualizar_ot(ruta, nueva_ot)
+        return redirect('got:ot-detail', pk=nueva_ot.pk)
+    else:
+        # Redirigir si se accede por GET
+        return redirect('got:asset-maintenance-plan', pk=ruta.system.asset.abbreviation)
 
 
 def rutina_form_view(request, ruta_id):
@@ -2116,6 +2172,47 @@ def preoperacional_diario_view(request, code):
         image_form = UploadImages()
 
     return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas, 'pre': True})
+
+
+class PreoperacionalDiarioUpdateView(LoginRequiredMixin, generic.UpdateView):
+    model = PreoperacionalDiario
+    form_class = PreoperacionalDiarioForm
+    template_name = 'got/preoperacional/preoperacionalform.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        preoperacional = self.get_object()
+        kwargs['equipo_code'] = preoperacional.vehiculo.code  # Assign the existing equipo's code to the form
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        response = super().form_valid(form)  # Save the form
+        # Get the previous instance before saving
+        preoperacional = form.instance
+        equipo = preoperacional.vehiculo
+        fecha_preoperacional = preoperacional.fecha
+        horometro_actual = equipo.initial_hours + (
+            equipo.hours.exclude(report_date=fecha_preoperacional).aggregate(total=Sum('hour'))['total'] or 0
+        )
+        kilometraje_reportado = form.cleaned_data['kilometraje'] - horometro_actual
+
+        history_hour, _ = HistoryHour.objects.get_or_create(
+            component=equipo,
+            report_date=preoperacional.fecha,
+            defaults={'hour': kilometraje_reportado}
+        )
+
+        history_hour.hour = kilometraje_reportado
+        history_hour.save()
+
+        equipo.horometro = form.cleaned_data['kilometraje']
+        equipo.save()
+
+        return response
+
+    def get_success_url(self):
+        return reverse('got:preoperacional-detail', kwargs={'pk': self.object.pk})
 
 
 def gracias_view(request, code):

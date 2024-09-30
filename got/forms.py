@@ -140,6 +140,12 @@ class SysForm(forms.ModelForm):
             'location': 'Ubicación',
             'state': 'Estado'
         }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'group': forms.NumberInput(attrs={'class': 'form-control'}),
+            'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'state': forms.Select(attrs={'class': 'form-control'}),
+        }
 
 
 class EquipoForm(forms.ModelForm):
@@ -1149,17 +1155,27 @@ class PreoperacionalDiarioForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super(PreoperacionalDiarioForm, self).__init__(*args, **kwargs)
         self.equipo = Equipo.objects.filter(code=equipo_code).first()
-        print(equipo_code)
-        if user and user.is_authenticated:
-            self.fields['nombre_no_registrado'].widget = forms.HiddenInput()
-        else:
-            self.fields['nombre_no_registrado'].required = True
-            
+        instance = kwargs.get('instance', None)
+        if instance and instance.nombre_no_registrado:
+            self.fields['nombre_no_registrado'].disabled = True
+            self.fields['nombre_no_registrado'].required = False 
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # Si el campo está deshabilitado, asegurarse de mantener el valor original
+        if self.fields['nombre_no_registrado'].disabled:
+            instance.nombre_no_registrado = self.initial.get('nombre_no_registrado', instance.nombre_no_registrado)
+        if commit:
+            instance.save()
+        return instance
 
     def clean_kilometraje(self):
         kilometraje = self.cleaned_data['kilometraje']
-        if kilometraje < self.equipo.horometro:
-            raise ValidationError("El nuevo kilometraje debe ser igual o mayor al kilometraje actual.")
+        if self.instance.pk is None:
+            # This is a new record (creation)
+            if kilometraje < self.equipo.horometro:
+                raise ValidationError("El nuevo kilometraje debe ser igual o mayor al kilometraje actual del vehículo.")
+
         return kilometraje
 
 

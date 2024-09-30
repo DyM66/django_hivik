@@ -8,6 +8,7 @@ urlpatterns = [
 
     path("", views.AssetsListView.as_view(), name="asset-list"),
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
+    path("asset/<str:pk>/maintenance-plan/", views.AssetMaintenancePlanView.as_view(), name="asset-maintenance-plan"),
     path('asset/<str:asset_id>/add-document/', views.AssetDocCreateView.as_view(), name='add-document'),
     path('asset/<str:abbreviation>/suministros/', views.asset_suministros_report, name='asset-suministros'),
     path("asset/<str:pk>/schedule/", views.schedule, name="schedule"),
@@ -74,6 +75,8 @@ urlpatterns = [
     path("preoperacional/consolidado/<int:pk>/", views.PreoperacionalDetailView.as_view(), name="preoperacional-detail"),
     path('preoperacional/diario/<str:code>/', views.preoperacional_diario_view, name='preoperacional-dia'),
     path('gracias/<str:code>/', views.gracias_view, name='gracias'),
+    
+    path("preoperacional/editar/<int:pk>/", views.PreoperacionalDiarioUpdateView.as_view(), name="preoperacional-edit"),
 
     path("solicitud/", views.SolicitudesListView.as_view(), name="rq-list"),
     path('detalle_pdf/<int:pk>/', views.detalle_pdf, name='solicitud_pdf'),

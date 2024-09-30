@@ -28,7 +28,7 @@
 
                 {% if perms.got.view_task %}
                     <li class="nav-item">
-                        <a class="nav-link  {% if request.resolver_match.url_name == 'my-tasks' %}active{% endif %}" href="{% url 'got:my-tasks' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'my-tasks' %}active{% endif %}" href="{% url 'got:my-tasks' %}">
                             Actividades
                         </a>
                     </li>

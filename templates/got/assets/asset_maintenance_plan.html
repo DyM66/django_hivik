@@ -1,0 +1,280 @@
+<div class="main-asset">
+
+	<div class="rutinas">
+		<table class="table-list table-detail">
+			<thead>
+				<tr>
+					<th colspan="9">
+                        Rutinas de mantenimiento/{{ mes }}
+                    </th>
+				</tr>
+				<tr>
+					<th scope="col">Equipo</th>
+					<th scope="col">Ubicación</th>
+					<th scope="col">Codigo</th>
+					<th scope="col">Frecuencia</th>
+					<th scope="col">Tiempo restante</th>
+					<th scope="col">Ultima intervención</th>
+					<th scope="col">Proxima intervención</th>
+					<th scope="col">Estado</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for ruta in page_obj_rutas %}
+				    <tr id="row{{forloop.counter}}" onclick="toggleDetails('details{{forloop.counter}}', this, event)">
+                        <td scope="row" data-cell="Equipo">
+                            {% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ruta.system.name }}{% endif %}
+                        </td>
+                        <td scope="row" data-cell="Equipo" class="nowrap">
+                            {% if ruta.equipo %}{{ ruta.equipo.system.location }}{% else %}{{ruta.system.location }}{% endif %}
+                        </td>
+                        <td scope="row" data-cell="Codigo">
+                            {{ ruta.name }}
+                        </td>
+                        <td data-cell="Frecuencia">
+                            {{ ruta.frecuency }} {{ ruta.get_control_display }}
+                        </td>
+                        <td data-cell="Ultima intervención">
+                            {{ ruta.daysleft }}
+                        </td>
+                        <td data-cell="Ultima intervención">
+                            {% if ruta.ot %}{{ ruta.intervention_date|date:"d/m/Y" }}{% else%}---{% endif %}
+                        </td>
+                        <td data-cell="Proxima Intervención">
+                            {{ ruta.next_date|date:"d/m/Y" }}
+                        </td>
+                        <td data-cell="Acciones">
+                            <div class="dropdown">
+                                <button 
+                                    class="btn status {% if ruta.maintenance_status == 'c' %}finished{%elif ruta.maintenance_status == 'p' %}pending{%elif ruta.maintenance_status == 'e' %}shipped{%elif ruta.maintenance_status == 'x' %}exe{% else %}close{% endif %} btn-sm dropdown-toggle" 
+                                    type="button" 
+                                    id="dropdownMenuButton" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false">
+                                    {% if ruta.maintenance_status == 'c' %}Completado{%elif ruta.maintenance_status == 'p' %}Planeado{%elif ruta.maintenance_status == 'e' %}Sin información{%elif ruta.maintenance_status == 'x' %}En ejecución{% else %}Retrasado{% endif %}
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    {% if ruta.equipo %}
+                                        <li><a class="dropdown-item" href="{% url 'got:sys-detail-view' ruta.system.id ruta.equipo.code %}">Ver detalle</a></li>
+                                    {% endif %}
+                                    <li>
+                                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#crearOtModal{{ ruta.code }}">
+                                            Crear nueva OT
+                                        </button>
+                                    </li>
+                                    <li><a class="dropdown-item" href="{% url 'got:create-ot-from-ruta' ruta_id=ruta.code %}">Reportar</a></li>
+                                    {% if perms.got.change_ruta %}
+                                        <li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
+                                    {% endif %}
+                                    {% if perms.got.delete_ruta %}
+                                        <li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+
+                        <div class="modal fade" id="crearOtModal{{ ruta.code }}" tabindex="-1" aria-labelledby="crearOtModalLabel{{ ruta.code }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <form method="post" action="{% url 'got:crear_ot_desde_ruta' ruta.code %}">
+                                    {% csrf_token %}
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="crearOtModalLabel{{ ruta.code }}">Crear Orden de Trabajo</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            ¿Desea crear una orden de trabajo para la rutina <strong>{{ ruta.name }}</strong>?
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="asociarRutinasCheckbox{{ ruta.code }}" onclick="toggleRutinasList('{{ ruta.code }}')" name="asociar_otros_checkbox">
+                                                <label class="form-check-label" for="asociarRutinasCheckbox{{ ruta.code }}">Asociar otras rutinas</label>
+                                                <input type="hidden" name="asociar_otros" id="asociarOtrosHidden{{ ruta.code }}" value="off">
+                                            </div>
+                                            <div id="rutinasList{{ ruta.code }}" style="display: none; margin-top: 10px;">
+                                                <div class="list-group">
+                                                    {% for other_ruta in rutinas_disponibles %}
+                                                        {% if other_ruta != ruta %}
+                                                            <label class="list-group-item">
+                                                                <input type="checkbox" class="form-check-input me-1" name="rutinas_seleccionadas" value="{{ other_ruta.code }}" id="rutaCheckbox{{ ruta.code }}{{ other_ruta.code }}">
+                                                                {% if other_ruta.equipo %}{{ other_ruta.equipo.name }}{% else %}{{ other_ruta.system.name }}{% endif %} - {{ other_ruta.name }}
+                                                            </label>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            
+                                            
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-success">Crear OT</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </tr>
+                    <tr id="details{{forloop.counter}}" class="detail-row" style="display:none;">
+						<td colspan="9">
+							<div>
+								<h4>
+									Actividades:  {{ruta.get_nivel_display}}
+									{% if perms.got.add_equipo %}
+										<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill add-more"></i></a>
+									{% endif %}
+								</h4>
+								{% if ruta.dependencia %}
+									Relación con rutina {{ ruta.dependencia.name }}
+								{% endif %}
+                                Ultima Orden de trabajo: <a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a>
+	                            
+                                {% if ruta.task_set.all %}
+									<ul>
+										{% for task in ruta.task_set.all %}
+											<li style="margin-bottom: 5px; list-style-type: disc;">{{ task.description }} ({{ task.responsible.profile.cargo }})
+	
+												{% if perms.got.add_equipo %}
+													<a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>
+													<a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a></li>
+												{% endif %}
+													
+												<ul style="list-style-type: none;">
+													{% if task.procedimiento %}
+													<li><strong>Procedimiento:<br></strong>{{ task.procedimiento|linebreaksbr }}</li>
+													{% endif %}
+													{% if task.suministros %}
+													<li><strong>Equipos, herramientas y consumibles:<br></strong>{{ task.suministros|linebreaksbr }}</li>
+													{% endif %}
+													{% if task.hse %}
+													<li><strong>Precauciones de seguridad:<br></strong>{{ task.hse|linebreaksbr }}</li>
+													{% endif %}
+												</ul>
+                                            </li>    
+										{% endfor %}
+									</ul>
+									<hr>
+								{% else %}
+									<p>No hay actividades registradas.</p>
+								{% endif %}
+							</div>
+						</td>
+					</tr>
+
+				{% empty %}
+                    <tr>
+                        <td colspan="6">No hay rutinas registradas para el mes {{mes}}.</td>
+                    </tr>
+				{% endfor %}
+			</tbody>
+		</table>
+
+		<nav aria-label="Page navigation for rutas">
+			<ul class="pagination">
+				{% if page_obj_rutas.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page_rutas={{ page_obj_rutas.previous_page_number }}"
+                            aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+				{% endif %} 
+                
+                {% for num in page_obj_rutas.paginator.page_range %}
+                    <li class="page-item {% if page_obj_rutas.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page_rutas={{ num }}">{{ num }}</a>
+                    </li>
+				{% endfor %} 
+                
+                {% if page_obj_rutas.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page_rutas={{ page_obj_rutas.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+				{% endif %}
+			</ul>
+		</nav>
+	</div>
+
+    <div class="acciones filter-form">
+        <form method="get" class="">
+            <fieldset>
+                <legend><strong>Filtro de Rutinas:</strong></legend>
+    
+                <div class="input-group">
+                    <span class="input-group-text">Mes y año</span>
+                    {{ rutinas_filter_form.month }} {{ rutinas_filter_form.year }}
+                </div>
+    
+                <div class="form-check form-switch form-check-reverse">
+                    <span class="form-check-label">Mostrar rutinas en ejecución</span>
+                    {{ rutinas_filter_form.execute }}
+                </div>
+    
+                <legend>Ubicaciones:</legend>
+                <div>
+                    {% for location in rutinas_filter_form.locations %} {{ location }}
+                    <br />
+                    {% endfor %}
+                </div>
+    
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </fieldset>
+        </form>
+    
+        <hr>
+        <form method="post" action="{% url 'got:asset-detail' asset.abbreviation %}">
+            {% csrf_token %}
+            <button type="submit" name="download_excel" class="btn btn-info">
+                Descargar Rutinas como Excel
+            </button>
+        </form>
+        <br />
+        <a class="btn btn-info"
+            href="{% url 'got:preventivo' asset.abbreviation %}?month={{ rutinas_filter_form.month.value }}&year={{ rutinas_filter_form.year.value }}{% if rutinas_filter_form.execute.value %}&execute=on{% endif %}{% for location in rutinas_filter_form.locations.value %}&locations={{ location }}{% endfor %}">
+            Descargar Rutinas como PDF
+        </a>
+    </div>
+</div>
+
+<script>
+
+    function toggleDetails(detailId, trigger, event) {
+        if (event.target.closest('.dropdown') || event.target.closest('.dropdown-toggle')) {
+            return;
+        }
+
+        var detailRow = document.getElementById(detailId);
+        detailRow.style.display = (detailRow.style.display === 'none') ? '' : 'none';
+    
+        // Cambiar el estilo de la fila para indicar si está expandida o no
+        trigger.style.fontWeight = (detailRow.style.display === 'none') ? 'normal' : 'bold';
+    }
+
+    function toggleRutinasList(rutaCode) {
+        var checkbox = document.getElementById('asociarRutinasCheckbox' + rutaCode);
+        var rutinasList = document.getElementById('rutinasList' + rutaCode);
+        var hiddenField = document.getElementById('asociarOtrosHidden' + rutaCode);
+        var checkboxes = rutinasList.querySelectorAll('input[type="checkbox"]');
+    
+        if (checkbox.checked) {
+            rutinasList.style.display = 'block';
+            hiddenField.value = 'on';
+    
+            // Habilitar los checkboxes y mantener su estado
+            checkboxes.forEach(function(chk) {
+                chk.disabled = false;
+            });
+        } else {
+            rutinasList.style.display = 'none';
+            hiddenField.value = 'off';
+    
+            // Desmarcar y deshabilitar los checkboxes
+            checkboxes.forEach(function(chk) {
+                chk.checked = false;
+                chk.disabled = true;
+            });
+        }
+    }
+</script>
+    
+    

@@ -1,94 +1,184 @@
-{% extends "got/base/base_generic.html" %}
-{% load my_tags %}
+<div class="main-asset">
 
-{% block headtag %}<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>{% endblock %}
+<div class="sistemas">
+    {% if page_obj %}
+	    <table class="table-list table-detail">
+			<thead>
+				<tr>
+				    <th colspan="{% if asset.area == 'a' %}4{% else %}5{% endif %}">
+					    Sistemas 
+                        {% if perms.got.add_system %}
+                            <button type="button" class="btn-add-table" data-bs-toggle="modal" data-bs-target="#sysModal">
+                                <i class="bi bi-plus-circle btn-add-table"></i>
+                            </button>
+					    {% endif %}
+				    </th>
+			    </tr>
+			    <tr>
+				    <th scope="col">Grupo</th>
+					<th scope="col">Nombre</th>
+				    {% if not asset.area == 'a' %}
+				        <th scope="col">Ubicación</th>
+				    {% endif %}
+				    <th scope="col">Estado</th>
+				    <th scope="col">Mantenimiento</th>
+				</tr>
+			</thead>
+		    <tbody>
+				{% for sys in page_obj %}
+			        <tr>
+					    <td data-cell="Grupo" scope="row">{{sys.group}}</td>
+					    <td data-cell="Sistema">
+					        <a href="{{ sys.get_absolute_url }}">{{sys.name}}</a>
+				        </td>
+				        {% if not asset.area == 'a' %}
+				            <td data-cell="Ubicación">{{ sys.location }}</td>
+				        {% endif %}
+					    <td data-cell="Mantenimiento">
+						    {% if sys.maintenance_percentage %}{{ sys.maintenance_percentage}}%{% else %} --- {% endif %}
+				        </td>
+					    <td data-cell="Estado">
+					        <div class="dropdown">
+						        <button class="btn status {% if sys.state == 'o' %}finished{% elif sys.state == 'm' %}pending{% elif sys.state == 's' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+								    {{ sys.get_state_display }}
+							    </button>
+							    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+							        <li>
+								        <a class="dropdown-item" href="{{ sys.get_absolute_url }}">Ver detalle</a>
+							        </li>
+		    				        {% if perms.got.change_system %}
+							            <li>
+								            <a class="dropdown-item" href="{% url 'got:sys-update' sys.id %}">Editar</a>
+							            </li>
+							        {% endif %}
+                                    {% if perms.got.delete_system %}
+								        <li>
+								            <a class="dropdown-item" href="{% url 'got:sys-delete' sys.id %}">Eliminar</a>
+							            </li>
+							        {% endif %}
+						        </ul>
+					        </div>
+				        </td>
+			        </tr>
+			    {% endfor %}
+			</tbody>
+		</table>
 
-{% block content %}
-<main class="main-asset">
+        {% if page_obj.has_other_pages %}
+		    <nav>
+			    <ul class="pagination">
+				    {% if page_obj.has_previous %}
+				        <li class="page-item">
+					        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Anterior</a>
+				        </li>
+				    {% endif %}
 
-    <div class="title-asset">
-        <h1>
-            {% if perms.got.view_asset %}
-                <a href="{% url 'got:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
-            {% endif %}
-            {{ asset.name }}
-        </h1>
+				    {% for num in page_obj.paginator.page_range %}
+				        {% if page_obj.number == num %}
+				            <li class="page-item active">
+					            <a href="#" class="page-link">{{ num }}</a>
+				            </li>
+				        {% else %}
+				            <li class="page-item">
+					            <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+				            </li>
+				        {% endif %}
+				    {% endfor %}
 
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a href="?page={{ page_obj.next_page_number }}" class="page-link">Siguiente</a>
+                        </li>
+                    {% endif %}
+			    </ul>
+		    </nav>
+		{% endif %}
+	{% endif %}
 
-        <ul class="nav nav-justified" style="font-size: 0.9rem;">
-            <li class="nav-item">
-                <form action="{% url 'got:generate_asset_pdf' asset.abbreviation %}" method="POST">{% csrf_token %}
-                    <button type="submit" class="nav-link">Plan de mantenimiento</button>
-                </form>
-            </li>
-            {% if perms.got.add_ot %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'got:ot-create' asset.abbreviation %}">Nueva orden de trabajo</a>
-                </li>
-            {% endif %}
-            {% if rotativos %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'got:horas-asset' asset.abbreviation %}">
-                        {% if asset.area == 'v' %}
-                            Reporte de kilometraje
-                        {% else %}
-                            Reporte de horas
-                        {% endif %}
-                    </a>
-                </li>
-            {% endif %}
-            <li class="nav-item">
-                {% if asset.area == 'v' %}
-                    <a class="nav-link" href="{% url 'got:preoperacional-consolidado' %}">Preoperacionales</a>
-                {% else %}
-                    <a class="nav-link" href="{% url 'got:asset-suministros' asset.abbreviation %}">Reporte de Consumos</a>
-                {% endif %}
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'got:failure-report-create' asset.abbreviation %}">Reportar falla</a>
-            </li>
-            <li class="nav-item">
-                {% if asset.area == 'v' %}
-                    <a class="nav-link" href="{% url 'got:salidas-consolidado' %}">Reportes de salida</a>
-                {% else %}
-                    <a class="nav-link" href="{% url 'got:schedule' asset.abbreviation %}">Cronograma</a>
-                {% endif %}
-            </li>
-            {% if perms.got.add_document %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'got:add-document' asset_id=asset.abbreviation %}">Añadir documento</a>
-                </li>
-            {% endif %}
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'got:create-solicitud' asset.abbreviation %}">Solicitar materiales/servicios</a>
-            </li>
-        </ul>
+    <div class="modal fade" id="sysModal" tabindex="-1" aria-labelledby="sysModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sysModalLabel">Crear nuevo sistema</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <table>
+                            {{ sys_form.as_table }}
+                        </table>
+                        <button type="submit" class="btn btn-primary">Agregar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="info-asset"> 
-        <table class="table-list">
+    <br>
+    {% if consumibles %}
+        <table class="table-list table-detail">
             <thead>
                 <tr>
-                    <th colspan="2" class="visible">Información general</th>
+                    <th colspan="3">Lubricantes, Combustibles y filtros</th>
+                </tr>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Cantidad total utilizada</th>
+                    <th>Cantidad en inventario</th>
                 </tr>
             </thead>
             <tbody>
-                {% if asset.imagen %}
+                {% for subsystem, items_with_quantities in items_by_subsystem.items %}
+                    <tr>
+                        <th colspan="3">{{ subsystem }}</th>
+                    </tr>
+                    {% for item, quantity, inventory, double_quantity in items_with_quantities %}
+                        <tr>
+                            <td>{{ item }}</td>
+                            <td>{{ quantity }}</td>
+                            <td class="{% if inventory < double_quantity %}red-strong{% endif %}">
+                                {{ inventory }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% empty %}
+                    <tr>
+                        <td colspan="3">No hay artículos disponibles.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+
+<div class="info-asset">
+		<table class="table-list">
+			<thead>
+				<tr>
+					<th colspan="2" class="visible">Información general</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% if asset.imagen %}
                     <tr>
                         <td colspan="2">
-                            <img src="{{ asset.imagen.url }}" id="asset">
+                            <img src="{{ asset.imagen.url }}" id="asset" />
                         </td>
                     </tr>
-                {% endif %}
-                <tr>
-                    <th>Supervisor</th>
-                    <td data-cell="Supervisor">{{asset.supervisor.first_name}} {{asset.supervisor.last_name}} ({{asset.supervisor.profile.cargo}})</td>
-                </tr>
-                <tr>
-                    <th>Área</th>
-                    <td data-cell="Área">{{asset.get_area_display}}</td>
-                </tr>
-                {% if asset.area == 'a' %}
+				{% endif %}
+				<tr>
+					<th>Supervisor</th>
+					<td data-cell="Supervisor">
+						{{asset.supervisor.get_full_name}}
+						({{asset.supervisor.profile.cargo}})
+					</td>
+				</tr>
+				<tr>
+					<th>Área</th>
+					<td data-cell="Área">{{asset.get_area_display}}</td>
+				</tr>
+				{% if asset.area == 'a' %}
                     <tr>
                         <th colspan="2" class="info-special">Información especifica</th>
                     </tr>
@@ -102,7 +192,7 @@
                     </tr>
                     <tr>
                         <th>Manga</th>
-                        <td data-cell="Manga">{{asset.manga}}  m</td>
+                        <td data-cell="Manga">{{asset.manga}} m</td>
                     </tr>
                     <tr>
                         <th>Puntal</th>
@@ -119,384 +209,49 @@
                     <tr>
                         <th>Arqueo bruto</th>
                         <td data-cell="Arqueo bruto">{{asset.arqueo_bruto}}</td>
-                    </tr>
-                    <tr>
-                        <th>Arqueo neto</th>
-                        <td data-cell="Arqueo neto">{{asset.arqueo_neto}}</td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
+                </tr>
+                <tr>
+                    <th>Arqueo neto</th>
+                    <td data-cell="Arqueo neto">{{asset.arqueo_neto}}</td>
+                </tr>
+			{% endif %}
+		</tbody>
+	</table>
 
-    {% if page_obj %}
-        <div class="sistemas">
+    <br>
+    {% if asset.documents.all %}
+        <div class="documents-section">
             <table class="table-list table-detail">
                 <thead>
                     <tr>
-                        <th colspan="{% if asset.area == 'a' %}4{% else %}5{% endif %}">
-                            Sistemas
-                            {% if perms.got.add_system %}
-                                <button type="button" class="btn-add-table" data-bs-toggle="modal" data-bs-target="#sysModal"><i class="bi bi-plus-circle"></i></button>
+                        <th>Documentos Asociados</th>
+                        <th>
+                            {% if perms.got.add_document %}
+                                <a class="btn-add-table" href="{% url 'got:add-document' asset_id=asset.abbreviation %}">
+                                    <i class="bi bi-plus-circle btn-add-table"></i>
+                                </a>
                             {% endif %}
                         </th>
                     </tr>
-                    <tr>
-                        <th scope="col">Grupo</th>
-                        <th scope="col">Nombre</th>
-                        {% if not asset.area == 'a' %}
-                            <th scope="col">Ubicación</th>
-                        {% endif %}
-                        <th scope="col">Estado</th>
-                        <th scope="col">Mantenimiento</th>
-                    </tr>    
                 </thead>
                 <tbody>
-                    {% for sys in page_obj %}
-                        <tr>
-                            <td data-cell="Grupo" scope="row">{{sys.group}}</td>
-                            <td data-cell="Sistema"><a href="{{ sys.get_absolute_url }}">{{sys.name}}</a></td>
-                            {% if not asset.area == 'a' %}
-                                <td data-cell="Ubicación">{{ sys.location }}</td>
-                            {% endif %}
-                            <td data-cell="Mantenimiento">{% if sys.maintenance_percentage %}{{ sys.maintenance_percentage }}%{% else %} --- {% endif %}</td>
-                            <td data-cell="Estado">
-                                <div class="dropdown">
-                                    <button class="btn status {% if sys.state == 'o' %}finished{% elif sys.state == 'm' %}pending{% elif sys.state == 's' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                                        {{ sys.get_state_display }}
-                                    </button>
-                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                                        <li><a class="dropdown-item" href="{{ sys.get_absolute_url }}">Ver detalle</a></li>
-                                        {% if perms.got.change_system %}
-                                            <li><a class="dropdown-item" href="{% url 'got:sys-update' sys.id %}">Editar</a></li>
-                                        {% endif %}
-                                        {% if perms.got.delete_system %}
-                                            <li><a class="dropdown-item" href="{% url 'got:sys-delete' sys.id %}">Eliminar</a></li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
-        
-        {% if page_obj.has_other_pages %}
-            <nav>
-                <ul class="pagination">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Anterior</a>
-                        </li>
-                    {% endif %}
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <li class="page-item active"><a href="#" class="page-link">{{ num }}</a></li>
-                        {% else %}
-                            <li class="page-item"><a href="?page={{ num }}" class="page-link">{{ num }}</a></li>
-                        {% endif %}
-                    {% endfor %}
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a href="?page={{ page_obj.next_page_number }}" class="page-link">Siguiente</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        {% endif %}
-
-        {% if consumibles %}
-            <table class="table-list table-detail">
-                <thead>
+                    {% for document in asset.documents.all %}
                     <tr>
-                        <th colspan="3">Lubricantes, Combustibles y filtros</th>
+                        <td>{{ document.description }}</td>
+                        <td><a href="{{ document.file.url }}" target="_blank">Abrir</a></td>
                     </tr>
-                    <tr>
-                        <th>Descripción</th>
-                        <th>Cantidad total utilizada</th>
-                        <th>Cantidad en inventario</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for subsystem, items_with_quantities in items_by_subsystem.items %}
-                        <tr>
-                            <th colspan="3">{{ subsystem }}</th>
-                        </tr>
-                        {% for item, quantity, inventory, double_quantity in items_with_quantities %}
-                            <tr>
-                                <td>{{ item }}</td>
-                                <td>{{ quantity }}</td>
-                                <td class="{% if inventory < double_quantity %}red-strong{% endif %}">{{ inventory }}</td>
-                            </tr>
-                        {% endfor %}
                     {% empty %}
-                        <tr>
-                            <td colspan="3">No hay artículos disponibles.</td>
-                        </tr>
+                    <tr>
+                        <td colspan="2">No hay documentos disponibles.</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        {% endif %}
-    </div>
-
-    <div class="acciones">
-    
-        <form method="get" class="filter-form">
-            <fieldset>
-                <legend><strong>Filtro de Rutinas:</strong></legend>
-
-                <div class="input-group">
-                    <span class="input-group-text">Mes y año</span>
-                    {{ rutinas_filter_form.month }}
-                    {{ rutinas_filter_form.year }}
-                </div>
-
-                <div class="form-check form-switch form-check-reverse">
-                    <span class="form-check-label">Mostrar rutinas en ejecución</span>
-                    {{ rutinas_filter_form.execute }}
-                </div>
-
-                <legend>Ubicaciones:</legend>
-                <div>
-                    {% for location in rutinas_filter_form.locations %}
-                        {{ location }} <br>
-                    {% endfor %}
-                </div>
-    
-                <button type="submit" class="btn btn-primary">Filtrar</button>
-            </fieldset>
-        </form>
-
-        <form method="post" action="{% url 'got:asset-detail' asset.abbreviation %}">
-            {% csrf_token %}
-            <button type="submit" name="download_excel" class="btn btn-info">Descargar Rutinas como Excel</button>
-        </form>
-        <br>
-        <a class="btn btn-info" href="{% url 'got:preventivo' asset.abbreviation %}?month={{ rutinas_filter_form.month.value }}&year={{ rutinas_filter_form.year.value }}{% if rutinas_filter_form.execute.value %}&execute=on{% endif %}{% for location in rutinas_filter_form.locations.value %}&locations={{ location }}{% endfor %}">
-            Descargar Rutinas como PDF
-        </a>
-        
-    </div>
-
-
-	<div class="rutinas">
-
-		<table class="table-list table-detail">
-			<thead>
-                <tr>
-                    <th colspan="9">Rutinas de mantenimiento/{{ mes }}</th>
-                </tr>
-				<tr>
-					<th scope="col">Equipo</th>
-					<th scope="col">Ubicación</th>
-					<th scope="col">Codigo</th>
-					<th scope="col">Frecuencia</th>
-                    <th scope="col">Tiempo restante</th>
-					<th scope="col">Ultima intervención</th>
-					<th scope="col">Proxima intervención</th>
-					<th scope="col">%PM</th>
-				</tr>
-			</thead>
-        	<tbody>
-		    	{% for ruta in page_obj_rutas %}
-					<tr data-href="{% url 'got:sys-detail-view' ruta.system.id 'sys' %}" class="{% if ruta.maintenance_status == 'c' %}table-success{%elif ruta.maintenance_status == 'p' %}table-warning{%elif ruta.maintenance_status == 'e' %}table-secondary{% else %}table-danger{% endif %}">
-					    <td scope="row" data-cell="Equipo">{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}</td>
-					    <td scope="row" data-cell="Equipo" class="nowrap">{% if ruta.equipo %}{{ ruta.equipo.system.location }}{% else %}{{ ruta.system.location }}{% endif %}</td>
-					    <td scope="row" data-cell="Codigo">{{ ruta.name }}</td>
-					    <td data-cell="Frecuencia">{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
-                        <td data-cell="Ultima intervención">{{ ruta.daysleft }}</td>
-					    <td data-cell="Ultima intervención">{% if ruta.ot %}{{ ruta.intervention_date|date:"d/m/Y" }}{% else %}---{% endif %}</td>
-						<td data-cell="Proxima Intervención">{{ ruta.next_date|date:"d/m/Y" }}</td>
-					    <td>{{ ruta.percentage_remaining }}</td>
-				    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="6">No hay rutinas registradas para el mes {{mes}}.</td>
-                    </tr>    
-                {% endfor %}
-			</tbody>
-		</table>
-
-        <nav aria-label="Page navigation for rutas">
-            <ul class="pagination">
-                {% if page_obj_rutas.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page_rutas={{ page_obj_rutas.previous_page_number }}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                {% endif %}
-                                
-                {% for num in page_obj_rutas.paginator.page_range %}
-                    <li class="page-item {% if page_obj_rutas.number == num %}active{% endif %}">
-                        <a class="page-link" href="?page_rutas={{ num }}">{{ num }}</a>
-                    </li>
-                {% endfor %}
-                                
-                {% if page_obj_rutas.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page_rutas={{ page_obj_rutas.next_page_number }}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-	</div>
-</main>
-
-<div class="modal fade" id="sysModal" tabindex="-1" aria-labelledby="sysModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="sysModalLabel">Crear nuevo sistema</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form method="post" action="" enctype="multipart/form-data">{% csrf_token %}
-                    <table>
-                        {{ sys_form.as_table }}
-                    </table>
-                    <button type="submit" class="btn btn-primary">Agregar</button>
-                </form>
-            </div>
         </div>
-    </div>
-</div>
-
-<!-- Dentro de main-asset, añadir al final después de otros contenidos -->
-{% if asset.documents.all %}
-<div class="documents-section">
-    <h2>Documentos Asociados</h2>
-    <table class="table-list">
-        <thead>
-            <tr>
-                <th>Nombre del Documento</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for document in asset.documents.all %}
-                <tr>
-                    <td>{{ document.description }}</td>
-                    <td><a href="{{ document.file.url }}" target="_blank">Abrir</a></td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="2">No hay documentos disponibles.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endif %}
-
-{% if rotativos %}
-{% if consumos_grafica|length > 0 %}
-<div class="grafica-consumos" style="width: 100%; height: 400px;">
-    <h2>Consumo de Combustible (últimos 30 días)</h2>
-    <canvas id="consumoChart"></canvas>
-</div>
-{% endif %}
-
-<br>
-{% if horas_grafica|length > 0 %}
-<div class="grafica-horas" style="width: 100%;  height: 400px; margin-top: 20px;"> 
-    <h2>Horas de Operación (últimos 30 días)</h2>
-    <canvas id="horasChart"></canvas>
-</div>
-{% endif %}
-{% endif %}
-
-
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.2.0/decimal.min.js"></script>
-
-<script>
-
-    function convertirADecimal(datos) {
-        return datos.map(function(dato) {
-            return parseFloat(dato);  // Convierte cada valor a un float float: right;
-        });
-    }
-
-    {% if consumos_grafica|length > 0 %}
-    var ctx = document.getElementById('consumoChart').getContext('2d');
-    var consumoChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ fechas|safe }},  // Eje X (Fechas)
-            datasets: [{
-                label: 'Consumo de Combustible (Galones)',
-                data: {{ consumos_grafica|safe }},  // Eje Y (Cantidades de consumo)
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                fill: true,
-                tension: 0.1,  // Para suavizar la línea
-                pointRadius: 5,  // Tamaño de los puntos
-                pointBackgroundColor: 'rgba(75, 192, 192, 1)',
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Fecha (Día/Mes)'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Consumo (Galones)'
-                    },
-                    beginAtZero: true  // Comienza el eje Y desde 0
-                }
-            }
-        }
-    });
     {% endif %}
+</div>
+</div>
 
-    // Gráfica de horas de operación
-    {% if horas_grafica|length > 0 %}
-    var ctxHoras = document.getElementById('horasChart').getContext('2d');
-    var horasChart = new Chart(ctxHoras, {
-        type: 'line',
-        data: {
-            labels: {{ fechas|safe }},
-            datasets: [{
-                label: 'Horas de Operación',
-                data: convertirADecimal({{ horas_grafica|safe }}),
-                borderColor: 'rgba(153, 102, 255, 1)',
-                backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                fill: true,
-                tension: 0.1,
-                pointRadius: 5,
-                pointBackgroundColor: 'rgba(153, 102, 255, 1)',
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Fecha (Día/Mes)'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Horas de Operación'
-                    },
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-    {% endif %}
-</script>
-
-{% endblock %}
+{% if rotativos %} 
+    {% include 'got/assets/graps.html' %}
+{% endif %}
