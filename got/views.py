@@ -293,7 +293,7 @@ class AssetDocCreateView(generic.View):
 def asset_suministros_report(request, abbreviation):
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
     suministros = Suministro.objects.filter(asset=asset, item__seccion='c').select_related('item').order_by('item__presentacion')
-
+    motonaves = Asset.objects.filter(area='a')
     grouped_suministros = {}
     for key, group in groupby(suministros, key=attrgetter('item.presentacion')):
         grouped_suministros[key] = list(group)
@@ -307,6 +307,70 @@ def asset_suministros_report(request, abbreviation):
     ).order_by('-fecha') #[:30]
 
     if request.method == 'POST':
+        if 'transfer_suministro_id' in request.POST:
+            # Manejar la transferencia
+            suministro_id = request.POST.get('transfer_suministro_id')
+            transfer_cantidad_str = request.POST.get('transfer_cantidad', '0') or '0'
+            destination_asset_id = request.POST.get('destination_asset_id')
+            transfer_motivo = request.POST.get('transfer_motivo', '')
+
+            try:
+                transfer_cantidad = Decimal(transfer_cantidad_str)
+            except InvalidOperation:
+                messages.error(request, 'Cantidad inválida.')
+                return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
+
+            if transfer_cantidad <= 0:
+                messages.error(request, 'La cantidad a transferir debe ser mayor a cero.')
+                return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
+
+            suministro_origen = get_object_or_404(Suministro, id=suministro_id, asset=asset)
+
+            if transfer_cantidad > suministro_origen.cantidad:
+                messages.error(request, 'La cantidad a transferir no puede ser mayor a la cantidad disponible.')
+                return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
+
+            # Obtener el barco destino
+            destination_asset = get_object_or_404(Asset, abbreviation=destination_asset_id)
+
+            # Obtener o crear el suministro en el barco destino
+            suministro_destino, created = Suministro.objects.get_or_create(
+                asset=destination_asset,
+                item=suministro_origen.item,
+                defaults={'cantidad': Decimal('0.00')}
+            )
+
+            # Crear TransaccionSuministro para el suministro de origen
+            TransaccionSuministro.objects.create(
+                suministro=suministro_origen,
+                cantidad_ingresada=Decimal('0.00'),
+                cantidad_consumida=transfer_cantidad,
+                fecha=timezone.now().date(),
+                usuario=request.user,
+                motivo=transfer_motivo
+            )
+
+            # Actualizar la cantidad del suministro de origen
+            suministro_origen.cantidad -= transfer_cantidad
+            suministro_origen.save()
+
+            # Crear TransaccionSuministro para el suministro de destino
+            TransaccionSuministro.objects.create(
+                suministro=suministro_destino,
+                cantidad_ingresada=transfer_cantidad,
+                cantidad_consumida=Decimal('0.00'),
+                fecha=timezone.now().date(),
+                usuario=request.user,
+                motivo=transfer_motivo
+            )
+
+            # Actualizar la cantidad del suministro de destino
+            suministro_destino.cantidad += transfer_cantidad
+            suministro_destino.save()
+
+            messages.success(request, f'Se ha transferido {transfer_cantidad} {suministro_origen.item.presentacion} de {suministro_origen.item.name} al barco {destination_asset.name}.')
+            return redirect(reverse('got:asset-suministros', kwargs={'abbreviation': asset.abbreviation}))
+
         fecha_reporte = request.POST.get('fecha_reporte', timezone.now().date())
         for suministro in suministros:
             cantidad_consumida_str = request.POST.get(f'consumido_{suministro.id}', 0) or '0'
@@ -322,34 +386,57 @@ def asset_suministros_report(request, abbreviation):
             except InvalidOperation:
                 cantidad_ingresada = Decimal('0')
 
-            if cantidad_consumida == 0 and cantidad_ingresada == 0:
+            if cantidad_consumida == Decimal('0') and cantidad_ingresada == Decimal('0'):
                 continue
             
             try:
+                # Obtener la transacción existente para esta fecha y suministro
                 transaccion_existente = TransaccionSuministro.objects.get(suministro=suministro, fecha=fecha_reporte)
-
-                suministro.cantidad -= transaccion_existente.cantidad_ingresada
-                suministro.cantidad += transaccion_existente.cantidad_consumida
             except TransaccionSuministro.DoesNotExist:
                 transaccion_existente = None
 
-            suministro.cantidad -= cantidad_consumida
-            suministro.cantidad += cantidad_ingresada
-            suministro.save()
-
             if transaccion_existente:
-                transaccion_existente.cantidad_ingresada = cantidad_ingresada
-                transaccion_existente.cantidad_consumida = cantidad_consumida
+                # Revertir los efectos anteriores en el inventario
+                suministro.cantidad -= transaccion_existente.cantidad_ingresada
+                suministro.cantidad += transaccion_existente.cantidad_consumida
+
+                # Actualizar solo los campos que tienen valores diferentes de cero
+                if cantidad_ingresada != Decimal('0'):
+                    suministro.cantidad += cantidad_ingresada
+                    transaccion_existente.cantidad_ingresada = cantidad_ingresada
+                else:
+                    # Mantener el valor anterior de cantidad_ingresada
+                    suministro.cantidad += transaccion_existente.cantidad_ingresada
+
+                if cantidad_consumida != Decimal('0'):
+                    suministro.cantidad -= cantidad_consumida
+                    transaccion_existente.cantidad_consumida = cantidad_consumida
+                else:
+                    # Mantener el valor anterior de cantidad_consumida
+                    suministro.cantidad -= transaccion_existente.cantidad_consumida
+
                 transaccion_existente.usuario = request.user
                 transaccion_existente.save()
+                suministro.save()
             else:
-                TransaccionSuministro.objects.create(
-                    suministro=suministro,
-                    cantidad_ingresada=cantidad_ingresada,
-                    cantidad_consumida=cantidad_consumida,
-                    fecha=fecha_reporte,
-                    usuario=request.user
-                )
+                # Crear una nueva transacción con los valores ingresados
+                transaccion_data = {
+                    'suministro': suministro,
+                    'fecha': fecha_reporte,
+                    'usuario': request.user,
+                    'cantidad_ingresada': cantidad_ingresada,
+                    'cantidad_consumida': cantidad_consumida,
+                }
+
+                # Actualizar el inventario según los valores ingresados
+                if cantidad_ingresada != Decimal('0'):
+                    suministro.cantidad += cantidad_ingresada
+                if cantidad_consumida != Decimal('0'):
+                    suministro.cantidad -= cantidad_consumida
+
+                suministro.save()
+                TransaccionSuministro.objects.create(**transaccion_data)
+
         return redirect(reverse('got:asset-detail', kwargs={'pk': asset.abbreviation}))
 
     transacciones_por_presentacion = {}
@@ -367,6 +454,7 @@ def asset_suministros_report(request, abbreviation):
         'transacciones_por_presentacion': transacciones_por_presentacion,
         'fecha_actual': timezone.now().date(),
         'articles': articles,
+        'motonaves': motonaves,
         }
     
     if request.method == 'POST' and 'download_excel' in request.POST:

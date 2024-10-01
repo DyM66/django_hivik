@@ -15,4 +15,9 @@ class Migration(migrations.Migration):
             name='station',
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
+        migrations.AlterModelOptions(
+            name='transaccionsuministro',
+            options={'permissions': (('can_add_supply', 'Puede añadir suministros'),)},
+        ),
+    
     ]

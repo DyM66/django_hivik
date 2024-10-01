@@ -679,6 +679,7 @@ class TransaccionSuministro(models.Model):
     cantidad_consumida = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Cantidad que se consume del inventario")
     fecha = models.DateField()
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    motivo = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.suministro.item.name}: +{self.cantidad_ingresada}/-{self.cantidad_consumida} el {self.fecha.strftime('%Y-%m-%d')}"

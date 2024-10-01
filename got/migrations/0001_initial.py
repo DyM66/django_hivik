@@ -113,6 +113,7 @@ class Migration(migrations.Migration):
                 ('potencia', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('ubicacion', models.CharField(blank=True, max_length=150, null=True)),
                 ('critico', models.BooleanField(default=False)),
+                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
             options={
                 'ordering': ['name', 'code'],
