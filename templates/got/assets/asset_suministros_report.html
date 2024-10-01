@@ -38,8 +38,9 @@
                             <tr>    
                                 <td>{{ suministro.item }} ({{presentacion}})</td>
                                 <td>{{ suministro.cantidad }}</td>
-                                <td><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0" min="0" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
-                                <td><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0" min="0" data-row-id="{{ suministro.id }}"></td>
+                                <td><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
+                                <td><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
+                                
                                 <td><span id="total_{{ suministro.id }}"> {{ suministro.cantidad }} </span></td>
                             </tr>
                         {% endfor %}
@@ -89,6 +90,7 @@
             <thead>
                 <tr>
                     <th>Fecha</th>
+                    <th class="nowrap">Reportado por</th>
                     <th>Artículo</th>
                     <th>Presentación</th>
                     <th>Cantidad Ingresada</th>
@@ -99,6 +101,7 @@
                 {% for transaccion in transacciones_historial %}
                     <tr>
                         <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ transaccion.usuario.get_full_name }}</td>
                         <td data-item-name="{{ transaccion.suministro.item.name }}">{{ transaccion.suministro.item }}</td>
                         <td>{{ transaccion.suministro.item.presentacion }}</td>
                         <td>{{ transaccion.cantidad_ingresada }}</td>

@@ -52,6 +52,7 @@ class Migration(migrations.Migration):
                 ('arqueo_neto', models.IntegerField(blank=True, default=0, null=True)),
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('supervisor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_assets', to=settings.AUTH_USER_MODEL)),
             ],
             options={
                 'ordering': ['area', 'name'],
@@ -107,9 +108,11 @@ class Migration(migrations.Migration):
                 ('tipo_almacenamiento', models.CharField(blank=True, max_length=100, null=True)),
                 ('volumen', models.DecimalField(blank=True, decimal_places=2, max_digits=14, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='equipos', to='got.system')),
-                ('tipo', models.CharField(choices=[('a', 'Climatización'), ('b', 'Bomba'), ('c', 'Compresor'), ('d', 'Grúa'), ('e', 'Motor eléctrico'), ('g', 'Generador'), ('h', 'Cilindro hidráulico'), ('i', 'Instrumentos y herramientas'), ('k', 'Tanque de almacenamiento'), ('m', 'Comunicación'), ('n', 'Navegación'), ('nr', 'No rotativo'), ('r', 'Motor a combustión'), ('t', 'Transmisión'), ('u', 'Unidad Hidráulica'), ('v', 'Valvula'), ('w', 'Winche'), ('x', 'Estructuras'), ('y', 'Soporte de vida'), ('z', 'Banco de baterias')], default='nr', max_length=2)),
+                ('tipo', models.CharField(choices=[('a', 'Climatización'), ('b', 'Bomba'), ('c', 'Compresor'), ('d', 'Grúa'), ('e', 'Motor eléctrico'), ('f', 'Emergencias'), ('g', 'Generador'), ('h', 'Cilindro hidráulico'), ('i', 'Instrumentos y herramientas'), ('k', 'Tanque de almacenamiento'), ('m', 'Comunicación'), ('n', 'Navegación'), ('nr', 'No rotativo'), ('r', 'Motor a combustión'), ('t', 'Transmisión'), ('u', 'Unidad Hidráulica'), ('v', 'Valvula'), ('w', 'Winche'), ('x', 'Estructuras'), ('y', 'Soporte de vida'), ('z', 'Banco de baterias')], default='nr', max_length=2)),
                 ('subsystem', models.CharField(blank=True, max_length=100, null=True)),
                 ('potencia', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
+                ('ubicacion', models.CharField(blank=True, max_length=150, null=True)),
+                ('critico', models.BooleanField(default=False)),
             ],
             options={
                 'ordering': ['name', 'code'],

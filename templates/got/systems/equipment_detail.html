@@ -7,6 +7,9 @@
 					<a href="{% url 'got:equipo-delete' equipo.code %}" style="color: white;"><i class="bi bi-file-earmark-minus-fill"></i></a>
 					<a href="{% url 'got:equipo-update' equipo.code %}" style="color: white;"><i class="bi bi-pen"></i></a>
 					<a href="{% url 'got:transferir_equipo' equipo.code %}"><i class="fa-solid fa-right-left"></i></a>
+                    {% if equipo.critico %}
+                        <i class="fa-solid fa-star"></i>
+				    {% endif %}
 				{% endif %}
             </h4>
             <span class="header-right-text">{{ equipo.date_inv|date:"d M, Y" }}</span>
@@ -52,7 +55,13 @@
                         <li>
                             <div class="detail-item">
                                 <div class="detail-key">Ubicación:</div>
-                                <div class="detail-value">{{ equipo.system.location }}</div>
+                                <div class="detail-value">
+                                    {% if equipo.ubicacion %}
+                                        {{ equipo.ubicacion }}
+                                    {% else %}
+                                        {{ equipo.system.location }}
+                                    {% endif %}
+                                </div>
                             </div>
                         </li>
                         {% if equipo.system.asset.area == 'v' %}
@@ -79,12 +88,6 @@
                                 <div class="detail-item">
                                     <div class="detail-key">Promedio Horas/Día:</div>
                                     <div class="detail-value">{{ equipo.prom_hours }}</div>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="detail-item">
-                                    <div class="detail-key">Lubricante</div>
-                                    <div class="detail-value">{{ equipo.lubricante }}</div>
                                 </div>
                             </li>
                             <li>

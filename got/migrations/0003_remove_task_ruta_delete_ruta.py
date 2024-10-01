@@ -76,4 +76,19 @@ class Migration(migrations.Migration):
             name='transaccionsuministro',
             unique_together={('suministro', 'fecha')},
         ),
+
+        migrations.CreateModel(
+            name='ActivityLog',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('user_name', models.CharField(max_length=100)),
+                ('action', models.CharField(max_length=100)),
+                ('model_name', models.CharField(max_length=100)),
+                ('object_id', models.CharField(blank=True, max_length=100, null=True)),
+                ('field_name', models.CharField(blank=True, max_length=100, null=True)),
+                ('old_value', models.TextField(blank=True, null=True)),
+                ('new_value', models.TextField(blank=True, null=True)),
+                ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
+            ],
+        ),
     ]

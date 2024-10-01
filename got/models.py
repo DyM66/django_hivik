@@ -219,6 +219,7 @@ class Equipo(models.Model):
         ('c', 'Compresor'),
         ('d', 'Grúa'),
         ('e', 'Motor eléctrico'),
+        ('f', 'Emergencias'),
         ('g', 'Generador'),
         ('h', 'Cilindro hidráulico'),
         ('i', 'Instrumentos y herramientas'),
@@ -248,6 +249,8 @@ class Equipo(models.Model):
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
     subsystem = models.CharField(max_length=100, null=True, blank=True)
 
+    ubicacion = models.CharField(max_length=150, null=True, blank=True)
+
     'Motores'
     potencia  = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
@@ -266,6 +269,9 @@ class Equipo(models.Model):
 
     manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True)
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+
+    critico = models.BooleanField(default=False)
+
 
     def volumen_format(self):
         if self.volumen is not None:
@@ -669,8 +675,8 @@ class Suministro(models.Model):
 
 class TransaccionSuministro(models.Model):
     suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
-    cantidad_ingresada = models.IntegerField(default=0, help_text="Cantidad que se añade al inventario")
-    cantidad_consumida = models.IntegerField(default=0, help_text="Cantidad que se consume del inventario")
+    cantidad_ingresada = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Cantidad que se añade al inventario")
+    cantidad_consumida = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Cantidad que se consume del inventario")
     fecha = models.DateField()
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
@@ -678,6 +684,7 @@ class TransaccionSuministro(models.Model):
         return f"{self.suministro.item.name}: +{self.cantidad_ingresada}/-{self.cantidad_consumida} el {self.fecha.strftime('%Y-%m-%d')}"
 
     class Meta:
+        permissions = (('can_add_supply', 'Puede añadir suministros'),)
         unique_together = ('suministro', 'fecha')
 
 

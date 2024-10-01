@@ -30,7 +30,7 @@ from django.utils.translation import gettext as _
 from collections import OrderedDict
 from itertools import groupby
 from operator import attrgetter
-
+from decimal import Decimal, InvalidOperation
 from .functions import *
 from .models import *
 from .forms import *
@@ -309,8 +309,19 @@ def asset_suministros_report(request, abbreviation):
     if request.method == 'POST':
         fecha_reporte = request.POST.get('fecha_reporte', timezone.now().date())
         for suministro in suministros:
-            cantidad_consumida = int(request.POST.get(f'consumido_{suministro.id}', 0))
-            cantidad_ingresada = int(request.POST.get(f'ingresado_{suministro.id}', 0))
+            cantidad_consumida_str = request.POST.get(f'consumido_{suministro.id}', 0) or '0'
+            cantidad_ingresada_str = request.POST.get(f'ingresado_{suministro.id}', 0) or '0'
+
+            try:
+                cantidad_consumida = Decimal(cantidad_consumida_str)
+            except InvalidOperation:
+                cantidad_consumida = Decimal('0')
+
+            try:
+                cantidad_ingresada = Decimal(cantidad_ingresada_str)
+            except InvalidOperation:
+                cantidad_ingresada = Decimal('0')
+
             if cantidad_consumida == 0 and cantidad_ingresada == 0:
                 continue
             

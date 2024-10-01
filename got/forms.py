@@ -98,10 +98,7 @@ class RutinaFilterForm(forms.Form):
             systems = asset.system_set.all().distinct()
             other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset).distinct()
 
-            # Unir los dos conjuntos
             full_systems = systems.union(other_asset_systems).order_by('group')
-
-            # Extraer las ubicaciones únicas de esos sistemas
             locations = full_systems.values_list('location', flat=True)
             
             unique_locations = list(set(locations))  # Eliminar duplicados
@@ -150,6 +147,14 @@ class SysForm(forms.ModelForm):
 
 class EquipoForm(forms.ModelForm):
 
+    critico = forms.ChoiceField(
+        choices=[(True, 'Sí'), (False, 'No')],
+        widget=forms.RadioSelect,
+        label='Equipo crítico',
+        initial=False,
+        required=False
+    )
+
     class Meta:
         model = Equipo
         exclude = ['system', 'horometro', 'prom_hours', 'code', 'imagen', 'modified_by']
@@ -182,7 +187,13 @@ class EquipoForm(forms.ModelForm):
             'feature': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'ubicacion': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             }
+
+    def __init__(self, *args, **kwargs):
+        super(EquipoForm, self).__init__(*args, **kwargs)
+        self.fields['critico'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
+
 
 
 # ----------------- OTs -------------------- #

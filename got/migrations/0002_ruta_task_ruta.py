@@ -64,18 +64,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Location',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50)),
-                ('direccion', models.CharField(max_length=100)),
-                ('contact', models.CharField(blank=True, max_length=50, null=True)),
-                ('num_contact', models.CharField(blank=True, max_length=50, null=True)),
-                ('latitude', models.DecimalField(blank=True, decimal_places=20, max_digits=20, null=True)),
-                ('longitude', models.DecimalField(blank=True, decimal_places=20, max_digits=20, null=True)),
-            ],
-        ),
-        migrations.CreateModel(
             name='Operation',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -262,8 +250,8 @@ class Migration(migrations.Migration):
             name='TransaccionSuministro',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cantidad_ingresada', models.IntegerField(default=0, help_text='Cantidad que se añade al inventario')),
-                ('cantidad_consumida', models.IntegerField(default=0, help_text='Cantidad que se consume del inventario')),
+                ('cantidad_ingresada', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Cantidad que se añade al inventario', max_digits=10)),
+                ('cantidad_consumida', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Cantidad que se consume del inventario', max_digits=10)),
                 ('fecha', models.DateField()),
                 ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
                 ('usuario', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
