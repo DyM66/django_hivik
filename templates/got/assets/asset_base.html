@@ -41,10 +41,12 @@
 				    <a class="nav-link" href="{% url 'got:asset-suministros' asset.abbreviation %}">Reporte de Consumos</a>
 				{% endif %}
 			</li>
+            <li class="nav-item">
+				<a class="nav-link" href="{% url 'got:asset_inventario_report' asset.abbreviation %}">Inventario</a>
+			</li>
 			<li class="nav-item">
 				<a class="nav-link" href="{% url 'got:failure-report-create' asset.abbreviation %}">Reportar falla</a>
 			</li>
-
 			<li class="nav-item">
 				<a class="nav-link" href="{% url 'got:create-solicitud' asset.abbreviation %}">Solicitar
 					materiales/servicios

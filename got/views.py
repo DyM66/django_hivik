@@ -292,7 +292,8 @@ class AssetDocCreateView(generic.View):
 
 def asset_suministros_report(request, abbreviation):
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
-    suministros = Suministro.objects.filter(asset=asset, item__seccion='c').select_related('item').order_by('item__presentacion')
+    keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
+    suministros = Suministro.objects.filter(asset=asset, item__seccion='c').filter(keyword_filter).select_related('item').order_by('item__presentacion')
     motonaves = Asset.objects.filter(area='a')
     grouped_suministros = {}
     for key, group in groupby(suministros, key=attrgetter('item.presentacion')):
@@ -303,8 +304,9 @@ def asset_suministros_report(request, abbreviation):
     ).aggregate(Max('fecha'))['fecha__max'] or "---"
 
     transacciones_historial = TransaccionSuministro.objects.filter(
-        suministro__asset=asset
-    ).order_by('-fecha') #[:30]
+        suministro__asset=asset,
+        suministro__in=suministros
+    ).order_by('-fecha')
 
     if request.method == 'POST':
         if 'transfer_suministro_id' in request.POST:
@@ -479,6 +481,237 @@ def asset_suministros_report(request, abbreviation):
         return response
 
     return render(request, 'got/assets/asset_suministros_report.html', context)
+
+
+def asset_inventario_report(request, abbreviation):
+    asset = get_object_or_404(Asset, abbreviation=abbreviation)
+
+    # Filtrar suministros que NO contengan las palabras clave
+    keyword_filter = ~(
+        Q(item__name__icontains='Combustible') | 
+        Q(item__name__icontains='Aceite') | 
+        Q(item__name__icontains='Filtro')
+    )
+    suministros = Suministro.objects.filter(asset=asset).filter(keyword_filter).select_related('item').order_by('item__seccion')
+
+    motonaves = Asset.objects.filter(area='a')
+
+    # Agrupar suministros por la categoría del artículo (seccion)
+    grouped_suministros = {}
+    for key, group in groupby(suministros, key=attrgetter('item.seccion')):
+        grouped_suministros[key] = list(group)
+
+    # Filtrar transacciones históricas para incluir solo las relacionadas con los suministros filtrados
+    transacciones_historial = TransaccionSuministro.objects.filter(
+        suministro__asset=asset,
+        suministro__in=suministros
+    ).order_by('-fecha')
+
+    # Obtener la última fecha de transacción
+    ultima_fecha_transaccion = transacciones_historial.aggregate(Max('fecha'))['fecha__max'] or "---"
+
+    # Obtener el diccionario de secciones para mostrar los nombres completos en la plantilla
+    secciones_dict = dict(Item.SECCION)
+
+    # Obtener artículos para los filtros en la plantilla
+    articles = sorted(set(transaccion.suministro.item.name for transaccion in transacciones_historial))
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        if action == 'add_suministro' and request.user.has_perm('got.can_add_supply'):
+            # Manejar la creación de un nuevo suministro
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(Item, id=item_id)
+
+            # Verificar si el suministro ya existe
+            suministro_existente = Suministro.objects.filter(asset=asset, item=item).exists()
+            if suministro_existente:
+                messages.error(request, f'El suministro para el artículo "{item.name}" ya existe en este asset.')
+            else:
+                Suministro.objects.create(
+                    item=item,
+                    cantidad=Decimal('0.00'),
+                    asset=asset
+                )
+                messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
+            return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+    
+        elif 'transfer_suministro_id' in request.POST:
+            # Manejar la transferencia
+            suministro_id = request.POST.get('transfer_suministro_id')
+            transfer_cantidad_str = request.POST.get('transfer_cantidad', '0') or '0'
+            destination_asset_id = request.POST.get('destination_asset_id')
+            transfer_motivo = request.POST.get('transfer_motivo', '')
+
+            try:
+                transfer_cantidad = Decimal(transfer_cantidad_str)
+            except InvalidOperation:
+                messages.error(request, 'Cantidad inválida.')
+                return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+
+            if transfer_cantidad <= 0:
+                messages.error(request, 'La cantidad a transferir debe ser mayor a cero.')
+                return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+
+            suministro_origen = get_object_or_404(Suministro, id=suministro_id, asset=asset)
+
+            if transfer_cantidad > suministro_origen.cantidad:
+                messages.error(request, 'La cantidad a transferir no puede ser mayor a la cantidad disponible.')
+                return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+
+            # Obtener el barco destino
+            destination_asset = get_object_or_404(Asset, abbreviation=destination_asset_id)
+
+            # Obtener o crear el suministro en el barco destino
+            suministro_destino, created = Suministro.objects.get_or_create(
+                asset=destination_asset,
+                item=suministro_origen.item,
+                defaults={'cantidad': Decimal('0.00')}
+            )
+
+            # Crear TransaccionSuministro para el suministro de origen
+            TransaccionSuministro.objects.create(
+                suministro=suministro_origen,
+                cantidad_ingresada=Decimal('0.00'),
+                cantidad_consumida=transfer_cantidad,
+                fecha=timezone.now().date(),
+                usuario=request.user,
+                motivo=transfer_motivo
+            )
+
+            # Actualizar la cantidad del suministro de origen
+            suministro_origen.cantidad -= transfer_cantidad
+            suministro_origen.save()
+
+            # Crear TransaccionSuministro para el suministro de destino
+            TransaccionSuministro.objects.create(
+                suministro=suministro_destino,
+                cantidad_ingresada=transfer_cantidad,
+                cantidad_consumida=Decimal('0.00'),
+                fecha=timezone.now().date(),
+                usuario=request.user,
+                motivo=transfer_motivo
+            )
+
+            # Actualizar la cantidad del suministro de destino
+            suministro_destino.cantidad += transfer_cantidad
+            suministro_destino.save()
+
+            messages.success(request, f'Se ha transferido {transfer_cantidad} {suministro_origen.item.presentacion} de {suministro_origen.item.name} al barco {destination_asset.name}.')
+            return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
+
+        elif 'download_excel' in request.POST:
+            # Lógica para descargar Excel
+            df = pd.DataFrame(list(transacciones_historial.values(
+                'fecha',
+                'suministro__item__seccion',
+                'suministro__item__name',
+                'cantidad_ingresada',
+                'cantidad_consumida'
+            )))
+            df.rename(columns={
+                'fecha': 'Fecha',
+                'suministro__item__seccion': 'Categoría',
+                'suministro__item__name': 'Artículo',
+                'cantidad_ingresada': 'Cantidad Ingresada',
+                'cantidad_consumida': 'Cantidad Consumida'
+            }, inplace=True)
+            df['Categoría'] = df['Categoría'].map(secciones_dict)
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename="historial_inventario.xlsx"'
+            with pd.ExcelWriter(response, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False)
+            return response
+
+        else:
+            # Lógica para actualizar consumos
+            fecha_reporte = request.POST.get('fecha_reporte', timezone.now().date())
+            for suministro in suministros:
+                cantidad_consumida_str = request.POST.get(f'consumido_{suministro.id}', 0) or '0'
+                cantidad_ingresada_str = request.POST.get(f'ingresado_{suministro.id}', 0) or '0'
+
+                try:
+                    cantidad_consumida = Decimal(cantidad_consumida_str)
+                except InvalidOperation:
+                    cantidad_consumida = Decimal('0')
+
+                try:
+                    cantidad_ingresada = Decimal(cantidad_ingresada_str)
+                except InvalidOperation:
+                    cantidad_ingresada = Decimal('0')
+
+                if cantidad_consumida == Decimal('0') and cantidad_ingresada == Decimal('0'):
+                    continue
+
+                try:
+                    # Obtener la transacción existente para esta fecha y suministro
+                    transaccion_existente = TransaccionSuministro.objects.get(suministro=suministro, fecha=fecha_reporte)
+                except TransaccionSuministro.DoesNotExist:
+                    transaccion_existente = None
+
+                if transaccion_existente:
+                    # Revertir los efectos anteriores en el inventario
+                    suministro.cantidad -= transaccion_existente.cantidad_ingresada
+                    suministro.cantidad += transaccion_existente.cantidad_consumida
+
+                    # Actualizar solo los campos que tienen valores diferentes de cero
+                    if cantidad_ingresada != Decimal('0'):
+                        suministro.cantidad += cantidad_ingresada
+                        transaccion_existente.cantidad_ingresada = cantidad_ingresada
+                    else:
+                        # Mantener el valor anterior de cantidad_ingresada
+                        suministro.cantidad += transaccion_existente.cantidad_ingresada
+
+                    if cantidad_consumida != Decimal('0'):
+                        suministro.cantidad -= cantidad_consumida
+                        transaccion_existente.cantidad_consumida = cantidad_consumida
+                    else:
+                        # Mantener el valor anterior de cantidad_consumida
+                        suministro.cantidad -= transaccion_existente.cantidad_consumida
+
+                    transaccion_existente.usuario = request.user
+                    transaccion_existente.save()
+                    suministro.save()
+                else:
+                    # Crear una nueva transacción con los valores ingresados
+                    transaccion_data = {
+                        'suministro': suministro,
+                        'fecha': fecha_reporte,
+                        'usuario': request.user,
+                        'cantidad_ingresada': cantidad_ingresada,
+                        'cantidad_consumida': cantidad_consumida,
+                    }
+
+                    # Actualizar el inventario según los valores ingresados
+                    if cantidad_ingresada != Decimal('0'):
+                        suministro.cantidad += cantidad_ingresada
+                    if cantidad_consumida != Decimal('0'):
+                        suministro.cantidad -= cantidad_consumida
+
+                    suministro.save()
+                    TransaccionSuministro.objects.create(**transaccion_data)
+
+            messages.success(request, 'Inventario actualizado exitosamente.')
+            return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+    # Obtener todos los Items que no están ya asociados con este Asset
+    existing_item_ids = suministros.values_list('item_id', flat=True)
+    available_items = Item.objects.exclude(id__in=existing_item_ids)
+
+    context = {
+        'asset': asset,
+        'suministros': suministros,
+        'grouped_suministros': grouped_suministros,
+        'ultima_fecha_transaccion': ultima_fecha_transaccion,
+        'transacciones_historial': transacciones_historial,
+        'fecha_actual': timezone.now().date(),
+        'motonaves': motonaves,
+        'secciones_dict': secciones_dict,
+        'articles': articles,
+        'available_items': available_items,
+    }
+
+    return render(request, 'got/assets/asset_inventario_report.html', context)
+
 
 
 @login_required

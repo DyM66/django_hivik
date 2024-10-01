@@ -11,6 +11,7 @@ urlpatterns = [
     path("asset/<str:pk>/maintenance-plan/", views.AssetMaintenancePlanView.as_view(), name="asset-maintenance-plan"),
     path('asset/<str:asset_id>/add-document/', views.AssetDocCreateView.as_view(), name='add-document'),
     path('asset/<str:abbreviation>/suministros/', views.asset_suministros_report, name='asset-suministros'),
+    path('asset/<str:abbreviation>/inventario/', views.asset_inventario_report, name='asset_inventario_report'),
     path("asset/<str:pk>/schedule/", views.schedule, name="schedule"),
     path('assets/<str:asset_id>/generate-pdf/', views.generate_asset_pdf, name='generate_asset_pdf'),
     

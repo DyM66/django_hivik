@@ -1,0 +1,342 @@
+{% extends "got/base/base_generic.html" %}
+{% load my_tags %}
+
+{% block content %}
+
+<div class="container">
+    <h1>
+        <a href="{% url 'got:asset-detail' asset.abbreviation %}"><i class="bi bi-arrow-bar-left"></i></a>
+        Inventario General-{{ asset.name }}
+    </h1>
+    {% if perms.got.can_add_supply %}
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSuministroModal">
+            Añadir Suministro
+        </button>
+    {% endif %}
+
+    <!-- Modal para añadir un suministro -->
+    <div class="modal fade" id="addSuministroModal" tabindex="-1" aria-labelledby="addSuministroModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addSuministroModalLabel">Añadir Suministro</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Campo oculto para indicar que se trata de una creación de suministro -->
+                        <input type="hidden" name="action" value="add_suministro">
+
+                        <div class="form-group">
+                            <label for="itemSelect">Seleccionar Artículo</label>
+                            <select class="form-control" id="itemSelect" name="item_id" required>
+                                {% for item in available_items %}
+                                    <option value="{{ item.id }}">{{ item }} ({{ item.presentacion }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Crear Suministro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <p>Último reporte realizado: {{ ultima_fecha_transaccion }}</p>
+        <button type="button" class="btn btn-primary" onclick="toggleHistorial()">Ver Historial</button>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post">{% csrf_token %}
+
+        <div class="form-group">
+            <label for="fecha_reporte">Fecha del Reporte</label>
+            <input type="date" id="fecha_reporte" name="fecha_reporte" class="form-control" value="{{ fecha_actual }}" required>
+        </div>
+
+        {% for seccion_key, group in grouped_suministros.items %}
+            <h2>{{ secciones_dict|get_item:seccion_key }}</h2>
+            <table class="table-list table-detail">
+                <thead>
+                    <tr>
+                        <th>Descripción</th>
+                        <th>Última cantidad reportada</th>
+                        <th>Cantidad Ingresada</th>
+                        <th>Cantidad Consumida</th>
+                        <th>Total</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for suministro in group %}
+                        <tr>
+                            <td>{{ suministro.item }} ({{ suministro.item.presentacion }})</td>
+                            <td>{{ suministro.cantidad|floatformat:2 }}</td>
+                            <td><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
+                            <td><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
+                            <td><span id="total_{{ suministro.id }}"> {{ suministro.cantidad|floatformat:2 }} </span></td>
+                            <td data-cell="Acciones">
+                                <div class="dropdown">
+                                    <button 
+                                        class="btn status pending btn-sm dropdown-toggle" 
+                                        type="button" 
+                                        id="dropdownMenuButton{{ suministro.id }}" 
+                                        data-bs-toggle="dropdown" 
+                                        aria-expanded="false">
+                                        Acciones
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ suministro.id }}">
+                                        <li><a class="dropdown-item" href="#">Ver detalle</a></li>
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#transferModal{{ suministro.id }}">Transferir</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <br>
+
+            <!-- Modales para transferir suministros -->
+            {% for suministro in group %}
+            <div class="modal fade" id="transferModal{{ suministro.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ suministro.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
+                            {% csrf_token %}
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="transferModalLabel{{ suministro.id }}">Transferir {{ suministro.item.name }} ({{ suministro.item.presentacion }})</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Identificar el suministro -->
+                                <input type="hidden" name="transfer_suministro_id" value="{{ suministro.id }}">
+                                <!-- Mostrar la cantidad actual -->
+                                <p>Cantidad actual: <span id="currentCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
+                                <!-- Seleccionar el barco destino -->
+                                <div class="form-group">
+                                    <label for="destinationAsset{{ suministro.id }}">Seleccionar barco destino</label>
+                                    <select class="form-control" id="destinationAsset{{ suministro.id }}" name="destination_asset_id" required>
+                                        {% for destination_asset in motonaves %}
+                                            {% if destination_asset.abbreviation != asset.abbreviation %}
+                                                <option value="{{ destination_asset.abbreviation }}">{{ destination_asset.name }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <!-- Cantidad a transferir -->
+                                <div class="form-group">
+                                    <label for="transferCantidad{{ suministro.id }}">Cantidad a transferir</label>
+                                    <input type="number" class="form-control" id="transferCantidad{{ suministro.id }}" name="transfer_cantidad" min="0" step="any" max="{{ suministro.cantidad }}" required>
+                                </div>
+                                <!-- Mostrar la cantidad restante -->
+                                <p>Cantidad restante: <span id="remainingCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
+                                <!-- Motivo -->
+                                <div class="form-group">
+                                    <label for="transferMotivo{{ suministro.id }}">Motivo (opcional)</label>
+                                    <textarea class="form-control" id="transferMotivo{{ suministro.id }}" name="transfer_motivo"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Transferir</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endfor %}
+        <button type="submit" class="btn btn-primary submit-button">Actualizar Inventario</button>
+    </form>
+
+    <!-- Historial -->
+    <div id="historial" style="display: none; margin-top: 20px;">
+        <h2>Historial de Transacciones</h2>
+        <!-- Filtros -->
+        <div class="filters" style="margin-bottom: 20px;">
+            <label for="filtro_seccion">Categoría:</label>
+            <select id="filtro_seccion">
+                <option value="">Todas</option>
+                {% for seccion_key, seccion_name in secciones_dict.items %}
+                    <option value="{{ seccion_name }}">{{ seccion_name }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="filtro_articulo">Artículo:</label>
+            <select id="filtro_articulo">
+                <option value="">Todos</option>
+                {% for article in articles %}
+                    <option value="{{ article }}">{{ article }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="filtro_fecha_inicio">Desde:</label>
+            <input type="date" id="filtro_fecha_inicio">
+
+            <label for="filtro_fecha_fin">Hasta:</label>
+            <input type="date" id="filtro_fecha_fin">
+
+            <button type="button" class="btn btn-secondary" onclick="aplicarFiltros()">Aplicar Filtros</button>
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" name="download_excel" class="btn btn-info">Descargar Excel</button>
+            </form>
+        </div>
+
+        <table id="tabla_historial" class="table-list table-detail">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th class="nowrap">Reportado por</th>
+                    <th>Artículo</th>
+                    <th>Categoría</th>
+                    <th>Cantidad Ingresada</th>
+                    <th>Cantidad Consumida</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaccion in transacciones_historial %}
+                    <tr>
+                        <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ transaccion.usuario.get_full_name }}</td>
+                        <td data-item-name="{{ transaccion.suministro.item.name }}">{{ transaccion.suministro.item.name }}</td>
+                        <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
+                        <td>{{ transaccion.cantidad_ingresada }}</td>
+                        <td>{{ transaccion.cantidad_consumida }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6">No hay transacciones registradas.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Función para mostrar/ocultar el historial
+    function toggleHistorial() {
+        const historialDiv = document.getElementById('historial');
+        if (historialDiv.style.display === 'none' || historialDiv.style.display === '') {
+            historialDiv.style.display = 'block';
+            historialDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }); // Lleva la vista al inicio de la tabla
+        } else {
+            historialDiv.style.display = 'none';
+        }
+    }
+
+    // Función para actualizar el total basado en la cantidad ingresada y consumida
+    function actualizarTotal(rowId) {
+        const cantidadActual = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).getAttribute('data-cantidad-actual')) || 0;
+        const cantidadIngresada = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).value) || 0;
+        const cantidadConsumida = parseFloat(document.querySelector(`input[name="consumido_${rowId}"]`).value) || 0;
+
+        // Calcular el nuevo total
+        const total = cantidadActual + cantidadIngresada - cantidad_consumida;
+
+        // Actualizar el valor en la columna Total
+        document.getElementById(`total_${rowId}`).innerText = total.toFixed(2);
+    }
+
+    // Event listeners para los inputs de cantidad ingresada y consumida
+    document.querySelectorAll('.cantidad-ingresada, .cantidad-consumida').forEach(input => {
+        input.addEventListener('input', function() {
+            const rowId = this.getAttribute('data-row-id');
+            actualizarTotal(rowId);
+        });
+    });
+
+    // Función para actualizar la cantidad restante en el modal de transferencia
+    function updateRemainingCantidad(suministroId) {
+        var transferCantidadInput = document.getElementById('transferCantidad' + suministroId);
+        var currentCantidadSpan = document.getElementById('currentCantidad' + suministroId);
+        var remainingCantidadSpan = document.getElementById('remainingCantidad' + suministroId);
+        var maxCantidad = parseFloat(transferCantidadInput.getAttribute('max'));
+
+        transferCantidadInput.addEventListener('input', function() {
+            var transferCantidad = parseFloat(transferCantidadInput.value) || 0;
+            if (transferCantidad > maxCantidad) {
+                alert('La cantidad a transferir no puede ser mayor a la cantidad actual.');
+                transferCantidadInput.value = maxCantidad;
+                transferCantidad = maxCantidad;
+            }
+            var remainingCantidad = maxCantidad - transferCantidad;
+            remainingCantidadSpan.textContent = remainingCantidad.toFixed(2);
+        });
+    }
+
+    // Inicializar la función para cada suministro
+    {% for group in grouped_suministros.values %}
+        {% for suministro in group %}
+            updateRemainingCantidad('{{ suministro.id }}');
+        {% endfor %}
+    {% endfor %}
+
+    // Función para aplicar filtros en el historial
+    function aplicarFiltros() {
+        const filtroSeccion = document.getElementById('filtro_seccion').value;
+        const filtroArticulo = document.getElementById('filtro_articulo').value;
+        const filtroFechaInicio = document.getElementById('filtro_fecha_inicio').value;
+        const filtroFechaFin = document.getElementById('filtro_fecha_fin').value;
+
+        const rows = document.querySelectorAll('#tabla_historial tbody tr');
+
+        rows.forEach(row => {
+            const fechaTexto = row.cells[0].innerText.trim();
+            const articulo = row.querySelector('td[data-item-name]').getAttribute('data-item-name').trim();
+            const seccion = row.cells[3].innerText.trim();
+
+            let mostrar = true;
+
+            // Filtrar por categoría
+            if (filtroSeccion && seccion !== filtroSeccion) {
+                mostrar = false;
+            }
+
+            // Filtrar por artículo
+            if (filtroArticulo && articulo !== filtroArticulo) {
+                mostrar = false;
+            }
+
+            // Filtrar por fechas
+            if ((filtroFechaInicio || filtroFechaFin) && fechaTexto) {
+                // Convertir fecha de la fila a objeto Date
+                const partesFecha = fechaTexto.split('/');
+                const dia = parseInt(partesFecha[0], 10);
+                const mes = parseInt(partesFecha[1], 10) - 1; // Los meses en JavaScript son 0-indexed
+                const anio = parseInt(partesFecha[2], 10);
+                const fechaRow = new Date(anio, mes, dia);
+
+                // Filtrar por fecha desde
+                if (filtroFechaInicio) {
+                    const fechaInicio = new Date(filtroFechaInicio);
+                    if (fechaRow < fechaInicio) {
+                        mostrar = false;
+                    }
+                }
+
+                // Filtrar por fecha hasta
+                if (filtroFechaFin) {
+                    const fechaFin = new Date(filtroFechaFin);
+                    if (fechaRow > fechaFin) {
+                        mostrar = false;
+                    }
+                }
+            }
+
+            // Mostrar u ocultar la fila
+            row.style.display = mostrar ? '' : 'none';
+        });
+    }
+</script>
+
+{% endblock %}

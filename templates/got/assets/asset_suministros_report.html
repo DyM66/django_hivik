@@ -9,6 +9,7 @@
     {% endfor %}
 {% endif %}
 
+
 <div class="container">
     <h1>
         <a href="{% url 'got:asset-detail' asset.abbreviation %}"><i class="bi bi-arrow-bar-left"></i></a>
@@ -119,6 +120,7 @@
                     <th>Presentación</th>
                     <th>Cantidad Ingresada</th>
                     <th>Cantidad Consumida</th>
+                    <th>Descripción</th>
                 </tr>
             </thead>
             <tbody>
@@ -130,12 +132,8 @@
                         <td>{{ transaccion.suministro.item.presentacion }}</td>
                         <td>{{ transaccion.cantidad_ingresada }}</td>
                         <td>{{ transaccion.cantidad_consumida }}</td>
+                        <td colspan="6">{{ transaccion.motivo }}</td>
                     </tr>
-                    {% if transaccion.motivo %}
-                        <tr>
-                            <td colspan="6">{{ transaccion.motivo }}</td>
-                        </tr>
-                    {% endif %}
                 {% empty %}
                     <tr>
                         <td colspan="5">No hay transacciones registradas.</td>
