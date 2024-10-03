@@ -2,12 +2,6 @@
 
 {% block headtag %}
 <style>
-    .chartMenu {
-		width: 100vw;
-		height: 40px;
-		background: #1A1A1A;
-		color: rgba(54, 162, 235, 1);
-	}
 	.chartMenu p {
 		padding: 10px;
 		font-size: 20px;
@@ -15,7 +9,7 @@
 	.chartCard {
 		width: 100vw;
 		height: calc(100vh - 40px);
-		background: rgba(54, 162, 235, 0.2);
+		/* background: rgba(54, 162, 235, 0.2); */
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -97,10 +91,11 @@
 {% block content %}
     <h1 id="chartTitle"></h1>
 
+
     <div class="chartBox mt-5 rounded shadow">
         <br>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px;">
-            <input type="month" onchange="chartFilter(this)" style="margin: 5px;" />
+            <input type="month" onchange="chartFilter(this)" />
             <button class="badge rounded-pill text-bg-secondary" data-bs-toggle="modal" data-bs-target="#addOperationModal">Añadir Operación</button>
         </div>        
         <br>
@@ -108,7 +103,6 @@
         <canvas id="myChart"></canvas>
         <br>
         <hr>
-        <br>
         <br>
     </div>
 
@@ -131,7 +125,7 @@
                 
                     {% for operacion in operaciones %}
                         <tr>
-                            <td data-cell="Proyecto">{{ operacion.proyecto }}</td>
+                            <td data-cell="Proyecto">{{ operacion.proyecto }}{% if not operacion.confirmado %}(Tentativa){% endif %}</td>
                             <td data-cell="Equipo" style="white-space: nowrap;">{{operacion.asset}}</td>
                             <td data-cell="Fecha de inicio">{{ operacion.start|date:"d/m/Y" }}</td>
                             <td data-cell="Fecha de finalización">{{ operacion.end|date:"d/m/Y" }}</td>
@@ -221,38 +215,56 @@
         const currentMonth = new Date().getMonth() + 1;
 
         updateChartTitle(currentYear, currentMonth);
-    // setup 
+
+        const backgroundColors = [];
+        const borderColors = [];
+        const dataPoints = [];
+
+        {% for item in operations_data %}
+            {% for operation in item.operations %}
+                dataPoints.push({
+                    x: ['{{ operation.start|date:"Y-m-d" }}', '{{ operation.end|date:"Y-m-d" }}'],
+                    y: '{{ item.asset.name|escapejs }}',
+                    proyecto: '{{ operation.proyecto|escapejs }}',
+                    requirements: '{{ operation.requirements|escapejs }}',
+                });
+
+                // Determinar el color según si es tentativa o no
+                {% if not operation.confirmado %}
+                    backgroundColors.push('rgba(255, 205, 86, 0.6)');  // Amarillo
+                    borderColors.push('rgba(255, 205, 86, 1)');
+                {% else %}
+                    backgroundColors.push('rgba(54, 162, 235, 0.2)');  // Azul
+                    borderColors.push('rgba(54, 162, 235, 1)');
+                {% endif %}
+            {% endfor %}
+            {% if not item.operations %}
+                dataPoints.push({
+                    x: [null, null],
+                    y: '{{ item.asset.name }}',
+                });
+                backgroundColors.push('rgba(255, 255, 255, 0)');
+                borderColors.push('rgba(255, 255, 255, 0)');
+            {% endif %}
+        {% endfor %}
+
+
         const data = {
             datasets: [{
                 label: 'Cronograma de proyectos',
-                data: [     
-                    {% for item in operations_data %}
-                        {% for operation in item.operations %}
-                            {
-                                x: ['{{ operation.start|date:"Y-m-d" }}', '{{ operation.end|date:"Y-m-d" }}'],
-                                y: '{{ item.asset.name|escapejs }}',
-                                proyecto: '{{ operation.proyecto|escapejs }}',
-                                requirements: '{{ operation.requirements|escapejs }}',
-                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                borderColor: 'rgba(54, 162, 235, 1)'
-                            },
-                        {% endfor %}
-                        {% if not item.operations %}
-                            {
-                                x: [null, null],
-                                y: '{{ item.asset.name }}',
-                                backgroundColor: 'rgba(255, 255, 255, 0)',
-                                borderColor: 'rgba(255, 255, 255, 0)'
-                            },
-                        {% endif %}
-                    {% endfor %} 
-                ],
+                data: dataPoints,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
                 borderWidth: 1,
                 borderSkipped: false,
                 borderRadius: 15,
                 barPercentage: 0.5,
             }]
         }
+
+        console.log(data);
+
+
 
         const todayLine = {
             id: 'todayLine',

@@ -69,8 +69,12 @@
                     <tr>
                         <th>Descripción</th>
                         <th>Última cantidad reportada</th>
+                        {% if perms.got.can_add_supply %}
                         <th>Cantidad Ingresada</th>
+                        {% endif %}
+                        {% if seccion_key != 'h' %}
                         <th>Cantidad Consumida</th>
+                        {% endif %}
                         <th>Total</th>
                         <th>Acciones</th>
                     </tr>
@@ -80,17 +84,16 @@
                         <tr>
                             <td>{{ suministro.item }} ({{ suministro.item.presentacion }})</td>
                             <td>{{ suministro.cantidad|floatformat:2 }}</td>
+                            {% if perms.got.can_add_supply %}
                             <td><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
-                            <td><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
+                            {% endif %}
+                            {% if suministro.item.seccion != 'h' %}
+                                <td><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
+                            {% endif %}
                             <td><span id="total_{{ suministro.id }}"> {{ suministro.cantidad|floatformat:2 }} </span></td>
                             <td data-cell="Acciones">
                                 <div class="dropdown">
-                                    <button 
-                                        class="btn status pending btn-sm dropdown-toggle" 
-                                        type="button" 
-                                        id="dropdownMenuButton{{ suministro.id }}" 
-                                        data-bs-toggle="dropdown" 
-                                        aria-expanded="false">
+                                    <button class="btn status pending btn-sm dropdown-toggle" type="button" id="dropdownMenuButton{{ suministro.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                         Acciones
                                     </button>
                                     <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ suministro.id }}">
@@ -106,56 +109,57 @@
             <br>
 
             <!-- Modales para transferir suministros -->
-            {% for suministro in group %}
-            <div class="modal fade" id="transferModal{{ suministro.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ suministro.id }}" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
-                            {% csrf_token %}
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="transferModalLabel{{ suministro.id }}">Transferir {{ suministro.item.name }} ({{ suministro.item.presentacion }})</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                            </div>
-                            <div class="modal-body">
-                                <!-- Identificar el suministro -->
-                                <input type="hidden" name="transfer_suministro_id" value="{{ suministro.id }}">
-                                <!-- Mostrar la cantidad actual -->
-                                <p>Cantidad actual: <span id="currentCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
-                                <!-- Seleccionar el barco destino -->
-                                <div class="form-group">
-                                    <label for="destinationAsset{{ suministro.id }}">Seleccionar barco destino</label>
-                                    <select class="form-control" id="destinationAsset{{ suministro.id }}" name="destination_asset_id" required>
-                                        {% for destination_asset in motonaves %}
-                                            {% if destination_asset.abbreviation != asset.abbreviation %}
-                                                <option value="{{ destination_asset.abbreviation }}">{{ destination_asset.name }}</option>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <!-- Cantidad a transferir -->
-                                <div class="form-group">
-                                    <label for="transferCantidad{{ suministro.id }}">Cantidad a transferir</label>
-                                    <input type="number" class="form-control" id="transferCantidad{{ suministro.id }}" name="transfer_cantidad" min="0" step="any" max="{{ suministro.cantidad }}" required>
-                                </div>
-                                <!-- Mostrar la cantidad restante -->
-                                <p>Cantidad restante: <span id="remainingCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
-                                <!-- Motivo -->
-                                <div class="form-group">
-                                    <label for="transferMotivo{{ suministro.id }}">Motivo (opcional)</label>
-                                    <textarea class="form-control" id="transferMotivo{{ suministro.id }}" name="transfer_motivo"></textarea>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="submit" class="btn btn-primary">Transferir</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
         {% endfor %}
         <button type="submit" class="btn btn-primary submit-button">Actualizar Inventario</button>
     </form>
+
+    {% for suministro in group %}
+    <div class="modal fade" id="transferModal{{ suministro.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ suministro.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="transferModalLabel{{ suministro.id }}">Transferir {{ suministro.item.name }} ({{ suministro.item.presentacion }})</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Identificar el suministro -->
+                        <input type="hidden" name="transfer_suministro_id" value="{{ suministro.id }}">
+                        <!-- Mostrar la cantidad actual -->
+                        <p>Cantidad actual: <span id="currentCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
+                        <!-- Seleccionar el barco destino -->
+                        <div class="form-group">
+                            <label for="destinationAsset{{ suministro.id }}">Seleccionar barco destino</label>
+                            <select class="form-control" id="destinationAsset{{ suministro.id }}" name="destination_asset_id" required>
+                                {% for destination_asset in motonaves %}
+                                    {% if destination_asset.abbreviation != asset.abbreviation %}
+                                        <option value="{{ destination_asset.abbreviation }}">{{ destination_asset.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <!-- Cantidad a transferir -->
+                        <div class="form-group">
+                            <label for="transferCantidad{{ suministro.id }}">Cantidad a transferir</label>
+                            <input type="number" class="form-control" id="transferCantidad{{ suministro.id }}" name="transfer_cantidad" min="0" step="any" max="{{ suministro.cantidad }}" required>
+                        </div>
+                        <!-- Mostrar la cantidad restante -->
+                        <p>Cantidad restante: <span id="remainingCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
+                        <!-- Motivo -->
+                        <div class="form-group">
+                            <label for="transferMotivo{{ suministro.id }}">Motivo (opcional)</label>
+                            <textarea class="form-control" id="transferMotivo{{ suministro.id }}" name="transfer_motivo"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Transferir</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 
     <!-- Historial -->
     <div id="historial" style="display: none; margin-top: 20px;">

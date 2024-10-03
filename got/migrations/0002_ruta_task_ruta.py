@@ -47,6 +47,7 @@ class Migration(migrations.Migration):
                 ('related_ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='failure_report', to='got.ot')),
                 ('closed', models.BooleanField(default=False)),
                 ('impact', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(choices=[('s', 'La seguridad personal'), ('m', 'El medio ambiente'), ('i', 'Integridad del equipo/sistema'), ('o', 'El desarrollo normal de las operaciones')], max_length=1), blank=True, default=list, size=None)),
+                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_failures', to=settings.AUTH_USER_MODEL)),
             ],
             options={'ordering': ['-moment']},
         ),
@@ -255,6 +256,7 @@ class Migration(migrations.Migration):
                 ('fecha', models.DateField()),
                 ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
                 ('usuario', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('motivo', models.TextField(blank=True, null=True)),
             ],
         ),
         migrations.CreateModel(

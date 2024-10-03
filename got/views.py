@@ -534,7 +534,7 @@ def asset_inventario_report(request, abbreviation):
                     asset=asset
                 )
                 messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
-            return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+            return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
     
         elif 'transfer_suministro_id' in request.POST:
             # Manejar la transferencia
@@ -547,17 +547,17 @@ def asset_inventario_report(request, abbreviation):
                 transfer_cantidad = Decimal(transfer_cantidad_str)
             except InvalidOperation:
                 messages.error(request, 'Cantidad inválida.')
-                return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
 
             if transfer_cantidad <= 0:
                 messages.error(request, 'La cantidad a transferir debe ser mayor a cero.')
-                return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
 
             suministro_origen = get_object_or_404(Suministro, id=suministro_id, asset=asset)
 
             if transfer_cantidad > suministro_origen.cantidad:
                 messages.error(request, 'La cantidad a transferir no puede ser mayor a la cantidad disponible.')
-                return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
 
             # Obtener el barco destino
             destination_asset = get_object_or_404(Asset, abbreviation=destination_asset_id)
@@ -692,7 +692,7 @@ def asset_inventario_report(request, abbreviation):
                     TransaccionSuministro.objects.create(**transaccion_data)
 
             messages.success(request, 'Inventario actualizado exitosamente.')
-            return redirect(reverse('got:asset_inventario', kwargs={'abbreviation': asset.abbreviation}))
+            return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
     # Obtener todos los Items que no están ya asociados con este Asset
     existing_item_ids = suministros.values_list('item_id', flat=True)
     available_items = Item.objects.exclude(id__in=existing_item_ids)
@@ -2063,7 +2063,7 @@ def OperationListView(request):
     operations_data = []
     for asset in assets:
         asset_operations = asset.operation_set.all().values(
-            'start', 'end', 'proyecto', 'requirements'
+            'start', 'end', 'proyecto', 'requirements', 'confirmado'
         )
         operations_data.append({
             'asset': asset,
@@ -2090,17 +2090,18 @@ def OperationListView(request):
         'operaciones': operations,
         }
 
-    return render(request, 'got/operation_list.html', context)
+    return render(request, 'got/operations/operation_list.html', context)
 
 
 class OperationUpdate(UpdateView):
 
     model = Operation
     form_class = OperationForm
+    template_name = 'got/operations/operation_form.html'
 
     def get_success_url(self):
 
-        return reverse('operation-list')
+        return reverse('got:operation-list')
 
 
 class OperationDelete(DeleteView):

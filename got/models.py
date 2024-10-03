@@ -223,6 +223,7 @@ class Equipo(models.Model):
         ('g', 'Generador'),
         ('h', 'Cilindro hidráulico'),
         ('i', 'Instrumentos y herramientas'),
+        ('j', 'Distribución eléctrica'),
         ('k', 'Tanque de almacenamiento'),
         ('m', 'Comunicación'),
         ('n', 'Navegación'),
@@ -582,7 +583,7 @@ class Operation(models.Model):
     proyecto = models.CharField(max_length=100)
     requirements = models.TextField()
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
-    confirmado = models.BooleanField(default=False, null=True, blank=True)
+    confirmado = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.proyecto}/{self.asset} ({self.start} - {self.start})"
