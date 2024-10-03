@@ -607,8 +607,9 @@ class Solicitud(models.Model):
     cancel_date = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.TextField(null=True, blank=True)
     cancel = models.BooleanField(default=False)
-    # modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_solicitudes')
-    # proveedor = models.CharField(max_length=100, null=True, blank=True)
+
+    satisfaccion = models.BooleanField(default=False)
+    recibido_por = models.TextField(null=True, blank=True)
     # inversion = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Inversión (COP)")
 
     def __str__(self):

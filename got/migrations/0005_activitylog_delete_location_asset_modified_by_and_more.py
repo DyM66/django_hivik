@@ -15,11 +15,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name='historyhour',
-            name='modified_by',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_hours', to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AddField(
             model_name='item',
             name='modified_by',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),

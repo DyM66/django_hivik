@@ -486,7 +486,6 @@ def asset_suministros_report(request, abbreviation):
 def asset_inventario_report(request, abbreviation):
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
 
-    # Filtrar suministros que NO contengan las palabras clave
     keyword_filter = ~(
         Q(item__name__icontains='Combustible') | 
         Q(item__name__icontains='Aceite') | 
@@ -2349,8 +2348,6 @@ def export_preoperacionaldiario_excel(request):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = f"Preoperacional Diario {mes}-{anio}"
-
-    # Escribir los encabezados
     headers = [
         'Fecha', 'Vehículo', 'Responsable', 'Kilometraje', 'Nivel de Combustible',
         'Nivel de Aceite', 'Nivel de Refrigerante', 'Nivel de Hidráulico', 'Nivel de Líquido de Frenos',
@@ -2366,8 +2363,6 @@ def export_preoperacionaldiario_excel(request):
         'Observaciones'
     ]
     ws.append(headers)
-
-    # Escribir los datos
     for preop in preoperacional_diarios:
         ws.append([
             preop.fecha.strftime('%d/%m/%Y'),
@@ -2445,8 +2440,6 @@ def export_preoperacionaldiario_excel(request):
     # Preparar la respuesta HTTP
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename=PreoperacionalDiario_{mes}_{anio}.xlsx'
-
-    # Guardar el archivo de Excel en la respuesta
     wb.save(response)
 
     return response
@@ -2515,13 +2508,12 @@ class PreoperacionalDiarioUpdateView(LoginRequiredMixin, generic.UpdateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         preoperacional = self.get_object()
-        kwargs['equipo_code'] = preoperacional.vehiculo.code  # Assign the existing equipo's code to the form
+        kwargs['equipo_code'] = preoperacional.vehiculo.code
         kwargs['user'] = self.request.user
         return kwargs
 
     def form_valid(self, form):
-        response = super().form_valid(form)  # Save the form
-        # Get the previous instance before saving
+        response = super().form_valid(form)
         preoperacional = form.instance
         equipo = preoperacional.vehiculo
         fecha_preoperacional = preoperacional.fecha
@@ -3068,9 +3060,6 @@ def indicadores(request):
 
 
 'EXPERIMENTAL VIEWS'
-
-
-
 class ItemManagementView(generic.TemplateView):
     template_name = 'got/item_management.html'
 

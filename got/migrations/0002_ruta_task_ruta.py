@@ -59,6 +59,7 @@ class Migration(migrations.Migration):
                 ('hour', models.DecimalField(decimal_places=2, max_digits=10)),
                 ('component', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='hours', to='got.equipo')),
                 ('reporter', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_hours', to=settings.AUTH_USER_MODEL)),
             ],
             options={
                 'ordering': ['-report_date'],
@@ -73,7 +74,7 @@ class Migration(migrations.Migration):
                 ('proyecto', models.CharField(max_length=100)),
                 ('requirements', models.TextField()),
                 ('asset', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.asset')),
-                ('confirmado', models.BooleanField(blank=True, default=False, null=True)),
+                ('confirmado', models.BooleanField(default=False)),
             ],
         ),
         migrations.CreateModel(
