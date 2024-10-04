@@ -1904,8 +1904,41 @@ def crear_ot_desde_ruta(request, ruta_id):
         # copiar_tasks_y_actualizar_ot(ruta, nueva_ot)
         return redirect('got:ot-detail', pk=nueva_ot.pk)
     else:
-        # Redirigir si se accede por GET
-        return redirect('got:asset-maintenance-plan', pk=ruta.system.asset.abbreviation)
+        # Manejar solicitudes GET para crear una OT para una sola rutina
+        nueva_ot = Ot(
+            description=f"Rutina de mantenimiento con código {ruta.name}",
+            state='x',
+            supervisor=f"{request.user.first_name} {request.user.last_name}",
+            tipo_mtto='p',
+            system=ruta.system,
+            modified_by=request.user 
+        )
+        nueva_ot.save()
+
+        def copiar_tasks_y_actualizar_ot(ruta, ot):
+            for task in ruta.task_set.all():
+                Task.objects.create(
+                    ot=ot,
+                    responsible=task.responsible,
+                    description=task.description,
+                    procedimiento=task.procedimiento,
+                    hse=task.hse,
+                    evidence=task.evidence,
+                    start_date=timezone.now().date(),
+                    men_time=1,
+                    finished=False,
+                    modified_by=request.user 
+                )
+
+            ruta.ot = ot
+            ruta.save()
+
+            if ruta.dependencia:
+                copiar_tasks_y_actualizar_ot(ruta.dependencia, ot)
+
+        copiar_tasks_y_actualizar_ot(ruta, nueva_ot)
+
+        return redirect('got:ot-detail', pk=nueva_ot.pk)
 
 
 def rutina_form_view(request, ruta_id):

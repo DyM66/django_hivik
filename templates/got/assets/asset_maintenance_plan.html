@@ -75,8 +75,7 @@
 
                         <div class="modal fade" id="crearOtModal{{ ruta.code }}" tabindex="-1" aria-labelledby="crearOtModalLabel{{ ruta.code }}" aria-hidden="true">
                             <div class="modal-dialog modal-lg">
-                                <form method="post" action="{% url 'got:crear_ot_desde_ruta' ruta.code %}">
-                                    {% csrf_token %}
+                                <form method="post" action="{% url 'got:crear_ot_desde_ruta' ruta.code %}">{% csrf_token %}
                                     <div class="modal-content">
                                         <div class="modal-header">
                                             <h5 class="modal-title" id="crearOtModalLabel{{ ruta.code }}">Crear Orden de Trabajo</h5>
