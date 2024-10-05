@@ -81,6 +81,39 @@
         </div>
     </div>
 
+    <h2>Reporte de Combustible</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Activo</th>
+                <th>Fecha Último Reporte</th>
+                <th>Cantidad Total (Combustible)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data in combustible_data %}
+            <tr>
+                <td>{{ data.asset_name }}</td>
+                <td>
+                    {% if data.last_report_date %}
+                        {{ data.last_report_date|date:"d/m/Y" }}
+                    {% else %}
+                        No reportado
+                    {% endif %}
+                </td>
+                <td>
+                    {% if data.total_quantity != None %}
+                        {{ data.total_quantity|floatformat:2 }}
+                    {% else %}
+                        No disponible
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
 
     <!-- Libreria chartjs para estilos de diagramas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>

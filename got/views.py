@@ -3078,6 +3078,38 @@ def indicadores(request):
             round((preventivo/ots)*100, 2), round((correctivo/ots)*100, 2),
             round((modificativo/ots)*100, 2)
             ]
+        
+    assets_a = Asset.objects.filter(area='a')
+
+    # Lista para almacenar los datos de combustible
+    combustible_data = []
+
+    # Iterar sobre cada asset y obtener la información de combustible
+    for asset in assets_a:
+        try:
+            # Obtener el suministro de combustible para el asset actual
+            suministro = Suministro.objects.get(asset=asset, item_id=132)
+            total_quantity = suministro.cantidad
+
+            # Obtener la última transacción de combustible
+            last_transaction = TransaccionSuministro.objects.filter(suministro=suministro).order_by('-fecha').first()
+            if last_transaction:
+                last_report_date = last_transaction.fecha
+            else:
+                last_report_date = None
+
+            combustible_data.append({
+                'asset_name': asset.name,
+                'last_report_date': last_report_date,
+                'total_quantity': total_quantity,
+            })
+        except Suministro.DoesNotExist:
+            # Si el suministro de combustible no existe para este asset
+            combustible_data.append({
+                'asset_name': asset.name,
+                'last_report_date': None,
+                'total_quantity': None,
+            })  
 
     context = {
         'ind_cumplimiento': ind_cumplimiento,
@@ -3087,7 +3119,8 @@ def indicadores(request):
         'ots_asset': ots_per_asset,
         'asset_labels': asset_labels,
         'ots_finished': ot_finish,
-        'barcos': barcos
+        'barcos': barcos,
+        'combustible_data': combustible_data,
     }
     return render(request, 'got/indicadores.html', context)
 
