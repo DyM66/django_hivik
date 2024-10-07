@@ -225,6 +225,7 @@ class Equipo(models.Model):
         ('i', 'Instrumentos y herramientas'),
         ('j', 'Distribución eléctrica'),
         ('k', 'Tanque de almacenamiento'),
+        ('l', 'Gobierno'),
         ('m', 'Comunicación'),
         ('n', 'Navegación'),
         ('nr', 'No rotativo'),
