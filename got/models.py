@@ -247,6 +247,7 @@ class Equipo(models.Model):
     marca = models.CharField(max_length=50, null=True, blank=True)
     fabricante = models.CharField(max_length=50, null=True, blank=True)
     feature = models.TextField()
+    recomendaciones = models.TextField(null=True, blank=True)
     tipo = models.CharField(choices=TIPO, default='nr', max_length=2)
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
     subsystem = models.CharField(max_length=100, null=True, blank=True)

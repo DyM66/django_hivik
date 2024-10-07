@@ -245,7 +245,7 @@ def preventivo_pdf(request, pk):
     year = request.GET.get('year')
     show_execute = request.GET.get('execute', False)
     selected_locations = request.GET.getlist('locations')
-    systems = get_full_systems_ids(asset)
+    systems = get_full_systems_ids(asset, request.user)
     filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
 
     if selected_locations:

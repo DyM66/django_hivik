@@ -29,6 +29,7 @@ class Migration(migrations.Migration):
                 ('dependencia', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='dependiente', to='got.ruta')),
                 ('astillero', models.CharField(blank=True, max_length=50, null=True)),
                 ('nivel', models.IntegerField(choices=[(1, 'Nivel 1 - Operadores'), (2, 'Nivel 2 - Operador Técnico'), (3, 'Nivel 3 - Proveedor especializado'), (4, 'Nivel 4 - Fabricante')], default=1)),
+                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
             options={'ordering': ['frecuency']},
         ),
@@ -132,6 +133,7 @@ class Migration(migrations.Migration):
                 ('darbaja', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.darbaja')),
                 ('salida', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.salida')),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.equipo')),
+                ('requirements', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.requirement')),
             ],
         ),
 

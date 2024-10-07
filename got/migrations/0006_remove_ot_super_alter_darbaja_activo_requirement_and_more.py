@@ -29,9 +29,4 @@ class Migration(migrations.Migration):
                 ('operation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.operation')),
             ],
         ),
-        migrations.AddField(
-            model_name='image',
-            name='requirements',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.requirement'),
-        ),
     ]
