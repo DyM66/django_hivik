@@ -1,57 +1,60 @@
-{% extends "got/base_generic.html" %}
+{% extends "got/base/base_generic.html" %}
 {% load my_tags %}
 
-{% block header %}
-	Reportes de falla
-{% endblock %}
-
 {% block content %}
+<main class="container">
+	<h1>Reportes de falla</h1>
 
-	{% if request.user|has_group:"super_members" %}
-		<aside>
-			<div class="btn-group" role="group">
-				<button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-					Filtrar por:
-				</button>
-				<ul class="dropdown-menu">
-					<li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Mostrar todas</a></li>
-					<li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}?area=b">Buceo</a></li>
-					{% for asset in assets %}
-						<li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}?asset_id={{ asset.abbreviation }}">{{ asset.name }}</a></li>
-					{% endfor %}
-				</ul>
+	<div class="row">
+		<div class="col-md-4">
+			<aside>
+				{% if perms.got.can_see_completely %}
+					<div class="btn-group-vertical w-100 mb-2" role="group">
+						<button type="button" class="btn btn-primary dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+							Filtrar por equipo
+						</button>
+						<ul class="dropdown-menu">
+							<li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Mostrar todas</a></li>
+							<li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}?area=b">Buceo</a></li>
+							{% for asset in assets %}
+								<li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}?asset_id={{ asset.abbreviation }}">{{ asset.name }}</a></li>
+							{% endfor %}
+						</ul>
+					</div>
+				{% endif %}
+		
+				<div class="btn-group-vertical w-100 mb-2" role="group">
+					<button type="button" class="btn btn-primary dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+						Filtrar por estado 
+					</button>
+					<ul class="dropdown-menu">
+						<li><a href="{% url 'got:failure-report-list' %}?state=&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Mostrar todos</a></li>
+						<li><a href="{% url 'got:failure-report-list' %}?state=abierto&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Abiertos</a></li>
+						<li><a href="{% url 'got:failure-report-list' %}?state=proceso&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">En proceso</a></li>
+						<li><a href="{% url 'got:failure-report-list' %}?state=cerrado&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Cerrados</a></li>
+					</ul>
+				</div>
+			</aside>
+		</div>
+
+		<div class="col-md-8">
+			<div class="card rounded shadow">
+				<div class="row">
+					<div class="card-body col-md-6">
+						<h5 class="card-title">Reportes de falla abiertos</h5>
+						<h1 class="display-1">{{ count_abierto }}</h1> 
+					</div>
+					<div class="card-body col-md-6">
+						<h5 class="card-title">Reportes de falla en proceso</h5>
+						<h1 class="display-1">{{ count_proceso }}</h1> 
+					</div>
+				</div>
 			</div>
+		</div>
+	</div>
 
-			<div class="btn-group" role="group">
-				<button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-					Estado
-				</button>
-				<ul class="dropdown-menu">
-					<li><a href="{% url 'got:failure-report-list' %}?state=&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Mostrar todos</a></li>
-					<li><a href="{% url 'got:failure-report-list' %}?state=abierto&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Abiertos</a></li>
-					<li><a href="{% url 'got:failure-report-list' %}?state=proceso&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">En proceso</a></li>
-					<li><a href="{% url 'got:failure-report-list' %}?state=cerrado&asset_id={{ request.GET.asset_id }}&area={{ request.GET.area }}" class="dropdown-item">Cerrados</a></li>
-				</ul>
-			</div>
-		</aside>
-	{% endif %}
-
-	<div class="container mt-5">
-        <div class="card rounded shadow">
-            <div class="row">
-                <div class="card-body col-md-6">
-                    <h5 class="card-title">Reportes de falla abiertos</h5>
-                    <h1 class="display-1">{{ count_abierto }}</h1> 
-                </div>
-                <div class="card-body col-md-6">
-                    <h5 class="card-title">Reportes de falla en proceso</h5>
-                    <h1 class="display-1">{{ count_proceso }}</h1> 
-                </div>
-            </div>
-        </div>
-    </div>
-
-	<table class="table-list">
+	
+	<table class="table-list mt-2">
     	<thead>
         	<tr>
             	<th scope="col" class="nowrap">RF-#</th>
@@ -67,9 +70,9 @@
 				<tr data-href="{{ fail.get_absolute_url }}">
 					<td class="nowrap" data-cell="# Reporte de falla">RF-{{ fail.id }}</td>
 					<td data-cell="Fecha">{{ fail.moment|date:"d/m/Y" }}</td>
-					<td data-cell="Equipo">{{ fail.equipo.system.asset }}/ {{ fail.equipo }}</td>
+					<td data-cell="Equipo">{{ fail.equipo.system.asset }}/ {{ fail.equipo.name }}</td>
 					<td data-cell="Descripción">{{ fail.description }}</td>
-					<td data-cell="Responsable">{{fail.reporter.first_name}} {{fail.reporter.last_name}}</td>
+					<td data-cell="Responsable">{{ fail.report }}</td>
 					<td class="nowrap" data-cell="Estado">
 						<p class="status {% if fail.closed %}finished{% elif fail.related_ot %}shipped{% else %}pending{% endif %}">
 							{% if fail.closed %}
@@ -87,8 +90,9 @@
                     <td colspan="6">No hay reportes de falla registrados.</td>
                 </tr>
             {% endfor %}
-    </tbody>
-</table>
+    	</tbody>
+	</table>
+</main>
 
 <script>
 	document.addEventListener("DOMContentLoaded", () => {

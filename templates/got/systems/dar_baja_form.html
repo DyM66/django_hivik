@@ -1,0 +1,147 @@
+<!-- templates/got/dar_baja_form.html -->
+{% extends 'got/base/base_generic.html' %}
+
+{% block headtag %}
+    <!-- Incluir Signature Pad JS en el head -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@2.3.2/dist/signature_pad.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Dar de Baja al Equipo {{ equipo.name }}</h2>
+
+    <p class="text-danger"><strong>Nota:</strong> Al enviar este formulario, se eliminarán las rutinas asociadas al equipo, registros de horas, suministros, registros de Megger y registros preoperacionales. Esta acción no puede deshacerse.</p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form.motivo.label_tag }}
+            {{ form.motivo }}
+        </div>
+        <div class="form-group">
+            {{ form.observaciones.label_tag }}
+            {{ form.observaciones }}
+        </div>
+        <div class="form-group">
+            {{ form.disposicion.label_tag }}
+            {{ form.disposicion }}
+        </div>
+        <div class="form-group">
+            {{ form.responsable.label_tag }}
+            {{ form.responsable }}
+        </div>
+
+        <!-- Firma Responsable -->
+        <div class="form-group">
+            <label for="firma_responsable">Firma Responsable:</label><br>
+            <canvas id="signature-pad-responsable" class="signature-pad border" width=400 height=200></canvas><br>
+            <button type="button" class="btn btn-secondary btn-sm mt-2" id="clear-responsable">Limpiar</button>
+            <input type="hidden" name="firma_responsable_data" id="firma_responsable_data">
+        </div>
+
+        <!-- Firma Autorizado -->
+        <div class="form-group">
+            <label for="firma_autorizado">Firma Autorizado:</label><br>
+            <canvas id="signature-pad-autorizado" class="signature-pad border" width=400 height=200></canvas><br>
+            <button type="button" class="btn btn-secondary btn-sm mt-2" id="clear-autorizado">Limpiar</button>
+            <input type="hidden" name="firma_autorizado_data" id="firma_autorizado_data">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Enviar</button>
+        <a href="{{ equipo.system.get_absolute_url }}" class="btn btn-secondary">Cancelar</a>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                console.log('DOM completamente cargado y parseado');
+
+                // Inicializar signature pads
+                var canvasResponsable = document.getElementById('signature-pad-responsable');
+                console.log('Canvas Responsable:', canvasResponsable);
+                var signaturePadResponsable = new SignaturePad(canvasResponsable);
+
+                var canvasAutorizado = document.getElementById('signature-pad-autorizado');
+                console.log('Canvas Autorizado:', canvasAutorizado);
+                var signaturePadAutorizado = new SignaturePad(canvasAutorizado);
+
+                // Botones de limpiar
+                document.getElementById('clear-responsable').addEventListener('click', function () {
+                    signaturePadResponsable.clear();
+                    console.log('Firma Responsable limpiada');
+                });
+
+                document.getElementById('clear-autorizado').addEventListener('click', function () {
+                    signaturePadAutorizado.clear();
+                    console.log('Firma Autorizado limpiada');
+                });
+
+                // Al enviar el formulario, capturar las firmas
+                var form = document.querySelector('form');
+                console.log('Formulario:', form);
+                form.addEventListener('submit', function (e) {
+                    console.log('Formulario enviado');
+
+                    if (signaturePadResponsable.isEmpty()) {
+                        alert('Por favor, firme en el área de Firma Responsable.');
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (signaturePadAutorizado.isEmpty()) {
+                        alert('Por favor, firme en el área de Firma Autorizado.');
+                        e.preventDefault();
+                        return false;
+                    }
+                    var firmaResponsableData = signaturePadResponsable.toDataURL('image/png');
+                    var firmaAutorizadoData = signaturePadAutorizado.toDataURL('image/png');
+                    document.getElementById('firma_responsable_data').value = firmaResponsableData;
+                    document.getElementById('firma_autorizado_data').value = firmaAutorizadoData;
+                    console.log('Firma Responsable Data:', firmaResponsableData);
+                    console.log('Firma Autorizado Data:', firmaAutorizadoData);
+                });
+            });
+        </script>
+    </form>
+</div>
+
+<!-- Incluir Signature Pad JS -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/signature_pad@2.3.2/dist/signature_pad.min.js"></script> -->
+
+<!-- <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Inicializar signature pads
+        var canvasResponsable = document.getElementById('signature-pad-responsable');
+        var signaturePadResponsable = new SignaturePad(canvasResponsable);
+
+        var canvasAutorizado = document.getElementById('signature-pad-autorizado');
+        var signaturePadAutorizado = new SignaturePad(canvasAutorizado);
+
+        // Botones de limpiar
+        document.getElementById('clear-responsable').addEventListener('click', function () {
+            signaturePadResponsable.clear();
+        });
+
+        document.getElementById('clear-autorizado').addEventListener('click', function () {
+            signaturePadAutorizado.clear();
+        });
+
+        // Al enviar el formulario, capturar las firmas
+        var form = document.querySelector('form');
+        form.addEventListener('submit', function (e) {
+            if (signaturePadResponsable.isEmpty()) {
+                alert('Por favor, firme en el área de Firma Responsable.');
+                e.preventDefault();
+                return false;
+            }
+            if (signaturePadAutorizado.isEmpty()) {
+                alert('Por favor, firme en el área de Firma Autorizado.');
+                e.preventDefault();
+                return false;
+            }
+            var firmaResponsableData = signaturePadResponsable.toDataURL('image/png');
+            var firmaAutorizadoData = signaturePadAutorizado.toDataURL('image/png');
+            document.getElementById('firma_responsable_data').value = firmaResponsableData;
+            document.getElementById('firma_autorizado_data').value = firmaAutorizadoData;
+        });
+    });
+</script> -->
+
+{% endblock %}

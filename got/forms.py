@@ -541,12 +541,10 @@ class failureForm(forms.ModelForm):
 
     class Meta:
         model = FailureReport
-        exclude = ['reporter', 'related_ot', 'closed', 'evidence', 'modified_by']
+        exclude = ['report', 'reporter', 'closed', 'evidence', 'modified_by', 'related_ot']
         labels = {
             'equipo': 'Equipo que presenta la falla',
-            'critico': '¿Equipo/sistema que presenta la falla es critico?',
             'description': 'Descripción detallada de falla presentada',
-            'impact': 'Seleccione las areas afectadas por la falla',
             'causas': 'Describa las causas probable de la falla',
             'suggest_repair': 'Reparación sugerida',
             }
@@ -555,6 +553,18 @@ class failureForm(forms.ModelForm):
             'causas': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'suggest_repair': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super(failureForm, self).__init__(*args, **kwargs)
+        if self.instance and self.instance.related_ot:
+            # Agregar el campo 'related_ot' solo si ya tiene una OT asociada
+            self.fields['related_ot'] = forms.ModelChoiceField(
+                queryset=Ot.objects.filter(system=self.instance.equipo.system),
+                required=False,
+                label='Orden de Trabajo Asociada',
+            )
+            # Establecer el valor inicial
+            self.fields['related_ot'].initial = self.instance.related_ot
 
     def clean(self):
         cleaned_data = super().clean()
@@ -612,18 +622,18 @@ class OperationForm(forms.ModelForm):
 
     class Meta:
         model = Operation
-        fields = ['proyecto', 'asset', 'start', 'end', 'requirements', 'confirmado']
+        fields = ['proyecto', 'asset', 'start', 'end', 'confirmado']# , 'requirements'
         widgets = {
             'start': XYZ_DateInput(format=['%Y-%m-%d'],),
             'end': XYZ_DateInput(format=['%Y-%m-%d'],),
-            'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            # 'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
             'asset': 'Equipo',
             'proyecto': 'Nombre del Proyecto',
             'start': 'Fecha de Inicio',
             'end': 'Fecha de Fin',
-            'requirements': 'Requerimientos',
+            # 'requirements': 'Requerimientos',
         }
 
 
@@ -1276,3 +1286,41 @@ class ActivityForm(forms.Form):
 
 class CustomSignatureForm(forms.Form):
     signature = forms.CharField(widget=forms.HiddenInput())
+
+
+class DarBajaForm(forms.ModelForm):
+    class Meta:
+        model = DarBaja
+        fields = ['motivo', 'observaciones', 'disposicion', 'responsable']
+        widgets = {
+            'motivo': forms.Select(attrs={'class': 'form-control'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control'}),
+            'disposicion': forms.Textarea(attrs={'class': 'form-control'}),
+            'responsable': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'motivo': 'Motivo de la baja',
+            'observaciones': 'Observaciones',
+            'disposicion': 'Disposición final del equipo',
+            'responsable': 'Responsable del equipo',
+        }
+
+
+class RequirementForm(forms.ModelForm):
+    approved = forms.ChoiceField(
+        choices=[(True, 'Sí'), (False, 'No')],
+        widget=forms.RadioSelect,
+        label='Realizado',
+        initial=False,
+        required=False
+    )
+    class Meta:
+        model = Requirement
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={'class': 'form-control'}),
+            # 'approved': forms.BooleanField(required=False, label='Realizado')
+        }
+        labels = {
+            'text': 'Detalle del requerimiento',
+        }

@@ -1088,27 +1088,34 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
             queryset = queryset.filter(closed=True)
 
         if self.request.user.groups.filter(name='maq_members').exists():
-            supervised_assets = Asset.objects.filter(
-                supervisor=self.request.user)
-
-            queryset = queryset.filter(
-                equipo__system__asset__in=supervised_assets)
+            supervised_assets = Asset.objects.filter(supervisor=self.request.user)
+            queryset = queryset.filter(equipo__system__asset__in=supervised_assets)
         elif self.request.user.groups.filter(name='buzos_members').exists():
             supervised_assets = Asset.objects.filter(area='b')
-
             queryset = queryset.filter(equipo__system__asset__in=supervised_assets)
 
         return queryset
     
 
 class FailureDetailView(LoginRequiredMixin, generic.DetailView):
-
     model = FailureReport
+    template_name = 'got/fail/failurereport_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        failurereport = self.get_object()
+        # Obtener el sistema del equipo del reporte de falla
+        system = failurereport.equipo.system
+        # Obtener las OTs existentes del sistema
+        existing_ots = Ot.objects.filter(system=system)
+        context['existing_ots'] = existing_ots
+        return context
 
 
 class FailureReportForm(LoginRequiredMixin, CreateView):
     model = FailureReport
     form_class = failureForm
+    template_name = 'got/fail/failurereport_form.html'
     http_method_names = ['get', 'post']
 
     def send_email(self, context):
@@ -1140,7 +1147,7 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
         """Builds the context dictionary for the email."""
         impacts_display = [self.object.get_impact_display(code) for code in self.object.impact]
         return {
-            'reporter': self.object.reporter,
+            'reporter': self.object.report,
             'moment': self.object.moment.strftime('%Y-%m-%d %H:%M'),
             'equipo': f'{self.object.equipo.system.asset}-{self.object.equipo.name}',
             'description': self.object.description,
@@ -1150,6 +1157,7 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
             'critico': 'Sí' if self.object.critico else 'No',
             'report_url': self.request.build_absolute_uri(self.object.get_absolute_url()),
         }
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1172,7 +1180,11 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
         image_form = UploadImages(request.POST, request.FILES)
         
         if form.is_valid() and image_form.is_valid():
-            form.instance.reporter = request.user
+            # Asignar el nombre completo del usuario al campo 'report'
+            full_name = request.user.get_full_name()
+            if not full_name.strip():
+                full_name = request.user.username
+            form.instance.report = full_name
             form.instance.modified_by = request.user
             response = super().form_valid(form)
             # context = self.get_email_context()  
@@ -1192,23 +1204,34 @@ class FailureReportUpdate(LoginRequiredMixin, UpdateView):
 
     model = FailureReport
     form_class = failureForm
+    template_name = 'got/fail/failurereport_form.html'
     http_method_names = ['get', 'post']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         asset = self.get_object().equipo.system.asset
         context['asset_main'] = asset
+        # Añadir el formulario de imágenes si es necesario
+        if 'image_form' not in context:
+            context['image_form'] = UploadImages()
         return context
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         asset = self.get_object().equipo.system.asset
-        form.fields['equipo'].queryset = Equipo.objects.filter(
-            system__asset=asset)
+        form.fields['equipo'].queryset = Equipo.objects.filter(system__asset=asset)
         return form
 
     def form_valid(self, form):
-        form.instance.modified_by = self.request.user 
+        form.instance.modified_by = self.request.user
+        # Si el campo 'related_ot' está en el formulario, actualizarlo
+        if 'related_ot' in form.cleaned_data:
+            form.instance.related_ot = form.cleaned_data['related_ot']
+            # Si la OT seleccionada está en estado 'f', marcar el reporte como cerrado
+            if form.cleaned_data['related_ot'].state == 'f':
+                form.instance.closed = True
+            else:
+                form.instance.closed = False
         return super().form_valid(form)
     
 
@@ -1233,8 +1256,25 @@ def crear_ot_failure_report(request, fail_id):
 
     fail.related_ot = nueva_ot
     fail.save()
-
     return redirect('got:ot-detail', pk=nueva_ot.pk)
+
+
+@permission_required('got.can_see_completely')
+def asociar_ot_failure_report(request, fail_id):
+    if request.method == 'POST':
+        ot_id = request.POST.get('ot_id')
+        fail = get_object_or_404(FailureReport, pk=fail_id)
+        ot = get_object_or_404(Ot, num_ot=ot_id)
+        fail.related_ot = ot
+
+        # Verificar el estado de la OT y actualizar el campo 'closed' del reporte de falla
+        if ot.state == 'f':
+            fail.closed = True
+        fail.save()
+
+        return redirect('got:failure-report-detail', pk=fail_id)
+    else:
+        return redirect('got:failure-report-detail', pk=fail_id)
 
 
 'OTS VIEWS'
@@ -2090,7 +2130,17 @@ def buceomtto(request):
 def OperationListView(request):
 
     assets = Asset.objects.filter(area='a')
-    operations = Operation.objects.order_by('start')
+    operaciones_list = Operation.objects.order_by('start').prefetch_related('requirement_set__images')
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(operaciones_list, 10)  # Mostrar 10 operaciones por página
+
+    try:
+        operaciones = paginator.page(page)
+    except PageNotAnInteger:
+        operaciones = paginator.page(1)
+    except EmptyPage:
+        operaciones = paginator.page(paginator.num_pages)
 
     operations_data = []
     for asset in assets:
@@ -2119,7 +2169,9 @@ def OperationListView(request):
         'operations_data': operations_data,
         'operation_form': form,
         'modal_open': modal_open,
-        'operaciones': operations,
+        'operaciones': operaciones,
+        'requirement_form': RequirementForm(),
+        'upload_images_form': UploadImages(),
         }
 
     return render(request, 'got/operations/operation_list.html', context)
@@ -2140,6 +2192,60 @@ class OperationDelete(DeleteView):
 
     model = Operation
     success_url = reverse_lazy('got:operation-list')
+
+
+def requirement_create(request, operation_id):
+    operation = get_object_or_404(Operation, id=operation_id)
+    if request.method == 'POST':
+        requirement_form = RequirementForm(request.POST)
+        upload_images_form = UploadImages(request.POST, request.FILES)
+        if requirement_form.is_valid() and upload_images_form.is_valid():
+            requirement = requirement_form.save(commit=False)
+            requirement.operation = operation
+            requirement.save()
+            # Acceder directamente a los archivos desde request.FILES
+            for f in request.FILES.getlist('file_field'):
+                Image.objects.create(image=f, requirements=requirement)
+            return redirect('got:operation-list')
+    else:
+        requirement_form = RequirementForm()
+        upload_images_form = UploadImages()
+    context = {
+        'requirement_form': requirement_form,
+        'upload_images_form': upload_images_form,
+        'operation': operation,
+    }
+    return render(request, 'got/operations/requirement_form.html', context)
+
+def requirement_update(request, pk):
+    requirement = get_object_or_404(Requirement, pk=pk)
+    if request.method == 'POST':
+        requirement_form = RequirementForm(request.POST, instance=requirement)
+        upload_images_form = UploadImages(request.POST, request.FILES)
+        if requirement_form.is_valid() and upload_images_form.is_valid():
+            requirement_form.save()
+            # Acceder directamente a los archivos desde request.FILES
+            for f in request.FILES.getlist('file_field'):
+                Image.objects.create(image=f, requirements=requirement)
+            return redirect('got:operation-list')
+    else:
+        requirement_form = RequirementForm(instance=requirement)
+        upload_images_form = UploadImages()
+    context = {
+        'requirement_form': requirement_form,
+        'upload_images_form': upload_images_form,
+        'requirement': requirement,
+    }
+    return render(request, 'got/operations/requirement_form.html', context)
+
+
+def requirement_delete(request, pk):
+    requirement = get_object_or_404(Requirement, pk=pk)
+    if request.method == 'POST':
+        requirement.delete()
+        return redirect('got:operation-list')
+    return render(request, 'got/operations/requirement_confirm_delete.html', {'requirement': requirement})
+
 
 
 'MEGGERS VIEW'
@@ -3189,3 +3295,98 @@ def export_asset_system_equipo_excel(request):
 
     return response
 
+
+class DarBajaCreateView(LoginRequiredMixin, CreateView):
+    model = DarBaja
+    form_class = DarBajaForm
+    template_name = 'got/systems/dar_baja_form.html'
+
+    def get_equipo(self):
+        equipo_code = self.kwargs.get('equipo_code')
+        equipo = get_object_or_404(Equipo, code=equipo_code)
+        return equipo
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipo = self.get_equipo()
+        context['equipo'] = equipo
+        return context
+
+    def form_valid(self, form):
+        equipo = self.get_equipo()
+        user = self.request.user
+        # Establecer los campos automáticos
+        form.instance.equipo = equipo
+        form.instance.reporter = user.get_full_name() if user.get_full_name() else user.username
+        form.instance.activo = f"{equipo.system.asset.name} - {equipo.system.name}"
+
+        response = super().form_valid(form)
+
+        # Manejar las firmas
+        firma_responsable_data = self.request.POST.get('firma_responsable_data')
+        firma_autorizado_data = self.request.POST.get('firma_autorizado_data')
+
+        print('Firma Responsable Data:', self.request.POST.get('firma_responsable_data'))
+        print('Firma Autorizado Data:', self.request.POST.get('firma_autorizado_data'))
+
+        if firma_responsable_data:
+            format, imgstr = firma_responsable_data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr))
+            self.object.firma_responsable.save(f'firma_responsable_{self.object.pk}.{ext}', data, save=True)
+
+        if firma_autorizado_data:
+            format, imgstr = firma_autorizado_data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr))
+            self.object.firma_autorizado.save(f'firma_autorizado_{self.object.pk}.{ext}', data, save=True)
+
+        # Eliminar rutinas asociadas al equipo
+        routines = equipo.equipos.all()
+        if routines.exists():
+            routines.delete()
+            messages.warning(self.request, 'Las rutinas asociadas al equipo han sido eliminadas.')
+
+        # Eliminar registros de horas (HistoryHour)
+        history_hours = equipo.hours.all()
+        if history_hours.exists():
+            history_hours.delete()
+            messages.warning(self.request, 'Los registros de horas asociados al equipo han sido eliminados.')
+
+        # Eliminar registros de consumo diario de combustible (DailyFuelConsumption)
+        daily_fuel_consumption = equipo.fuel_consumptions.all()
+        if daily_fuel_consumption.exists():
+            daily_fuel_consumption.delete()
+            messages.warning(self.request, 'Los registros de consumo diario de combustible han sido eliminados.')
+
+        # Eliminar registros de Megger
+        megger_records = equipo.megger_set.all()
+        if megger_records.exists():
+            megger_records.delete()
+            messages.warning(self.request, 'Los registros de Megger asociados al equipo han sido eliminados.')
+
+        # Eliminar registros preoperacionales
+        preoperational_records = equipo.preoperacional_set.all()
+        if preoperational_records.exists():
+            preoperational_records.delete()
+            messages.warning(self.request, 'Los registros preoperacionales asociados al equipo han sido eliminados.')
+
+        # Eliminar suministros (Suministro)
+        supplies = equipo.suministros.all()
+        if supplies.exists():
+            supplies.delete()
+            messages.warning(self.request, 'Los suministros asociados al equipo han sido eliminados.')
+
+        # Mover el equipo al sistema con id 445
+        new_system = System.objects.get(id=445)
+        old_system = equipo.system
+        equipo.system = new_system
+        equipo.save()
+        messages.success(self.request, f'El equipo ha sido trasladado al sistema {new_system.name}.')
+
+        # Redirigir al usuario a la vista del sistema original
+        return response
+    
+    def get_success_url(self):
+        old_system = self.get_equipo().system
+        return reverse('got:sys-detail', kwargs={'pk': old_system.id})

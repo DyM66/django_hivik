@@ -32,11 +32,17 @@
                 <label for="{{ form.critico.id_for_label }}">{{ form.critico.label }}</label>
                 {{ form.critico }}
             </div>
+            {% if form.related_ot %}
+                <div class="form-group">
+                    <label for="{{ form.related_ot.id_for_label }}">{{ form.related_ot.label }}</label>
+                    {{ form.related_ot }}
+                </div>
+            {% endif %}
             <div class="form-group">
                 <label for="{{ form.evidence.id_for_label }}">{{ image_form.label }}</label>
                 {{ image_form }}
             </div>
-            <input type="submit" value="Generar" class="btn btn-primary" />
+            <input type="submit" value="Generar" class="btn btn-primary submit-button" />
         </form>
     </div>
 {% endblock %}

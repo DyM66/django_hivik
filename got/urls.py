@@ -34,6 +34,7 @@ urlpatterns = [
     path('report-failure/<str:asset_id>/create/', views.FailureReportForm.as_view(), name='failure-report-create'),
     path('report-failure/<int:pk>/update/', views.FailureReportUpdate.as_view(), name='failure-report-update'),
     path('report-failure/<int:fail_id>/crear_ot/', views.crear_ot_failure_report, name='failure-report-crear-ot'),
+    path('failure-report/<int:fail_id>/asociar-ot/', views.asociar_ot_failure_report, name='failure-report-asociar-ot'),
     path('fail_pdf/<int:pk>/', views.fail_pdf, name='fail_pdf'),
 
     path("ots/", views.OtListView.as_view(), name="ot-list"),
@@ -108,4 +109,9 @@ urlpatterns = [
     path('preoperacionaldiario/export/excel/', views.export_preoperacionaldiario_excel, name='export-preoperacionaldiario-excel'),
 
     path('export/excel/', views.export_asset_system_equipo_excel, name='export_excel'),
+    path('equipo/<str:equipo_code>/dar_baja/', views.DarBajaCreateView.as_view(), name='dar_baja'),
+
+    path('operation/<int:operation_id>/requirement/add/', views.requirement_create, name='requirement-create'),
+    path('requirement/<int:pk>/update/', views.requirement_update, name='requirement-update'),
+    path('requirement/<int:pk>/delete/', views.requirement_delete, name='requirement-delete'),
 ]

@@ -361,8 +361,6 @@ class Ot(models.Model):
     num_ot = models.AutoField(primary_key=True)
     system = models.ForeignKey(System, on_delete=models.CASCADE)
     description = models.TextField()
-
-    super = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     supervisor = models.CharField(max_length=100, null=True, blank=True)
 
     state = models.CharField(choices=STATUS, default='x', max_length=1)
@@ -548,7 +546,8 @@ class FailureReport(models.Model):
         ('o', 'El desarrollo normal de las operaciones'),
     )
 
-    reporter = models.ForeignKey(User, on_delete=models.CASCADE)
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    report = models.CharField(max_length=100, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True)
     moment = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
@@ -585,8 +584,22 @@ class Operation(models.Model):
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
     confirmado = models.BooleanField(default=False)
 
+    def requirements_progress(self):
+        total_requirements = self.requirement_set.count()
+        if total_requirements == 0:
+            return None  # Cambiamos de 0 a None para indicar que no hay datos
+        approved_requirements = self.requirement_set.filter(approved=True).count()
+        progress_percentage = (approved_requirements / total_requirements) * 100
+        return int(progress_percentage)
+
     def __str__(self):
         return f"{self.proyecto}/{self.asset} ({self.start} - {self.start})"
+    
+
+class Requirement(models.Model):
+    operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
+    text = models.TextField()
+    approved = models.BooleanField(default=False)
 
 
 class Solicitud(models.Model):
@@ -997,7 +1010,7 @@ class DarBaja(models.Model):
     reporter = models.CharField(max_length=100)
     responsable = models.CharField(max_length=100)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
-    activo = models.CharField(max_length=100)
+    activo = models.CharField(max_length=150)
     motivo = models.CharField(max_length=1, choices=MOTIVO)
     observaciones = models.TextField()
     disposicion = models.TextField()
@@ -1022,6 +1035,7 @@ class Image(models.Model):
     preoperacional = models.ForeignKey(Preoperacional, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacionaldiario = models.ForeignKey(PreoperacionalDiario, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     darbaja = models.ForeignKey(DarBaja, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    requirements = models.ForeignKey(Requirement, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
 
 class Document(models.Model):

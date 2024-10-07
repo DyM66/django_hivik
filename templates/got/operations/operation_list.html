@@ -28,17 +28,6 @@
 		margin-inline: auto;
 	}
 
-	table {
-		width: 100%;
-		color: white;
-		background: #323232;
-		border-collapse: collapse;
-	}
-
-	th, td {
-		padding: 1rem;
-	}
-
 	caption {
 		color: white;
 		text-align: center;
@@ -47,40 +36,11 @@
 		font-weight: 700;
 	}
 
-	th {
-		background-color:  hsl(0 0% 0% / 0.5);
-	}
+    .image-gallery img {
+        margin: 5px;
+        cursor: pointer;
+    }
 
-	tr:nth-of-type(2n) {
-		background-color:  hsl(0 0% 0% / 0.1);
-	}
-
-	@media (max-width: 650px) {
-		th {
-			display: none;
-		}
-		td {
-			display: grid;
-			gap: 0.5rem;
-			grid-template-columns: 15ch auto;
-			padding: 0.5rem 1rem;
-		}
-
-		td:first-child {
-			padding-top: 2rem;
-		}
-
-		
-
-		td::before {
-			content: attr(data-cell) " ";
-			font-weight: 700;
-		}
-
-		td:last-child {
-			padding-bottom: 2rem;	
-		}
-	}
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -92,11 +52,11 @@
     <h1 id="chartTitle"></h1>
 
 
-    <div class="chartBox mt-5 rounded shadow">
+    <div class="chartBox rounded shadow">
         <br>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px;">
             <input type="month" onchange="chartFilter(this)" />
-            <button class="badge rounded-pill text-bg-secondary" data-bs-toggle="modal" data-bs-target="#addOperationModal">Añadir Operación</button>
+            <!-- <button class="badge rounded-pill text-bg-secondary" data-bs-toggle="modal" data-bs-target="#addOperationModal">Añadir Operación</button> -->
         </div>        
         <br>
         <br>
@@ -108,43 +68,171 @@
 
     <section class="mt-2">
         <!-------------------------------------------- Actividades ------------------------------------------------------------>
-        <table class="table mi-tabla-borde-externo mt-0 table-striped">
-            <thead class="table-secondary">
+        <table class="table-list table-detail">
+            <thead>
                 <tr>
-                    <th scope="col" style="vertical-align: middle; border-bottom: 1px solid #333;">Proyecto</th>
-                    <th scope="col" style="vertical-align: middle; border-bottom: 1px solid #333;">Equipo</th>
-                    <th scope="col" style="vertical-align: middle; border-bottom: 1px solid #333;">Fecha inicio</th>
-                    <th scope="col" style="vertical-align: middle; border-bottom: 1px solid #333;">Fecha de finalización</th>
-                    <th scope="col" style="vertical-align: middle; border-bottom: 1px solid #333;">Requerimientos</th>
-                    <th scope="col" style="vertical-align: middle; border-bottom: 1px solid #333;">Acciones</th>
+                    <th colspan="7">
+                        Operaciones
+                        <button class="badge rounded-pill text-bg-secondary" data-bs-toggle="modal" data-bs-target="#addOperationModal">Añadir Operación</button>
+                    </th>
+                </tr>
+                <tr>
+                    <th>Proyecto</th>
+                    <th>Equipo</th>
+                    <th>Fecha inicio</th>
+                    <th>Fecha de finalización</th>
+                    <th>Requerimientos</th>
+                    <th>Avance</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-    
                 {% if operaciones %}
-                
                     {% for operacion in operaciones %}
-                        <tr>
-                            <td data-cell="Proyecto">{{ operacion.proyecto }}{% if not operacion.confirmado %}(Tentativa){% endif %}</td>
-                            <td data-cell="Equipo" style="white-space: nowrap;">{{operacion.asset}}</td>
-                            <td data-cell="Fecha de inicio">{{ operacion.start|date:"d/m/Y" }}</td>
-                            <td data-cell="Fecha de finalización">{{ operacion.end|date:"d/m/Y" }}</td>
-                            <td data-cell="Requerimientos">{{ operacion.requirements|linebreaksbr}}</td>
-                            <td data-cell="Acciones">
+                        <tr id="row{{ forloop.counter }}" onclick="toggleDetails('details{{ forloop.counter }}', this, event)">
+                            <td>{{ operacion.proyecto }}{% if not operacion.confirmado %}(Tentativa){% endif %}</td>
+                            <td>{{ operacion.asset }}</td>
+                            <td>{{ operacion.start|date:"d/m/Y" }}</td>
+                            <td>{{ operacion.end|date:"d/m/Y" }}</td>
+                            <td>{{ operacion.requirement_set.count }}</td>
+                            <td>
+                                {% if operacion.requirements_progress is not None %}
+                                    {{ operacion.requirements_progress }}%
+                                {% else %}
+                                    <!-- No mostramos nada -->
+                                {% endif %}
+                            </td>
+                            
+                            <td>
                                 <a href="{% url 'got:operation-update' operacion.id %}"><i class="bi bi-pen"></i></a>
-								<a href="{% url 'got:operation-delete' operacion.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a></li>
+                                <a href="{% url 'got:operation-delete' operacion.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
+                                <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#addRequirementModal{{ operacion.id }}">Añadir Requerimiento</button>
                             </td>
                         </tr>
-                    {% endfor %}
+                        <tr id="details{{ forloop.counter }}" class="detail-row" style="display: none;">
+                            <td colspan="7">
+                                {% if operacion.requirement_set.exists %}
+                                <div>
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Detalle</th>
+                                                <th>Aprobado</th>
+                                                <th>Imágenes</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dentro de tu bucle de requerimientos -->
+                                            {% for requirement in operacion.requirement_set.all %}
+                                                <tr>
+                                                    <td>{{ requirement.text|linebreaksbr }}</td>
+                                                    <td>{{ requirement.approved|yesno:"Sí,No" }}</td>
+                                                    <td>{{ requirement.images.count }}</td>
+                                                    <td>
+                                                        <a href="{% url 'got:requirement-update' requirement.id %}"><i class="bi bi-pencil"></i></a>
+                                                        <a href="{% url 'got:requirement-delete' requirement.id %}"><i class="bi bi-trash"></i></a>
+                                                    </td>
+                                                </tr>
+                                                <!-- Fila para las imágenes -->
+                                                {% if requirement.images.all %}
+                                                <tr>
+                                                    <td colspan="4">
+                                                        <div class="image-gallery">
+                                                            {% for image in requirement.images.all %}
+                                                                {% if image.image %}
+                                                                    <img src="{{ image.image.url }}" alt="Imagen" width="100" data-bs-toggle="modal" data-bs-target="#imageModal{{ image.id }}">
+                                                                    <!-- Modal para la imagen -->
+                                                                    <div class="modal fade" id="imageModal{{ image.id }}" tabindex="-1" aria-labelledby="imageModalLabel{{ image.id }}" aria-hidden="true">
+                                                                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                                            <div class="modal-content">
+                                                                                <div class="modal-body">
+                                                                                    <img src="{{ image.image.url }}" alt="Imagen" class="img-fluid">
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                            {% endfor %}
+
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                    <p>No hay requerimientos registrados para esta operación.</p>
+                                {% endif %}
                     
+                            </td>
+                        </tr>
+                        <!-- Modal para añadir requerimiento -->
+                        <div class="modal fade" id="addRequirementModal{{ operacion.id }}" tabindex="-1" aria-labelledby="addRequirementModalLabel{{ operacion.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="post" action="{% url 'got:requirement-create' operacion.id %}" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Nuevo Requerimiento para {{ operacion.proyecto }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <!-- RequirementForm fields -->
+                                            <div class="form-group">
+                                                <label for="text">Detalle del Requerimiento</label>
+                                                <textarea name="text" class="form-control" required></textarea>
+                                            </div>
+                                            <div class="form-group form-check">
+                                                <input type="checkbox" name="approved" value="True" class="form-check-input" id="approved{{ operacion.id }}">
+                                                <label class="form-check-label" for="approved{{ operacion.id }}">Aprobado</label>
+                                            </div>
+                                            <!-- UploadImages form fields -->
+                                            <div class="form-group">
+                                                <label for="file_field">Imagenes de referencia/Evidencias</label>
+                                                <input type="file" name="file_field" class="form-control" multiple>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                            <button type="submit" class="btn btn-primary">Guardar Requerimiento</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 {% else %}
-                <tr>
-                    <td>No hay Operaciones registradas.</td>
-                </tr>
+                    <tr>
+                        <td colspan="7">No hay Operaciones registradas.</td>
+                    </tr>
                 {% endif %}
-                
             </tbody>
         </table>
+
+        <!-- Al final de la tabla de operaciones -->
+
+        <!-- Paginación -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if operaciones.has_previous %}
+                    <a href="?page=1">&laquo; primera</a>
+                    <a href="?page={{ operaciones.previous_page_number }}">anterior</a>
+                {% endif %}
+
+                <span class="current">
+                    Página {{ operaciones.number }} de {{ operaciones.paginator.num_pages }}.
+                </span>
+
+                {% if operaciones.has_next %}
+                    <a href="?page={{ operaciones.next_page_number }}">siguiente</a>
+                    <a href="?page={{ operaciones.paginator.num_pages }}">última &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+
     </section>
 
     <!-- Modal -->
@@ -192,6 +280,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <script type="text/javascript">
+        function toggleDetails(detailId, trigger, event) {
+            if (event.target.closest('.dropdown') || event.target.closest('.dropdown-toggle') || event.target.closest('.btn')) {
+                return;
+            }
+            var detailRow = document.getElementById(detailId);
+            detailRow.style.display = (detailRow.style.display === 'none' || detailRow.style.display === '') ? 'table-row' : 'none';
+            trigger.style.fontWeight = (detailRow.style.display === 'none') ? 'normal' : 'bold';
+        }
 
         function getFirstAndLastDayOfCurrentMonth() {
             const today = new Date();

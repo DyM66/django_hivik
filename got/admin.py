@@ -27,7 +27,7 @@ class OtAdmin(admin.ModelAdmin):
         'creation_date',
         'description',
         'system',
-        'super'
+        'supervisor'
         )
 
 

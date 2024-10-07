@@ -1,0 +1,30 @@
+<!-- templates/got/requirements/requirement_form.html -->
+
+{% extends "got/base_generic.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Editar Requerimiento</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ requirement_form }}
+        {{ upload_images_form }}
+        <button type="submit" class="btn btn-primary mt-2">Guardar Cambios</button>
+        <a href="{% url 'got:operation-list' %}" class="btn btn-secondary mt-2">Cancelar</a>
+    </form>
+
+    <!-- Mostrar imágenes existentes y opción para eliminarlas -->
+    <h3>Imágenes Existentes</h3>
+    <div class="image-gallery">
+        {% for image in requirement.images.all %}
+            {% if image.image %}
+                <div style="display: inline-block; position: relative; margin: 5px;">
+                    <img src="{{ image.image.url }}" alt="Imagen" width="100">
+                </div>
+            {% endif %}
+        {% empty %}
+            <p>No hay imágenes asociadas.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
