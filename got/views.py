@@ -184,6 +184,7 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
 
     def post(self, request, *args, **kwargs):
         if 'download_excel' in request.POST:
+            print('hola')
             return self.export_rutinas_to_excel()
         else:
             # Maneja otros casos si es necesario

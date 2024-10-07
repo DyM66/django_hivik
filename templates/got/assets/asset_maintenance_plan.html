@@ -221,7 +221,7 @@
         </form>
     
         <hr>
-        <form method="post" action="{% url 'got:asset-detail' asset.abbreviation %}">
+        <form method="post" action="{% url 'got:asset-maintenance-plan' asset.abbreviation %}">
             {% csrf_token %}
             <button type="submit" name="download_excel" class="btn btn-info">
                 Descargar Rutinas como Excel
