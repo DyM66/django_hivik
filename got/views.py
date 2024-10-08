@@ -271,6 +271,17 @@ def preventivo_pdf(request, pk):
     return render_to_pdf('got/assets/asset-routine.html', context)
 
 
+def acta_entrega_pdf(request, pk):
+    equipo = get_object_or_404(Equipo, pk=pk)
+    current_date = timezone.localdate()
+    context = {
+        'equipo': equipo,
+        'current_date': current_date,
+    }
+
+    return render_to_pdf('got/systems/acta-entrega.html', context)
+
+
 class AssetDocCreateView(generic.View):
     form_class = DocumentForm
     template_name = 'got/assets/add-document.html'

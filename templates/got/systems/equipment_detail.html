@@ -8,6 +8,7 @@
                     <a href="{% url 'got:dar_baja' equipo.code %}" style="color: white;"><i class="bi bi-file-earmark-minus-fill"></i></a>
 					<a href="{% url 'got:equipo-update' equipo.code %}" style="color: white;"><i class="bi bi-pen"></i></a>
 					<a href="{% url 'got:transferir_equipo' equipo.code %}"><i class="fa-solid fa-right-left"></i></a>
+					<a href="{% url 'got:acta_entrega' equipo.code %}"><i class="fa-solid fa-inbox"></i></a>
                     {% if equipo.critico %}
                         <i class="fa-solid fa-star"></i>
 				    {% endif %}
@@ -107,6 +108,7 @@
                             </li>
                         {% endif %}
                         <li><strong>Especificaciones:</strong> {{ equipo.feature|linebreaks }}</li>
+                        <li><strong>Recomendaciones:</strong> {{ equipo.recomendaciones|linebreaks }}</li>
                     </ul>
                 </div>
             {% endif %}

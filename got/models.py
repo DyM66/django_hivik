@@ -248,7 +248,6 @@ class Equipo(models.Model):
     marca = models.CharField(max_length=50, null=True, blank=True)
     fabricante = models.CharField(max_length=50, null=True, blank=True)
     feature = models.TextField()
-    recomendaciones = models.TextField(null=True, blank=True)
     tipo = models.CharField(choices=TIPO, default='nr', max_length=2)
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
     subsystem = models.CharField(max_length=100, null=True, blank=True)
@@ -275,7 +274,7 @@ class Equipo(models.Model):
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     critico = models.BooleanField(default=False)
-
+    recomendaciones = models.TextField(null=True, blank=True)
 
     def volumen_format(self):
         if self.volumen is not None:

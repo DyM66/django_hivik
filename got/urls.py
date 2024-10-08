@@ -101,6 +101,7 @@ urlpatterns = [
     path('items/', views.ItemManagementView.as_view(), name='item_management'),
     path('items/edit/<int:item_id>/', views.edit_item, name='edit_item'),
     path('asset/rutinas/<str:pk>/', views.preventivo_pdf, name='preventivo'),
+    path('asset/acta/<str:pk>/', views.acta_entrega_pdf, name='acta_entrega'),
 
     path('ruta/<int:ruta_id>/create_ot/', views.rutina_form_view, name='create-ot-from-ruta'),
     path('salida/<int:pk>/notify/', views.NotifySalidaView.as_view(), name='notify-salida'),

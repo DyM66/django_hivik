@@ -172,6 +172,7 @@ class EquipoForm(forms.ModelForm):
             'volumen': 'Capacidad de almacenamiento - Galones (Tanques)',
             'subsystem': 'Categoria (Si aplica)',
             'potencia': 'Potencia (kw)',
+            'recomendaciones': 'Recomendaciones',
             }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -188,6 +189,7 @@ class EquipoForm(forms.ModelForm):
             'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
             'ubicacion': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'recomendaciones': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             }
 
     def __init__(self, *args, **kwargs):
