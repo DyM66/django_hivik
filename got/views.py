@@ -320,6 +320,27 @@ def asset_suministros_report(request, abbreviation):
         suministro__in=suministros
     ).order_by('-fecha')
 
+    if request.method == 'POST' and 'download_excel' in request.POST:
+        df = pd.DataFrame(list(transacciones_historial.values(
+            'fecha',
+            'suministro__item__presentacion',
+            'suministro__item__name',
+            'cantidad_ingresada',
+            'cantidad_consumida',
+        )))
+        df.rename(columns={
+            'fecha': 'Fecha',
+            'suministro__item__presentacion': 'Presentación',
+            'suministro__item__nombre': 'Artículo',
+            'cantidad_ingresada': 'Cantidad Ingresada',
+            'cantidad_consumida': 'Cantidad Consumida',
+        }, inplace=True)
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="historial_suministros.xlsx"'
+        with pd.ExcelWriter(response, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+        return response
+
     if request.method == 'POST':
         if 'transfer_suministro_id' in request.POST:
             # Manejar la transferencia
@@ -470,27 +491,6 @@ def asset_suministros_report(request, abbreviation):
         'articles': articles,
         'motonaves': motonaves,
         }
-    
-    if request.method == 'POST' and 'download_excel' in request.POST:
-        df = pd.DataFrame(list(transacciones_historial.values(
-            'fecha',
-            'suministro__item__presentacion',
-            'suministro__item__nombre',
-            'cantidad_ingresada',
-            'cantidad_consumida'
-        )))
-        df.rename(columns={
-            'fecha': 'Fecha',
-            'suministro__item__presentacion': 'Presentación',
-            'suministro__item__nombre': 'Artículo',
-            'cantidad_ingresada': 'Cantidad Ingresada',
-            'cantidad_consumida': 'Cantidad Consumida'
-        }, inplace=True)
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="historial_suministros.xlsx"'
-        with pd.ExcelWriter(response, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False)
-        return response
 
     return render(request, 'got/assets/asset_suministros_report.html', context)
 

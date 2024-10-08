@@ -105,7 +105,7 @@
             <input type="date" id="filtro_fecha_fin">
 
             <button type="button" class="btn btn-secondary" onclick="aplicarFiltros()">Aplicar Filtros</button>
-            <form method="post" style="display:inline;">
+            <form method="post" style="display:inline;" action="{% url 'got:asset-suministros' asset.abbreviation %}">
                 {% csrf_token %}
                 <button type="submit" name="download_excel" class="btn btn-info">Descargar Excel</button>
             </form>
