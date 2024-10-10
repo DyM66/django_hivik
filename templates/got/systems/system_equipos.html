@@ -1,22 +1,3 @@
-<div class="row row-cols-1 row-cols-md-4 g-4">
-	{% for equipo in system.equipos.all %}
-		<div class="col">
-			<div class="card">
-				{% if equipo.images.first %}
-					<img src="{{ equipo.images.first.image.url }}" class="card-img-top" alt="...">
-				{% endif %}
-				<div class="card-body">
-			<h5 class="card-title">{{ equipo.name }}</h5>
-			<p class="card-text" style="white-space: pre-line;">
-				{{ equipo.code }}
-				{{ equipo.marca|default_if_none:"---" }} {{ equipo.model|default_if_none:"---" }}
-				</p>
-			</div>
-		</div>
-		</div>
-	{% endfor %}
-</div>
-<br>
 <div>
 	<table class="table-list table-detail">
 		<thead>
@@ -137,6 +118,27 @@
 			{% endfor %}
 		</tbody>
 	</table>
+
+<div class="row row-cols-1 row-cols-md-4 g-4 mt-4">
+	{% for equipo in system.equipos.all %}
+		<div class="col">
+			<div class="card">
+				{% if equipo.images.first %}
+					<img src="{{ equipo.images.first.image.url }}" class="card-img-top" alt="...">
+				{% endif %}
+				<div class="card-body">
+			<h5 class="card-title">{{ equipo.name }}</h5>
+			<p class="card-text" style="white-space: pre-line;">
+				{{ equipo.code }}
+				{{ equipo.marca|default_if_none:"---" }} {{ equipo.model|default_if_none:"---" }}
+				</p>
+			</div>
+		</div>
+		</div>
+	{% endfor %}
+</div>
+<br>
+
 </div>
 
 <script>

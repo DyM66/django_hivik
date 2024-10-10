@@ -4,7 +4,6 @@
             <h4 class="card-title">
                 Datasheet
                 {% if perms.got.add_equipo %}
-					<!-- <a href="{% url 'got:equipo-delete' equipo.code %}" style="color: white;"><i class="bi bi-file-earmark-minus-fill"></i></a> -->
                     <a href="{% url 'got:dar_baja' equipo.code %}" style="color: white;"><i class="bi bi-file-earmark-minus-fill"></i></a>
 					<a href="{% url 'got:equipo-update' equipo.code %}" style="color: white;"><i class="bi bi-pen"></i></a>
 					<a href="{% url 'got:transferir_equipo' equipo.code %}"><i class="fa-solid fa-right-left"></i></a>
@@ -12,6 +11,9 @@
                     {% if equipo.critico %}
                         <i class="fa-solid fa-star"></i>
 				    {% endif %}
+                    {% if perms.got.delete_equipo %}
+					    <a href="{% url 'got:equipo-delete' equipo.code %}" style="color: white;"><i class="fa-solid fa-trash"></i></a>
+                    {% endif %}
 				{% endif %}
             </h4>
             <span class="header-right-text">{{ equipo.date_inv|date:"d M, Y" }}</span>
