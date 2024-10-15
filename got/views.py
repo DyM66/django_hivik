@@ -3497,7 +3497,7 @@ def indicadores(request):
             total_quantity = suministro.cantidad
 
             # Obtener la última transacción de combustible
-            last_transaction = TransaccionSuministro.objects.filter(suministro=suministro).order_by('-fecha').first()
+            last_transaction = Transaction.objects.filter(suministro=suministro, tipo='c').order_by('-fecha').first()
             if last_transaction:
                 last_report_date = last_transaction.fecha
             else:

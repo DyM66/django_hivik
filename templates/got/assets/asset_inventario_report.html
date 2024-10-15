@@ -221,7 +221,16 @@
                         <td data-item-name="{{ transaccion.suministro.item.name }}">{{ transaccion.suministro.item }}</td>
                         <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
                         <td>{{ transaccion.cant }}</td>
-                        <td>{{ transaccion.get_tipo_display }}</td>
+                        <td>
+                            {{ transaccion.get_tipo_display }} 
+                            {% if transaccion.tipo == 'i' %}
+                                <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
+                            {% elif transaccion.tipo == 'c' %}
+                                <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #a00e32;"></i>
+                            {% else %}
+                                <i class="fa-solid fa-hand-holding-hand"></i>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if transaccion.tipo == 't' %}
                                 {% if transaccion.suministro.asset == asset %}
