@@ -165,11 +165,15 @@
                 <tr>
                     <td data-cell="Solicitud" colspan="2">
                         {{ rq.suministros|linebreaks }} 
-                        <br>
+                        
                         {% if rq.cancel %}
+                            <hr>
                             <strong>{{ rq.cancel_reason|linebreaks }}</strong>
-                        {% endif %}
+                        {% elif rq.recibido_por %}
+                            <hr>
                             <strong>{{ rq.recibido_por|linebreaks }}</strong>
+                        {% endif %}
+                            
                         <ul style="list-style: none; padding-left: 0;">
                             {% for suministro in rq.suministro_set.all %}
                                 <li onclick="openModal{{ suministro.id }}()" style="cursor: pointer;">
