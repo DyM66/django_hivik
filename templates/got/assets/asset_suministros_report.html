@@ -171,7 +171,7 @@
                                     <div class="modal-body">
                                         <p>¿Está seguro de que desea eliminar esta transacción?</p>
                                         <p><strong>Fecha:</strong> {{ transaccion.fecha|date:"d/m/Y" }}</p>
-                                        <p><strong>Artículo:</strong> {{ transaccion.suministro.item.name if transaccion.suministro else transaccion.suministro_transf.item.name }}</p>
+                                        <p><strong>Artículo:</strong> {{ transaccion.suministro.item }}</p>
                                         <p><strong>Cantidad:</strong> {{ transaccion.cant }}</p>
                                         <p><strong>Movimiento:</strong> {{ transaccion.get_tipo_display }}</p>
                                     </div>
