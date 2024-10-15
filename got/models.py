@@ -284,19 +284,32 @@ class Equipo(models.Model):
     @property
     def consumo_promedio_por_hora(self):
         if self.tipo != 'r':
+            print(f"Equipo {self.code} is not of type 'r'.")
             return None
 
         # Tomar los últimos 30 registros de consumo de combustible
         consumos = self.fuel_consumptions.order_by('-fecha')[:30]
+        # print(f"Equipo {self.code} has {consumos.count()} fuel consumption records.")
+        # List to store com_estimado_motor values
+        # com_estimado_values = list(consumos.values_list('com_estimado_motor', flat=True))
+        # print(f"com_estimado_motor values: {com_estimado_values}")
+
         total_consumo = consumos.aggregate(Sum('com_estimado_motor'))['com_estimado_motor__sum'] or 0
+        # print(f"Total estimated consumption for Equipo {self.code}: {total_consumo}")
 
         # Tomar la suma de las horas correspondientes a esos días
         fechas_consumo = consumos.values_list('fecha', flat=True)
+        # print(f"Dates of consumption: {list(fechas_consumo)}")
         total_horas = HistoryHour.objects.filter(component=self, report_date__in=fechas_consumo).aggregate(Sum('hour'))['hour__sum'] or 0
+        # print(f"Total hours for Equipo {self.code}: {total_horas}")
 
         if total_horas > 0:
-            return total_consumo / total_horas
-        return None
+            consumo_promedio = total_consumo / total_horas
+            print(f"Average consumption per hour for Equipo {self.code}: {consumo_promedio}")
+            return consumo_promedio
+        else:
+            print(f"No hours recorded for Equipo {self.code} on dates {list(fechas_consumo)}.")
+            return None
 
     def calculate_horometro(self):
         total_hours = self.hours.aggregate(total=Sum('hour'))['total'] or 0
@@ -627,6 +640,21 @@ class Solicitud(models.Model):
     recibido_por = models.TextField(null=True, blank=True)
     # inversion = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Inversión (COP)")
 
+    @property
+    def estado(self):
+        if self.cancel:
+            return 'Cancelado'
+        elif self.satisfaccion:
+            return 'Recibido'
+        elif not self.satisfaccion and self.recibido_por:
+            return 'Parcialmente'
+        elif self.approved and self.sc_change_date:
+            return 'Tramitado'
+        elif self.approved:
+            return 'Aprobado'
+        else:
+            return 'No aprobado'
+
     def __str__(self):
         return f"Suministros para {self.asset}/{self.ot}"
     
@@ -691,7 +719,7 @@ class Suministro(models.Model):
 
 
 class TransaccionSuministro(models.Model):
-    suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
+    suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE)
     cantidad_ingresada = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Cantidad que se añade al inventario")
     cantidad_consumida = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Cantidad que se consume del inventario")
     fecha = models.DateField()
@@ -704,6 +732,35 @@ class TransaccionSuministro(models.Model):
     class Meta:
         permissions = (('can_add_supply', 'Puede añadir suministros'),)
         unique_together = ('suministro', 'fecha')
+
+
+class Transaction(models.Model):
+
+    TIPO = (
+        ('i', 'Ingreso'),
+        ('c', 'Consumo'),
+        ('t', 'Transferencia'),
+    )
+
+    suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
+    cant = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    fecha = models.DateField()
+    user = models.CharField(max_length=100)
+    motivo = models.TextField(null=True, blank=True)
+    tipo = models.CharField(max_length=1, choices=TIPO, default='i')
+    cant_report = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
+    suministro_transf = models.ForeignKey(Suministro, on_delete=models.CASCADE, null=True, blank=True)
+    cant_report_transf = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
+
+    def __str__(self):
+        return f"{self.suministro.item.name}: {self.cant}/{self.tipo} el {self.fecha.strftime('%Y-%m-%d')}"
+
+    class Meta:
+        permissions = (('can_add_supply', 'Puede añadir suministros'),)
+        constraints = [
+            models.UniqueConstraint(fields=['suministro', 'fecha', 'tipo'], name='unique_suministro_fecha_tipo')
+        ]
+
 
 
 class DailyFuelConsumption(models.Model):

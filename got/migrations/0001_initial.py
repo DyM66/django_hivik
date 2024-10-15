@@ -69,6 +69,7 @@ class Migration(migrations.Migration):
                 ('location', models.CharField(blank=True, default='Cartagena', max_length=50, null=True)),
                 ('state', models.CharField(choices=[('m', 'Mantenimiento'), ('o', 'Operativo'), ('x', 'Fuera de servicio'), ('s', 'Stand by')], default='m', max_length=1)),
                 ('asset', models.ForeignKey(to='got.asset', on_delete=models.CASCADE)),
+                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
             options={
                 'ordering': ['asset__name', 'group'],
@@ -82,7 +83,6 @@ class Migration(migrations.Migration):
                 ('description', models.TextField()),
                 ('state', models.CharField(choices=[('a', 'Abierto'), ('x', 'En ejecución'), ('f', 'Finalizado'), ('c', 'Cancelado')], default='x', max_length=1)),
                 ('tipo_mtto', models.CharField(choices=[('p', 'Preventivo'), ('c', 'Correctivo'), ('m', 'Modificativo')], max_length=1)),
-                ('super', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('supervisor', models.CharField(blank=True, max_length=100, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.system')),
                 ('sign_supervision', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
@@ -110,12 +110,13 @@ class Migration(migrations.Migration):
                 ('tipo_almacenamiento', models.CharField(blank=True, max_length=100, null=True)),
                 ('volumen', models.DecimalField(blank=True, decimal_places=2, max_digits=14, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='equipos', to='got.system')),
-                ('tipo', models.CharField(choices=[('a', 'Climatización'), ('b', 'Bomba'), ('c', 'Compresor'), ('d', 'Grúa'), ('e', 'Motor eléctrico'), ('f', 'Emergencias'), ('g', 'Generador'), ('h', 'Cilindro hidráulico'), ('i', 'Instrumentos y herramientas'), ('j', 'Distribución eléctrica'), ('k', 'Tanque de almacenamiento'), ('l', 'Gobierno'), ('m', 'Comunicación'), ('n', 'Navegación'), ('nr', 'No rotativo'), ('r', 'Motor a combustión'), ('t', 'Transmisión'), ('u', 'Unidad Hidráulica'), ('v', 'Valvula'), ('w', 'Winche'), ('x', 'Estructuras'), ('y', 'Soporte de vida'), ('z', 'Banco de baterias')], default='nr', max_length=2)),
+                ('tipo', models.CharField(choices=[('a', 'Climatización'), ('b', 'Bomba'), ('c', 'Compresor'), ('d', 'Grúa'), ('e', 'Motor eléctrico'), ('f', 'Emergencias'), ('g', 'Generador'), ('h', 'Cilindro hidráulico'), ('i', 'Instrumentos y herramientas'), ('j', 'Distribución eléctrica'), ('k', 'Tanque de almacenamiento'), ('l', 'Gobierno'), ('m', 'Comunicación'), ('n', 'Navegación'), ('o', 'Maniobras'), ('nr', 'No rotativo'), ('r', 'Motor a combustión'), ('t', 'Transmisión'), ('u', 'Unidad Hidráulica'), ('v', 'Valvula'), ('w', 'Winche'), ('x', 'Estructuras'), ('y', 'Soporte de vida'), ('z', 'Banco de baterias')], default='nr', max_length=2)),
                 ('subsystem', models.CharField(blank=True, max_length=100, null=True)),
                 ('potencia', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('ubicacion', models.CharField(blank=True, max_length=150, null=True)),
                 ('critico', models.BooleanField(default=False)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('recomendaciones', models.TextField(blank=True, null=True)),
             ],
             options={
                 'ordering': ['name', 'code'],
@@ -137,6 +138,7 @@ class Migration(migrations.Migration):
                 ('responsible', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('priority', models.IntegerField(blank=True, default=0, null=True)),
                 ('ruta', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.ruta')),
+                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_tasks', to=settings.AUTH_USER_MODEL)),
             ],
             options={
                 'ordering': ['-priority', '-start_date'],

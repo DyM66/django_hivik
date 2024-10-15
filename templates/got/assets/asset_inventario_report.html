@@ -44,19 +44,14 @@
             </div>
         </div>
     </div>
+
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <p>Último reporte realizado: {{ ultima_fecha_transaccion }}</p>
         <button type="button" class="btn btn-primary" onclick="toggleHistorial()">Ver Historial</button>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-
     <form method="post">{% csrf_token %}
-
+        <input type="hidden" name="confirm_overwrite" id="confirm_overwrite" value="no">
         <div class="form-group">
             <label for="fecha_reporte">Fecha del Reporte</label>
             <input type="date" id="fecha_reporte" name="fecha_reporte" class="form-control" value="{{ fecha_actual }}" required>
@@ -70,10 +65,10 @@
                         <th>Descripción</th>
                         <th>Última cantidad reportada</th>
                         {% if perms.got.can_add_supply %}
-                        <th>Cantidad Ingresada</th>
+                            <th>Cantidad Ingresada</th>
                         {% endif %}
                         {% if seccion_key != 'h' %}
-                        <th>Cantidad Consumida</th>
+                            <th>Cantidad Consumida</th>
                         {% endif %}
                         <th>Total</th>
                         <th>Acciones</th>
@@ -85,7 +80,7 @@
                             <td>{{ suministro.item }} ({{ suministro.item.presentacion }})</td>
                             <td>{{ suministro.cantidad|floatformat:2 }}</td>
                             {% if perms.got.can_add_supply %}
-                            <td><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
+                                <td><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
                             {% endif %}
                             {% if suministro.item.seccion != 'h' %}
                                 <td><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
@@ -97,7 +92,6 @@
                                         Acciones
                                     </button>
                                     <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ suministro.id }}">
-                                        <li><a class="dropdown-item" href="#">Ver detalle</a></li>
                                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#transferModal{{ suministro.id }}">Transferir</a></li>
                                     </ul>
                                 </div>
@@ -108,58 +102,68 @@
             </table>
             <br>
 
-            <!-- Modales para transferir suministros -->
+
         {% endfor %}
         <button type="submit" class="btn btn-primary submit-button">Actualizar Inventario</button>
     </form>
 
-    {% for suministro in group %}
-    <div class="modal fade" id="transferModal{{ suministro.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ suministro.id }}" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
-                    {% csrf_token %}
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="transferModalLabel{{ suministro.id }}">Transferir {{ suministro.item.name }} ({{ suministro.item.presentacion }})</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+
+    {% for seccion_key, group in grouped_suministros.items %}
+            <!-- Modales para transferir suministros -->
+            {% for suministro in group %}
+            <div class="modal fade" id="transferModal{{ suministro.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ suministro.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
+                            {% csrf_token %}
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="transferModalLabel{{ suministro.id }}">Transferir {{ suministro.item }} ({{ suministro.item.presentacion }})</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Identificar el suministro -->
+                                <input type="hidden" name="transfer_suministro_id" value="{{ suministro.id }}">
+                                <!-- Mostrar la cantidad actual -->
+                                <p>Cantidad actual: <span id="currentCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
+                                <!-- Seleccionar el barco destino -->
+                                <div class="form-group">
+                                    <label for="destinationAsset{{ suministro.id }}">Seleccionar barco destino</label>
+                                    <select class="form-control" id="destinationAsset{{ suministro.id }}" name="destination_asset_id" required>
+                                        {% for destination_asset in motonaves %}
+                                            {% if destination_asset.abbreviation != asset.abbreviation %}
+                                                <option value="{{ destination_asset.abbreviation }}">{{ destination_asset.name }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <!-- Fecha de transferencia -->
+                                <div class="form-group">
+                                    <label for="transferFecha{{ suministro.id }}">Fecha de la transferencia</label>
+                                    <input type="date" class="form-control" id="transferFecha{{ suministro.id }}" name="transfer_fecha" value="{{ fecha_actual }}" required>
+                                </div>
+                                <!-- Cantidad a transferir -->
+                                <div class="form-group">
+                                    <label for="transferCantidad{{ suministro.id }}">Cantidad a transferir</label>
+                                    <input type="number" class="form-control" id="transferCantidad{{ suministro.id }}" name="transfer_cantidad" min="0" step="any" max="{{ suministro.cantidad }}" required>
+                                </div>
+                                <!-- Mostrar la cantidad restante -->
+                                <p>Cantidad restante: <span id="remainingCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
+                                <!-- Motivo -->
+                                <div class="form-group">
+                                    <label for="transferMotivo{{ suministro.id }}">Motivo (opcional)</label>
+                                    <textarea class="form-control" id="transferMotivo{{ suministro.id }}" name="transfer_motivo"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Transferir</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="modal-body">
-                        <!-- Identificar el suministro -->
-                        <input type="hidden" name="transfer_suministro_id" value="{{ suministro.id }}">
-                        <!-- Mostrar la cantidad actual -->
-                        <p>Cantidad actual: <span id="currentCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
-                        <!-- Seleccionar el barco destino -->
-                        <div class="form-group">
-                            <label for="destinationAsset{{ suministro.id }}">Seleccionar barco destino</label>
-                            <select class="form-control" id="destinationAsset{{ suministro.id }}" name="destination_asset_id" required>
-                                {% for destination_asset in motonaves %}
-                                    {% if destination_asset.abbreviation != asset.abbreviation %}
-                                        <option value="{{ destination_asset.abbreviation }}">{{ destination_asset.name }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <!-- Cantidad a transferir -->
-                        <div class="form-group">
-                            <label for="transferCantidad{{ suministro.id }}">Cantidad a transferir</label>
-                            <input type="number" class="form-control" id="transferCantidad{{ suministro.id }}" name="transfer_cantidad" min="0" step="any" max="{{ suministro.cantidad }}" required>
-                        </div>
-                        <!-- Mostrar la cantidad restante -->
-                        <p>Cantidad restante: <span id="remainingCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
-                        <!-- Motivo -->
-                        <div class="form-group">
-                            <label for="transferMotivo{{ suministro.id }}">Motivo (opcional)</label>
-                            <textarea class="form-control" id="transferMotivo{{ suministro.id }}" name="transfer_motivo"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Transferir</button>
-                    </div>
-                </form>
+                </div>
             </div>
-        </div>
-    </div>
+            {% endfor %}
     {% endfor %}
+
 
     <!-- Historial -->
     <div id="historial" style="display: none; margin-top: 20px;">
@@ -202,29 +206,116 @@
                     <th class="nowrap">Reportado por</th>
                     <th>Artículo</th>
                     <th>Categoría</th>
-                    <th>Cantidad Ingresada</th>
-                    <th>Cantidad Consumida</th>
+                    <th>Cantidad</th>
+                    <th>Movimiento</th>
+                    <th>Total Reportado</th>
+                    <th>Descripción</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for transaccion in transacciones_historial %}
                     <tr>
                         <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
-                        <td>{{ transaccion.usuario.get_full_name }}</td>
-                        <td data-item-name="{{ transaccion.suministro.item.name }}">{{ transaccion.suministro.item.name }}</td>
+                        <td>{{ transaccion.user }}</td>
+                        <td data-item-name="{{ transaccion.suministro.item.name }}">{{ transaccion.suministro.item }}</td>
                         <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
-                        <td>{{ transaccion.cantidad_ingresada }}</td>
-                        <td>{{ transaccion.cantidad_consumida }}</td>
+                        <td>{{ transaccion.cant }}</td>
+                        <td>{{ transaccion.get_tipo_display }}</td>
+                        <td>
+                            {% if transaccion.tipo == 't' %}
+                                {% if transaccion.suministro.asset == asset %}
+                                    {{ transaccion.cant_report|default:"---" }}
+                                {% elif transaccion.suministro_transf.asset == asset %}
+                                    {{ transaccion.cant_report_transf|default:"---" }}
+                                {% else %}
+                                    ---
+                                {% endif %}
+                            {% else %}
+                                {{ transaccion.cant_report|default:"---" }}
+                            {% endif %}
+                        </td>
+                        <td>{{ transaccion.motivo }}</td>
+                        {% if perms.got.delete_transaction %}
+                            <td>
+                                <!-- Delete button triggers a confirmation modal -->
+                                <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTransactionModal{{ transaccion.id }}">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </td>
+                        {% endif %}
                     </tr>
+
+                    <!-- Delete Confirmation Modal -->
+                    <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1" aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form method="post" action="{% url 'got:delete_transaction' transaccion.id %}">
+                                    {% csrf_token %}
+                                    <!-- Include the 'next' parameter -->
+                                    <input type="hidden" name="next" value="{{ request.path }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteTransactionModalLabel{{ transaccion.id }}">Confirmar Eliminación</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>¿Está seguro de que desea eliminar esta transacción?</p>
+                                        <p><strong>Fecha:</strong> {{ transaccion.fecha|date:"d/m/Y" }}</p>
+                                        <p><strong>Artículo:</strong> {{ transaccion.suministro.item  }}</p>
+                                        <p><strong>Cantidad:</strong> {{ transaccion.cant }}</p>
+                                        <p><strong>Movimiento:</strong> {{ transaccion.get_tipo_display }}</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+
                 {% empty %}
                     <tr>
-                        <td colspan="6">No hay transacciones registradas.</td>
+                        <td colspan="9">No hay transacciones registradas.</td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+<!-- Overwrite Confirmation Modal -->
+{% if overwriting_transactions %}
+<div class="modal fade" id="overwriteModal" tabindex="-1" aria-labelledby="overwriteModalLabel" aria-hidden="true" style="display:block;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="overwriteModalLabel">Advertencia de Sobrescritura</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Las siguientes transacciones ya existen y serán sobrescritas:</p>
+                    <ul>
+                        {% for tipo, transaccion in overwriting_transactions %}
+                            <li>{{ tipo }} - {{ transaccion.suministro.item.name }} ({{ transaccion.fecha|date:"d/m/Y" }})</li>
+                        {% endfor %}
+                    </ul>
+                    <p>¿Desea continuar y sobrescribir estas transacciones?</p>
+                    {% for key, value in post_data.items %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endfor %}
+                    <input type="hidden" name="confirm_overwrite" value="yes">
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Sí, sobrescribir</button>
+                    <a href="{% url 'got:asset_inventario_report' asset.abbreviation %}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <script>
     // Función para mostrar/ocultar el historial

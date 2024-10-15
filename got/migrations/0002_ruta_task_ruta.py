@@ -80,6 +80,15 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name='Requirement',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('text', models.TextField()),
+                ('approved', models.BooleanField(default=False)),
+                ('operation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.operation')),
+            ],
+        ),
+        migrations.CreateModel(
             name='Solicitud',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -225,7 +234,7 @@ class Migration(migrations.Migration):
                 ('fecha', models.DateField(auto_now_add=True)),
                 ('reporter', models.CharField(max_length=100)),
                 ('responsable', models.CharField(max_length=100)),
-                ('activo', models.CharField(max_length=100)),
+                ('activo', models.CharField(max_length=150)),
                 ('motivo', models.CharField(choices=[('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('i', 'Inservible/depreciado')], max_length=1)),
                 ('observaciones', models.TextField()),
                 ('disposicion', models.TextField()),
@@ -260,7 +269,7 @@ class Migration(migrations.Migration):
                 ('cantidad_ingresada', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Cantidad que se añade al inventario', max_digits=10)),
                 ('cantidad_consumida', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Cantidad que se consume del inventario', max_digits=10)),
                 ('fecha', models.DateField()),
-                ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
+                ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.suministro')),
                 ('usuario', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('motivo', models.TextField(blank=True, null=True)),
             ],

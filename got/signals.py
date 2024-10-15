@@ -10,11 +10,11 @@ from datetime import datetime
 def update_equipo_horometro(sender, instance, **kwargs):
     equipo = instance.component
 
-    ultimos_30_registros = HistoryHour.objects.filter(
+    ultimos_10_registros = HistoryHour.objects.filter(
         component=equipo).order_by('-report_date')[:10]
 
     # Calcula el promedio de horas de los últimos 30 registros.
-    promedio_horas = ultimos_30_registros.aggregate(
+    promedio_horas = ultimos_10_registros.aggregate(
         promedio_horas=Avg('hour'))['promedio_horas']
 
     equipo.prom_hours = promedio_horas or 0
@@ -29,9 +29,10 @@ def update_fuel_consumption_for_asset(equipo, fecha):
     # Obtener todos los equipos tipo 'r' (Motor a combustión) del asset
     equipos = Equipo.objects.filter(system__asset=asset, tipo='r')
 
-    fecha_primer_reporte = TransaccionSuministro.objects.filter(
+    fecha_primer_reporte = Transaction.objects.filter(
         suministro__asset=asset,
-        suministro__item__id=132  # ID del combustible
+        suministro__item__id=132,  # ID del combustible
+        tipo='c'
     ).aggregate(primer_fecha=Min('fecha'))['primer_fecha']    
 
     # Obtener las horas totales del asset en la fecha dada
@@ -40,11 +41,12 @@ def update_fuel_consumption_for_asset(equipo, fecha):
         report_date=fecha
     ).aggregate(Sum('hour'))['hour__sum'] or 0
 
-    suministro_combustible = TransaccionSuministro.objects.filter(
+    suministro_combustible = Transaction.objects.filter(
         suministro__asset=asset,
         suministro__item__id=132,
-        fecha=fecha
-    ).aggregate(Sum('cantidad_consumida'))['cantidad_consumida__sum'] or 0
+        fecha=fecha,
+        tipo='c' 
+    ).aggregate(total_consumed=Sum('cant'))['total_consumed'] or 0
 
     if suministro_combustible > 0 and total_horas_asset > 0:
         consumo_historico_total = DailyFuelConsumption.objects.filter(
@@ -79,16 +81,17 @@ def update_fuel_consumption_for_asset(equipo, fecha):
                 )
 
 
-@receiver(post_save, sender=TransaccionSuministro)
+@receiver(post_save, sender=Transaction)
 def create_daily_fuel_consumption(sender, instance, **kwargs):
     suministro = instance.suministro
 
-    if suministro.item.id == 132:  # ID del combustible
+    if suministro.item.id == 132 and instance.tipo == 'c':  # ID del combustible
         asset = suministro.asset
 
-        fecha_primer_reporte = TransaccionSuministro.objects.filter(
+        fecha_primer_reporte = Transaction.objects.filter(
             suministro__asset=asset,
-            suministro__item__id=132  # ID del combustible
+            suministro__item__id=132,  # ID del combustible
+            tipo='c'
         ).aggregate(primer_fecha=Min('fecha'))['primer_fecha']  
 
         if isinstance(instance.fecha, str):
@@ -104,11 +107,12 @@ def create_daily_fuel_consumption(sender, instance, **kwargs):
                 continue
             
             total_horas_asset = HistoryHour.objects.filter(component__system__asset=equipo.system.asset, report_date=today).aggregate(Sum('hour'))['hour__sum'] or 0
-            suministro_consumido_hoy = TransaccionSuministro.objects.filter(
+            suministro_consumido_hoy = Transaction.objects.filter(
                 suministro__asset=asset,
                 suministro__item__id=132,
-                fecha=today
-            ).aggregate(Sum('cantidad_consumida'))['cantidad_consumida__sum'] or 0
+                fecha=today,
+                tipo='c'
+            ).aggregate(total_consumed=Sum('cant'))['total_consumed'] or 0
 
             if total_horas_asset > 0 and suministro_consumido_hoy > 0:
                 horas_hoy = Decimal(horas_hoy)

@@ -4,7 +4,7 @@ import django.db.models.deletion
 import got.models
 from django.conf import settings
 from django.db import migrations, models
-
+from decimal import Decimal
 
 class Migration(migrations.Migration):
 
@@ -60,6 +60,40 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name='ActivityLog',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('user_name', models.CharField(max_length=100)),
+                ('action', models.CharField(max_length=100)),
+                ('model_name', models.CharField(max_length=100)),
+                ('object_id', models.CharField(blank=True, max_length=100, null=True)),
+                ('field_name', models.CharField(blank=True, max_length=100, null=True)),
+                ('old_value', models.TextField(blank=True, null=True)),
+                ('new_value', models.TextField(blank=True, null=True)),
+                ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='Transaction',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('cant', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10)),
+                ('fecha', models.DateField()),
+                ('user', models.CharField(max_length=100)),
+                ('motivo', models.TextField(blank=True, null=True)),
+                ('tipo', models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia')], default='i', max_length=1)),
+                ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
+                ('cant_report', models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True)),
+            ],
+            options={
+                'permissions': (('can_add_supply', 'Puede añadir suministros'),),
+            },
+        ),
+        migrations.AddConstraint(
+            model_name='transaction',
+            constraint=models.UniqueConstraint(fields=('suministro', 'fecha', 'tipo'), name='unique_suministro_fecha_tipo'),
+        ),
+        migrations.CreateModel(
             name='DailyFuelConsumption',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -75,20 +109,5 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name='transaccionsuministro',
             unique_together={('suministro', 'fecha')},
-        ),
-
-        migrations.CreateModel(
-            name='ActivityLog',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('user_name', models.CharField(max_length=100)),
-                ('action', models.CharField(max_length=100)),
-                ('model_name', models.CharField(max_length=100)),
-                ('object_id', models.CharField(blank=True, max_length=100, null=True)),
-                ('field_name', models.CharField(blank=True, max_length=100, null=True)),
-                ('old_value', models.TextField(blank=True, null=True)),
-                ('new_value', models.TextField(blank=True, null=True)),
-                ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
-            ],
         ),
     ]

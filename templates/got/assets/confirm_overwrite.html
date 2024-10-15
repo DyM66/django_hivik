@@ -1,0 +1,33 @@
+<!-- confirm_overwrite.html -->
+{% extends "got/base/base_generic.html" %}
+{% block content %}
+<div class="container mt-3">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Advertencia de Sobrescritura</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Las siguientes transacciones ya existen y serán sobrescritas:</p>
+                    <ul>
+                        {% for tipo, transaccion in overwriting_transactions %}
+                            <li>{{ tipo }} - {{ transaccion.suministro.item }} ({{ transaccion.fecha|date:"d/m/Y" }}): {{ transaccion.cant }}</li>
+                        {% endfor %}
+                    </ul>
+                    <p>¿Desea continuar y sobrescribir estas transacciones?</p>
+                    {% for key, value in post_data.items %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endfor %}
+                    <input type="hidden" name="confirm_overwrite" value="yes">
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Sí, sobrescribir</button>
+                    <a href="{% url 'got:asset-suministros' asset.abbreviation %}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

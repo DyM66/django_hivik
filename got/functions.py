@@ -504,3 +504,70 @@ def consumibles_summary(asset):
     items_by_subsystem = {k: list(v) for k, v in items_by_subsystem.items() if v}
 
     return items_by_subsystem
+
+
+
+def migrate_transactions():
+    migrated_count = 0
+    skipped_count = 0
+
+    transacciones = TransaccionSuministro.objects.all()
+
+    for transaccion in transacciones:
+        suministro = transaccion.suministro
+        fecha = transaccion.fecha
+        usuario = transaccion.usuario
+        user_full_name = usuario.get_full_name() if usuario else 'Unknown User'
+        motivo = transaccion.motivo
+
+        # Process cantidad_ingresada
+        if transaccion.cantidad_ingresada > 0:
+            transaction_data = {
+                'suministro': suministro,
+                'cant': transaccion.cantidad_ingresada,
+                'fecha': fecha,
+                'user': user_full_name,
+                'motivo': motivo,
+                'tipo': 'i',
+            }
+            created = create_transaction(transaction_data)
+            if created:
+                migrated_count += 1
+            else:
+                skipped_count += 1
+
+        # Process cantidad_consumida
+        if transaccion.cantidad_consumida > 0:
+            transaction_data = {
+                'suministro': suministro,
+                'cant': transaccion.cantidad_consumida,
+                'fecha': fecha,
+                'user': user_full_name,
+                'motivo': motivo,
+                'tipo': 'c',
+            }
+            created = create_transaction(transaction_data)
+            if created:
+                migrated_count += 1
+            else:
+                skipped_count += 1
+
+    print(f'Migration completed. {migrated_count} transactions migrated, {skipped_count} transactions skipped due to duplicates.')
+
+def create_transaction(data):
+    try:
+        # Use get_or_create to avoid duplicates
+        obj, created = Transaction.objects.get_or_create(
+            suministro=data['suministro'],
+            fecha=data['fecha'],
+            tipo=data['tipo'],
+            defaults={
+                'cant': data['cant'],
+                'user': data['user'],
+                'motivo': data['motivo'],
+            }
+        )
+        return created
+    except Exception as e:
+        print(f'Error creating transaction: {e}')
+        return False

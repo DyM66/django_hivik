@@ -78,8 +78,8 @@
                         {% elif equipo.tipo == 'r' %}
                             <li>
                                 <div class="detail-item">
-                                    <div class="detail-key">Tipo:</div>
-                                    <div class="detail-value">{{ equipo.get_tipo_display }}</div>
+                                    <div class="detail-key">Consumo promedio por hora:</div>
+                                    <div class="detail-value">{{ equipo.consumo_promedio_por_hora|floatformat:2 }}</div>
                                 </div>
                             </li>
                             <li>
@@ -101,6 +101,12 @@
                                 </div>
                             </li>
                         {% endif %}
+                        <li>
+                            <div class="detail-item">
+                                <div class="detail-key">Tipo:</div>
+                                <div class="detail-value">{{ equipo.get_tipo_display }}</div>
+                            </div>
+                        </li>
                         {% if equipo.manual_pdf %}
                             <li>
                                 <div class="detail-item">
@@ -280,17 +286,13 @@
 </table>
 
 
-
-
 <div class="container">
-    
-
     <table class="table-list table-detail mt-4">
         <thead>
             <tr>
                 <th colspan="3">
                     Consumibles
-                    <button type="button" class="add-sys" data-toggle="modal" data-target="#addSupplyModal">
+                    <button type="button" class="add-sys" data-bs-toggle="modal" data-bs-target="#addSupplyModal">
                         <i class="bi bi-plus-circle"></i>
                     </button>
                 </th>

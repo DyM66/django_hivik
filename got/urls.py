@@ -4,14 +4,19 @@ from . import views
 app_name = 'got'
 
 urlpatterns = [
-    path("tasks/", views.AssignedTaskByUserListView.as_view(), name="my-tasks"),
 
     path("", views.AssetsListView.as_view(), name="asset-list"),
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
     path("asset/<str:pk>/maintenance-plan/", views.AssetMaintenancePlanView.as_view(), name="asset-maintenance-plan"),
+    path('asset/rutinas/<str:pk>/', views.preventivo_pdf, name='preventivo'),
     path('asset/<str:asset_id>/add-document/', views.AssetDocCreateView.as_view(), name='add-document'),
     path('asset/<str:abbreviation>/suministros/', views.asset_suministros_report, name='asset-suministros'),
     path('asset/<str:abbreviation>/inventario/', views.asset_inventario_report, name='asset_inventario_report'),
+    path('transactions/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
+
+    path("tasks/", views.AssignedTaskByUserListView.as_view(), name="my-tasks"),
+
+    
     path("asset/<str:pk>/schedule/", views.schedule, name="schedule"),
     path('assets/<str:asset_id>/generate-pdf/', views.generate_asset_pdf, name='generate_asset_pdf'),
     
@@ -100,7 +105,6 @@ urlpatterns = [
 
     path('items/', views.ItemManagementView.as_view(), name='item_management'),
     path('items/edit/<int:item_id>/', views.edit_item, name='edit_item'),
-    path('asset/rutinas/<str:pk>/', views.preventivo_pdf, name='preventivo'),
     path('asset/acta/<str:pk>/', views.acta_entrega_pdf, name='acta_entrega'),
 
     path('ruta/<int:ruta_id>/create_ot/', views.rutina_form_view, name='create-ot-from-ruta'),
@@ -115,4 +119,6 @@ urlpatterns = [
     path('operation/<int:operation_id>/requirement/add/', views.requirement_create, name='requirement-create'),
     path('requirement/<int:pk>/update/', views.requirement_update, name='requirement-update'),
     path('requirement/<int:pk>/delete/', views.requirement_delete, name='requirement-delete'),
+
+    path('solicitudes/<int:pk>/report_received/', views.report_received, name='report-received'),
 ]
