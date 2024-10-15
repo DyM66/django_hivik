@@ -32,8 +32,10 @@
         <ul class="dropdown-menu">
             <li><a href="{% url 'got:rq-list' %}?state=&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Mostrar todos</a></li>
             <li><a href="{% url 'got:rq-list' %}?state=no_aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">No Aprobadas</a></li>
-            <li><a href="{% url 'got:rq-list' %}?state=tramitado&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Tramitadas</a></li>
             <li><a href="{% url 'got:rq-list' %}?state=aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Aprobadas</a></li>
+            <li><a href="{% url 'got:rq-list' %}?state=tramitado&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Tramitadas</a></li>
+            <li><a href="{% url 'got:rq-list' %}?state=parcialmente&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Parcialmente Recibidas</a></li>
+            <li><a href="{% url 'got:rq-list' %}?state=recibido&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Recibidas</a></li>
             <li><a href="{% url 'got:rq-list' %}?state=cancel&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Cancelado</a></li>
         </ul>
     </div>
@@ -167,6 +169,7 @@
                         {% if rq.cancel %}
                             <strong>{{ rq.cancel_reason|linebreaks }}</strong>
                         {% endif %}
+                            <strong>{{ rq.recibido_por|linebreaks }}</strong>
                         <ul style="list-style: none; padding-left: 0;">
                             {% for suministro in rq.suministro_set.all %}
                                 <li onclick="openModal{{ suministro.id }}()" style="cursor: pointer;">

@@ -2995,12 +2995,17 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         if keyword:
             queryset = queryset.filter(suministros__icontains=keyword)
 
+
         if state == 'no_aprobada':
             queryset = queryset.filter(approved=False, cancel=False)
         elif state == 'aprobada':
             queryset = queryset.filter(approved=True, sc_change_date__isnull=True, cancel=False)
         elif state == 'tramitado':
             queryset = queryset.filter(approved=True, sc_change_date__isnull=False, cancel=False)
+        elif state == 'parcialmente':
+            queryset = queryset.filter(satisfaccion=False, recibido_por__isnull=False, cancel=False)
+        elif state == 'recibido':
+            queryset = queryset.filter(satisfaccion=True, cancel=False)
         elif state == 'cancel':
             queryset = queryset.filter(cancel=True)
 
@@ -3079,6 +3084,7 @@ class ApproveSolicitudView(LoginRequiredMixin, View):
         solicitud.save()
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
+
 @login_required
 def report_received(request, pk):
     if request.method == 'POST':
