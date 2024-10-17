@@ -1318,11 +1318,55 @@ class RequirementForm(forms.ModelForm):
     )
     class Meta:
         model = Requirement
-        fields = ['text']
+        fields = ['text', 'responsable']  # Incluimos 'responsable'
         widgets = {
             'text': forms.Textarea(attrs={'class': 'form-control'}),
-            # 'approved': forms.BooleanField(required=False, label='Realizado')
+            'responsable': forms.TextInput(attrs={'class': 'form-control'}),
         }
         labels = {
             'text': 'Detalle del requerimiento',
+            'responsable': 'Responsable',
         }
+
+
+class FullRequirementForm(forms.ModelForm):
+    approved = forms.ChoiceField(
+        choices=[(True, 'Sí'), (False, 'No')],
+        widget=forms.RadioSelect,
+        label='Realizado',
+        initial=False,
+        required=False
+    )
+    class Meta:
+        model = Requirement
+        fields = ['text', 'responsable', 'approved', 'novedad']
+        widgets = {
+            'text': forms.Textarea(attrs={'class': 'form-control'}),
+            'responsable': forms.TextInput(attrs={'class': 'form-control'}),
+            'novedad': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'text': 'Detalle del requerimiento',
+            'responsable': 'Responsable',
+            'novedad': 'Novedad',
+        }
+
+
+class LimitedRequirementForm(forms.ModelForm):
+    approved = forms.ChoiceField(
+        choices=[(True, 'Sí'), (False, 'No')],
+        widget=forms.RadioSelect,
+        label='Realizado',
+        initial=False,
+        required=False
+    )
+    class Meta:
+        model = Requirement
+        fields = ['novedad', 'approved']
+        widgets = {
+            'novedad': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'novedad': 'Novedad',
+        }
+

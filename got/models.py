@@ -615,6 +615,14 @@ class Requirement(models.Model):
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
     text = models.TextField()
     approved = models.BooleanField(default=False)
+    novedad = models.TextField(null=True, blank=True)
+    responsable = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        permissions = [
+            ('can_create_requirement', 'Can create requirement'),
+            ('can_delete_requirement', 'Can delete requirement'),
+        ]
 
 
 class Solicitud(models.Model):

@@ -2469,6 +2469,7 @@ class OperationDelete(DeleteView):
     success_url = reverse_lazy('got:operation-list')
 
 
+@permission_required('yourapp.can_create_requirement', raise_exception=True)
 def requirement_create(request, operation_id):
     operation = get_object_or_404(Operation, id=operation_id)
     if request.method == 'POST':
@@ -2492,26 +2493,63 @@ def requirement_create(request, operation_id):
     }
     return render(request, 'got/operations/requirement_form.html', context)
 
+# def requirement_update(request, pk):
+#     requirement = get_object_or_404(Requirement, pk=pk)
+#     if request.method == 'POST':
+#         requirement_form = RequirementForm(request.POST, instance=requirement)
+#         upload_images_form = UploadImages(request.POST, request.FILES)
+#         if requirement_form.is_valid() and upload_images_form.is_valid():
+#             requirement_form.save()
+#             # Acceder directamente a los archivos desde request.FILES
+#             for f in request.FILES.getlist('file_field'):
+#                 Image.objects.create(image=f, requirements=requirement)
+#             return redirect('got:operation-list')
+#     else:
+#         requirement_form = RequirementForm(instance=requirement)
+#         upload_images_form = UploadImages()
+#     context = {
+#         'requirement_form': requirement_form,
+#         'upload_images_form': upload_images_form,
+#         'requirement': requirement,
+#     }
+#     return render(request, 'got/operations/requirement_form.html', context)
+
+
+# views.py
 def requirement_update(request, pk):
     requirement = get_object_or_404(Requirement, pk=pk)
+    if request.user.has_perm('got.can_create_requirement'):
+        RequirementFormClass = FullRequirementForm
+        can_delete_images = True
+    else:
+        RequirementFormClass = LimitedRequirementForm
+        can_delete_images = False
+
     if request.method == 'POST':
-        requirement_form = RequirementForm(request.POST, instance=requirement)
+        requirement_form = RequirementFormClass(request.POST, instance=requirement)
         upload_images_form = UploadImages(request.POST, request.FILES)
         if requirement_form.is_valid() and upload_images_form.is_valid():
             requirement_form.save()
-            # Acceder directamente a los archivos desde request.FILES
+            # Manejar eliminación de imágenes
+            if can_delete_images:
+                images_to_delete = request.POST.getlist('delete_images')
+                Image.objects.filter(id__in=images_to_delete).delete()
+            # Guardar nuevas imágenes
             for f in request.FILES.getlist('file_field'):
                 Image.objects.create(image=f, requirements=requirement)
             return redirect('got:operation-list')
     else:
-        requirement_form = RequirementForm(instance=requirement)
+        requirement_form = RequirementFormClass(instance=requirement)
         upload_images_form = UploadImages()
     context = {
         'requirement_form': requirement_form,
         'upload_images_form': upload_images_form,
         'requirement': requirement,
+        'can_delete_images': can_delete_images,
     }
     return render(request, 'got/operations/requirement_form.html', context)
+
+
 
 
 def requirement_delete(request, pk):

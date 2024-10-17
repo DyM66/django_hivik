@@ -111,61 +111,46 @@
                         </tr>
                         <tr id="details{{ forloop.counter }}" class="detail-row" style="display: none;">
                             <td colspan="7">
-                                {% if operacion.requirement_set.exists %}
-                                <div>
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Detalle</th>
-                                                <th>Aprobado</th>
-                                                <th>Imágenes</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <!-- Dentro de tu bucle de requerimientos -->
-                                            {% for requirement in operacion.requirement_set.all %}
-                                                <tr>
-                                                    <td>{{ requirement.text|linebreaksbr }}</td>
-                                                    <td>{{ requirement.approved|yesno:"Sí,No" }}</td>
-                                                    <td>{{ requirement.images.count }}</td>
-                                                    <td>
-                                                        <a href="{% url 'got:requirement-update' requirement.id %}"><i class="bi bi-pencil"></i></a>
-                                                        <a href="{% url 'got:requirement-delete' requirement.id %}"><i class="bi bi-trash"></i></a>
-                                                    </td>
-                                                </tr>
-                                                <!-- Fila para las imágenes -->
-                                                {% if requirement.images.all %}
-                                                <tr>
-                                                    <td colspan="4">
-                                                        <div class="image-gallery">
-                                                            {% for image in requirement.images.all %}
-                                                                {% if image.image %}
-                                                                    <img src="{{ image.image.url }}" alt="Imagen" width="100" data-bs-toggle="modal" data-bs-target="#imageModal{{ image.id }}">
-                                                                    <!-- Modal para la imagen -->
-                                                                    <div class="modal fade" id="imageModal{{ image.id }}" tabindex="-1" aria-labelledby="imageModalLabel{{ image.id }}" aria-hidden="true">
-                                                                        <div class="modal-dialog modal-dialog-centered modal-lg">
-                                                                            <div class="modal-content">
-                                                                                <div class="modal-body">
-                                                                                    <img src="{{ image.image.url }}" alt="Imagen" class="img-fluid">
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                {% endif %}
-                                                            {% endfor %}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                {% endif %}
-                                            {% endfor %}
-
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {% else %}
-                                    <p>No hay requerimientos registrados para esta operación.</p>
+<!-- operation_list.html -->
+{% if operacion.requirement_set.exists %}
+    <div>
+        {% regroup operacion.requirement_set.all by responsable as grouped_requirements %}
+        {% for group in grouped_requirements %}
+            <h4>Responsable: {{ group.grouper|default:"No asignado" }}</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Detalle</th>
+                        <th>Realizado</th>
+                        <th>Novedad</th>
+                        <th>Imágenes</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for requirement in group.list %}
+                        <tr>
+                            <td>{{ requirement.text|linebreaksbr }}</td>
+                            <td>{{ requirement.approved|yesno:"Sí,No" }}</td>
+                            <td>{{ requirement.novedad|default_if_none:"" }}</td>
+                            <td>{{ requirement.images.count }}</td>
+                            <td>
+                                <a href="{% url 'got:requirement-update' requirement.id %}"><i class="bi bi-pencil"></i></a>
+                                {% if perms.got.can_create_requirement %}
+                                    <a href="{% url 'got:requirement-delete' requirement.id %}"><i class="bi bi-trash"></i></a>
                                 {% endif %}
+                            </td>
+                        </tr>
+                        <!-- Fila para las imágenes y otros detalles -->
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>No hay requerimientos registrados para esta operación.</p>
+{% endif %}
+
                     
                             </td>
                         </tr>
@@ -185,6 +170,13 @@
                                                 <label for="text">Detalle del Requerimiento</label>
                                                 <textarea name="text" class="form-control" required></textarea>
                                             </div>
+                                            <!-- operation_list.html -->
+<!-- Dentro del modal para añadir requerimiento -->
+<div class="form-group">
+    <label for="responsable">Responsable</label>
+    <input type="text" name="responsable" class="form-control" required>
+</div>
+
                                             <!-- UploadImages form fields -->
                                             <div class="form-group">
                                                 <label for="file_field">Imagenes de referencia/Evidencias</label>
