@@ -132,14 +132,14 @@
                         </td>
                         <td>{{ transaccion.suministro.item.presentacion }}</td>
                         <td>{{ transaccion.cant }}</td>
-                        <td>
+                        <td class="nowrap">
                             {{ transaccion.get_tipo_display }} 
                             {% if transaccion.tipo == 'i' %}
                                 <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
                             {% elif transaccion.tipo == 'c' %}
                                 <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #a00e32;"></i>
                             {% else %}
-                                <i class="fa-solid fa-hand-holding-hand"></i>
+                                <i class="fa-solid fa-handshake"></i>
                             {% endif %}
                         </td>
                         <td>
