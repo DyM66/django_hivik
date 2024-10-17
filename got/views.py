@@ -2403,9 +2403,13 @@ def buceomtto(request):
 
 'OPERATIONS VIEW'
 def OperationListView(request):
-
     assets = Asset.objects.filter(area='a')
-    operaciones_list = Operation.objects.order_by('start').prefetch_related('requirement_set__images')
+    operaciones_list = Operation.objects.order_by('start').prefetch_related(
+        Prefetch(
+            'requirement_set',
+            queryset=Requirement.objects.order_by('responsable').prefetch_related('images')
+        )
+    )
 
     page = request.GET.get('page', 1)
     paginator = Paginator(operaciones_list, 10)  # Mostrar 10 operaciones por página
@@ -2447,7 +2451,7 @@ def OperationListView(request):
         'operaciones': operaciones,
         'requirement_form': RequirementForm(),
         'upload_images_form': UploadImages(),
-        }
+    }
 
     return render(request, 'got/operations/operation_list.html', context)
 
