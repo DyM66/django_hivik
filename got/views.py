@@ -2402,15 +2402,82 @@ def buceomtto(request):
 
 
 'OPERATIONS VIEW'
+# def OperationListView(request):
+#     assets = Asset.objects.filter(area='a')
+#     operaciones_list = Operation.objects.order_by('start').prefetch_related(
+#         Prefetch(
+#             'requirement_set',
+#             queryset=Requirement.objects.order_by('responsable').prefetch_related('images')
+#         )
+#     )
+
+#     page = request.GET.get('page', 1)
+#     paginator = Paginator(operaciones_list, 10)  # Mostrar 10 operaciones por página
+
+#     try:
+#         operaciones = paginator.page(page)
+#     except PageNotAnInteger:
+#         operaciones = paginator.page(1)
+#     except EmptyPage:
+#         operaciones = paginator.page(paginator.num_pages)
+
+#     operations_data = []
+#     for asset in assets:
+#         asset_operations = asset.operation_set.all().values(
+#             'start', 'end', 'proyecto', 'requirements', 'confirmado'
+#         )
+#         operations_data.append({
+#             'asset': asset,
+#             'operations': list(asset_operations)
+#         })
+
+#     form = OperationForm(request.POST or None)
+#     modal_open = False 
+
+#     if request.method == 'POST':
+#         form = OperationForm(request.POST)
+#         if form.is_valid():
+#             form.save()
+#             return redirect(request.path)
+#         else:
+#             modal_open = True 
+#     else:
+#         form = OperationForm()
+
+#     context= {
+#         'operations_data': operations_data,
+#         'operation_form': form,
+#         'modal_open': modal_open,
+#         'operaciones': operaciones,
+#         'requirement_form': RequirementForm(),
+#         'upload_images_form': UploadImages(),
+#     }
+
+#     return render(request, 'got/operations/operation_list.html', context)
+
 def OperationListView(request):
     assets = Asset.objects.filter(area='a')
-    operaciones_list = Operation.objects.order_by('start').prefetch_related(
-        Prefetch(
-            'requirement_set',
-            queryset=Requirement.objects.order_by('responsable').prefetch_related('images')
-        )
-    )
 
+    today = timezone.now().date()
+    show_past = request.GET.get('show_past', 'false').lower() == 'true'
+
+    # Filtrar operaciones para la tabla
+    if show_past:
+        operaciones_list = Operation.objects.order_by('start').prefetch_related(
+            Prefetch(
+                'requirement_set',
+                queryset=Requirement.objects.order_by('responsable').prefetch_related('images')
+            )
+        )
+    else:
+        operaciones_list = Operation.objects.filter(end__gte=today).order_by('start').prefetch_related(
+            Prefetch(
+                'requirement_set',
+                queryset=Requirement.objects.order_by('responsable').prefetch_related('images')
+            )
+        )
+
+    # Paginación
     page = request.GET.get('page', 1)
     paginator = Paginator(operaciones_list, 10)  # Mostrar 10 operaciones por página
 
@@ -2421,6 +2488,7 @@ def OperationListView(request):
     except EmptyPage:
         operaciones = paginator.page(paginator.num_pages)
 
+    # Datos para el gráfico: incluir todas las operaciones
     operations_data = []
     for asset in assets:
         asset_operations = asset.operation_set.all().values(
@@ -2444,13 +2512,14 @@ def OperationListView(request):
     else:
         form = OperationForm()
 
-    context= {
+    context = {
         'operations_data': operations_data,
         'operation_form': form,
         'modal_open': modal_open,
         'operaciones': operaciones,
         'requirement_form': RequirementForm(),
         'upload_images_form': UploadImages(),
+        'show_past': show_past,
     }
 
     return render(request, 'got/operations/operation_list.html', context)
@@ -2473,7 +2542,7 @@ class OperationDelete(DeleteView):
     success_url = reverse_lazy('got:operation-list')
 
 
-@permission_required('yourapp.can_create_requirement', raise_exception=True)
+@permission_required('got.can_create_requirement', raise_exception=True)
 def requirement_create(request, operation_id):
     operation = get_object_or_404(Operation, id=operation_id)
     if request.method == 'POST':
@@ -2497,29 +2566,7 @@ def requirement_create(request, operation_id):
     }
     return render(request, 'got/operations/requirement_form.html', context)
 
-# def requirement_update(request, pk):
-#     requirement = get_object_or_404(Requirement, pk=pk)
-#     if request.method == 'POST':
-#         requirement_form = RequirementForm(request.POST, instance=requirement)
-#         upload_images_form = UploadImages(request.POST, request.FILES)
-#         if requirement_form.is_valid() and upload_images_form.is_valid():
-#             requirement_form.save()
-#             # Acceder directamente a los archivos desde request.FILES
-#             for f in request.FILES.getlist('file_field'):
-#                 Image.objects.create(image=f, requirements=requirement)
-#             return redirect('got:operation-list')
-#     else:
-#         requirement_form = RequirementForm(instance=requirement)
-#         upload_images_form = UploadImages()
-#     context = {
-#         'requirement_form': requirement_form,
-#         'upload_images_form': upload_images_form,
-#         'requirement': requirement,
-#     }
-#     return render(request, 'got/operations/requirement_form.html', context)
 
-
-# views.py
 def requirement_update(request, pk):
     requirement = get_object_or_404(Requirement, pk=pk)
     if request.user.has_perm('got.can_create_requirement'):
@@ -2554,15 +2601,12 @@ def requirement_update(request, pk):
     return render(request, 'got/operations/requirement_form.html', context)
 
 
-
-
 def requirement_delete(request, pk):
     requirement = get_object_or_404(Requirement, pk=pk)
     if request.method == 'POST':
         requirement.delete()
         return redirect('got:operation-list')
     return render(request, 'got/operations/requirement_confirm_delete.html', {'requirement': requirement})
-
 
 
 'MEGGERS VIEW'
@@ -2788,7 +2832,62 @@ class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
         context['anios'] = anios
 
         return context
+
+
+class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
+
+    model = PreoperacionalDiario
+    template_name = 'got/preoperacional/preoperacional_detail.html'
+
+
+def preoperacional_diario_view(request, code):
     
+    equipo = get_object_or_404(Equipo, code=code)
+    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
+
+    existente = PreoperacionalDiario.objects.filter(vehiculo=equipo, fecha=localdate()).first()
+
+    if existente:
+        mensaje = f"El preoperacional del vehículo {equipo} de la fecha actual ya fue diligenciado y exitosamente enviado. El resultado fue: {'Aprobado' if existente.aprobado else 'No aprobado'}."
+        messages.error(request, mensaje)
+        return render(request, 'got/preoperacional/preoperacional_restricted.html', {'mensaje': mensaje})
+    
+    if request.method == 'POST':
+        form = PreoperacionalDiarioForm(request.POST, equipo_code=equipo.code, user=request.user)
+        image_form = UploadImages(request.POST, request.FILES)
+        if form.is_valid() and image_form.is_valid():
+            preop = form.save(commit=False)
+            preop.reporter = request.user if request.user.is_authenticated else None
+            preop.vehiculo = equipo
+            preop.kilometraje = form.cleaned_data['kilometraje']
+            preop.save()
+
+            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
+            kilometraje_reportado = preop.kilometraje - horometro_actual
+
+            history_hour, created = HistoryHour.objects.get_or_create(
+                component=equipo,
+                report_date=localdate(),
+                defaults={'hour': kilometraje_reportado}
+            )
+
+            if not created:
+                history_hour.hour = kilometraje_reportado
+                history_hour.save()
+
+            equipo.horometro = preop.kilometraje
+            equipo.save()
+
+            for file in request.FILES.getlist('file_field'):
+                Image.objects.create(preoperacional=preop, image=file)
+
+            return redirect('got:gracias', code=equipo.code) 
+    else:
+        form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
+        image_form = UploadImages()
+
+    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas, 'pre': True})
+
 
 def export_preoperacionaldiario_excel(request):
     mes = request.GET.get('mes', timezone.now().month)
@@ -2901,61 +3000,6 @@ def export_preoperacionaldiario_excel(request):
     return response
 
 
-class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
-
-    model = PreoperacionalDiario
-    template_name = 'got/preoperacional/preoperacional_detail.html'
-
-
-def preoperacional_diario_view(request, code):
-    
-    equipo = get_object_or_404(Equipo, code=code)
-    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
-
-    existente = PreoperacionalDiario.objects.filter(vehiculo=equipo, fecha=localdate()).first()
-
-    if existente:
-        mensaje = f"El preoperacional del vehículo {equipo} de la fecha actual ya fue diligenciado y exitosamente enviado. El resultado fue: {'Aprobado' if existente.aprobado else 'No aprobado'}."
-        messages.error(request, mensaje)
-        return render(request, 'got/preoperacional/preoperacional_restricted.html', {'mensaje': mensaje})
-    
-    if request.method == 'POST':
-        form = PreoperacionalDiarioForm(request.POST, equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages(request.POST, request.FILES)
-        if form.is_valid() and image_form.is_valid():
-            preop = form.save(commit=False)
-            preop.reporter = request.user if request.user.is_authenticated else None
-            preop.vehiculo = equipo
-            preop.kilometraje = form.cleaned_data['kilometraje']
-            preop.save()
-
-            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
-            kilometraje_reportado = preop.kilometraje - horometro_actual
-
-            history_hour, created = HistoryHour.objects.get_or_create(
-                component=equipo,
-                report_date=localdate(),
-                defaults={'hour': kilometraje_reportado}
-            )
-
-            if not created:
-                history_hour.hour = kilometraje_reportado
-                history_hour.save()
-
-            equipo.horometro = preop.kilometraje
-            equipo.save()
-
-            for file in request.FILES.getlist('file_field'):
-                Image.objects.create(preoperacional=preop, image=file)
-
-            return redirect('got:gracias', code=equipo.code) 
-    else:
-        form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages()
-
-    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas, 'pre': True})
-
-
 class PreoperacionalDiarioUpdateView(LoginRequiredMixin, generic.UpdateView):
     model = PreoperacionalDiario
     form_class = PreoperacionalDiarioForm
@@ -3022,22 +3066,20 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
 
     def get_queryset(self):
         queryset = Solicitud.objects.all()
+        user = self.request.user
+        user_groups = user.groups.values_list('name', flat=True)
+
+        # Aplicar filtros generales de estado, asset y keyword
         state = self.request.GET.get('state')
         asset_filter = self.request.GET.get('asset')
+        keyword = self.request.GET.get('keyword')
 
         if asset_filter:
             queryset = queryset.filter(asset__abbreviation=asset_filter)
-
-        if self.request.user.groups.filter(name='maq_members').exists():
-            supervised_assets = Asset.objects.filter(
-                supervisor=self.request.user)
-            queryset = queryset.filter(asset__in=supervised_assets)
-
-        keyword = self.request.GET.get('keyword')
         if keyword:
             queryset = queryset.filter(suministros__icontains=keyword)
 
-
+        # Filtrar según el estado seleccionado
         if state == 'no_aprobada':
             queryset = queryset.filter(approved=False, cancel=False)
         elif state == 'aprobada':
@@ -3051,9 +3093,38 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         elif state == 'cancel':
             queryset = queryset.filter(cancel=True)
 
-        # if self.request.user.username == 'jcastillo':
-            # Filtrar solicitudes relacionadas con OT de tipo "Preventivo"
-            # queryset = queryset.filter(ot__tipo_mtto='p')
+        # Aplicar filtros basados en el grupo del usuario
+        if 'gerencia' in user_groups:
+            # Gerencia puede ver todas las solicitudes
+            return queryset
+        else:
+            # Construir condición de filtrado
+            filter_condition = Q()
+
+            if 'operaciones' in user_groups:
+                # Usuarios del grupo 'operaciones' pueden ver solicitudes con dpto='o'
+                filter_condition |= Q(dpto='o')
+            if 'super_members' in user_groups:
+                # Usuarios del grupo 'super_members' pueden ver solicitudes con dpto='m'
+                filter_condition |= Q(dpto='m')
+            if 'maq_members' in user_groups:
+                # Usuarios del grupo 'maq_members' pueden ver solicitudes de sus assets supervisados
+                supervised_assets = Asset.objects.filter(supervisor=user)
+                filter_condition |= Q(asset__in=supervised_assets)
+            if 'serport_members' in user_groups:
+                # Usuarios del grupo 'serport_members' pueden ver sus propias solicitudes
+                filter_condition |= Q(solicitante=user)
+            if 'buzos' in user_groups:
+                # Usuarios del grupo 'buzos' pueden ver solicitudes de assets de tipo 'buceo'
+                buceo_assets = Asset.objects.filter(tipo='buceo')
+                filter_condition |= Q(asset__in=buceo_assets)
+
+            # Si no pertenece a ninguno de los grupos anteriores, solo ve sus propias solicitudes
+            if not filter_condition:
+                filter_condition = Q(solicitante=user)
+
+            # Aplicar el filtro construido al queryset
+            queryset = queryset.filter(filter_condition)
 
         return queryset
 
@@ -3084,12 +3155,15 @@ class CreateSolicitudOt(LoginRequiredMixin, View):
             items_ids = request.POST.getlist('item_id[]') 
             cantidades = request.POST.getlist('cantidad[]')
             suministros = request.POST.get('suministros', '')
+            dpto = request.POST.get('dpto')
 
             solicitud = Solicitud.objects.create(
                 solicitante=request.user,
+                requested_by=request.user.get_full_name(),
                 ot=ot,
                 asset=asset,
-                suministros=suministros
+                suministros=suministros,
+                dpto=dpto,
             )
 
             for item_id, cantidad in zip(items_ids, cantidades):

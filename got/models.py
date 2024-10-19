@@ -627,26 +627,28 @@ class Requirement(models.Model):
 
 class Solicitud(models.Model):
 
+    DPTO = (
+        ('m', 'Mantenimiento'),
+        ('o', 'Operaciones'),
+    )
+
     creation_date = models.DateTimeField(auto_now_add=True)
     solicitante = models.ForeignKey(User, on_delete=models.CASCADE)
+    requested_by = models.CharField(max_length=100, null=True, blank=True)
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
     suministros = models.TextField()
     num_sc = models.TextField(null=True, blank=True)
-
-    approved_by = models.CharField(max_length=100, null=True, blank=True, default='Jader Aguilar')
+    approved_by = models.CharField(max_length=100, null=True, blank=True)
     approved = models.BooleanField(default=False)
-
     approval_date = models.DateTimeField(null=True, blank=True) 
     sc_change_date = models.DateTimeField(null=True, blank=True)
-
     cancel_date = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.TextField(null=True, blank=True)
     cancel = models.BooleanField(default=False)
-
     satisfaccion = models.BooleanField(default=False)
     recibido_por = models.TextField(null=True, blank=True)
-    # inversion = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Inversión (COP)")
+    dpto = models.CharField(choices=DPTO, max_length=1, default='m')
 
     @property
     def estado(self):

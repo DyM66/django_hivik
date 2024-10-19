@@ -41,6 +41,10 @@
         cursor: pointer;
     }
 
+    .table-list tbody tr:hover td {
+        color: black;
+    }
+
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -68,7 +72,17 @@
 
     <section class="mt-2">
         <!-------------------------------------------- Actividades ------------------------------------------------------------>
-        <table class="table-list table-detail">
+
+        <div class="operation-filters mb-3">
+            {% if show_past %}
+                <a href="{% url 'got:operation-list' %}" class="btn btn-primary">Ver Operaciones Actuales</a>
+            {% else %}
+                <a href="?show_past=true" class="btn btn-primary">Ver Operaciones Anteriores</a>
+            {% endif %}
+        </div>
+
+
+        <table class="table-list table-detail no-hover">
             <thead>
                 <tr>
                     <th colspan="7">
@@ -111,45 +125,62 @@
                         </tr>
                         <tr id="details{{ forloop.counter }}" class="detail-row" style="display: none;">
                             <td colspan="7">
-<!-- operation_list.html -->
+                          
+                                <!-- operation_list.html -->
 {% if operacion.requirement_set.exists %}
-    <div>
-        {% regroup operacion.requirement_set.all by responsable as grouped_requirements %}
+<div>
+    {% with operacion.requirement_set.all|dictsort:"responsable" as requirements_ordered %}
+        {% regroup requirements_ordered by responsable as grouped_requirements %}
         {% for group in grouped_requirements %}
             <h4>Responsable: {{ group.grouper|default:"No asignado" }}</h4>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Detalle</th>
-                        <th>Realizado</th>
-                        <th>Novedad</th>
-                        <th>Imágenes</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for requirement in group.list %}
-                        <tr>
-                            <td>{{ requirement.text|linebreaksbr }}</td>
-                            <td>{{ requirement.approved|yesno:"Sí,No" }}</td>
-                            <td>{{ requirement.novedad|default_if_none:"" }}</td>
-                            <td>{{ requirement.images.count }}</td>
-                            <td>
-                                <a href="{% url 'got:requirement-update' requirement.id %}"><i class="bi bi-pencil"></i></a>
-                                {% if perms.got.can_create_requirement %}
-                                    <a href="{% url 'got:requirement-delete' requirement.id %}"><i class="bi bi-trash"></i></a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        <!-- Fila para las imágenes y otros detalles -->
-                    {% endfor %}
-                </tbody>
-            </table>
+
+            {% with group.list|dictsort:"approved" as requirements_by_approved %}
+                {% regroup requirements_by_approved by approved as approved_groups %}
+                {% for approved_group in approved_groups %}
+                    <h5>
+                        {% if approved_group.grouper %}
+                            Requerimientos Completados
+                        {% else %}
+                            Requerimientos Pendientes
+                        {% endif %}
+                    </h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Detalle</th>
+                                <th>Realizado</th>
+                                <th>Novedad</th>
+                                <th>Imágenes</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for requirement in approved_group.list %}
+                                <tr>
+                                    <td>{{ requirement.text|linebreaksbr }}</td>
+                                    <td>{{ requirement.approved|yesno:"Sí,No" }}</td>
+                                    <td>{{ requirement.novedad|default_if_none:"" }}</td>
+                                    <td>{{ requirement.images.count }}</td>
+                                    <td>
+                                        <a href="{% url 'got:requirement-update' requirement.id %}"><i class="bi bi-pencil"></i></a>
+                                        {% if perms.got.can_create_requirement %}
+                                            <a href="{% url 'got:requirement-delete' requirement.id %}"><i class="bi bi-trash"></i></a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <!-- Fila para las imágenes y otros detalles -->
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endfor %}
+            {% endwith %}
         {% endfor %}
-    </div>
+    {% endwith %}
+</div>
 {% else %}
-    <p>No hay requerimientos registrados para esta operación.</p>
+<p>No hay requerimientos registrados para esta operación.</p>
 {% endif %}
+
 
                     
                             </td>

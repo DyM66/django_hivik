@@ -1,7 +1,24 @@
-{% extends "got/base_generic.html" %}
+{% extends "got/base/base_generic.html" %}
+
+{% block headtag %}
+<style>
+.btn-custom {
+    background-color: #e7f1ff; /* Color azul muy claro */
+    border-color: #cfe3ff;
+    color: #004085;
+}
+
+.btn-custom.active, .btn-custom:active, .btn-custom:hover, .btn-custom:focus {
+    background-color: #d0e9ff;
+    border-color: #a8d0ff;
+    color: #002752;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 
+<main class="container">
     <h1>
         Solicitud de materiales/servicios - {{ asset }} 
         {% if ot %}
@@ -11,8 +28,24 @@
 
     <form method="post" action="" id="solicitudForm">{% csrf_token %}
 
+        <label for="dpto" class="form-label">Departamento al que va dirigida la solicitud:</label><br>
+        <div class="btn-group" role="group" aria-label="Seleccionar departamento">
+            <input type="radio" class="btn-check" name="dpto" id="dpto_mantenimiento" value="m" required>
+            <label class="btn btn-custom" for="dpto_mantenimiento">Mantenimiento</label>
+
+            <input type="radio" class="btn-check" name="dpto" id="dpto_operaciones" value="o" required>
+            <label class="btn btn-custom" for="dpto_operaciones">Operaciones</label>
+        </div>
+
+        <br><br>
+
+
         <label for="suministros" class="form-label">Descripción de solicitud:</label>
-        <textarea name="suministros" id="suministros" rows="8" cols="50" class="form-control" required></textarea>
+        <textarea name="suministros" id="suministros" rows="10" cols="50" class="form-control" required></textarea>
+
+        <p class="text-danger">
+            Por favor, limite su solicitud a materiales puntuales detallados o servicios requeridos por externos de la empresa.
+        </p>
 
         <!-- <h4 class="mt-4">Artículos Añadidos</h4>
 
@@ -29,7 +62,10 @@
             </tbody>
         </table> -->
 
-        <input type="submit" class="btn btn-primary mb-4" value="Enviar Solicitud">
+        <input type="submit" class="btn btn-primary mb-4 submit-button" value="Enviar Solicitud">
+    </form>
+</main>
+
 
         <!-- <h3>Artículos</h3>
 
@@ -82,7 +118,7 @@
         </div> -->
         
         
-    </form>
+
 
     <script>
         function addItem(itemId, itemName) {

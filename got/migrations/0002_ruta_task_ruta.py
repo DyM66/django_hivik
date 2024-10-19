@@ -86,7 +86,15 @@ class Migration(migrations.Migration):
                 ('text', models.TextField()),
                 ('approved', models.BooleanField(default=False)),
                 ('operation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.operation')),
+                ('novedad', models.TextField(blank=True, null=True)),
+                ('responsable', models.CharField(blank=True, max_length=100, null=True)),
             ],
+            options={
+                'permissions': [
+                    ('can_create_requirement', 'Can create requirement'),
+                    ('can_delete_requirement', 'Can delete requirement')
+                ]
+            }
         ),
         migrations.CreateModel(
             name='Solicitud',
