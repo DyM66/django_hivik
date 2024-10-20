@@ -1,294 +1,296 @@
-{% extends "got/base_generic.html" %}
+{% extends "got/base/base_generic.html" %}
 {% load my_tags %}
-
-
-{% block header %}
-    Solicitudes de materiales/servicios 
-    {% if request.GET.asset %}
-    - {{ asset.name }}
-    {% endif %}
-{% endblock %}
 
 {% block content %}
 
-
-<aside>
-    <div class="btn-group" role="group">
-        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-            Filtrar por equipo
-        </button>
-        <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'got:rq-list' %}?asset=&state={{ request.GET.state }}&keyword={{ request.GET.keyword }}">Mostrar todas</a></li>
-            {% for a in assets %}
-                <li><a class="dropdown-item" href="{% url 'got:rq-list' %}?asset={{ a.abbreviation }}&state={{ request.GET.state }}&keyword={{ request.GET.keyword }}">{{ a.name }}</a></li>
-            {% endfor %}
-        </ul>
-    </div>
+<main class="px-3">
+    <h1>
+        Solicitudes de materiales/servicios 
+        {% if request.GET.asset %}
+        - {{ asset.name }}
+        {% endif %}
+    </h1>
     
-    <div class="btn-group" role="group">
-        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-            Estado
-        </button>
-        <ul class="dropdown-menu">
-            <li><a href="{% url 'got:rq-list' %}?state=&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Mostrar todos</a></li>
-            <li><a href="{% url 'got:rq-list' %}?state=no_aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">No Aprobadas</a></li>
-            <li><a href="{% url 'got:rq-list' %}?state=aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Aprobadas</a></li>
-            <li><a href="{% url 'got:rq-list' %}?state=tramitado&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Tramitadas</a></li>
-            <li><a href="{% url 'got:rq-list' %}?state=parcialmente&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Parcialmente Recibidas</a></li>
-            <li><a href="{% url 'got:rq-list' %}?state=recibido&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Recibidas</a></li>
-            <li><a href="{% url 'got:rq-list' %}?state=cancel&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Cancelado</a></li>
-        </ul>
-    </div>
-
-    <div class="btn-group box-shadow" role="group">
-        <form method="GET" action="{% url 'got:rq-list' %}" class="form" autocomplete="off">
-            <div class="input-group">
-                <input type="text" name="keyword" class="form-control" placeholder="Descripción" aria-label="Descripción" aria-describedby="button-addon2" value="{{ request.GET.keyword }}">
-                <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+    
+    <aside>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Filtrar por equipo
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'got:rq-list' %}?asset=&state={{ request.GET.state }}&keyword={{ request.GET.keyword }}">Mostrar todas</a></li>
+                {% for a in assets %}
+                    <li><a class="dropdown-item" href="{% url 'got:rq-list' %}?asset={{ a.abbreviation }}&state={{ request.GET.state }}&keyword={{ request.GET.keyword }}">{{ a.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Estado
+            </button>
+            <ul class="dropdown-menu">
+                <li><a href="{% url 'got:rq-list' %}?state=&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Mostrar todos</a></li>
+                <li><a href="{% url 'got:rq-list' %}?state=no_aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">No Aprobadas</a></li>
+                <li><a href="{% url 'got:rq-list' %}?state=aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Aprobadas</a></li>
+                <li><a href="{% url 'got:rq-list' %}?state=tramitado&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Tramitadas</a></li>
+                <li><a href="{% url 'got:rq-list' %}?state=parcialmente&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Parcialmente Recibidas</a></li>
+                <li><a href="{% url 'got:rq-list' %}?state=recibido&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Recibidas</a></li>
+                <li><a href="{% url 'got:rq-list' %}?state=cancel&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Cancelado</a></li>
+            </ul>
+        </div>
+    
+        <div class="btn-group box-shadow" role="group">
+            <form method="GET" action="{% url 'got:rq-list' %}" class="form" autocomplete="off">
+                <div class="input-group">
+                    <input type="text" name="keyword" class="form-control" placeholder="Descripción" aria-label="Descripción" aria-describedby="button-addon2" value="{{ request.GET.keyword }}">
+                    <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+                    <input type="hidden" name="state" value="{{ request.GET.state }}">
+                    <input type="submit" value="Buscar" class="btn btn-primary" id="button-addon2">
+                </div>  
+            </form>
+        </div>
+    
+        <div class="btn-group box-shadow" role="group">
+            <form action="{% url 'got:download_pdf' %}" method="get">
                 <input type="hidden" name="state" value="{{ request.GET.state }}">
-                <input type="submit" value="Buscar" class="btn btn-primary" id="button-addon2">
-            </div>  
-        </form>
-    </div>
-
-    <div class="btn-group box-shadow" role="group">
-        <form action="{% url 'got:download_pdf' %}" method="get">
-            <input type="hidden" name="state" value="{{ request.GET.state }}">
-            <input type="hidden" name="asset" value="{{ request.GET.asset }}">
-            <input type="hidden" name="keyword" value="{{ request.GET.keyword }}">
-            <button type="submit" class="btn btn-info">Descargar PDF</button>
-        </form>
-    </div>
+                <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+                <input type="hidden" name="keyword" value="{{ request.GET.keyword }}">
+                <button type="submit" class="btn btn-info">Descargar PDF</button>
+            </form>
+        </div>
+        
+    </aside>
     
-</aside>
-
-
-    <table class="table-list deta">
-        <thead>
-            <tr>
-                <th scope="col">Solicitud</th>
-                <th scope="col" class="nowrap">Centro de costos</th>
-                <th scope="col">Solicitante</th>
-
-                <th scope="col">Estado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for rq in solicitud_list %}
-				<tr>
-					<td data-cell="Orden de trabajo">
-                        <h6 id="{{rq.id}}">
-                            {% if rq.ot %}Orden de trabajo OT{{ rq.ot }} - {{ rq.ot.get_tipo_mtto_display }} {% else %}Consumibles/ Repuestos/ Herramientas{% endif %}
-                        </h6>
-                    </td>
-					
-					<td data-cell="Centro de costo" class="nowrap"><strong>{{ rq.asset.name }}/{{ rq.ot.system.name }}</strong></td>
-					<td data-cell="Solicitante" class="nowrap">{{ rq.requested_by }}</td>
-					<td data-cell="Estado">
-                        <div class="dropdown">
-                            <button class="btn status
-                                {% if rq.estado == 'Cancelado' %}cancelado
-                                {% elif rq.estado == 'Recibido' %}recibido
-                                {% elif rq.estado == 'Parcialmente' %}parcialmente
-                                {% elif rq.estado == 'Tramitado' %}tramitado
-                                {% elif rq.estado == 'Aprobado' %}aprobado
-                                {% elif rq.estado == 'No aprobado' %}no-aprobado
-                                {% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                                {{ rq.estado }}
-                            </button>
-                            {% if not rq.cancel %}
-							<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-								<li><a class="dropdown-item" href="{% url 'got:solicitud_pdf' rq.id %}">Ver detalle</a></li>
-
-                                {% if not rq.approved %}
-                                    {% if perms.got.can_approve %}
-								        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editSolicitudModal{{ rq.id }}">Editar</a></li>
-                                        <li>
-                                            <form method="post" action="{% url 'got:approve-solicitud' rq.id %}" style="display:inline;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="dropdown-item" style="border:none; background:none; margin:0;">
-                                                    {% if not rq.approved %}Aprobar{% else %}Desaprobar{% endif %}
-                                                </button>
-                                            </form>
-                                        </li>
-                                    {% endif %}
-                                {% else %}
-                                        <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#scModal{{ rq.id }}">Tramitar</a></li>
-                                        {% if perms.got.can_cancel %}
-                                            <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#cancelModal{{ rq.id }}">Cancelar</a></li>
+    
+        <table class="table-list deta mt-2">
+            <thead>
+                <tr>
+                    <th scope="col">Solicitud</th>
+                    <th scope="col" class="nowrap">Centro de costos</th>
+                    <th scope="col">Solicitante</th>
+    
+                    <th scope="col">Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rq in solicitud_list %}
+                    <tr>
+                        <td data-cell="Orden de trabajo" class="full-width-cell ot-cell">
+                            <h6 id="{{rq.id}}">
+                                {% if rq.ot %}Orden de trabajo OT{{ rq.ot }} - {{ rq.ot.get_tipo_mtto_display }} {% else %}Consumibles/ Repuestos/ Herramientas{% endif %}
+                            </h6>
+                        </td>
+                        
+                        <td data-cell="Centro de costo"><strong>{{ rq.asset.name }}/ {{ rq.ot.system.name }}</strong></td>
+                        <td data-cell="Solicitante" class="nowrap">{{ rq.requested_by }}</td>
+                        <td data-cell="Estado">
+                            <div class="dropdown">
+                                <button class="btn status
+                                    {% if rq.estado == 'Cancelado' %}cancelado
+                                    {% elif rq.estado == 'Recibido' %}recibido
+                                    {% elif rq.estado == 'Parcialmente' %}parcialmente
+                                    {% elif rq.estado == 'Tramitado' %}tramitado
+                                    {% elif rq.estado == 'Aprobado' %}aprobado
+                                    {% elif rq.estado == 'No aprobado' %}no-aprobado
+                                    {% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ rq.estado }}
+                                </button>
+                                {% if not rq.cancel %}
+                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    <li><a class="dropdown-item" href="{% url 'got:solicitud_pdf' rq.id %}">Ver detalle</a></li>
+    
+                                    {% if not rq.approved %}
+                                        {% if perms.got.can_approve %}
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editSolicitudModal{{ rq.id }}">Editar</a></li>
+                                            <li>
+                                                <form method="post" action="{% url 'got:approve-solicitud' rq.id %}" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="dropdown-item" style="border:none; background:none; margin:0;">
+                                                        {% if not rq.approved %}Aprobar{% else %}Desaprobar{% endif %}
+                                                    </button>
+                                                </form>
+                                            </li>
                                         {% endif %}
+                                    {% else %}
+                                            <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#scModal{{ rq.id }}">Tramitar</a></li>
+                                            {% if perms.got.can_cancel %}
+                                                <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#cancelModal{{ rq.id }}">Cancelar</a></li>
+                                            {% endif %}
+                                    {% endif %}
+                                    {% if rq.estado == 'Tramitado' %}
+                                        <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#receiveModal{{ rq.id }}">Reportar recibido</a></li>
+                                    {% endif %}
+                                </ul>
                                 {% endif %}
-                                {% if rq.estado == 'Tramitado' %}
-                                    <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#receiveModal{{ rq.id }}">Reportar recibido</a></li>
-                                {% endif %}
-							</ul>
-                            {% endif %}
-						</div>
-                    </td>
+                            </div>
+                        </td>
+                        
+                        <!-- Modal for Reporting Received -->
+                        <div class="modal fade" id="receiveModal{{ rq.id }}" tabindex="-1" aria-labelledby="receiveModalLabel{{ rq.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="post" action="{% url 'got:report-received' rq.id %}">
+                                        {% csrf_token %}
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="receiveModalLabel{{ rq.id }}">Reportar Recepción de Solicitud OT-{{ rq.ot.num_ot }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">¿La solicitud está a satisfacción?</label>
+                                                <div class="radioOptions">
+                                                    <input type="radio" id="satisfaccion_si_{{ rq.id }}" name="satisfaccion" value="True" {% if rq.satisfaccion %}checked{% endif %}>
+                                                    <label for="satisfaccion_si_{{ rq.id }}">Sí</label>
+                                                    <input type="radio" id="satisfaccion_no_{{ rq.id }}" name="satisfaccion" value="False" {% if not rq.satisfaccion %}checked{% endif %}>
+                                                    <label for="satisfaccion_no_{{ rq.id }}">No</label>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="recibido_por{{ rq.id }}" class="form-label">Observaciones</label>
+                                                <textarea class="form-control" id="recibido_por{{ rq.id }}" name="recibido_por" rows="4">{{ rq.recibido_por }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-primary">Guardar Recepción</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+    
                     
-                    <!-- Modal for Reporting Received -->
-                    <div class="modal fade" id="receiveModal{{ rq.id }}" tabindex="-1" aria-labelledby="receiveModalLabel{{ rq.id }}" aria-hidden="true">
+                    </tr>
+                    
+                    <tr>
+                        <td data-cell="Solicitud" class="full-width-cell solicitud-cell" colspan="2">
+                            {{ rq.suministros|linebreaks }} 
+                            
+                            {% if rq.cancel %}
+                                <hr>
+                                <strong>{{ rq.cancel_reason|linebreaks }}</strong>
+                            {% elif rq.recibido_por %}
+                                <hr>
+                                <strong>{{ rq.recibido_por|linebreaks }}</strong>
+                            {% endif %}
+                                
+                            <ul style="list-style: none; padding-left: 0;">
+                                {% for suministro in rq.suministro_set.all %}
+                                    <li onclick="openModal{{ suministro.id }}()" style="cursor: pointer;">
+                                        {{ suministro.cantidad }} {{ suministro.item.presentacion }} {{ suministro.item.name }} {{ suministro.item.reference }} - {{ suministro.item.code }}
+                                    </li>
+                                    <div class="modal fade" id="itemModal{{ suministro.id }}" tabindex="-1" aria-labelledby="itemModalLabel{{ suministro.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="itemModalLabel{{ suministro.id }}">{{ suministro.item.name }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    {% if suministro.item.imagen %}
+                                                        <img src="{{ suministro.item.imagen.url }}" alt="Imagen de {{ suministro.item.name }}" class="img-fluid">
+                                                    {% endif %}
+                                                    <p>Referencia: {{ suministro.item.reference }}</p>
+                                                    <p>Presentación: {{ suministro.item.presentacion }}</p>
+                                                    <p>Código: {{ suministro.item.code }}</p>
+                                                    <p>Sección: {{ suministro.item.get_seccion_display }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <script>
+                                        function openModal{{ suministro.id }}() {
+                                            new bootstrap.Modal(document.getElementById('itemModal{{ suministro.id }}')).show();
+                                        }
+                                    </script>
+                                {% endfor %}
+                            </ul>
+    
+                            
+                        </td>
+                        <td colspan="2">
+                            Solicitado: {{ rq.creation_date|date:"d/m/Y H:i" }}<br>
+                            {% if rq.approval_date %}Aprobado: {{ rq.approval_date|date:"d/m/Y H:i" }}{% endif %}<br>
+                            {% if rq.sc_change_date %}Tramitado: {{ rq.sc_change_date|date:"d/m/Y H:i" }}{% endif %}<br>
+                            {% if rq.num_sc %}SC: {{ rq.num_sc }}{% endif %}
+                            {% if rq.cancel %}Cancelado: {{ rq.cancel_date|date:"d/m/Y H:i" }}{% endif %}<br>
+                        </td>
+                    </tr>
+    
+                    <div class="modal fade" id="editSolicitudModal{{ rq.id }}" tabindex="-1" aria-labelledby="editSolicitudModalLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                                <form method="post" action="{% url 'got:report-received' rq.id %}">
-                                    {% csrf_token %}
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="receiveModalLabel{{ rq.id }}">Reportar Recepción de Solicitud OT-{{ rq.ot.num_ot }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="mb-3">
-                                            <label class="form-label">¿La solicitud está a satisfacción?</label>
-                                            <div class="radioOptions">
-                                                <input type="radio" id="satisfaccion_si_{{ rq.id }}" name="satisfaccion" value="True" {% if rq.satisfaccion %}checked{% endif %}>
-                                                <label for="satisfaccion_si_{{ rq.id }}">Sí</label>
-                                                <input type="radio" id="satisfaccion_no_{{ rq.id }}" name="satisfaccion" value="False" {% if not rq.satisfaccion %}checked{% endif %}>
-                                                <label for="satisfaccion_no_{{ rq.id }}">No</label>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="recibido_por{{ rq.id }}" class="form-label">Observaciones</label>
-                                            <textarea class="form-control" id="recibido_por{{ rq.id }}" name="recibido_por" rows="4">{{ rq.recibido_por }}</textarea>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="submit" class="btn btn-primary">Guardar Recepción</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                
-				</tr>
-                
-                <tr>
-                    <td data-cell="Solicitud" colspan="2">
-                        {{ rq.suministros|linebreaks }} 
-                        
-                        {% if rq.cancel %}
-                            <hr>
-                            <strong>{{ rq.cancel_reason|linebreaks }}</strong>
-                        {% elif rq.recibido_por %}
-                            <hr>
-                            <strong>{{ rq.recibido_por|linebreaks }}</strong>
-                        {% endif %}
-                            
-                        <ul style="list-style: none; padding-left: 0;">
-                            {% for suministro in rq.suministro_set.all %}
-                                <li onclick="openModal{{ suministro.id }}()" style="cursor: pointer;">
-                                    {{ suministro.cantidad }} {{ suministro.item.presentacion }} {{ suministro.item.name }} {{ suministro.item.reference }} - {{ suministro.item.code }}
-                                </li>
-                                <div class="modal fade" id="itemModal{{ suministro.id }}" tabindex="-1" aria-labelledby="itemModalLabel{{ suministro.id }}" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="itemModalLabel{{ suministro.id }}">{{ suministro.item.name }}</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                {% if suministro.item.imagen %}
-                                                    <img src="{{ suministro.item.imagen.url }}" alt="Imagen de {{ suministro.item.name }}" class="img-fluid">
-                                                {% endif %}
-                                                <p>Referencia: {{ suministro.item.reference }}</p>
-                                                <p>Presentación: {{ suministro.item.presentacion }}</p>
-                                                <p>Código: {{ suministro.item.code }}</p>
-                                                <p>Sección: {{ suministro.item.get_seccion_display }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editSolicitudModalLabel">Editar Solicitud para OT-{{ rq.ot.num_ot }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <script>
-                                    function openModal{{ suministro.id }}() {
-                                        new bootstrap.Modal(document.getElementById('itemModal{{ suministro.id }}')).show();
-                                    }
-                                </script>
-                            {% endfor %}
-                        </ul>
-
-                        
-                    </td>
-                    <td colspan="2">
-                        Solicitado: {{ rq.creation_date|date:"d/m/Y H:i" }}<br>
-                        {% if rq.approval_date %}Aprobado: {{ rq.approval_date|date:"d/m/Y H:i" }}{% endif %}<br>
-                        {% if rq.sc_change_date %}Tramitado: {{ rq.sc_change_date|date:"d/m/Y H:i" }}{% endif %}<br>
-                        {% if rq.num_sc %}SC: {{ rq.num_sc }}{% endif %}
-                        {% if rq.cancel %}Cancelado: {{ rq.cancel_date|date:"d/m/Y H:i" }}{% endif %}<br>
-                    </td>
-                </tr>
-
-                <div class="modal fade" id="editSolicitudModal{{ rq.id }}" tabindex="-1" aria-labelledby="editSolicitudModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="editSolicitudModalLabel">Editar Solicitud para OT-{{ rq.ot.num_ot }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form method="post" action="{% url 'got:edit-solicitud' rq.id %}">
-                                    {% csrf_token %}
-                                    <div class="mb-3">
-                                        <label for="suministros" class="form-label">Suministros requeridos</label>
-                                        <textarea class="form-control" id="suministros" name="suministros" rows="8">{{ rq.suministros }}</textarea>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                                </form>
+                                <div class="modal-body">
+                                    <form method="post" action="{% url 'got:edit-solicitud' rq.id %}">
+                                        {% csrf_token %}
+                                        <div class="mb-3">
+                                            <label for="suministros" class="form-label">Suministros requeridos</label>
+                                            <textarea class="form-control" id="suministros" name="suministros" rows="8">{{ rq.suministros }}</textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="modal fade" id="scModal{{ rq.id }}" tabindex="-1" aria-labelledby="scModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="scModalLabel">Tramitar Solicitud OT-{{ rq.ot.num_ot }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form method="post" action="{% url 'got:update-sc' rq.id %}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="asset" value="{{ request.GET.asset }}">
-                                    <input type="hidden" name="state" value="{{ request.GET.state }}">
-                                    <input type="hidden" name="keyword" value="{{ request.GET.keyword }}">
-                                    <div class="mb-3">
-                                        <label for="num_sc{{ rq.id }}" class="form-label">Número de SC</label>
-                                        <input type="text" class="form-control" id="num_sc{{ rq.id }}" name="num_sc" value="{{ rq.num_sc }}">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Guardar Tramitación</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal fade" id="cancelModal{{ rq.id }}" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="cancelModalLabel">Cancelar Solicitud OT-{{ rq.ot.num_ot }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form method="post" action="{% url 'got:cancel-sc' rq.id %}">
-                                    {% csrf_token %}
-                                    <div class="mb-3">
-                                        <label for="cancel_reason{{ rq.id }}" class="form-label">Motivo de cancelación</label>
-                                        <input type="text" class="form-control" id="cancel_reason{{ rq.id }}" name="cancel_reason" value="{{ rq.cancel_reason }}">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Guardar Tramitación</button>
-                                </form>
+    
+                    <div class="modal fade" id="scModal{{ rq.id }}" tabindex="-1" aria-labelledby="scModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="scModalLabel">Tramitar Solicitud OT-{{ rq.ot.num_ot }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form method="post" action="{% url 'got:update-sc' rq.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+                                        <input type="hidden" name="state" value="{{ request.GET.state }}">
+                                        <input type="hidden" name="keyword" value="{{ request.GET.keyword }}">
+                                        <div class="mb-3">
+                                            <label for="num_sc{{ rq.id }}" class="form-label">Número de SC</label>
+                                            <input type="text" class="form-control" id="num_sc{{ rq.id }}" name="num_sc" value="{{ rq.num_sc }}">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Guardar Tramitación</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            {% empty %}
-                <tr>
-                    <td colspan="6">No hay solicitudes registradas.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    
+                    <div class="modal fade" id="cancelModal{{ rq.id }}" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="cancelModalLabel">Cancelar Solicitud OT-{{ rq.ot.num_ot }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form method="post" action="{% url 'got:cancel-sc' rq.id %}">
+                                        {% csrf_token %}
+                                        <div class="mb-3">
+                                            <label for="cancel_reason{{ rq.id }}" class="form-label">Motivo de cancelación</label>
+                                            <input type="text" class="form-control" id="cancel_reason{{ rq.id }}" name="cancel_reason" value="{{ rq.cancel_reason }}">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Guardar Tramitación</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <tr>
+                        <td colspan="6">No hay solicitudes registradas.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+</main>
+
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {

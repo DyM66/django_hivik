@@ -52,7 +52,7 @@
 
                 {% if perms.got.view_solicitud %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'rq-list' %}active{% endif %}" href="{% url 'got:rq-list' %}">
+                        <a class="position-relative nav-link {% if request.resolver_match.url_name == 'rq-list' %}active{% endif %}" href="{% url 'got:rq-list' %}">
                             Solicitudes
                         </a>
                     </li>

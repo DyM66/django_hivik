@@ -39,6 +39,34 @@ from .forms import *
 
 logger = logging.getLogger(__name__)
 
+from django.http import JsonResponse
+from django.views.decorators.cache import cache_control
+
+@cache_control(max_age=86400)
+def manifest(request):
+    manifest_data = {
+        "name": "GOT",
+        "short_name": "GOT",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#FFFFFF",
+        "theme_color": "#191645",
+        "icons": [
+            {
+                "src": "/static/icons/icon-192x192.png",
+                "sizes": "192x192",
+                "type": "image/png"
+            },
+            {
+                "src": "/static/icons/icon-512x512.png",
+                "sizes": "512x512",
+                "type": "image/png"
+            }
+        ]
+    }
+    return JsonResponse(manifest_data)
+
+
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, generic.ListView):
 

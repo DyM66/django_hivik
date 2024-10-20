@@ -6,7 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <!-- Titulo -->
-<title>GOT</title>
+<title>
+    GOT
+    {% if unapproved_requests_count > 0 %}
+        ({{ unapproved_requests_count }})
+    {% endif %}
+</title>
+<link rel="manifest" href="{% url 'got:manifest' %}">
 <link rel="icon" type="image/png" sizes="32x32" href="https://hivik.s3.us-east-2.amazonaws.com/static/anchor-solid.svg">
 
 <!-- Bootstrap -->
@@ -952,4 +958,48 @@
             margin: auto;
         }
     }
+
+    @media (max-width: 650px) {
+    /* ... estilos existentes ... */
+
+    .table-list td.full-width-cell {
+        display: block;
+        grid-template-columns: none; /* Elimina las columnas de grid */
+        padding: 0.5rem 1rem;
+    }
+
+    .table-list td.full-width-cell::before {
+        content: attr(data-cell);
+        font-weight: 700;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .table-list td.full-width-cell > * {
+        width: 100%;
+    }
+
+    .table-list td.full-width-cell h6 {
+        margin-top: 0;
+    }
+
+    /* Estilos para evitar el desbordamiento de la celda "Solicitud" */
+    .table-list td.ot-cell {
+        word-wrap: break-word;
+        word-break: break-word;
+        white-space: normal;
+        max-width: 300px; /* Puedes ajustar este valor según tus necesidades */
+    }
+}
+
+/* Estilos para evitar el desbordamiento de la celda "Solicitud" */
+.table-list td.solicitud-cell {
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    max-width: 300px; /* Puedes ajustar este valor según tus necesidades */
+}
+
+
+
 </style>
