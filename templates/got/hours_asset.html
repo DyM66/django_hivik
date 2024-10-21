@@ -46,18 +46,13 @@
 {% block content %}
 
 {% if not asset.area == 'v' %}
-    <!-- <form method="post">
+    <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
         <button class="btn btn-primary" type="submit">Guardar</button>
-    </form> -->
+    </form>
 {% endif %}
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button class="btn btn-primary" type="submit">Guardar</button>
-</form>
 
 
 {% if not asset.area == 'v' %}
