@@ -115,4 +115,6 @@ urlpatterns = [
     path('export/excel/', views.export_asset_system_equipo_excel, name='export_excel'),
     path('equipo/<str:equipo_code>/dar_baja/', views.DarBajaCreateView.as_view(), name='dar_baja'),
     path('manifest.json', views.manifest, name='manifest'),
+    path('service-worker.js', views.service_worker, name='service_worker'),
+    path('api/unapproved_requests_count/', views.get_unapproved_requests_count, name='unapproved_requests_count_api'),
 ]

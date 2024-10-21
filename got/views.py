@@ -67,6 +67,32 @@ def manifest(request):
     return JsonResponse(manifest_data)
 
 
+from django.views.decorators.cache import never_cache
+
+@never_cache
+def service_worker(request):
+    js = '''
+    // Código del Service Worker
+    // Puedes dejarlo vacío si no necesitas funcionalidades adicionales
+    self.addEventListener('install', function(event) {
+        self.skipWaiting();
+    });
+
+    self.addEventListener('fetch', function(event) {
+        // Manejo de fetch si es necesario
+    });
+    '''
+    response = HttpResponse(js, content_type='application/javascript')
+    return response
+
+
+@login_required
+def get_unapproved_requests_count(request):
+    # Ajusta el filtro según tus necesidades y permisos
+    count = Solicitud.objects.filter(approved=False).count()
+    return JsonResponse({'count': count})
+
+
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, generic.ListView):
 

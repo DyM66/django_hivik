@@ -8,9 +8,6 @@
 <!-- Titulo -->
 <title>
     GOT
-    {% if unapproved_requests_count > 0 %}
-        ({{ unapproved_requests_count }})
-    {% endif %}
 </title>
 <link rel="manifest" href="{% url 'got:manifest' %}">
 <link rel="icon" type="image/png" sizes="32x32" href="https://hivik.s3.us-east-2.amazonaws.com/static/anchor-solid.svg">
