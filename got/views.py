@@ -8,16 +8,16 @@ from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template, render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.timezone import localdate
 from django.views import generic, View
+from django.views.decorators.cache import never_cache, cache_control
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.db import transaction as db_transaction
-
 from datetime import timedelta, date, datetime
 from xhtml2pdf import pisa
 from io import BytesIO
@@ -36,11 +36,8 @@ from .functions import *
 from .models import *
 from .forms import *
 
-
 logger = logging.getLogger(__name__)
 
-from django.http import JsonResponse
-from django.views.decorators.cache import cache_control
 
 @cache_control(max_age=86400)
 def manifest(request):
@@ -53,12 +50,12 @@ def manifest(request):
         "theme_color": "#191645",
         "icons": [
             {
-                "src": "/static/icons/icon-192x192.png",
+                "src": "https://hivik.s3.us-east-2.amazonaws.com/static/anchor-solid.svg",
                 "sizes": "192x192",
                 "type": "image/png"
             },
             {
-                "src": "/static/icons/icon-512x512.png",
+                "src": "https://hivik.s3.us-east-2.amazonaws.com/static/anchor-solid.svg",
                 "sizes": "512x512",
                 "type": "image/png"
             }
@@ -66,8 +63,6 @@ def manifest(request):
     }
     return JsonResponse(manifest_data)
 
-
-from django.views.decorators.cache import never_cache
 
 @never_cache
 def service_worker(request):

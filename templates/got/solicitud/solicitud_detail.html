@@ -156,7 +156,7 @@
                 <th>Fecha de tramite:</th>
             </tr>
             <tr>
-                <td>{% if rq.approved %}Jader Aguilar{% else %}---{% endif %}</td>
+                <td>{% if rq.approved %}{{ rq.approved_by }}{% else %}---{% endif %}</td>
                 <td>{% if rq.approved %}{{rq.approval_date|date:"d/m/Y H:i"}}{% else %}---{% endif %}</td>
                 <td>{% if rq.sc_change_date %}SC: {{ rq.num_sc }}{% else %}---{% endif %}</td>
                 <td>{% if rq.sc_change_date %}{{ rq.sc_change_date|date:"d/m/Y H:i" }}{% else %}---{% endif %}</td>
