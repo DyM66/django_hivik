@@ -150,74 +150,73 @@
     {% endif %}
 </div>
 
-<div class="info-asset">
-		<table class="table-list">
-			<thead>
-				<tr>
-					<th colspan="2" class="visible">Información general</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% if asset.imagen %}
+    <div class="info-asset">
+            <table class="table-list">
+                <thead>
                     <tr>
-                        <td colspan="2">
-                            <img src="{{ asset.imagen.url }}" id="asset" />
+                        <th colspan="2" class="visible">Información general</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if asset.imagen %}
+                        <tr>
+                            <td colspan="2">
+                                <img src="{{ asset.imagen.url }}" id="asset" />
+                            </td>
+                        </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Supervisor</th>
+                        <td data-cell="Supervisor">
+                            {{asset.supervisor.get_full_name}}
+                            ({{asset.supervisor.profile.cargo}})
                         </td>
                     </tr>
-				{% endif %}
-				<tr>
-					<th>Supervisor</th>
-					<td data-cell="Supervisor">
-						{{asset.supervisor.get_full_name}}
-						({{asset.supervisor.profile.cargo}})
-					</td>
-				</tr>
-				<tr>
-					<th>Área</th>
-					<td data-cell="Área">{{asset.get_area_display}}</td>
-				</tr>
-				{% if asset.area == 'a' %}
                     <tr>
-                        <th colspan="2" class="info-special">Información especifica</th>
+                        <th>Área</th>
+                        <td data-cell="Área">{{asset.get_area_display}}</td>
+                    </tr>
+                    {% if asset.area == 'a' %}
+                        <tr>
+                            <th colspan="2" class="info-special">Información especifica</th>
+                        </tr>
+                        <tr>
+                            <th>Bandera</th>
+                            <td data-cell="Bandera">{{asset.bandera}}</td>
+                        </tr>
+                        <tr>
+                            <th>Eslora</th>
+                            <td data-cell="Eslora">{{asset.eslora}} m</td>
+                        </tr>
+                        <tr>
+                            <th>Manga</th>
+                            <td data-cell="Manga">{{asset.manga}} m</td>
+                        </tr>
+                        <tr>
+                            <th>Puntal</th>
+                            <td data-cell="Puntal">{{asset.puntal}} m</td>
+                        </tr>
+                        <tr>
+                            <th>Calado maximo</th>
+                            <td data-cell="Calado maximo">{{asset.calado_maximo}}</td>
+                        </tr>
+                        <tr>
+                            <th>Deadweight</th>
+                            <td data-cell="Deadweight">{{asset.deadweight}}</td>
+                        </tr>
+                        <tr>
+                            <th>Arqueo bruto</th>
+                            <td data-cell="Arqueo bruto">{{asset.arqueo_bruto}}</td>
                     </tr>
                     <tr>
-                        <th>Bandera</th>
-                        <td data-cell="Bandera">{{asset.bandera}}</td>
+                        <th>Arqueo neto</th>
+                        <td data-cell="Arqueo neto">{{asset.arqueo_neto}}</td>
                     </tr>
-                    <tr>
-                        <th>Eslora</th>
-                        <td data-cell="Eslora">{{asset.eslora}} m</td>
-                    </tr>
-                    <tr>
-                        <th>Manga</th>
-                        <td data-cell="Manga">{{asset.manga}} m</td>
-                    </tr>
-                    <tr>
-                        <th>Puntal</th>
-                        <td data-cell="Puntal">{{asset.puntal}} m</td>
-                    </tr>
-                    <tr>
-                        <th>Calado maximo</th>
-                        <td data-cell="Calado maximo">{{asset.calado_maximo}}</td>
-                    </tr>
-                    <tr>
-                        <th>Deadweight</th>
-                        <td data-cell="Deadweight">{{asset.deadweight}}</td>
-                    </tr>
-                    <tr>
-                        <th>Arqueo bruto</th>
-                        <td data-cell="Arqueo bruto">{{asset.arqueo_bruto}}</td>
-                </tr>
-                <tr>
-                    <th>Arqueo neto</th>
-                    <td data-cell="Arqueo neto">{{asset.arqueo_neto}}</td>
-                </tr>
-			{% endif %}
-		</tbody>
-	</table>
+                {% endif %}
+            </tbody>
+        </table>
 
-    <br>
-    {% if asset.documents.all %}
+        <br>
         <div class="documents-section">
             <table class="table-list table-detail">
                 <thead>
@@ -234,20 +233,19 @@
                 </thead>
                 <tbody>
                     {% for document in asset.documents.all %}
-                    <tr>
-                        <td>{{ document.description }}</td>
-                        <td><a href="{{ document.file.url }}" target="_blank">Abrir</a></td>
-                    </tr>
+                        <tr>
+                            <td>{{ document.description }}</td>
+                            <td><a href="{{ document.file.url }}" target="_blank">Abrir</a></td>
+                        </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="2">No hay documentos disponibles.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="2">No hay documentos disponibles.</td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    {% endif %}
-</div>
+    </div>
 </div>
 
 {% if rotativos %} 
