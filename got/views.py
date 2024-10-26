@@ -346,7 +346,8 @@ def asset_suministros_report(request, abbreviation):
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
     keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
     suministros = Suministro.objects.filter(asset=asset, item__seccion='c').filter(keyword_filter).select_related('item').order_by('item__presentacion')
-    motonaves = Asset.objects.filter(area='a')
+
+    motonaves = Asset.objects.filter(Q(area='a') | Q(area='l'))
 
     grouped_suministros = {}
     for key, group in groupby(suministros, key=attrgetter('item.presentacion')):

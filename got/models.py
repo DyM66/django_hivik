@@ -750,6 +750,7 @@ class Transaction(models.Model):
         ('i', 'Ingreso'),
         ('c', 'Consumo'),
         ('t', 'Transferencia'),
+        ('e', 'Ingreso externo'),
     )
 
     suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
@@ -771,6 +772,7 @@ class Transaction(models.Model):
             models.UniqueConstraint(fields=['suministro', 'fecha', 'tipo'], name='unique_suministro_fecha_tipo')
         ]
 
+# bancada casqueteria 1010 guias asientos y valvulas, 6 bujes de biela juego bujes de levas que va en el bloque
 
 
 class DailyFuelConsumption(models.Model):
