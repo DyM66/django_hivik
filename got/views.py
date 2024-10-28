@@ -4094,3 +4094,28 @@ def export_overtime_excel(request):
 
     wb.save(response)
     return response
+
+
+
+from django.contrib.auth.views import PasswordResetView
+
+
+class CustomPasswordResetView(PasswordResetView):
+    email_template_name = 'registration/password_reset_email.txt'  # Plantilla de texto plano
+    html_email_template_name = 'registration/password_reset_email.html'  # Plantilla HTML
+    subject_template_name = 'registration/password_reset_subject.txt'  # Plantilla para el asunto
+    domain_override = settings.MY_SITE_DOMAIN  # Establece el dominio
+
+    def get_extra_email_context(self):
+        # Determinar el protocolo
+        protocol = 'https' if self.request.is_secure() else 'http'
+
+        # Obtener el nombre del sitio
+        site_name = settings.MY_SITE_NAME  # Define esto en settings.py
+
+        return {
+            'protocol': protocol,
+            'domain': self.domain_override,
+            'site_name': site_name,
+        }
+    

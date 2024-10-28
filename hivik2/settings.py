@@ -208,3 +208,6 @@ LOGGING = {
         },
     },
 }
+
+MY_SITE_DOMAIN = 'got.serport.co'
+MY_SITE_NAME = 'Got Serport'
