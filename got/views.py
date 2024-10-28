@@ -340,6 +340,8 @@ class AssetDocCreateView(generic.View):
 
 def asset_suministros_report(request, abbreviation):
 
+    
+
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
     keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
     suministros = Suministro.objects.filter(asset=asset, item__seccion='c').filter(keyword_filter).select_related('item').order_by('item__presentacion')
@@ -354,6 +356,7 @@ def asset_suministros_report(request, abbreviation):
     transacciones_historial = Transaction.objects.filter(
         Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)
     ).order_by('-fecha')
+
 
     if request.method == 'POST' and 'download_excel' in request.POST:
         df = pd.DataFrame(list(transacciones_historial.values(
@@ -390,6 +393,16 @@ def asset_suministros_report(request, abbreviation):
         transfer_motivo = request.POST.get('transfer_motivo', '')
         transfer_fecha_str = request.POST.get('transfer_fecha', '')  # New field
         confirm_overwrite = request.POST.get('confirm_overwrite', 'no')
+
+        operation = Operation.objects.filter(
+            asset=asset,
+            confirmado=True,
+            start__lte=transfer_fecha,
+            end__gte=transfer_fecha
+        ).first()
+
+        if operation:
+            transfer_motivo = f"{transfer_motivo} - {operation.proyecto}"
 
         try:
             transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
@@ -488,6 +501,18 @@ def asset_suministros_report(request, abbreviation):
         confirm_overwrite = request.POST.get('confirm_overwrite', 'no')
         overwriting_transactions = []
 
+        operation = Operation.objects.filter(
+            asset=asset,
+            confirmado=True,
+            start__lte=fecha_reporte,
+            end__gte=fecha_reporte
+        ).first()
+
+        if operation:
+            motivo = operation.proyecto
+        else:
+            motivo = ''
+
         for suministro in suministros:
             cantidad_consumida_str = request.POST.get(f'consumido_{suministro.id}', '0') or '0'
             cantidad_ingresada_str = request.POST.get(f'ingresado_{suministro.id}', '0') or '0'
@@ -574,7 +599,7 @@ def asset_suministros_report(request, abbreviation):
                         # Update transaction
                         transaccion_ingreso.cant = cantidad_ingresada
                         transaccion_ingreso.user = request.user.get_full_name()
-                        transaccion_ingreso.motivo = request.POST.get('motivo', '')
+                        transaccion_ingreso.motivo = motivo
                         transaccion_ingreso.cant_report = suministro.cantidad + cantidad_ingresada
                         transaccion_ingreso.save()
                     except Transaction.DoesNotExist:
@@ -583,7 +608,7 @@ def asset_suministros_report(request, abbreviation):
                             cant=cantidad_ingresada,
                             fecha=fecha_reporte,
                             user=request.user.get_full_name(),
-                            motivo=request.POST.get('motivo', ''),
+                            motivo=motivo,
                             tipo='i',
                             cant_report=suministro.cantidad + cantidad_ingresada
                         )
@@ -605,7 +630,7 @@ def asset_suministros_report(request, abbreviation):
                         # Update transaction
                         transaccion_consumo.cant = cantidad_consumida
                         transaccion_consumo.user = request.user.get_full_name()
-                        transaccion_consumo.motivo = request.POST.get('motivo', '')
+                        transaccion_consumo.motivo = motivo
                         transaccion_consumo.cant_report = suministro.cantidad - cantidad_consumida
                         transaccion_consumo.save()
                     except Transaction.DoesNotExist:
@@ -614,7 +639,7 @@ def asset_suministros_report(request, abbreviation):
                             cant=cantidad_consumida,
                             fecha=fecha_reporte,
                             user=request.user.get_full_name(),
-                            motivo=request.POST.get('motivo', ''),
+                            motivo=motivo,
                             tipo='c',
                             cant_report=suministro.cantidad - cantidad_consumida
                         )
