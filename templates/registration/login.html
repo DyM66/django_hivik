@@ -18,7 +18,8 @@
       		<label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label_tag }}</label>
       		<input type="password" class="form-control" id="{{ form.password.id_for_label }}" name="{{ form.password.name }}">
     	</div>
-  
+
+  		<p><a href="{% url 'password_reset' %}">¿Olvidó su contraseña?</a></p>
     	<div class="mb-3 form-check">
       		<button type="submit" class="btn btn-primary">Ingresar</button>
       		<input type="hidden" name="next" value="{{ next }}">
@@ -26,8 +27,7 @@
     
   	</form>
 
-  	{# Asume que configura la vista de restablecimiento de contraseña en su URLconf #}
-  	<!-- <p><a href="{% url 'password_reset' %}">¿Olvidó su contraseña?</a></p> -->
+  	
 
 
   

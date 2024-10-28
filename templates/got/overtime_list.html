@@ -1,0 +1,206 @@
+{% extends 'got/base_generic.html' %}
+
+{% block content %}
+
+
+<h1>Solicitudes de Horas Extras</h1>
+
+<div class="row">
+    <div class="col-md-9">
+
+        <table class="table-list deta mt-2">
+            <thead>
+                <tr>
+                    <th>Solicitud</th>
+                    <th>Centro de costos</th>
+                    <th>Reportado por</th>
+                    <th>Justificación</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for date_group in date_asset_groups %}
+                    {% for asset_group in date_group.assets %}
+                        <tr>
+                            <td data-cell="Fecha">
+                                <h6>{{ date_group.fecha|date:"d/m/Y" }}</h6>
+                            </td>
+                            <td data-cell="Centro de costos"><strong>{{ asset_group.asset.name }}</strong></td>
+                            <td data-cell="Reportado por">
+                                <strong>{{ asset_group.entries.0.reportado_por.get_full_name }}</strong>
+                            </td>
+                            <td data-cell="Justificación">
+                                {{ asset_group.justificacion|linebreaksbr }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td data-cell="Detalles" class="full-width-cell solicitud-cell" colspan="4">
+                                <ul style="list-style: none; padding-left: 0;">
+                                    {% for entry in asset_group.entries %}
+                                        <li>
+                                            <strong>{{ entry.nombre_completo }}</strong> - {{ entry.get_cargo_display }}
+                                                <a href="#" data-bs-toggle="modal" data-bs-target="#editEntryModal{{ entry.id }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </a><br>
+                                            Cédula: {{ entry.cedula }}<br>
+                                            Horario: {{ entry.hora_inicio|time:"h:i A" }} - {{ entry.hora_fin|time:"h:i A" }}<br>
+                                            <!-- Mostrar el estado de aprobación junto a cada usuario -->
+                                            {% if entry.approved %}
+                                                <span class="status aprobado">Aprobado</span>
+                                            {% else %}
+                                                <span class="status no-aprobado">No aprobado</span>
+                                            {% endif %}
+        
+                                            {% if perms.got.can_approve_overtime %}
+                                            <form method="post" action="{% url 'got:approve_overtime' entry.id %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                {% if not entry.approved %}
+                                                    <button type="submit" class="btn btn-sm btn-primary">Aprobar</button>
+                                                {% endif %}
+                                            </form>
+                                            {% endif %}
+                                        </li>
+                                        {% if not forloop.last %}
+                                            <hr>
+                                        {% endif %}
+        
+        
+                                        <!-- Modal para editar el registro -->
+                                        <div class="modal fade" id="editEntryModal{{ entry.id }}" tabindex="-1" aria-labelledby="editEntryModalLabel{{ entry.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <!-- Formulario para editar el registro -->
+                                                    <form method="post" action="{% url 'got:edit_overtime' entry.id %}">
+                                                        {% csrf_token %}
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="editEntryModalLabel{{ entry.id }}">Editar Registro de Horas Extras</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label for="nombre_completo{{ entry.id }}" class="form-label">Nombre completo</label>
+                                                                <input type="text" class="form-control" id="nombre_completo{{ entry.id }}" name="nombre_completo" value="{{ entry.nombre_completo }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="cedula{{ entry.id }}" class="form-label">Cédula</label>
+                                                                <input type="text" class="form-control" id="cedula{{ entry.id }}" name="cedula" value="{{ entry.cedula }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="hora_inicio{{ entry.id }}" class="form-label">Hora de inicio</label>
+                                                                <input type="text" class="form-control timepicker" id="hora_inicio{{ entry.id }}" name="hora_inicio" value="{{ entry.hora_inicio|time:'h:i A' }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="hora_fin{{ entry.id }}" class="form-label">Hora de fin</label>
+                                                                <input type="text" class="form-control timepicker" id="hora_fin{{ entry.id }}" name="hora_fin" value="{{ entry.hora_fin|time:'h:i A' }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="justificacion{{ entry.id }}" class="form-label">Justificación</label>
+                                                                <textarea class="form-control" id="justificacion{{ entry.id }}" name="justificacion" rows="4">{{ entry.justificacion }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <!-- Botón para eliminar el registro -->
+                                                                <button type="button" class="btn btn-danger" onclick="deleteEntry{{ entry.id }}()">Eliminar</button>
+                                                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                                                        </div>
+                                                    </form>
+                                                    <!-- Formulario oculto para eliminar el registro -->
+                                                    <form method="post" action="{% url 'got:delete_overtime' entry.id %}" id="deleteForm{{ entry.id }}" style="display:none;">
+                                                        {% csrf_token %}
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+        
+                                        <!-- Script para manejar la eliminación -->
+                                        <script>
+                                            function deleteEntry{{ entry.id }}() {
+                                                if(confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+                                                    document.getElementById('deleteForm{{ entry.id }}').submit();
+                                                }
+                                            }
+                                        </script>
+        
+        
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">No hay solicitudes de horas extras registradas.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <nav aria-label="Page navigation" class="mt-2">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.person_name %}&person_name={{ request.GET.person_name }}{% endif %}{% if request.GET.asset %}&asset={{ request.GET.asset }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}" aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                            <span class="sr-only">Anterior</span>
+                        </a>
+                    </li>
+                {% endif %}
+                <li class="page-item disabled">
+                    <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.person_name %}&person_name={{ request.GET.person_name }}{% endif %}{% if request.GET.asset %}&asset={{ request.GET.asset }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}" aria-label="Siguiente">
+                            <span aria-hidden="true">&raquo;</span>
+                            <span class="sr-only">Siguiente</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        
+    </div>
+
+
+<div class="col-md-3">
+
+    <form method="get" action="{% url 'got:export_overtime_excel' %}" class="mb-3">
+        <!-- Pasar los filtros actuales como parámetros -->
+        <input type="hidden" name="person_name" value="{{ request.GET.person_name }}">
+        <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+        <input type="hidden" name="date" value="{{ request.GET.date }}">
+        <button type="submit" class="btn btn-primary">Descargar Excel</button>
+    </form>
+
+    <form method="get" class="form-inline mb-3">
+        <div class="form-group me-2">
+            <input type="text" name="person_name" class="form-control" placeholder="Nombre de la persona" value="{{ request.GET.person_name }}">
+        </div>
+        <div class="form-group me-2">
+            <input type="text" name="asset" class="form-control" placeholder="Barco" value="{{ request.GET.asset }}">
+        </div>
+        <div class="form-group me-2">
+            <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Buscar</button>
+    </form>
+    
+
+</div>
+
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        flatpickr(".timepicker", {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "h:i K",
+            time_24hr: false,
+            minuteIncrement: 1,
+            defaultHour: 12
+        });
+    });
+</script>
+
+{% endblock %}

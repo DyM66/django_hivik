@@ -93,6 +93,22 @@
                         </a>
                     </li>
                 {% endif %}
+
+                {% if perms.got.view_overtime %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'overtime_list' %}active{% endif %}" href="{% url 'got:overtime_list' %}">
+                            Horas extras
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% if request.user|has_group:"maq_members" %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'overtime_report' %}active{% endif %}" href="{% url 'got:overtime_report' %}">
+                            Horas extras
+                        </a>
+                    </li>
+                {% endif %}
               </ul>
 
               <!-- Boton de logout -->

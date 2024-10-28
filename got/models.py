@@ -772,8 +772,6 @@ class Transaction(models.Model):
             models.UniqueConstraint(fields=['suministro', 'fecha', 'tipo'], name='unique_suministro_fecha_tipo')
         ]
 
-# bancada casqueteria 1010 guias asientos y valvulas, 6 bujes de biela juego bujes de levas que va en el bloque
-
 
 class DailyFuelConsumption(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='fuel_consumptions')
@@ -794,6 +792,8 @@ class Megger(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     date_report = models.DateField(auto_now_add=True, null=True, blank=True)
 
+    estator_pi_1min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+
     def __str__(self):
         return f"Prueba #{self.id}/{self.equipo}"
 
@@ -801,7 +801,7 @@ class Megger(models.Model):
 class Estator(models.Model):
 
     megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
-    pi_1min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    pi_1min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)#
     pi_1min_l2_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     pi_1min_l3_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     pi_1min_l1_l2 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
@@ -1117,3 +1117,40 @@ class Document(models.Model):
     file = models.FileField(upload_to=get_upload_pdfs)
     description = models.CharField(max_length=200)
 
+
+class Overtime(models.Model):
+
+    CARGO = (
+        ('a', 'Capitan'),
+        ('b', 'Primer Oficial de puente'),
+        ('c', 'Marino'),
+        ('d', 'Jefe de maquinas'),
+        ('e', 'Primer Oficial de maquinas'),
+        ('f', 'Maquinista'),
+        ('g', 'Otro'),
+    )
+
+    # Información común
+    fecha = models.DateField()
+    hora_inicio = models.TimeField()
+    hora_fin = models.TimeField()
+    justificacion = models.TextField()
+
+    # Información específica por persona
+    nombre_completo = models.CharField(max_length=200, default='')
+    cedula = models.CharField(max_length=20, default='')
+    cargo = models.CharField(max_length=1, choices=CARGO)
+
+    # Información adicional
+    reportado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    approved = models.BooleanField(default=False)
+    asset = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True, blank=True)
+
+
+    def __str__(self):
+        return f"{self.nombre} {self.apellido} - {self.get_cargo_display()} ({self.fecha})"
+    
+    class Meta:
+        permissions = [
+            ('can_approve_overtime', 'Puede aprobar horas extras'),
+        ]

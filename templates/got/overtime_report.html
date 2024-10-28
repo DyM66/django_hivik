@@ -1,0 +1,107 @@
+{% extends 'got/base_generic.html' %}
+
+{% block content %}
+    <h2>Reporte de Horas Extras</h2>
+    <form method="post">
+        {% csrf_token %}
+        <fieldset>
+        <legend>Información de solicitud</legend>
+        {{ common_form.as_p }}
+        </fieldset>
+
+        
+        <fieldset>
+        <legend>Personal extendido:</legend>
+        <div id="formset">
+            {{ person_formset.management_form }}
+            {% for form in person_formset %}
+            <div class="person-form">
+                <div class="form-row">
+                <div class="form-group col-md-6">
+                    {{ form.nombre_completo.label_tag }}
+                    {{ form.nombre_completo }}
+                </div>
+                <div class="form-group col-md-6">
+                    {{ form.cedula.label_tag }}
+                    {{ form.cedula }}
+                </div>
+                </div>
+                <div class="form-row">
+                <div class="form-group col-md-12">
+                    {{ form.cargo.label_tag }}
+                    {{ form.cargo }}
+                </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="button" id="add-person" class="btn btn-secondary">Agregar Persona</button>
+        </fieldset>
+        <button type="submit" class="btn btn-primary mt-2">Enviar</button>
+    </form>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      flatpickr("#timepicker_inicio", {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "h:i K",
+        time_24hr: false,
+        minuteIncrement: 1,
+        defaultHour: 12
+      });
+  
+      flatpickr("#timepicker_fin", {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "h:i K",
+        time_24hr: false,
+        minuteIncrement: 1,
+        defaultHour: 12
+      });
+    });
+  </script>
+  <script>
+
+    // JavaScript para añadir formularios dinámicamente
+    document.getElementById('add-person').addEventListener('click', function(e) {
+      e.preventDefault();
+      var formset = document.getElementById('formset');
+      var totalForms = document.querySelectorAll('#formset .person-form').length;
+      var newForm = document.querySelectorAll('#formset .person-form')[0].cloneNode(true);
+
+      // Limpiar los valores de los campos en el formulario clonado
+      var inputs = newForm.querySelectorAll('input, select');
+      inputs.forEach(function(input) {
+        input.value = '';
+      });
+
+      // Actualizar los índices de los formularios
+      var formRegex = RegExp('form-(\\d+)-', 'g');
+      newForm.innerHTML = newForm.innerHTML.replace(formRegex, 'form-' + totalForms + '-');
+      formset.appendChild(newForm);
+
+      // Actualizar el TOTAL_FORMS en el management form
+      document.getElementById('id_form-TOTAL_FORMS').value = totalForms + 1;
+    });
+  </script>
+
+  <style>
+    @media (min-width: 768px) {
+      .form-row {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .form-group {
+        flex: 1;
+        margin-right: 10px;
+      }
+      .form-group:last-child {
+        margin-right: 0;
+      }
+    }
+  </style>
+{% endblock %}

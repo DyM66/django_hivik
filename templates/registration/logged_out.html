@@ -1,11 +1,8 @@
 {% extends "got/base_generic.html" %}
 
-{% block title %}log out{% endblock %}
-
-{% block header %}Log out{% endblock %} 
-
-
 {% block content %}
+<h1>Sesión finalizada</h1>
+
 <p>¡Sesión finalizada!</p>
 
 <a href="{% url 'login'%}">Haga clic aquí para iniciar sesión nuevamente.</a>
