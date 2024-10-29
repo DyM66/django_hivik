@@ -1692,8 +1692,10 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
 
         if self.request.user.groups.filter(name='super_members').exists():
             context['task_form'] = ActForm()
+            print('sjgdoasd')
         else:
-            context['task_form'] = ActFormNoSup()
+            # context['task_form'] = ActFormNoSup()
+            context['task_form'] = ActForm()
 
         context['all_tasks_finished'] = not self.get_object().task_set.filter(finished=False).exists()
         context['has_activities'] = self.get_object().task_set.exists()

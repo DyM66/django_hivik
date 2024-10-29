@@ -335,7 +335,7 @@ class FinishTask(forms.ModelForm):
 class ActForm(forms.ModelForm):
 
     delete_images = forms.BooleanField(required=False, label='Eliminar imágenes')
-    responsible = UserChoiceField(queryset=User.objects.all(), label='Responsable')
+    # responsible = UserChoiceField(queryset=User.objects.all(), label='Responsable', widget=forms.Select(attrs={'class': 'form-control'}),)
 
     finished = forms.ChoiceField(
         choices=[(True, 'Sí'), (False, 'No')],
@@ -355,7 +355,6 @@ class ActForm(forms.ModelForm):
             'men_time': 'Tiempo de ejecución (Dias)',
             }
         widgets = {
-            'responsible': forms.Select,
             'start_date': XYZ_DateInput(format=['%Y-%m-%d'],),
             'description': forms.Textarea,
             }
@@ -368,6 +367,8 @@ class ActForm(forms.ModelForm):
         group_names = ['serport_members', 'super_members', 'maq_members', 'buzos_members']
         groups = Group.objects.filter(name__in=group_names)
         users = User.objects.filter(groups__in=groups).distinct()
+        print("Usuarios disponibles para responsible:", users)
+
         self.fields['responsible'].queryset = users
 
 

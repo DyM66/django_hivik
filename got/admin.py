@@ -85,6 +85,7 @@ admin.site.register(Item)
 admin.site.register(Document)
 admin.site.register(Salida)
 admin.site.register(Ot, OtAdmin)
+admin.site.register(Task)
 
 
 
