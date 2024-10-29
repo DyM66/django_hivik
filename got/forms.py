@@ -778,17 +778,6 @@ class MeggerForm(forms.ModelForm):
         fields = '__all__'
 
 
-class TransaccionSuministroForm(forms.ModelForm):
-    class Meta:
-        model = TransaccionSuministro
-        fields = ['cantidad_ingresada', 'cantidad_consumida']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['cantidad_ingresada'].widget.attrs.update({'class': 'form-control'})
-        self.fields['cantidad_consumida'].widget.attrs.update({'class': 'form-control'})
-
-
 class PreoperacionalForm(forms.ModelForm):
 
     vehiculo = forms.ModelChoiceField(queryset=System.objects.filter(asset__area='v'), empty_label="Seleccione un Vehículo", widget=forms.Select(attrs={'class': 'form-control'}))

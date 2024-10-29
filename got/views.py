@@ -98,16 +98,16 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
     template_name = 'got/assets/asset_list.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.groups.filter(name='maq_members').exists():
-            try:
-                asset = Asset.objects.get(supervisor=request.user)
-                return redirect('got:asset-detail', pk=asset.abbreviation)
-            except ObjectDoesNotExist:
-                messages.error(request, "No tienes un asset asignado.")
-                return redirect('got:assets-list')
+        asset = Asset.objects.filter(
+            models.Q(supervisor=request.user) | models.Q(capitan=request.user)
+        ).first()
+
+        if asset:
+            return redirect('got:asset-detail', pk=asset.abbreviation)
         elif request.user.groups.filter(name='serport_members').exists():
             return redirect('got:my-tasks')
-        return super().dispatch(request, *args, **kwargs)
+        else:
+            return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3684,18 +3684,21 @@ def indicadores(request):
             suministro = Suministro.objects.get(asset=asset, item_id=132)
             total_quantity = suministro.cantidad
 
-            # Obtener la última transacción de combustible
-            last_transaction = Transaction.objects.filter(suministro=suministro, tipo='c').order_by('-fecha').first()
-            if last_transaction:
+            # Obtener la última transacción de consumo de combustible
+            try:
+                last_transaction = Transaction.objects.filter(
+                    suministro=suministro,
+                    tipo='c'  # Asumiendo que 'c' significa 'consumo'
+                ).latest('fecha')
                 last_report_date = last_transaction.fecha
-            else:
+            except Transaction.DoesNotExist:
                 last_report_date = None
 
-            combustible_data.append({
-                'asset_name': asset.name,
-                'last_report_date': last_report_date,
-                'total_quantity': total_quantity,
-            })
+                combustible_data.append({
+                    'asset_name': asset.name,
+                    'last_report_date': last_report_date,
+                    'total_quantity': total_quantity,
+                })
         except Suministro.DoesNotExist:
             # Si el suministro de combustible no existe para este asset
             combustible_data.append({

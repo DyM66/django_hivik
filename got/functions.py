@@ -409,11 +409,12 @@ def fechas_range():
 def consumos_combustible_asset(asset):
     hoy = timezone.now().date() - timedelta(days=1)
     hace_30_dias = hoy - timedelta(days=30)
-    consumos = TransaccionSuministro.objects.filter(
+    consumos = Transaction.objects.filter(
         suministro__asset=asset,
         suministro__item__id=132,
-        fecha__range=[hace_30_dias, hoy]
-    ).values('fecha').annotate(total_consumido=Sum('cantidad_consumida')).order_by('fecha')
+        fecha__range=[hace_30_dias, hoy],
+        tipo='c'
+    ).values('fecha').annotate(total_consumido=Sum('cant')).order_by('fecha')
     fechas = [(hace_30_dias + timedelta(days=i)).strftime('%d/%m') for i in range(31)]
     consumos_dict = {consumo['fecha'].strftime('%d/%m'): consumo['total_consumido'] for consumo in consumos}
     consumos_grafica = [consumos_dict.get(fecha, 0) for fecha in fechas]
@@ -506,53 +507,6 @@ def consumibles_summary(asset):
     return items_by_subsystem
 
 
-
-def migrate_transactions():
-    migrated_count = 0
-    skipped_count = 0
-
-    transacciones = TransaccionSuministro.objects.all()
-
-    for transaccion in transacciones:
-        suministro = transaccion.suministro
-        fecha = transaccion.fecha
-        usuario = transaccion.usuario
-        user_full_name = usuario.get_full_name() if usuario else 'Unknown User'
-        motivo = transaccion.motivo
-
-        # Process cantidad_ingresada
-        if transaccion.cantidad_ingresada > 0:
-            transaction_data = {
-                'suministro': suministro,
-                'cant': transaccion.cantidad_ingresada,
-                'fecha': fecha,
-                'user': user_full_name,
-                'motivo': motivo,
-                'tipo': 'i',
-            }
-            created = create_transaction(transaction_data)
-            if created:
-                migrated_count += 1
-            else:
-                skipped_count += 1
-
-        # Process cantidad_consumida
-        if transaccion.cantidad_consumida > 0:
-            transaction_data = {
-                'suministro': suministro,
-                'cant': transaccion.cantidad_consumida,
-                'fecha': fecha,
-                'user': user_full_name,
-                'motivo': motivo,
-                'tipo': 'c',
-            }
-            created = create_transaction(transaction_data)
-            if created:
-                migrated_count += 1
-            else:
-                skipped_count += 1
-
-    print(f'Migration completed. {migrated_count} transactions migrated, {skipped_count} transactions skipped due to duplicates.')
 
 def create_transaction(data):
     try:
