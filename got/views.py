@@ -98,12 +98,13 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
     template_name = 'got/assets/asset_list.html'
 
     def dispatch(self, request, *args, **kwargs):
-        asset = Asset.objects.filter(
-            models.Q(supervisor=request.user) | models.Q(capitan=request.user)
-        ).first()
+        if request.user.groups.filter(name='maq_members').exists():
+            asset = Asset.objects.filter(
+                models.Q(supervisor=request.user) | models.Q(capitan=request.user)
+            ).first()
 
-        if asset:
-            return redirect('got:asset-detail', pk=asset.abbreviation)
+            if asset:
+                return redirect('got:asset-detail', pk=asset.abbreviation)
         elif request.user.groups.filter(name='serport_members').exists():
             return redirect('got:my-tasks')
         else:
