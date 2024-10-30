@@ -20,15 +20,17 @@ class UserChoiceField(forms.ModelChoiceField):
 
     def label_from_instance(self, obj):
         try:
-            # Intentar obtener el perfil y el cargo del usuario
             cargo = obj.profile.cargo if obj.profile.cargo else "Sin cargo"
-        except User.profile.RelatedObjectDoesNotExist:
-            # Si no existe un perfil, asignar "Sin cargo"
+        except UserProfile.DoesNotExist:
             cargo = "Sin cargo"
         
         if obj.groups.filter(name="maq_members").exists():
-            asset = Asset.objects.get(supervisor=obj)
-            return f"{obj.get_full_name()} - {cargo} ({asset})"
+            try:
+                asset = Asset.objects.get(supervisor=obj)
+                asset_name = f" ({asset})"
+            except Asset.DoesNotExist:
+                asset_name = ""
+            return f"{obj.get_full_name()} - {cargo}{asset_name}"
         else:
             return f"{obj.get_full_name()} - {cargo}"
 
@@ -335,7 +337,7 @@ class FinishTask(forms.ModelForm):
 class ActForm(forms.ModelForm):
 
     delete_images = forms.BooleanField(required=False, label='Eliminar imágenes')
-    # responsible = UserChoiceField(queryset=User.objects.all(), label='Responsable', widget=forms.Select(attrs={'class': 'form-control'}),)
+    responsible = UserChoiceField(queryset=User.objects.all(), label='Responsable', widget=forms.Select(attrs={'class': 'form-control'}),)
 
     finished = forms.ChoiceField(
         choices=[(True, 'Sí'), (False, 'No')],

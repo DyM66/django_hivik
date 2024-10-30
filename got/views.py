@@ -341,8 +341,6 @@ class AssetDocCreateView(generic.View):
 
 def asset_suministros_report(request, abbreviation):
 
-    
-
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
     keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
     suministros = Suministro.objects.filter(asset=asset, item__seccion='c').filter(keyword_filter).select_related('item').order_by('item__presentacion')
@@ -395,6 +393,12 @@ def asset_suministros_report(request, abbreviation):
         transfer_fecha_str = request.POST.get('transfer_fecha', '')  # New field
         confirm_overwrite = request.POST.get('confirm_overwrite', 'no')
 
+        try:
+            transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, 'Fecha inválida.')
+            return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
+
         operation = Operation.objects.filter(
             asset=asset,
             confirmado=True,
@@ -404,12 +408,6 @@ def asset_suministros_report(request, abbreviation):
 
         if operation:
             transfer_motivo = f"{transfer_motivo} - {operation.proyecto}"
-
-        try:
-            transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, 'Fecha inválida.')
-            return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
 
         try:
             transfer_cantidad = Decimal(transfer_cantidad_str)
@@ -1692,10 +1690,8 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
 
         if self.request.user.groups.filter(name='super_members').exists():
             context['task_form'] = ActForm()
-            print('sjgdoasd')
         else:
-            # context['task_form'] = ActFormNoSup()
-            context['task_form'] = ActForm()
+            context['task_form'] = ActFormNoSup()
 
         context['all_tasks_finished'] = not self.get_object().task_set.filter(finished=False).exists()
         context['has_activities'] = self.get_object().task_set.exists()
