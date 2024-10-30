@@ -2,9 +2,23 @@ from django import template
 from got.models import Asset, FailureReport, Solicitud
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
-
+import os
 
 register = template.Library()
+
+@register.filter(name='endswith')
+def endswith(value, arg):
+    """
+    Devuelve True si el valor termina con el argumento proporcionado.
+    """
+    return value.endswith(arg)
+
+@register.filter(name='basename')
+def basename(value):
+    """
+    Devuelve el nombre base de una ruta de archivo.
+    """
+    return os.path.basename(value)
 
 
 @register.simple_tag(takes_context=True)

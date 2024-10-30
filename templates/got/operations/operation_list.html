@@ -1,4 +1,5 @@
 {% extends "got/base_generic.html" %}
+{% load my_tags %}
 
 {% block headtag %}
 <style>
@@ -160,7 +161,13 @@
                                     <td>{{ requirement.text|linebreaksbr }}</td>
                                     <td>{{ requirement.approved|yesno:"Sí,No" }}</td>
                                     <td>{{ requirement.novedad|default_if_none:"" }}</td>
-                                    <td>{{ requirement.images.count }}</td>
+                                    <td>
+                                        {% if requirement.images.count > 0 %}
+                                            <a href="#" data-bs-toggle="modal" data-bs-target="#imagesModal{{ requirement.id }}" class="btn btn-primary">{{ requirement.images.count }}</a>
+                                        {% else %}
+                                            {{ requirement.images.count }}
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         <a href="{% url 'got:requirement-update' requirement.id %}"><i class="bi bi-pencil"></i></a>
                                         {% if perms.got.can_create_requirement %}
@@ -168,7 +175,47 @@
                                         {% endif %}
                                     </td>
                                 </tr>
-                                <!-- Fila para las imágenes y otros detalles -->
+<!-- Modal para imágenes y PDFs -->
+<div class="modal fade" id="imagesModal{{ requirement.id }}" tabindex="-1" aria-labelledby="imagesModalLabel{{ requirement.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg"> <!-- Puedes ajustar el tamaño del modal -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Archivos para el requerimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    {% for image in requirement.images.all %}
+                        {% if image.image.url|lower|endswith:".pdf" %}
+                            <!-- Si es un PDF, mostrar un enlace o un iframe -->
+                            <div class="col-md-12 mb-3">
+                                <embed src="{{ image.image.url }}" type="application/pdf" width="100%" height="600px" />
+                                <!-- O simplemente proporcionar un enlace de descarga -->
+                                <!-- <a href="{{ image.image.url }}" target="_blank">Ver PDF</a> -->
+                            </div>
+                        {% elif image.image.url|lower|endswith:".jpg" or image.image.url|lower|endswith:".jpeg" or image.image.url|lower|endswith:".png" or image.image.url|lower|endswith:".gif" %}
+                            <!-- Si es una imagen, mostrarla -->
+                            <div class="col-md-4 mb-3">
+                                <img src="{{ image.image.url }}" alt="Imagen" class="img-fluid">
+                            </div>
+                        {% else %}
+                            <!-- Otros tipos de archivos -->
+                            <div class="col-md-12 mb-3">
+                                <p>Archivo: <a href="{{ image.image.url }}" target="_blank">{{ image.image.url|basename }}</a></p>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+                                
+
                             {% endfor %}
                         </tbody>
                     </table>
@@ -180,6 +227,9 @@
 {% else %}
 <p>No hay requerimientos registrados para esta operación.</p>
 {% endif %}
+
+
+
 
 
                     
