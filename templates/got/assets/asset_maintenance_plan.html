@@ -74,7 +74,7 @@
                         </td>
 
                         <div class="modal fade" id="crearOtModal{{ ruta.code }}" tabindex="-1" aria-labelledby="crearOtModalLabel{{ ruta.code }}" aria-hidden="true">
-                            <div class="modal-dialog modal-lg">
+                            <div class="modal-dialog modal-lg"> 
                                 <form method="post" action="{% url 'got:crear_ot_desde_ruta' ruta.code %}">{% csrf_token %}
                                     <div class="modal-content">
                                         <div class="modal-header">
@@ -221,12 +221,17 @@
         </form>
     
         <hr>
-        <form method="post" action="{% url 'got:asset-maintenance-plan' asset.abbreviation %}">
-            {% csrf_token %}
-            <button type="submit" name="download_excel" class="btn btn-info">
-                Descargar Rutinas como Excel
-            </button>
+        <form method="POST" action="{% url 'got:asset-maintenance-plan' asset.abbreviation %}">{% csrf_token %}
+            <input type="hidden" name="download_excel" value="true">
+            <input type="hidden" name="month" value="{{ rutinas_filter_form.month.value }}">
+            <input type="hidden" name="year" value="{{ rutinas_filter_form.year.value }}">
+            <input type="hidden" name="execute" value="{{ rutinas_filter_form.execute.value }}">
+            {% for location in rutinas_filter_form.locations.value %}
+                <input type="hidden" name="locations" value="{{ location }}">
+            {% endfor %}
+            <button type="submit" class="btn btn-info">Descargar Rutinas como Excel</button>
         </form>
+        
         <br />
         <a class="btn btn-info"
             href="{% url 'got:preventivo' asset.abbreviation %}?month={{ rutinas_filter_form.month.value }}&year={{ rutinas_filter_form.year.value }}{% if rutinas_filter_form.execute.value %}&execute=on{% endif %}{% for location in rutinas_filter_form.locations.value %}&locations={{ location }}{% endfor %}">

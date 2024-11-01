@@ -178,7 +178,7 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         asset = self.get_object()
         user = self.request.user
 
-        filtered_rutas, current_month_name_es = self.get_filtered_rutas(asset, user)
+        filtered_rutas, current_month_name_es = self.get_filtered_rutas(asset, user, self.request.GET)
         rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
 
         context['rotativos'] = rotativos
@@ -190,8 +190,8 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
         return context
 
-    def get_filtered_rutas(self, asset, user):
-        form = RutinaFilterForm(self.request.GET or None, asset=asset)
+    def get_filtered_rutas(self, asset, user, request_data=None):
+        form = RutinaFilterForm(request_data, asset=asset)
         current_month_name_es = traductor(datetime.now().strftime('%B'))
 
         if form.is_valid():
@@ -232,17 +232,15 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
 
     def post(self, request, *args, **kwargs):
         if 'download_excel' in request.POST:
-            print('hola')
-            return self.export_rutinas_to_excel()
+            return self.export_rutinas_to_excel(request.POST)
         else:
-            # Maneja otros casos si es necesario
             return redirect(request.path)
 
-    def export_rutinas_to_excel(self):
+    def export_rutinas_to_excel(self, request_data):
         asset = self.get_object()
         user = self.request.user
 
-        filtered_rutas, _ = self.get_filtered_rutas(asset, user)
+        filtered_rutas, _ = self.get_filtered_rutas(asset, user, request_data)
         data = []
 
         for ruta in filtered_rutas:
