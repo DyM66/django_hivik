@@ -1071,7 +1071,7 @@ def schedule(request, pk):
     months_with_year = []
     year_months = OrderedDict()
 
-    for i in range(13):  # De este mes hasta 12 meses después
+    for i in range(13):
         month = (current_date.month + i - 1) % 12 + 1
         year = current_date.year + (current_date.month + i - 1) // 12
         month_name = _(calendar.month_name[month]).capitalize()
@@ -1450,9 +1450,7 @@ class FailureDetailView(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         failurereport = self.get_object()
-        # Obtener el sistema del equipo del reporte de falla
         system = failurereport.equipo.system
-        # Obtener las OTs existentes del sistema
         existing_ots = Ot.objects.filter(system=system)
         context['existing_ots'] = existing_ots
         return context
@@ -1612,8 +1610,6 @@ def asociar_ot_failure_report(request, fail_id):
         fail = get_object_or_404(FailureReport, pk=fail_id)
         ot = get_object_or_404(Ot, num_ot=ot_id)
         fail.related_ot = ot
-
-        # Verificar el estado de la OT y actualizar el campo 'closed' del reporte de falla
         if ot.state == 'f':
             fail.closed = True
         fail.save()
@@ -2473,59 +2469,6 @@ def buceomtto(request):
 
 
 'OPERATIONS VIEW'
-# def OperationListView(request):
-#     assets = Asset.objects.filter(area='a')
-#     operaciones_list = Operation.objects.order_by('start').prefetch_related(
-#         Prefetch(
-#             'requirement_set',
-#             queryset=Requirement.objects.order_by('responsable').prefetch_related('images')
-#         )
-#     )
-
-#     page = request.GET.get('page', 1)
-#     paginator = Paginator(operaciones_list, 10)  # Mostrar 10 operaciones por página
-
-#     try:
-#         operaciones = paginator.page(page)
-#     except PageNotAnInteger:
-#         operaciones = paginator.page(1)
-#     except EmptyPage:
-#         operaciones = paginator.page(paginator.num_pages)
-
-#     operations_data = []
-#     for asset in assets:
-#         asset_operations = asset.operation_set.all().values(
-#             'start', 'end', 'proyecto', 'requirements', 'confirmado'
-#         )
-#         operations_data.append({
-#             'asset': asset,
-#             'operations': list(asset_operations)
-#         })
-
-#     form = OperationForm(request.POST or None)
-#     modal_open = False 
-
-#     if request.method == 'POST':
-#         form = OperationForm(request.POST)
-#         if form.is_valid():
-#             form.save()
-#             return redirect(request.path)
-#         else:
-#             modal_open = True 
-#     else:
-#         form = OperationForm()
-
-#     context= {
-#         'operations_data': operations_data,
-#         'operation_form': form,
-#         'modal_open': modal_open,
-#         'operaciones': operaciones,
-#         'requirement_form': RequirementForm(),
-#         'upload_images_form': UploadImages(),
-#     }
-
-#     return render(request, 'got/operations/operation_list.html', context)
-
 def OperationListView(request):
     assets = Asset.objects.filter(area='a')
 
