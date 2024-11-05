@@ -715,6 +715,7 @@ class Solicitud(models.Model):
         permissions = (
             ('can_approve', 'Aprobar solicitudes'),
             ('can_cancel', 'Puede cancelar'),
+            ('can_view_all_rqs', 'Puede ver todas las solicitudes'),
             )
         ordering = ['-creation_date']
 

@@ -3,65 +3,87 @@
 
 {% block content %}
 
-<main class="px-3">
-    <h1>
-        Solicitudes de materiales/servicios 
-        {% if request.GET.asset %}
-        - {{ asset.name }}
-        {% endif %}
-    </h1>
+    <main class="px-3">
+        <h1>
+            Solicitudes de materiales/servicios 
+            {% if request.GET.asset %}
+            - {{ asset.name }}
+            {% endif %}
+        </h1> 
     
-    
-    <aside>
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                Filtrar por equipo
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{% url 'got:rq-list' %}?asset=&state={{ request.GET.state }}&keyword={{ request.GET.keyword }}">Mostrar todas</a></li>
-                {% for a in assets %}
-                    <li><a class="dropdown-item" href="{% url 'got:rq-list' %}?asset={{ a.abbreviation }}&state={{ request.GET.state }}&keyword={{ request.GET.keyword }}">{{ a.name }}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
+        <aside>
+            {% if perms.got.can_view_all_rqs %}
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Filtrar por equipo
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'got:rq-list' %}?asset=&state={{ request.GET.state }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}">Mostrar todas</a></li>
+                        {% for a in assets %}
+                            <li><a class="dropdown-item" href="{% url 'got:rq-list' %}?asset={{ a.abbreviation }}&state={{ request.GET.state }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}">{{ a.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    Estado
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a href="{% url 'got:rq-list' %}?state=&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}" class="dropdown-item">Mostrar todos</a></li>
+                    <li><a href="{% url 'got:rq-list' %}?state=no_aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}" class="dropdown-item">No Aprobadas</a></li>
+                    <li><a href="{% url 'got:rq-list' %}?state=aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}" class="dropdown-item">Aprobadas</a></li>
+                    <li><a href="{% url 'got:rq-list' %}?state=tramitado&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}" class="dropdown-item">Tramitadas</a></li>
+                    <li><a href="{% url 'got:rq-list' %}?state=parcialmente&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}" class="dropdown-item">Parcialmente Recibidas</a></li>
+                    <li><a href="{% url 'got:rq-list' %}?state=recibido&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}" class="dropdown-item">Recibidas</a></li>
+                    <li><a href="{% url 'got:rq-list' %}?state=cancel&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}&dpto={{ request.GET.dpto }}" class="dropdown-item">Cancelado</a></li>
+                </ul>
+            </div>
         
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                Estado
-            </button>
-            <ul class="dropdown-menu">
-                <li><a href="{% url 'got:rq-list' %}?state=&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Mostrar todos</a></li>
-                <li><a href="{% url 'got:rq-list' %}?state=no_aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">No Aprobadas</a></li>
-                <li><a href="{% url 'got:rq-list' %}?state=aprobada&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Aprobadas</a></li>
-                <li><a href="{% url 'got:rq-list' %}?state=tramitado&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Tramitadas</a></li>
-                <li><a href="{% url 'got:rq-list' %}?state=parcialmente&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Parcialmente Recibidas</a></li>
-                <li><a href="{% url 'got:rq-list' %}?state=recibido&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Recibidas</a></li>
-                <li><a href="{% url 'got:rq-list' %}?state=cancel&asset={{ request.GET.asset }}&keyword={{ request.GET.keyword }}" class="dropdown-item">Cancelado</a></li>
-            </ul>
-        </div>
-    
-        <div class="btn-group box-shadow" role="group">
-            <form method="GET" action="{% url 'got:rq-list' %}" class="form" autocomplete="off">
-                <div class="input-group">
-                    <input type="text" name="keyword" class="form-control" placeholder="Descripción" aria-label="Descripción" aria-describedby="button-addon2" value="{{ request.GET.keyword }}">
+            <div class="btn-group box-shadow" role="group">
+                <form method="GET" action="{% url 'got:rq-list' %}" class="form" autocomplete="off">
+                    <div class="input-group">
+                        <input type="text" name="keyword" class="form-control" placeholder="Descripción" aria-label="Descripción" aria-describedby="button-addon2" value="{{ request.GET.keyword }}">
+                        <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+                        <input type="hidden" name="state" value="{{ request.GET.state }}">
+                        <input type="hidden" name="dpto" value="{{ request.GET.dpto }}">
+                        <input type="submit" value="Buscar" class="btn btn-primary" id="button-addon2">
+                    </div>  
+                </form>
+            </div>
+
+            <div class="btn-group box-shadow" role="group" style="margin-top: 0;">
+                <form method="get" action="{% url 'got:rq-list' %}" class="form" id="departmentFilterForm">
+                    <!-- Preservar los filtros existentes -->
                     <input type="hidden" name="asset" value="{{ request.GET.asset }}">
                     <input type="hidden" name="state" value="{{ request.GET.state }}">
-                    <input type="submit" value="Buscar" class="btn btn-primary" id="button-addon2">
-                </div>  
-            </form>
-        </div>
-    
-        <div class="btn-group box-shadow" role="group">
-            <form action="{% url 'got:download_pdf' %}" method="get">
-                <input type="hidden" name="state" value="{{ request.GET.state }}">
-                <input type="hidden" name="asset" value="{{ request.GET.asset }}">
-                <input type="hidden" name="keyword" value="{{ request.GET.keyword }}">
-                <button type="submit" class="btn btn-info">Descargar PDF</button>
-            </form>
-        </div>
+                    <input type="hidden" name="keyword" value="{{ request.GET.keyword }}">
+                
+                    <div class="btn-group" role="group" aria-label="Filtrar por departamento">
+                        <!-- Botón de radio para Mantenimiento -->
+                        <input type="radio" class="btn-check" name="dpto" id="dpto_m" value="m"
+                            {% if current_dpto == 'm' or current_dpto == '' and default_dpto == 'm' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="dpto_m">Mantenimiento</label>
+                
+                        <!-- Botón de radio para Operaciones -->
+                        <input type="radio" class="btn-check" name="dpto" id="dpto_o" value="o"
+                            {% if current_dpto == 'o' or current_dpto == '' and default_dpto == 'o' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="dpto_o">Operaciones</label>
+                    </div>
+                </form>
+            </div>
         
-    </aside>
-    
+            <div class="btn-group box-shadow" role="group">
+                <form action="{% url 'got:download_pdf' %}" method="get">
+                    <input type="hidden" name="state" value="{{ request.GET.state }}">
+                    <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+                    <input type="hidden" name="keyword" value="{{ request.GET.keyword }}">
+                    <input type="hidden" name="dpto" value="{{ request.GET.dpto }}">
+                    <button type="submit" class="btn btn-info">Descargar PDF</button>
+                </form>
+            </div>
+        </aside>
     
         <table class="table-list deta mt-2">
             <thead>
@@ -78,7 +100,7 @@
                     <tr>
                         <td data-cell="Orden de trabajo" class="full-width-cell ot-cell">
                             <h6 id="{{rq.id}}">
-                                {% if rq.ot %}Orden de trabajo OT{{ rq.ot }} - {{ rq.ot.get_tipo_mtto_display }} {% else %}Consumibles/ Repuestos/ Herramientas{% endif %}
+                                {{rq.get_dpto_display}}: {% if rq.ot %}Orden de trabajo OT{{ rq.ot }} - {{ rq.ot.get_tipo_mtto_display }} {% else %}Consumibles/ Repuestos/ Herramientas{% endif %}
                             </h6>
                         </td>
                         
@@ -289,10 +311,18 @@
                 {% endfor %}
             </tbody>
         </table>
-</main>
-
+    </main>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const radioButtons = document.querySelectorAll('input[name="dpto"]');
+            radioButtons.forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    document.getElementById('departmentFilterForm').submit();
+                });
+            });
+        });
+
         document.addEventListener("DOMContentLoaded", () => {
             const rows = document.querySelectorAll("tr[data-href]");
 
@@ -302,7 +332,6 @@
                 })
             })
         })
-
     </script>
 
 {% endblock %}

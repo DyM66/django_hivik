@@ -1295,6 +1295,7 @@ class EquipoUpdate(UpdateView):
             return redirect(self.get_success_url())
         return super().post(request, *args, **kwargs)
 
+
 class EquipoDelete(DeleteView):
 
     model = Equipo
@@ -1622,6 +1623,7 @@ class OtListView(LoginRequiredMixin, generic.ListView):
 
     model = Ot
     paginate_by = 15
+    template_name = 'got/ots/ot_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3071,9 +3073,27 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         asset_filter = self.request.GET.get('asset')
         context['asset'] = Asset.objects.filter(abbreviation=asset_filter).first() if asset_filter else None
 
-        context['current_asset'] = self.request.GET.get('asset', '')
-        context['current_state'] = self.request.GET.get('state', '')
-        context['current_keyword'] = self.request.GET.get('keyword', '')
+        user_groups = self.request.user.groups.values_list('name', flat=True)
+        # Establecer el 'dpto' predeterminado según el grupo del usuario
+        if 'super_members' in user_groups:
+            default_dpto = 'm'
+        elif 'operaciones' in user_groups:
+            default_dpto = 'o'
+        else:
+            default_dpto = ''
+
+        # Obtener el 'dpto' actual del GET o usar el predeterminado
+        dpto = self.request.GET.get('dpto', default_dpto)
+
+        # Si el usuario puede ver todos los departamentos y no ha seleccionado ninguno, 'current_dpto' es vacío
+        if default_dpto == '' and 'dpto' not in self.request.GET:
+            current_dpto = ''
+        else:
+            current_dpto = dpto
+
+        context['default_dpto'] = default_dpto
+        context['current_dpto'] = current_dpto
+        context['user_groups'] = user_groups 
         return context
 
     def get_queryset(self):
@@ -3081,7 +3101,20 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         user = self.request.user
         user_groups = user.groups.values_list('name', flat=True)
 
-        # Aplicar filtros generales de estado, asset y keyword
+        if 'super_members' in user_groups:
+            default_dpto = 'm'
+        elif 'operaciones' in user_groups:
+            default_dpto = 'o'
+        else:
+            default_dpto = ''
+
+        dpto = self.request.GET.get('dpto', default_dpto)
+
+        if default_dpto == '' and 'dpto' not in self.request.GET:
+            current_dpto = ''
+        else:
+            current_dpto = dpto
+
         state = self.request.GET.get('state')
         asset_filter = self.request.GET.get('asset')
         keyword = self.request.GET.get('keyword')
@@ -3091,7 +3124,6 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         if keyword:
             queryset = queryset.filter(suministros__icontains=keyword)
 
-        # Filtrar según el estado seleccionado
         if state == 'no_aprobada':
             queryset = queryset.filter(approved=False, cancel=False)
         elif state == 'aprobada':
@@ -3105,37 +3137,27 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         elif state == 'cancel':
             queryset = queryset.filter(cancel=True)
 
-        # Aplicar filtros basados en el grupo del usuario
+        if current_dpto:
+            queryset = queryset.filter(dpto=current_dpto)
+
         if 'gerencia' in user_groups:
-            # Gerencia puede ver todas las solicitudes
             return queryset
         else:
-            # Construir condición de filtrado
             filter_condition = Q()
 
-            if 'operaciones' in user_groups:
-                # Usuarios del grupo 'operaciones' pueden ver solicitudes con dpto='o'
-                filter_condition |= Q(dpto='o')
-            if 'super_members' in user_groups:
-                # Usuarios del grupo 'super_members' pueden ver solicitudes con dpto='m'
-                filter_condition |= Q(dpto='m')
             if 'maq_members' in user_groups:
-                # Usuarios del grupo 'maq_members' pueden ver solicitudes de sus assets supervisados
-                supervised_assets = Asset.objects.filter(supervisor=user)
+                supervised_assets = Asset.objects.filter(Q(supervisor=user) | Q(capitan=user))
                 filter_condition |= Q(asset__in=supervised_assets)
             if 'serport_members' in user_groups:
-                # Usuarios del grupo 'serport_members' pueden ver sus propias solicitudes
-                filter_condition |= Q(solicitante=user)
+                    # Usuarios de 'serport_members' pueden ver sus propias solicitudes
+                    filter_condition |= Q(solicitante=user)
             if 'buzos' in user_groups:
-                # Usuarios del grupo 'buzos' pueden ver solicitudes de assets de tipo 'buceo'
-                buceo_assets = Asset.objects.filter(tipo='buceo')
+                # Usuarios de 'buzos' pueden ver solicitudes de assets de tipo 'buceo'
+                buceo_assets = Asset.objects.filter(area='b')
                 filter_condition |= Q(asset__in=buceo_assets)
 
-            # Si no pertenece a ninguno de los grupos anteriores, solo ve sus propias solicitudes
             if not filter_condition:
                 filter_condition = Q(solicitante=user)
-
-            # Aplicar el filtro construido al queryset
             queryset = queryset.filter(filter_condition)
 
         return queryset

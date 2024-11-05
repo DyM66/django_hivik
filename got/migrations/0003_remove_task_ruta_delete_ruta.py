@@ -106,8 +106,4 @@ class Migration(migrations.Migration):
                 'unique_together': {('equipo', 'fecha')},
             },
         ),
-        migrations.AlterUniqueTogether(
-            name='transaccionsuministro',
-            unique_together={('suministro', 'fecha')},
-        ),
     ]

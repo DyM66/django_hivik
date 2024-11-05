@@ -53,6 +53,7 @@ class Migration(migrations.Migration):
                 ('arqueo_neto', models.IntegerField(blank=True, default=0, null=True)),
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('supervisor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('capitan', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='Capitanes', to=settings.AUTH_USER_MODEL)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_assets', to=settings.AUTH_USER_MODEL)),
             ],
             options={
@@ -117,6 +118,7 @@ class Migration(migrations.Migration):
                 ('critico', models.BooleanField(default=False)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('recomendaciones', models.TextField(blank=True, null=True)),
+                ('related', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='related_with', to='got.equipo')),
             ],
             options={
                 'ordering': ['name', 'code'],

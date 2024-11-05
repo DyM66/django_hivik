@@ -32,4 +32,8 @@ class Migration(migrations.Migration):
                 ('reportado_por', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
         ),
+        migrations.AlterModelOptions(
+            name='overtime',
+            options={'permissions': [('can_approve_overtime', 'Puede aprobar horas extras')]},
+        ),
     ]
