@@ -63,12 +63,12 @@
                     <div class="btn-group" role="group" aria-label="Filtrar por departamento">
                         <!-- Botón de radio para Mantenimiento -->
                         <input type="radio" class="btn-check" name="dpto" id="dpto_m" value="m"
-                            {% if current_dpto == 'm' or current_dpto == '' and default_dpto == 'm' %}checked{% endif %}>
+                            {% if current_dpto == 'm' %}checked{% endif %}>
                         <label class="btn btn-outline-primary" for="dpto_m">Mantenimiento</label>
                 
                         <!-- Botón de radio para Operaciones -->
                         <input type="radio" class="btn-check" name="dpto" id="dpto_o" value="o"
-                            {% if current_dpto == 'o' or current_dpto == '' and default_dpto == 'o' %}checked{% endif %}>
+                            {% if current_dpto == 'o' %}checked{% endif %}>
                         <label class="btn btn-outline-primary" for="dpto_o">Operaciones</label>
                     </div>
                 </form>

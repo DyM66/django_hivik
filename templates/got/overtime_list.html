@@ -181,10 +181,23 @@
         <div class="form-group me-2">
             <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
         </div>
-        <button type="submit" class="btn btn-primary">Buscar</button>
-    </form>
-    
 
+        <div>
+            <label>
+                <input type="radio" name="aprobado" value="all" {% if aprobado_filter == 'all' %}checked{% endif %}>
+                Todos
+            </label>
+            <label>
+                <input type="radio" name="aprobado" value="aprobado" {% if aprobado_filter == 'aprobado' %}checked{% endif %}>
+                Aprobado
+            </label>
+            <label>
+                <input type="radio" name="aprobado" value="no_aprobado" {% if aprobado_filter == 'no_aprobado' %}checked{% endif %}>
+                No Aprobado
+            </label>
+        </div>        
+        <button type="submit" class="btn btn-primary mt-3">Buscar</button>
+    </form>
 </div>
 
 </div>

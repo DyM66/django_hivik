@@ -7,7 +7,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max
+from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, CharField
+from django.db.models.functions import Cast
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template, render_to_string
@@ -3073,47 +3074,46 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         asset_filter = self.request.GET.get('asset')
         context['asset'] = Asset.objects.filter(abbreviation=asset_filter).first() if asset_filter else None
 
-        user_groups = self.request.user.groups.values_list('name', flat=True)
-        # Establecer el 'dpto' predeterminado según el grupo del usuario
-        if 'super_members' in user_groups:
-            default_dpto = 'm'
-        elif 'operaciones' in user_groups:
-            default_dpto = 'o'
-        else:
-            default_dpto = ''
+        user = self.request.user
+        user_groups = set(user.groups.values_list('name', flat=True))
+        context['user_groups'] = user_groups
 
-        # Obtener el 'dpto' actual del GET o usar el predeterminado
+        group_default_dpto = {
+            'super_members': 'm',  # Mantenimiento
+            'operaciones': 'o'     # Operaciones
+        }
+
+        default_dpto = ''
+        for group, dpto in group_default_dpto.items():
+            if group in user_groups:
+                default_dpto = dpto
+                break 
+
         dpto = self.request.GET.get('dpto', default_dpto)
-
-        # Si el usuario puede ver todos los departamentos y no ha seleccionado ninguno, 'current_dpto' es vacío
-        if default_dpto == '' and 'dpto' not in self.request.GET:
-            current_dpto = ''
-        else:
-            current_dpto = dpto
+        current_dpto = dpto if dpto else ''
 
         context['default_dpto'] = default_dpto
         context['current_dpto'] = current_dpto
-        context['user_groups'] = user_groups 
         return context
 
     def get_queryset(self):
         queryset = Solicitud.objects.all()
         user = self.request.user
-        user_groups = user.groups.values_list('name', flat=True)
+        user_groups = set(user.groups.values_list('name', flat=True))
 
-        if 'super_members' in user_groups:
-            default_dpto = 'm'
-        elif 'operaciones' in user_groups:
-            default_dpto = 'o'
-        else:
-            default_dpto = ''
+        group_default_dpto = {
+            'super_members': 'm',  # Mantenimiento
+            'operaciones': 'o'     # Operaciones
+        }
 
+        default_dpto = ''
+        for group, dpto in group_default_dpto.items():
+            if group in user_groups:
+                default_dpto = dpto
+                break 
+        
         dpto = self.request.GET.get('dpto', default_dpto)
-
-        if default_dpto == '' and 'dpto' not in self.request.GET:
-            current_dpto = ''
-        else:
-            current_dpto = dpto
+        current_dpto = dpto if dpto else ''
 
         state = self.request.GET.get('state')
         asset_filter = self.request.GET.get('asset')
@@ -3140,7 +3140,8 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         if current_dpto:
             queryset = queryset.filter(dpto=current_dpto)
 
-        if 'gerencia' in user_groups:
+        if user.has_perm('got.can_view_all_rqs'):
+            # User has full access
             return queryset
         else:
             filter_condition = Q()
@@ -3149,10 +3150,8 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
                 supervised_assets = Asset.objects.filter(Q(supervisor=user) | Q(capitan=user))
                 filter_condition |= Q(asset__in=supervised_assets)
             if 'serport_members' in user_groups:
-                    # Usuarios de 'serport_members' pueden ver sus propias solicitudes
-                    filter_condition |= Q(solicitante=user)
+                filter_condition |= Q(solicitante=user)
             if 'buzos' in user_groups:
-                # Usuarios de 'buzos' pueden ver solicitudes de assets de tipo 'buceo'
                 buceo_assets = Asset.objects.filter(area='b')
                 filter_condition |= Q(asset__in=buceo_assets)
 
@@ -3317,6 +3316,28 @@ class SalListView(LoginRequiredMixin, generic.ListView):
     model = Salida
     paginate_by = 20
     template_name = 'got/salidas/salidas_list.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Obtener los parámetros de filtro individuales
+        destino = self.request.GET.get('destino', '').strip()
+        fecha = self.request.GET.get('fecha', '').strip()
+        motivo = self.request.GET.get('motivo', '').strip()
+        propietario = self.request.GET.get('propietario', '').strip()
+        adicional = self.request.GET.get('adicional', '').strip()
+
+        # Aplicar filtros individualmente
+        if destino:
+            queryset = queryset.filter(destino__icontains=destino)
+        if fecha:
+            queryset = queryset.filter(fecha=fecha)  # Fecha en formato 'YYYY-MM-DD'
+        if motivo:
+            queryset = queryset.filter(motivo__icontains=motivo)
+        if propietario:
+            queryset = queryset.filter(propietario__icontains=propietario)
+        if adicional:
+            queryset = queryset.filter(adicional__icontains=adicional)
+        return queryset
 
 
 class SalidaCreateView(LoginRequiredMixin, View):
@@ -3844,13 +3865,7 @@ class DarBajaCreateView(LoginRequiredMixin, CreateView):
         return reverse('got:sys-detail', kwargs={'pk': old_system.id})
     
 
-
-
-# def is_maq_member(user):
-#     return user.groups.filter(name='maq_members').exists()
-
 @login_required
-# @user_passes_test(is_maq_member)
 def overtime_report(request):
     if request.method == 'POST':
         common_form = OvertimeCommonForm(request.POST)
@@ -3907,27 +3922,21 @@ def overtime_success(request):
 
 def overtime_list(request):
 
-
     person_name = request.GET.get('person_name', '')
     asset_name = request.GET.get('asset', '')
     date_filter = request.GET.get('date', '')
+    aprobado_filter = request.GET.get('aprobado', 'all')
 
-
-    # Obtener la fecha actual
     today = date.today()
 
     if today.day < 24:
-        # Si estamos antes del día 24, el rango es desde el 24 del mes anterior hasta el 24 del mes actual
         start_date = (today - relativedelta(months=1)).replace(day=24)
         end_date = today.replace(day=24)
     else:
-        # Si estamos en o después del día 24, el rango es desde el 24 del mes actual hasta el 24 del siguiente mes
         start_date = today.replace(day=24)
         end_date = (today + relativedelta(months=1)).replace(day=24)
 
-    # Filtrar los registros de Overtime en el rango de fechas
     overtime_entries = Overtime.objects.filter(fecha__gte=start_date, fecha__lt=end_date)
-
 
     if person_name:
         overtime_entries = overtime_entries.filter(nombre_completo__icontains=person_name)
@@ -3938,7 +3947,12 @@ def overtime_list(request):
     if date_filter:
         overtime_entries = overtime_entries.filter(fecha=date_filter)
 
-    overtime_entries = overtime_entries.order_by('fecha', 'asset', 'justificacion')
+    if aprobado_filter == 'aprobado':
+        overtime_entries = overtime_entries.filter(approved=True)
+    elif aprobado_filter == 'no_aprobado':
+        overtime_entries = overtime_entries.filter(approved=False)
+
+    overtime_entries = overtime_entries.order_by('-fecha', 'asset', 'justificacion')
 
     paginator = Paginator(overtime_entries, 25)  # Mostrar 25 registros por página
 

@@ -13,9 +13,33 @@
     <div class="btn-group box-shadow" role="group">
         <a class="btn btn-primary" href="{% url 'got:item_management' %}">Articulos</a>
     </div>
+
+    <!-- Formulario de Filtro -->
+    <form method="GET" action="" class="form-inline mt-3">
+        <div class="row g-2">
+            <div class="col-md-2">
+                <input type="text" name="destino" class="form-control" placeholder="Destino" value="{{ request.GET.destino }}">
+            </div>
+            <div class="col-md-2">
+                <input type="date" name="fecha" class="form-control" placeholder="Fecha" value="{{ request.GET.fecha }}">
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="motivo" class="form-control" placeholder="Motivo" value="{{ request.GET.motivo }}">
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="propietario" class="form-control" placeholder="Propietario" value="{{ request.GET.propietario }}">
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="adicional" class="form-control" placeholder="Adicional" value="{{ request.GET.adicional }}">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary" type="submit">Buscar</button>
+            </div>
+        </div>
+    </form>
 </aside>
 
-<table class="table-list deta">
+<table class="table-list deta mt-4">
     <thead>
         <tr>
             <th scope="col">Salidas</th>
