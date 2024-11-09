@@ -716,6 +716,7 @@ class Solicitud(models.Model):
             ('can_approve', 'Aprobar solicitudes'),
             ('can_cancel', 'Puede cancelar'),
             ('can_view_all_rqs', 'Puede ver todas las solicitudes'),
+            ('can_transfer_solicitud', 'Puede transferir solicitudes'),
             )
         ordering = ['-creation_date']
 

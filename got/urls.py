@@ -90,6 +90,7 @@ urlpatterns = [
     path('gracias/<str:code>/', views.gracias_view, name='gracias'),
 
     path("solicitud/", views.SolicitudesListView.as_view(), name="rq-list"),
+    path('solicitud/transfer/<int:pk>/', views.TransferSolicitudView.as_view(), name='transfer-solicitud'),
     path('detalle_pdf/<int:pk>/', views.detalle_pdf, name='solicitud_pdf'),
     path('nueva-solicitud/<str:asset_id>/', views.CreateSolicitudOt.as_view(), name='create-solicitud'),
     path('nueva-solicitud/<str:asset_id>/<int:ot_num>/', views.CreateSolicitudOt.as_view(), name='create-solicitud-ot'),

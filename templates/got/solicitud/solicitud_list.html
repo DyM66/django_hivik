@@ -121,6 +121,16 @@
                                 {% if not rq.cancel %}
                                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                                     <li><a class="dropdown-item" href="{% url 'got:solicitud_pdf' rq.id %}">Ver detalle</a></li>
+
+                                    <!-- Dentro del menú de opciones de cada solicitud -->
+                                    {% if perms.got.can_transfer_solicitud %}
+                                    {% if rq.dpto == 'o' %}
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#transferModal{{ rq.id }}">Transferir a Mantenimiento</a></li>
+                                    {% elif rq.dpto == 'm' %}
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#transferModal{{ rq.id }}">Transferir a Operaciones</a></li>
+                                    {% endif %}
+                                    {% endif %}
+
     
                                     {% if not rq.approved %}
                                         {% if perms.got.can_approve %}
@@ -180,6 +190,33 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Modal para Transferir Solicitud -->
+                        <div class="modal fade" id="transferModal{{ rq.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ rq.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="post" action="{% url 'got:transfer-solicitud' rq.id %}">
+                                        {% csrf_token %}
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="transferModalLabel{{ rq.id }}">Transferir Solicitud</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            {% if rq.dpto == 'o' %}
+                                                <p>¿Está seguro que desea transferir esta solicitud al departamento de <strong>Mantenimiento</strong>?</p>
+                                            {% elif rq.dpto == 'm' %}
+                                                <p>¿Está seguro que desea transferir esta solicitud al departamento de <strong>Operaciones</strong>?</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-primary">Transferir</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
     
                     
                     </tr>

@@ -3338,6 +3338,21 @@ class SalListView(LoginRequiredMixin, generic.ListView):
         if adicional:
             queryset = queryset.filter(adicional__icontains=adicional)
         return queryset
+    
+
+from django.contrib.auth.mixins import PermissionRequiredMixin
+class TransferSolicitudView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'got.can_transfer_solicitud'
+
+    def post(self, request, *args, **kwargs):
+        solicitud = get_object_or_404(Solicitud, pk=kwargs['pk'])
+        # Cambiar el departamento al otro valor
+        if solicitud.dpto == 'o':
+            solicitud.dpto = 'm'
+        elif solicitud.dpto == 'm':
+            solicitud.dpto = 'o'
+        solicitud.save()
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 
 class SalidaCreateView(LoginRequiredMixin, View):
