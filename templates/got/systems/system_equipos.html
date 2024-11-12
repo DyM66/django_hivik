@@ -50,6 +50,9 @@
 								<li><a class="dropdown-item" href="{% url 'got:create-ot-from-ruta' ruta_id=ruta.code %}">Reportar</a></li>
 								<li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
 								<li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
+								{% if ruta.ot %}
+									<li><a class="dropdown-item" href="{% url 'got:report' ruta.ot.num_ot %}">Informe</a></li>
+								{% endif %}
 							</ul>
 						</div>
 					</td>
