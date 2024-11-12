@@ -84,6 +84,16 @@ def generate_pdf_content(ot):
     return pdf_content.getvalue()
 
 
+# def render_to_pdf(template_src, context_dict={}):
+#     template = get_template(template_src)
+#     html = template.render(context_dict)
+#     response = HttpResponse(content_type='application/pdf')
+#     pisa_status = pisa.CreatePDF(html, dest=response)
+#     if pisa_status.err:
+#         return HttpResponse('Se encontraron errores al generar el PDF <pre>' + html + '</pre>')
+#     return response
+
+
 def render_to_pdf(template_src, context_dict={}):
     template = get_template(template_src)
     html = template.render(context_dict)
@@ -525,3 +535,18 @@ def create_transaction(data):
     except Exception as e:
         print(f'Error creating transaction: {e}')
         return False
+    
+
+def get_cargo(full_name):
+    """
+    Recibe el nombre completo del usuario y devuelve el cargo desde UserProfile.
+    """
+    try:
+        # Separar el nombre completo en nombre y apellido
+        nombre, apellido = full_name.split(' ', 1)
+        # Buscar el usuario por nombre y apellido (case-insensitive)
+        user = User.objects.get(first_name__iexact=nombre, last_name__iexact=apellido)
+        # Retornar el cargo desde UserProfile
+        return user.profile.cargo if hasattr(user, 'profile') else ''
+    except (User.DoesNotExist, ValueError, UserProfile.DoesNotExist):
+        return ''

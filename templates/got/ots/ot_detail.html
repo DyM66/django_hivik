@@ -23,7 +23,17 @@
         <div class="ot-detail">
             <aside>
                 <div class="btn-group" role="group">
-                    <a href="{% url 'got:report' ot.num_ot %}" target="_blank" class="btn btn-primary">Reporte</a>
+                    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Reporte
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="{% url 'got:report' ot.num_ot %}?download=1" class="dropdown-item">Descargar PDF</a>
+                        </li>
+                        <li>
+                            <a href="{% url 'got:report' ot.num_ot %}" target="_blank" class="dropdown-item">Ver PDF</a>
+                        </li>
+                    </ul>
                 </div>
                 {% if perms.got.change_ot %}
                     <div class="btn-group" role="group">
@@ -49,7 +59,7 @@
                 {% endif %}
             </aside>
             
-            <table class="table-list table-detail">
+            <table class="table-list table-detail mt-2">
                 <thead>
                     <tr>
                         <th colspan="2">Información general</th>

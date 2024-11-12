@@ -1,0 +1,238 @@
+{% extends "got/base/pdf_template.html" %}
+{% load my_tags %}
+
+{% block title %}REPORTE ORDEN DE TRABAJO{% endblock %}
+{% block doc_info %}
+<th>CODIGO: FR-SP-MT-97</th>
+<th>VERSION 004</th>
+<th>FECHA DE ACTUALIZACION: 27/01/2023</th>
+{% endblock %}
+{% block content %}
+   
+<br>
+<table class="deta">
+    <thead>
+        <tr>
+            <th>
+                <strong>#OT:</strong>
+                <ul>
+                    <li>{{ot.num_ot}}</li>
+                </ul>
+            </th>
+            <th>
+                <strong>Fecha:</strong>
+                <ul>
+                    <li>{{ot.creation_date}}</li>
+                </ul>
+            </th>
+            <th>
+                <strong>Estado:</strong>
+                <ul>
+                    <li>{{ot.get_state_display}}</li>
+                </ul>
+            </th>
+        </tr>
+        <tr>
+            <th>
+                <strong>Supervisor:</strong>
+                <ul>
+                    <li>{{ ot.supervisor }}</li>
+                </ul>
+            </th>
+            <th>
+                <strong>Cargo:</strong>
+                <ul>
+                    <li>{{ ot.supervisor|get_cargo }}</li>
+                </ul>
+            </th>
+            <th>
+                <strong>Tipo:</strong>
+                <ul>
+                    <li>{{ot.get_tipo_mtto_display}}</li>
+                </ul>
+            </th>
+        </tr>
+        <tr>
+            <th>
+                Area:
+                <ul>
+                    <li>{{ ot.system.asset.get_area_display }}</li>
+                </ul>
+            </th>
+            <th>
+                Equipo:
+                <ul>
+                    <li>{{ot.system.asset}}</li>
+                </ul>
+            </th>
+            <th>
+                Sistema:
+                <ul>
+                    <li>{{ot.system.name}}</li>
+                </ul>
+            </th>
+        </tr>
+        <tr>
+            <th colspan="3">
+                Descripción:
+                <ul>
+                    <li>{{ot.description}}</li>
+                </ul>
+            </th>
+        </tr>
+    </thead>
+</table>
+<br>
+
+<table class="deta">
+    <tbody>
+        {% if failure %}
+        <tr>
+            <th style="width: 200px;">
+                Reportes de falla asociados:
+            </th>
+            <td>
+                <ul>
+                    {% for fail in  fallas %}
+                    <li>{{fail}}</li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+        {% endif %}
+        {% if rutina %}
+        <tr>
+            <th style="width: 240px;">
+                Rutinas de mantenimiento asociadas:
+            </th>
+            <td>
+                <ul>
+                    {% for ruta in  rutas %}
+                    <li>{{ ruta }}</li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+<br>
+<table class="deta">
+    <tbody>
+        <tr>
+            <th style="text-align: center;">
+                <h2>DESCRIPCIÓN DEL TRABAJO EFECTUADO</h2>
+            </th>
+        </tr>
+        <tr>
+            <td style="padding: 20px 0 20px 0;">
+                <ul>
+                    {% for act in ot.task_set.all %}
+                    <li>{{ act.description|linebreaksbr }}</li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <th style="text-align: center;">
+                <h2>NOVEDADES</h2>
+            </th>
+        </tr>
+        <tr>
+            <td style="padding: 20px 0 20px 0;">
+                {% if act.news %}
+                <ul>
+                    {% for act in ot.task_set.all %}
+                    <li>{{act.news|linebreaksbr}}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<br>
+<table class="deta">
+    <tbody>
+        <tr>
+            <th>Interventores</th>
+            <th>Cargo</th>
+            <th>Fecha de inicio</th>
+            <th>Fecha de finalización</th>
+            <th>tiempo total</th>
+        </tr>
+        {% for user in users %}
+            <tr>
+                <td>{{user.nombre}}</td>
+                <td>
+                    {{user.cargo}}
+                </td>
+                <td>{{user.start_date|date:"d/m/Y"}}</td>
+                <td>{{user.final_date|date:"d/m/Y"}}</td>
+                <td>{{user.total}}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+<br>
+<table class="deta">
+    <tr style="height: 60px;">
+        <td style="text-align: center;">
+            {% with ot.supervisor as supervisor_name %}
+                {% with supervisor_name|get_firma as firma_url %}
+                    {% if firma_url %}
+                        <img src="{{ firma_url }}" style="width: 200px; height: auto;">
+                    {% else %}
+
+                    {% endif %}
+                {% endwith %}
+            {% endwith %}
+        </td>
+        <td style="text-align: center;">
+            {%if ot.sign_supervision %}
+                <img src="{{ ot.sign_supervision.url }}" style="width: 200px; height: auto;">
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td class="ff" style="text-align: center;">
+            <h4>Supervisión:</h4>
+        </td>
+        <td class="ff" style="text-align: center;">
+            <h4>Recibido por:</h4>
+        </td>
+    </tr>
+</table>
+
+{% if has_evidence %}
+<br>
+<table class="deta">
+    <tbody>
+        <tr>
+            <th colspan="3" style="text-align: center;">
+                <h2>EVIDENCIAS</h2>
+            </th>
+        </tr>
+        {% for i in evidence_images %}
+            {% if forloop.counter0|divisibleby:3 %}
+            <tr>
+            {% endif %}
+            <td style="text-align: center; padding: 5px;">
+                <img src="{{ i }}" alt="Evidence">
+            </td>
+            {% if forloop.counter|divisibleby:3 %}
+            </tr>
+            {% endif %}
+        {% endfor %}
+        {% if not forloop.last and not forloop.counter|divisibleby:3 %}
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

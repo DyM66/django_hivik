@@ -70,6 +70,10 @@
                                     <li><a class="dropdown-item" href="{% url 'got:approve-salida' rq.id %}">Aprobar</a></li>
                                 {% endif %}
                                 <li><a class="dropdown-item" href="{% url 'got:salida-update' rq.id %}">Notificar</a></li>
+                            {% else %}
+                                {% if perms.got.can_approve_it %}
+                                    <li><a class="dropdown-item" href="{% url 'got:approve-salida' rq.id %}">Desaprobar</a></li>
+                                {% endif %}
                             {% endif %}
                         </ul>
                     </div>

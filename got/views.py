@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, CharField
+from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, CharField, DurationField
 from django.db.models.functions import Cast
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -54,12 +54,12 @@ def manifest(request):
         "theme_color": "#191645",
         "icons": [
             {
-                "src": "https://hivik.s3.us-east-2.amazonaws.com/static/anchor-solid.svg",
+                "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png",
                 "sizes": "192x192",
                 "type": "image/png"
             },
             {
-                "src": "https://hivik.s3.us-east-2.amazonaws.com/static/anchor-solid.svg",
+                "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png",
                 "sizes": "512x512",
                 "type": "image/png"
             }
@@ -71,14 +71,11 @@ def manifest(request):
 @never_cache
 def service_worker(request):
     js = '''
-    // Código del Service Worker
-    // Puedes dejarlo vacío si no necesitas funcionalidades adicionales
     self.addEventListener('install', function(event) {
         self.skipWaiting();
     });
 
     self.addEventListener('fetch', function(event) {
-        // Manejo de fetch si es necesario
     });
     '''
     response = HttpResponse(js, content_type='application/javascript')
@@ -87,7 +84,6 @@ def service_worker(request):
 
 @login_required
 def get_unapproved_requests_count(request):
-    # Ajusta el filtro según tus necesidades y permisos
     count = Solicitud.objects.filter(approved=False).count()
     return JsonResponse({'count': count})
 
@@ -171,6 +167,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         
 
 class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
+
     model = Asset
     template_name = 'got/assets/asset_base.html'
 
@@ -189,9 +186,11 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         context['page_obj_rutas'] = filtered_rutas
         context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
         context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
+
         return context
 
     def get_filtered_rutas(self, asset, user, request_data=None):
+
         form = RutinaFilterForm(request_data, asset=asset)
         current_month_name_es = traductor(datetime.now().strftime('%B'))
 
@@ -1844,30 +1843,79 @@ class OtDelete(DeleteView):
 
 def ot_pdf(request, num_ot):
 
-    ot_info = Ot.objects.get(num_ot=num_ot)
+    ot_info = get_object_or_404(Ot, num_ot=num_ot)
+    rutas = Ruta.objects.filter(ot=ot_info)
+    rutina = rutas.exists()
     fallas = FailureReport.objects.filter(related_ot=ot_info)
+    failure = fallas.exists()
 
-    try:
-        fallas = FailureReport.objects.filter(related_ot=ot_info)
-        failure = True
-    except FailureReport.DoesNotExist:
-        fallas = None
-        failure = False
+    tareas = Task.objects.filter(ot=ot_info).select_related('responsible', 'responsible__profile')
+    usuarios_participacion_dict = {}
 
-    context = {'ot': ot_info, 'fallas': fallas, 'failure': failure}
-    template_path = 'got/pdf_template.html'
+    for tarea in tareas:
+        if tarea.responsible:
+            user = tarea.responsible
+            if user.id not in usuarios_participacion_dict:
+                usuarios_participacion_dict[user.id] = {
+                    'nombre': f"{user.first_name} {user.last_name}",
+                    'cargo': user.profile.cargo if hasattr(user, 'profile') else '',
+                    'earliest_start_date': tarea.start_date,
+                    'latest_final_date': tarea.final_date,
+                }
+            else:
+                # Actualizar earliest_start_date
+                if tarea.start_date and (usuarios_participacion_dict[user.id]['earliest_start_date'] is None or tarea.start_date < usuarios_participacion_dict[user.id]['earliest_start_date']):
+                    usuarios_participacion_dict[user.id]['earliest_start_date'] = tarea.start_date
+                # Actualizar latest_final_date
+                if tarea.final_date and (usuarios_participacion_dict[user.id]['latest_final_date'] is None or tarea.final_date > usuarios_participacion_dict[user.id]['latest_final_date']):
+                    usuarios_participacion_dict[user.id]['latest_final_date'] = tarea.final_date
     
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="orden_de_trabajo_{num_ot}.pdf"'
+
+    usuarios_participacion = []
+    for user_id, info in usuarios_participacion_dict.items():
+        if info['earliest_start_date'] and info['latest_final_date']:
+            total_execution_time = info['latest_final_date'] - info['earliest_start_date']
+            total_execution_time_display = f"{total_execution_time.days} días"
+        else:
+            total_execution_time_display = "N/A"
+        
+        usuarios_participacion.append({
+            'nombre': info['nombre'],
+            'cargo': info['cargo'],
+            'start_date': info['earliest_start_date'],
+            'final_date': info['latest_final_date'],
+            'total': total_execution_time_display
+        })
+
+    images_qs = Image.objects.filter(task__ot=ot_info)
     
-    template = get_template(template_path)
-    html = template.render(context)
+    # Verificar si existen imágenes
+    has_evidence = images_qs.exists()
     
-    # Crear el PDF y enviarlo directamente a la respuesta HTTP
-    pisa_status = pisa.CreatePDF(html, dest=response)
+    # Obtener una lista de todas las URLs de las imágenes
+    evidence_images = [image.image.url for image in images_qs]
+    context = {
+        'ot': ot_info,
+        'fallas': fallas,
+        'failure': failure,
+        'rutas': rutas,
+        'rutina': rutina,
+        'users': usuarios_participacion,
+        'has_evidence': has_evidence,
+        'evidence_images': evidence_images
+    }
+    template_path = 'got/ots/ot_pdf.html'
+
+    download = request.GET.get('download', None)
     
-    if pisa_status.err:
-        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    response = render_to_pdf(template_path, context)
+    
+    filename = f'orden_de_trabajo_{num_ot}.pdf'
+    if download:
+        content = f'attachment; filename="{filename}"'
+    else:
+        content = f'inline; filename="{filename}"'
+    response['Content-Disposition'] = content
     return response
 
 

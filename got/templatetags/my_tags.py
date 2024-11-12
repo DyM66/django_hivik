@@ -1,8 +1,10 @@
 from django import template
-from got.models import Asset, FailureReport, Solicitud
+from got.models import Asset, FailureReport, Solicitud, UserProfile
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
 import os
+from django.db.models.functions import Concat
+from django.db.models import Value
 
 register = template.Library()
 
@@ -153,3 +155,30 @@ def return_name(id):
 @register.filter(name='counter')
 def counter(value):
     return value.count()
+
+
+@register.filter(name='get_cargo')
+def get_cargo(full_name):
+    try:
+        user = User.objects.annotate(
+            full_name=Concat('first_name', Value(' '), 'last_name')
+        ).get(full_name__iexact=full_name)
+        return user.profile.cargo
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
+        return ''
+    
+@register.filter
+def get_firma(full_name):
+    """
+    Dada una cadena con el nombre completo (nombre y apellido),
+    retorna la URL de la firma del usuario si existe y tiene un UserProfile asociado.
+    """
+    try:
+        first_name, last_name = full_name.strip().split(' ', 1)
+        user = User.objects.get(first_name__iexact=first_name, last_name__iexact=last_name)
+        if hasattr(user, 'profile') and user.profile.firma:
+            return user.profile.firma.url
+        else:
+            return ''
+    except (User.DoesNotExist, ValueError):
+        return ''
