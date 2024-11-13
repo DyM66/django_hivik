@@ -249,7 +249,7 @@ class OtFormNoSup(forms.ModelForm):
 
     class Meta:
         model = Ot
-        exclude = ['description', 'system', 'state', 'tipo_mtto', 'modified_by']
+        fields = ['description', 'system', 'state', 'tipo_mtto']
         labels = {
             'description': 'Descripción',
             'system': 'Sistema',
