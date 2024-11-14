@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, CharField, DurationField
+from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, CharField, DurationField, Case, When, IntegerField, BooleanField, Value
 from django.db.models.functions import Cast
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -1622,14 +1622,28 @@ def asociar_ot_failure_report(request, fail_id):
 class OtListView(LoginRequiredMixin, generic.ListView):
 
     model = Ot
-    paginate_by = 15
+    paginate_by = 16
     template_name = 'got/ots/ot_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        if self.request.user.groups.filter(name='buzos_members').exists():
+        asset_id = self.request.GET.get('asset_id')
+        if asset_id:
+            systems = System.objects.filter(asset_id=asset_id)
+            context['systems'] = systems
+            context['selected_asset_id'] = asset_id
+        else:
+            context['systems'] = System.objects.none()
+            context['selected_asset_id'] = None
+
+        user = self.request.user
+        user_groups = user.groups.values_list('name', flat=True)
+
+        if 'buzos_members' in user_groups:
             info_filter = Asset.objects.filter(area='b')
+        elif 'maq_members' in user_groups:
+            info_filter = Asset.objects.none() 
         else:
             info_filter = Asset.objects.all()
         context['asset'] = info_filter
@@ -1638,36 +1652,66 @@ class OtListView(LoginRequiredMixin, generic.ListView):
         users_in_group = super_group.user_set.all()
         context['super_members'] = users_in_group
 
+        queryset = self.get_queryset()
+        total_ots_en_ejecucion = queryset.filter(state='x').count()
+        context['total_ots_en_ejecucion'] = total_ots_en_ejecucion
+
         return context
 
     def get_queryset(self):
-        queryset = Ot.objects.all()
+        queryset = Ot.objects.all().select_related('system', 'system__asset')
+
+        user = self.request.user
+        user_groups = user.groups.values_list('name', flat=True)
+
+        if 'maq_members' in user_groups:
+            supervised_assets = Asset.objects.filter(Q(supervisor=user) | Q(capitan=user))
+            queryset = queryset.filter(system__asset__in=supervised_assets)
+        elif 'buzos_members' in user_groups:
+            supervised_assets = Asset.objects.filter(area='b')
+            queryset = queryset.filter(system__asset__in=supervised_assets)
+        elif any(group in user_groups for group in ['super_members', 'serport_members', 'gerencia', 'operaciones']):
+            pass
+        else:
+            queryset = queryset.none()
+
         state = self.request.GET.get('state')
         asset_id = self.request.GET.get('asset_id')
-        responsable_id = self.request.GET.get('responsable')
-
-        if self.request.user.groups.filter(name='maq_members').exists():
-            supervised_assets = Asset.objects.filter(
-                supervisor=self.request.user)
-            queryset = queryset.filter(system__asset__in=supervised_assets)
-        elif self.request.user.groups.filter(name='buzos_members').exists():
-            supervised_assets = Asset.objects.filter(
-                area='b')
-
-            queryset = queryset.filter(system__asset__in=supervised_assets)
+        responsable = self.request.GET.get('responsable')
+        num_ot = self.request.GET.get('num_ot')
+        system_id = self.request.GET.get('system_id')
+        keyword = self.request.GET.get('keyword')
 
         if state:
             queryset = queryset.filter(state=state)
-
-        keyword = self.request.GET.get('keyword')
-        if keyword:
-            queryset = Ot.objects.filter(description__icontains=keyword)
-            return queryset
-
         if asset_id:
             queryset = queryset.filter(system__asset_id=asset_id)
-        if responsable_id:
-            queryset = queryset.filter(supervisor__icontains=responsable_id)
+        if responsable:
+            queryset = queryset.filter(supervisor__icontains=responsable)
+        if num_ot:
+            queryset = queryset.filter(num_ot=num_ot)
+        if system_id:
+            queryset = queryset.filter(system_id=system_id)
+        if keyword:
+            queryset = queryset.filter(description__icontains=keyword)
+
+        queryset = queryset.annotate(
+            unfinished_tasks=Count('task', filter=Q(task__finished=False)),
+            is_pausado=Case(
+                When(Q(state='x') & Q(unfinished_tasks=0), then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            state_order=Case(
+                When(state='x', then=1),            # En ejecución
+                When(is_pausado=True, then=2),      # Pausado
+                When(state='a', then=3),            # Abierto
+                When(state='f', then=4),            # Finalizado
+                When(state='c', then=5),            # Cancelado
+                default=6,
+                output_field=IntegerField(),
+            )
+        ).order_by('state_order', '-creation_date', '-num_ot')
 
         return queryset
 
@@ -1923,7 +1967,7 @@ def ot_pdf(request, num_ot):
 class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 
     model = Task
-    template_name = 'got/task/assignedtasks_list_pendient.html'
+    template_name = 'got/ots/assignedtasks_list_pendient.html'
     paginate_by = 20
 
     def get_context_data(self, **kwargs):
@@ -2135,7 +2179,7 @@ class Reschedule_task(UpdateView):
 
     model = Task
     form_class = RescheduleTaskForm
-    template_name = 'got/task/task_reschedule.html'
+    template_name = 'got/ots/task_reschedule.html'
     success_url = reverse_lazy('got:my-tasks')
 
     def form_valid(self, form):
@@ -2315,7 +2359,6 @@ def crear_ot_desde_ruta(request, ruta_id):
                     description=description,
                     procedimiento=task.procedimiento,
                     hse=task.hse,
-                    evidence=task.evidence,
                     start_date=timezone.now().date(),
                     men_time=1,
                     finished=False,

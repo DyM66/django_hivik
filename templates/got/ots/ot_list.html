@@ -1,66 +1,116 @@
-{% extends "got/base_generic.html" %}
+{% extends "got/base/base_generic.html" %}
 {% load my_tags %}
 
-{% block header %}Ordenes de trabajo{% endblock %}
-
 {% block content %}
-
-    <aside>
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                Filtrar por equipo
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Mostrar todas</a></li>
-                {% for a in asset %}
-                    <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ a.abbreviation }}">{{ a.name }}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
-
-        {% if request.user|has_group:"super_members" %}
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    Filtrar supervisor
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Mostrar todas</a></li>
-                    {% for u in super_members %}
-                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ some_asset_id }}&responsable={{ u.first_name }}">{{ u.first_name }} {{ u.last_name }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
+<main class="px-3">
+    <h1>
+        Ordenes de trabajo
+        {% if request.GET.asset_id %}
+            - {{ request.GET.asset_id }}
         {% endif %}
+        {% if request.GET.keyword %}
+            - "{{ request.GET.keyword }}"
+        {% endif %}
+    </h1>
 
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                Estado
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}&?asset_id={{ some_asset_id }}">Todos</a></li>
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=a&?asset_id={{ some_asset_id }}">Abierto</a></li>
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=x&asset_id={{ a.abbreviation }}">En ejecucion</a></li>
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=f&asset_id={{ a.abbreviation }}">Finalizado</a></li>
-                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=c&asset_id={{ a.abbreviation }}">Cancelado</a></li>
-            </ul>
-        </div>
+    <div class="row">
+        <div class="col-md-4">
+            <aside>
+                {% if not request.user|has_group:"maq_members" %}
+                    <div class="btn-group-vertical w-100 mb-2" role="group">
+                        <button type="button" class="btn btn-primary dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                            Filtrar por equipo
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'got:ot-list' %}&responsable={{ request.GET.responsable }}">Mostrar todas</a></li>
+                            {% for a in asset %}
+                                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ a.abbreviation }}&responsable={{ request.GET.responsable }}">{{ a.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+        
+                <div class="btn-group-vertical w-100 mb-2" role="group">
+                    <button type="button" class="btn btn-primary dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                        Filtrar supervisor
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ request.GET.asset_id }}">Mostrar todas</a></li>
+                        {% for u in super_members %}
+                            <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ request.GET.asset_id }}&responsable={{ u.first_name }}">{{ u.first_name }} {{ u.last_name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
 
-        <div class="btn-group box-shadow" role="group">
-            <form method="GET" action="{% url 'got:ot-list' %}" class="form" autocomplete="off">
-                <div class="input-group">
-                    <input type="text" name="keyword" class="form-control" placeholder="Descripción" aria-label="Descripción" aria-describedby="button-addon2">
-                    <input type="submit" value="Buscar" class="btn btn-primary" id="button-addon2">
-                </div>  
-            </form>
-        </div>
-    </aside>
-      
-    {% if request.GET.keyword %}
-        <h5>Resultados de búsqueda para: "{{ request.GET.keyword }}"</h5>
-    {% endif %}
+                <div class="btn-group-vertical w-100 mb-2" role="group">
+                    <button type="button" class="btn btn-primary dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                        Estado
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}&?asset_id={{ some_asset_id }}">Todos</a></li>
+                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=a&?asset_id={{ some_asset_id }}">Abierto</a></li>
+                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=x&asset_id={{ a.abbreviation }}">En ejecucion</a></li>
+                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=f&asset_id={{ a.abbreviation }}">Finalizado</a></li>
+                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?state=c&asset_id={{ a.abbreviation }}">Cancelado</a></li>
+                    </ul>
+                </div>
 
+                <!-- <div class="btn-group-vertical w-100 mb-2 box-shadow" role="group">
+                    <form method="GET" action="{% url 'got:ot-list' %}" class="form" autocomplete="off">
+                        <div class="input-group">
+                            <input type="text" name="keyword" class="form-control" placeholder="Descripción" aria-label="Descripción" aria-describedby="button-addon2">
+                            <input type="submit" value="Buscar" class="btn btn-primary" id="button-addon2">
+                        </div>  
+                    </form>
+                </div> -->
+
+                {% if systems %}
+                    <div class="btn-group-vertical w-100 mb-2" role="group">
+                        <button type="button" class="btn btn-primary dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                            Filtrar por sistema
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ selected_asset_id }}">Mostrar todos</a></li>
+                            {% for s in systems %}
+                                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ selected_asset_id }}&system_id={{ s.id }}">{{ s.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <form method="GET" action="{% url 'got:ot-list' %}" class="form" autocomplete="off">
+                    <div class="input-group">
+                        <input type="text" name="keyword" class="form-control" placeholder="Descripción" aria-label="Descripción">
+                        <input type="text" name="num_ot" class="form-control" placeholder="Número OT" aria-label="Número OT">
+                        {% for key, value in query_params.items %}
+                            {% if key != 'keyword' and key != 'num_ot' and key != 'page' %}
+                                 <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endif %}
+                        {% endfor %}
+                        <input type="submit" value="Buscar" class="btn btn-primary">
+                    </div>
+                </form>
     
-    <div class="table-responsive">
+            </aside>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card rounded shadow">
+                <div class="row">
+                    <div class="card-body col-md-6">
+                        <h5 class="card-title">Ordenes de trabajo en ejecucion</h5>
+                        <h1 class="display-1">{{ total_ots_en_ejecucion }}</h1> 
+                    </div>
+                    <!-- <div class="card-body col-md-6">
+                        <h5 class="card-title">Reportes de falla en proceso</h5>
+                        <h1 class="display-1">{{ count_proceso }}</h1> 
+                    </div> -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-responsive mt-2">
     <table class="table-list">
         <thead>
             <tr>
@@ -81,8 +131,12 @@
                     <td data-cell="Sistema">{{ot.system}}</td>
                     <td data-cell="Supervisor">{{ot.supervisor}}</td>
                     <td class="nowrap" data-cell="Estado">
-                        <p class="status {% if ot.state == 'f' %}finished{% elif ot.state == 'c' %}close{% elif not ot.all_tasks_finished %}pending{% else %}shipped{% endif %}">
-                            {% if ot.all_tasks_finished and ot.state != 'f' %}Pausado{% else %}{{ot.get_state_display}}{% endif %}
+                        <p class="status {% if ot.state == 'f' %}finished{% elif ot.state == 'c' %}close{% elif ot.is_pausado %}tramitado{% elif ot.state == 'x' %}exe{% elif ot.state == 'a' %}open{% else %}pending{% endif %}">
+                            {% if ot.is_pausado %}
+                                Pausado
+                            {% else %}
+                                {{ ot.get_state_display }}
+                            {% endif %}
                         </p>
                     </td>
                 </tr>
@@ -94,16 +148,17 @@
         </tbody>
     </table>
     </div>
+</main>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const rows = document.querySelectorAll("tr[data-href]");
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const rows = document.querySelectorAll("tr[data-href]");
     
-            rows.forEach(row => {
-                row.addEventListener("click", () => {
-                    window.location.href = row.dataset.href;
-                })
+        rows.forEach(row => {
+            row.addEventListener("click", () => {
+                window.location.href = row.dataset.href;
             })
         })
-    </script>
+    })
+</script>
 {% endblock %}
