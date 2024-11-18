@@ -1,7 +1,10 @@
 {% extends "got/base_generic.html" %}
 {% load my_tags %}
 
-{% block header %}Detalle del reporte de salida{% endblock %}
+{% block header %}
+Detalle del reporte de salida
+<a href="{% url 'got:salida-edit' preoperacional.pk %}" class="btn btn-primary">Editar</a>
+{% endblock %}
 
 {% block content %}
 

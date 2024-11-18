@@ -444,6 +444,28 @@ class HistoryHour(models.Model):
         unique_together = ('component', 'report_date')
 
 
+class EquipmentHistory(models.Model):
+    ASUNTO_CHOICES = (
+        ('movement', 'Movimiento'),
+        ('part_change', 'Cambio de repuesto/pieza'),
+        ('preventive_maintenance', 'Mantenimiento Preventivo'),
+        ('corrective_maintenance', 'Mantenimiento Correctivo'),
+        ('specialized_intervention', 'Intervención Especializada'),
+    )
+
+    equipment = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='histories')
+    date = models.DateField()
+    subject = models.CharField(max_length=50, choices=ASUNTO_CHOICES)
+    annotations = models.TextField(blank=True, null=True)
+    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.equipment} - {self.get_subject_display()} on {self.date}"
+
+    class Meta:
+        ordering = ['-date']
+
+
 # Model 10: Rutinas de mantenimiento de equipos
 class Ruta(models.Model):
 

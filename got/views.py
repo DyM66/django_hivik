@@ -150,6 +150,9 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['horas_grafica'] = horas_total_asset(asset)
         context['sys_form'] = SysForm()
 
+        critical_equipments = Equipo.objects.filter(system__asset=asset, critico=True)
+        context['critical_equipments'] = critical_equipments
+
         return context
 
     def post(self, request, *args, **kwargs):
@@ -165,6 +168,81 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             context = {'asset': asset, 'sys_form': sys_form}
             return render(request, self.template_name, context)
         
+
+class EquipmentHistoryView(LoginRequiredMixin, generic.ListView):
+    model = EquipmentHistory
+    template_name = 'got/equipment_history.html'
+    context_object_name = 'histories'
+    paginate_by = 20
+
+    def get_queryset(self):
+        equipment_id = self.kwargs['equipment_id']
+        return EquipmentHistory.objects.filter(equipment__code=equipment_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipment_id = self.kwargs['equipment_id']
+        equipment = get_object_or_404(Equipo, code=equipment_id)
+        context['equipment'] = equipment
+        return context
+    
+
+class EquipmentHistoryCreateView(LoginRequiredMixin, generic.CreateView):
+    model = EquipmentHistory
+    form_class = EquipmentHistoryForm
+    template_name = 'got/equipment_history_form.html'
+
+    def form_valid(self, form):
+        equipment_id = self.kwargs['equipment_id']
+        equipment = get_object_or_404(Equipo, code=equipment_id)
+        form.instance.equipment = equipment
+        form.instance.reporter = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('got:equipment_history', kwargs={'equipment_id': self.kwargs['equipment_id']})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipment_id = self.kwargs['equipment_id']
+        equipment = get_object_or_404(Equipo, code=equipment_id)
+        context['equipment'] = equipment
+        return context
+
+
+class EquipmentHistoryUpdateView(LoginRequiredMixin, generic.UpdateView):
+    model = EquipmentHistory
+    form_class = EquipmentHistoryForm
+    template_name = 'got/equipment_history_form.html'
+    permission_required = 'got.change_equipmenthistory'
+
+    def get_success_url(self):
+        return reverse_lazy('got:equipment_history', kwargs={'equipment_code': self.object.equipment.code})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['equipment'] = self.object.equipment
+        return context
+    
+
+class EquipmentHistoryDeleteView(LoginRequiredMixin, generic.DeleteView):
+    model = EquipmentHistory
+    template_name = 'got/equipment_history_confirm_delete.html'
+    permission_required = 'got.delete_equipmenthistory'
+
+    def get_success_url(self):
+        return reverse_lazy('got:equipment_history', kwargs={'equipment_code': self.object.equipment.code})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['equipment'] = self.object.equipment
+        return context
+    
+def delete_equipment_history(request, equipment_code, pk):
+    history = get_object_or_404(EquipmentHistory, pk=pk, equipment__code=equipment_code)
+    history.delete()
+    return redirect('got:equipment_history', equipment_code=equipment_code)
+
 
 class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
 
@@ -1523,7 +1601,6 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
         image_form = UploadImages(request.POST, request.FILES)
         
         if form.is_valid() and image_form.is_valid():
-            # Asignar el nombre completo del usuario al campo 'report'
             full_name = request.user.get_full_name()
             if not full_name.strip():
                 full_name = request.user.username
@@ -1554,7 +1631,6 @@ class FailureReportUpdate(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         asset = self.get_object().equipo.system.asset
         context['asset_main'] = asset
-        # Añadir el formulario de imágenes si es necesario
         if 'image_form' not in context:
             context['image_form'] = UploadImages()
         return context
@@ -1567,10 +1643,8 @@ class FailureReportUpdate(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         form.instance.modified_by = self.request.user
-        # Si el campo 'related_ot' está en el formulario, actualizarlo
         if 'related_ot' in form.cleaned_data:
             form.instance.related_ot = form.cleaned_data['related_ot']
-            # Si la OT seleccionada está en estado 'f', marcar el reporte como cerrado
             if form.cleaned_data['related_ot'].state == 'f':
                 form.instance.closed = True
             else:
@@ -1873,7 +1947,7 @@ class OtUpdate(UpdateView):
 
     def form_valid(self, form):
         ot = form.save(commit=False)
-        ot.modified_by = self.request.user  # Asignar el usuario que modifica
+        ot.modified_by = self.request.user
         ot.save()
         return super().form_valid(form)
 
@@ -1884,7 +1958,6 @@ class OtDelete(DeleteView):
     success_url = reverse_lazy('got:ot-list')
 
 
-
 def ot_pdf(request, num_ot):
 
     ot_info = get_object_or_404(Ot, num_ot=num_ot)
@@ -1893,7 +1966,7 @@ def ot_pdf(request, num_ot):
     fallas = FailureReport.objects.filter(related_ot=ot_info)
     failure = fallas.exists()
 
-    tareas = Task.objects.filter(ot=ot_info).select_related('responsible', 'responsible__profile')
+    tareas = Task.objects.filter(ot=ot_info).select_related('responsible', 'responsible__profile').order_by('start_date')
     usuarios_participacion_dict = {}
 
     for tarea in tareas:
@@ -3149,6 +3222,54 @@ class PreoperacionalDiarioUpdateView(LoginRequiredMixin, generic.UpdateView):
 def gracias_view(request, code):
     equipo = get_object_or_404(Equipo, code=code)
     return render(request, 'got/preoperacional/gracias.html', {'equipo': equipo})
+
+
+# views.py
+
+class PreoperacionalUpdateView(LoginRequiredMixin, generic.UpdateView):
+    model = Preoperacional
+    form_class = PreoperacionalEspecificoForm
+    template_name = 'got/preoperacional/preoperacionalform.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        preoperacional = self.get_object()
+        kwargs['equipo_code'] = preoperacional.vehiculo.code
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        preoperacional = form.save(commit=False)
+        equipo = preoperacional.vehiculo
+        nuevo_kilometraje = form.cleaned_data['nuevo_kilometraje']
+        fecha_preoperacional = preoperacional.fecha
+
+        # Calcular el horómetro actual excluyendo el reporte actual
+        horometro_actual = equipo.initial_hours + (
+            equipo.hours.exclude(report_date=fecha_preoperacional).aggregate(total=Sum('hour'))['total'] or 0
+        )
+        kilometraje_reportado = nuevo_kilometraje - horometro_actual
+
+        # Actualizar o crear el registro de horas
+        history_hour, _ = HistoryHour.objects.get_or_create(
+            component=equipo,
+            report_date=fecha_preoperacional,
+            defaults={'hour': kilometraje_reportado}
+        )
+
+        history_hour.hour = kilometraje_reportado
+        history_hour.save()
+
+        # Actualizar el horómetro del equipo
+        equipo.horometro = nuevo_kilometraje
+        equipo.save()
+
+        preoperacional.save()
+
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('got:salidas-detail', kwargs={'pk': self.object.pk})
 
 
 'SOLICITUDES VIEWS'

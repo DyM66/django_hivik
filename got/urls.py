@@ -127,4 +127,15 @@ urlpatterns = [
     path('overtime/edit/<int:pk>/', views.edit_overtime, name='edit_overtime'),
     path('overtime/delete/<int:pk>/', views.delete_overtime, name='delete_overtime'),
     path('overtime/export_excel/', views.export_overtime_excel, name='export_overtime_excel'),
+
+    path('equipment/<str:equipment_id>/history/', views.EquipmentHistoryView.as_view(), name='equipment_history'),
+    path('equipment/<str:equipment_id>/history/add/', views.EquipmentHistoryCreateView.as_view(), name='equipment_history_add'),
+
+    path('equipment/<str:equipment_code>/history/', views.EquipmentHistoryView.as_view(), name='equipment_history'),
+    path('equipment/<str:equipment_code>/history/add/', views.EquipmentHistoryCreateView.as_view(), name='equipment_history_add'),
+    path('equipment/<str:equipment_code>/history/<int:pk>/edit/', views.EquipmentHistoryUpdateView.as_view(), name='equipment_history_edit'),
+    path('equipment/<str:equipment_code>/history/<int:pk>/delete/', views.EquipmentHistoryDeleteView.as_view(), name='equipment_history_delete'),
+    
+    
+    path('preoperacional/<int:pk>/edit/', views.PreoperacionalUpdateView.as_view(), name='salida-edit'),
 ]

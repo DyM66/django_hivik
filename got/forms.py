@@ -927,22 +927,42 @@ class PreoperacionalEspecificoForm(forms.ModelForm):
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
+
     def __init__(self, *args, **kwargs):
         equipo_code = kwargs.pop('equipo_code', None)
         user = kwargs.pop('user', None)
         super(PreoperacionalEspecificoForm, self).__init__(*args, **kwargs)
         self.equipo = Equipo.objects.filter(code=equipo_code).first()
+        instance = kwargs.get('instance', None)
 
         if user and user.is_authenticated:
             self.fields['nombre_no_registrado'].widget = forms.HiddenInput()
         else:
             self.fields['nombre_no_registrado'].required = True
 
+        if instance:
+            # Prellenar 'nuevo_kilometraje' con el valor existente
+            self.fields['nuevo_kilometraje'].initial = instance.kilometraje
+
     def clean_nuevo_kilometraje(self):
         nuevo_kilometraje = self.cleaned_data.get('nuevo_kilometraje')
-        if self.equipo and nuevo_kilometraje < self.equipo.horometro:
-            raise forms.ValidationError("El nuevo kilometraje debe ser igual o mayor al kilometraje actual.")
+        if self.equipo:
+            if self.instance.pk:
+                pass
+            else:
+                # Modo creación
+                if nuevo_kilometraje < self.equipo.horometro:
+                    raise forms.ValidationError("El nuevo kilometraje debe ser igual o mayor al kilometraje actual.")
         return nuevo_kilometraje
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # Si el campo está deshabilitado, mantener el valor original
+        if self.fields['nombre_no_registrado'].widget.__class__ == forms.HiddenInput:
+            instance.nombre_no_registrado = self.initial.get('nombre_no_registrado', instance.nombre_no_registrado)
+        if commit:
+            instance.save()
+        return instance
     
 
 class PreoperacionalDiarioForm(forms.ModelForm):
@@ -1428,3 +1448,17 @@ class OvertimeEditForm(forms.ModelForm):
         }
 
 
+class EquipmentHistoryForm(forms.ModelForm):
+    class Meta:
+        model = EquipmentHistory
+        fields = ['date', 'subject', 'annotations']
+        labels = {
+            'date': 'Fecha',
+            'subject': 'Asunto',
+            'annotations': 'Anotaciones'          
+        }
+        widgets = {
+            'date': XYZ_DateInput(format=['%Y-%m-%d'],),
+            'subject': forms.Select(attrs={'class': 'form-control'}),
+            'annotations': forms.Textarea(attrs={'class': 'form-control'}),
+        }

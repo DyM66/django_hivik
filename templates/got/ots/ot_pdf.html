@@ -118,23 +118,20 @@
 </table>
 
 <br>
+<div class="section">
+    <h2 class="section-title">DESCRIPCIÓN DEL TRABAJO EFECTUADO</h2>
+    <div class="section-content">
+        {% for act in tareas %}
+            <strong>{{ act.start_date|date:"d/m/Y" }}:</strong>{{ act.description|linebreaksbr }}
+            {% if not forloop.last %}
+                <br><br>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
 <table class="deta">
     <tbody>
-        <tr>
-            <th style="text-align: center;">
-                <h2>DESCRIPCIÓN DEL TRABAJO EFECTUADO</h2>
-            </th>
-        </tr>
-        <tr>
-            <td style="padding: 20px 0 20px 0;">
-                <ul>
-                    {% for act in ot.task_set.all %}
-                    <li>{{ act.description|linebreaksbr }}</li>
-                    {% endfor %}
-                </ul>
-            </td>
-        </tr>
-
         <tr>
             <th style="text-align: center;">
                 <h2>NOVEDADES</h2>
@@ -144,8 +141,10 @@
             <td style="padding: 20px 0 20px 0;">
                 {% if act.news %}
                 <ul>
-                    {% for act in ot.task_set.all %}
-                    <li>{{act.news|linebreaksbr}}</li>
+                    {% for act in tareas %}
+                    {% if act.news %}
+                        <li>{{act.news|linebreaksbr}}</li>
+                    {% endif %}
                     {% endfor %}
                 </ul>
                 {% endif %}
