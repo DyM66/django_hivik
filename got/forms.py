@@ -450,14 +450,12 @@ class RutaForm(forms.ModelForm):
         frecuency = self.cleaned_data['frecuency']
 
         if frecuency < 0:
-            raise forms.ValidationError(
-                'El valor de la frecuencia no puede ser 0.'
-                )
+            raise forms.ValidationError('El valor de la frecuencia no puede ser 0.')
         return frecuency
 
     class Meta:
         model = Ruta
-        exclude = ['system', 'astillero', 'modified_by']
+        exclude = ['system', 'astillero', 'modified_by', 'related']
         labels = {
             'name': 'Codigo interno',
             'frecuency': 'Frecuencia',

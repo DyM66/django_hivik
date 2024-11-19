@@ -2105,7 +2105,9 @@ class TaskCreate(CreateView):
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['asset'] = Asset.objects.get(pk=self.kwargs['pk'])
+        ruta = get_object_or_404(Ruta, pk=self.kwargs['pk'])
+        asset = ruta.system.asset  # Obtenemos el asset desde la ruta
+        kwargs['asset'] = asset
         return kwargs
 
 

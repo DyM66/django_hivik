@@ -288,6 +288,7 @@ class Equipo(models.Model):
         ('m', 'Comunicación'),
         ('n', 'Navegación'),
         ('o', 'Maniobras'),
+        ('p', 'Habitabilidad'),
         ('nr', 'No rotativo'),
         ('r', 'Motor a combustión'),    
         ('t', 'Transmisión'),
