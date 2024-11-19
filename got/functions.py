@@ -550,3 +550,51 @@ def get_cargo(full_name):
         return user.profile.cargo if hasattr(user, 'profile') else ''
     except (User.DoesNotExist, ValueError, UserProfile.DoesNotExist):
         return ''
+    
+
+# utils.py
+
+from datetime import datetime
+import calendar
+from .models import Ruta
+from .forms import RutinaFilterForm
+
+def get_filtered_rutas(asset, user, request_data=None):
+    form = RutinaFilterForm(request_data, asset=asset)
+    current_month_name_es = traductor(datetime.now().strftime('%B'))
+
+    if form.is_valid():
+        month = int(form.cleaned_data['month'])
+        year = int(form.cleaned_data['year'])
+        show_execute = form.cleaned_data.get('execute', False)
+        selected_locations = form.cleaned_data.get('locations')
+        current_month_name_es = traductor(calendar.month_name[month])
+        
+        filtered_rutas = Ruta.objects.filter(
+            system__in=get_full_systems_ids(asset, user),
+            system__location__in=selected_locations
+        ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+
+        if show_execute == 'on':
+            filtered_rutas = [
+                ruta for ruta in filtered_rutas
+                if (ruta.next_date.month <= month and ruta.next_date.year <= year)
+                or (ruta.ot and ruta.ot.state == 'x')
+                or (ruta.percentage_remaining < 15)
+            ]
+        else:
+            filtered_rutas = [
+                ruta for ruta in filtered_rutas
+                if (ruta.next_date.month <= month and ruta.next_date.year <= year)
+                or (ruta.percentage_remaining < 15)
+            ]
+    else:
+        filtered_rutas = Ruta.objects.filter(
+            system__in=get_full_systems_ids(asset, user)
+        ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+        filtered_rutas = [
+            ruta for ruta in filtered_rutas
+            if (ruta.percentage_remaining < 15)
+        ]
+
+    return filtered_rutas, current_month_name_es

@@ -364,27 +364,8 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
 
 def preventivo_pdf(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
-
-    month = request.GET.get('month')
-    year = request.GET.get('year')
-    show_execute = request.GET.get('execute', False)
-    selected_locations = request.GET.getlist('locations')
-    systems = get_full_systems_ids(asset, request.user)
-    filtered_rutas = Ruta.objects.filter(system__in=systems).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-
-    if selected_locations:
-        filtered_rutas = filtered_rutas.filter(system__location__in=selected_locations)
-
-    if month and year:
-        month = int(month)
-        year = int(year)
-        if show_execute == 'on':
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.ot and ruta.ot.state == 'x') or (ruta.percentage_remaining < 15)]
-        else:
-            filtered_rutas = [ruta for ruta in filtered_rutas if (ruta.next_date.month <= month or ruta.next_date.year <= year) or (ruta.percentage_remaining < 15)]
-
-    current_month_name_es = traductor(calendar.month_name[month]) if month else traductor(datetime.now().strftime('%B'))
-
+    user = request.user
+    filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, request.GET)
     context = {
         'rq': asset,
         'filtered_rutas': filtered_rutas,
