@@ -2,8 +2,7 @@
 
 {% block content %}
     <h2>Reporte de Horas Extras</h2>
-    <form method="post">
-        {% csrf_token %}
+    <form method="post">{% csrf_token %}
         <fieldset>
         <legend>Información de solicitud</legend>
         {{ common_form.as_p }}

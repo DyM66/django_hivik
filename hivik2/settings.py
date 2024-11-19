@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'debug_toolbar',
+    'overtime.apps.OvertimeConfig',
 ]
 
 SITE_ID = 1

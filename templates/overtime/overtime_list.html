@@ -43,7 +43,6 @@
                                                 </a><br>
                                             Cédula: {{ entry.cedula }}<br>
                                             Horario: {{ entry.hora_inicio|time:"h:i A" }} - {{ entry.hora_fin|time:"h:i A" }}<br>
-                                            <!-- Mostrar el estado de aprobación junto a cada usuario -->
                                             {% if entry.approved %}
                                                 <span class="status aprobado">Aprobado</span>
                                             {% else %}
@@ -51,7 +50,7 @@
                                             {% endif %}
         
                                             {% if perms.got.can_approve_overtime %}
-                                            <form method="post" action="{% url 'got:approve_overtime' entry.id %}" style="display:inline;">
+                                            <form method="post" action="{% url 'overtime:approve_overtime' entry.id %}" style="display:inline;">
                                                 {% csrf_token %}
                                                 {% if not entry.approved %}
                                                     <button type="submit" class="btn btn-sm btn-primary">Aprobar</button>
@@ -64,12 +63,10 @@
                                         {% endif %}
         
         
-                                        <!-- Modal para editar el registro -->
                                         <div class="modal fade" id="editEntryModal{{ entry.id }}" tabindex="-1" aria-labelledby="editEntryModalLabel{{ entry.id }}" aria-hidden="true">
                                             <div class="modal-dialog">
                                                 <div class="modal-content">
-                                                    <!-- Formulario para editar el registro -->
-                                                    <form method="post" action="{% url 'got:edit_overtime' entry.id %}">
+                                                    <form method="post" action="{% url 'overtime:edit_overtime' entry.id %}">
                                                         {% csrf_token %}
                                                         <div class="modal-header">
                                                             <h5 class="modal-title" id="editEntryModalLabel{{ entry.id }}">Editar Registro de Horas Extras</h5>
@@ -104,7 +101,7 @@
                                                         </div>
                                                     </form>
                                                     <!-- Formulario oculto para eliminar el registro -->
-                                                    <form method="post" action="{% url 'got:delete_overtime' entry.id %}" id="deleteForm{{ entry.id }}" style="display:none;">
+                                                    <form method="post" action="{% url 'overtime:delete_overtime' entry.id %}" id="deleteForm{{ entry.id }}" style="display:none;">
                                                         {% csrf_token %}
                                                     </form>
                                                 </div>
@@ -163,8 +160,7 @@
 
 <div class="col-md-3">
 
-    <form method="get" action="{% url 'got:export_overtime_excel' %}" class="mb-3">
-        <!-- Pasar los filtros actuales como parámetros -->
+    <form method="get" action="{% url 'overtime:export_overtime_excel' %}" class="mb-3">
         <input type="hidden" name="person_name" value="{{ request.GET.person_name }}">
         <input type="hidden" name="asset" value="{{ request.GET.asset }}">
         <input type="hidden" name="date" value="{{ request.GET.date }}">

@@ -119,15 +119,6 @@ urlpatterns = [
     path('service-worker.js', views.service_worker, name='service_worker'),
     path('api/unapproved_requests_count/', views.get_unapproved_requests_count, name='unapproved_requests_count_api'),
 
-    path('overtime/report/', views.overtime_report, name='overtime_report'),
-    path('overtime/success/', views.overtime_success, name='overtime_success'),
-    path('overtime/list/', views.overtime_list, name='overtime_list'),
-
-    path('overtime/approve/<int:pk>/', views.approve_overtime, name='approve_overtime'),
-    path('overtime/edit/<int:pk>/', views.edit_overtime, name='edit_overtime'),
-    path('overtime/delete/<int:pk>/', views.delete_overtime, name='delete_overtime'),
-    path('overtime/export_excel/', views.export_overtime_excel, name='export_overtime_excel'),
-
     path('equipment/<str:equipment_id>/history/', views.EquipmentHistoryView.as_view(), name='equipment_history'),
     path('equipment/<str:equipment_id>/history/add/', views.EquipmentHistoryCreateView.as_view(), name='equipment_history_add'),
 
