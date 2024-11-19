@@ -6,7 +6,7 @@
 <h1>Solicitudes de Horas Extras</h1>
 
 <div class="row">
-    <div class="col-md-9">
+    <div class="col-md-9 mb-2">
 
         <table class="table-list deta mt-2">
             <thead>
@@ -52,6 +52,7 @@
                                             {% if perms.got.can_approve_overtime %}
                                             <form method="post" action="{% url 'overtime:approve_overtime' entry.id %}" style="display:inline;">
                                                 {% csrf_token %}
+                                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                                 {% if not entry.approved %}
                                                     <button type="submit" class="btn btn-sm btn-primary">Aprobar</button>
                                                 {% endif %}
@@ -130,71 +131,46 @@
                 {% endfor %}
             </tbody>
         </table>
-        
-        <nav aria-label="Page navigation" class="mt-2">
-            <ul class="pagination">
-                {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.person_name %}&person_name={{ request.GET.person_name }}{% endif %}{% if request.GET.asset %}&asset={{ request.GET.asset }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}" aria-label="Anterior">
-                            <span aria-hidden="true">&laquo;</span>
-                            <span class="sr-only">Anterior</span>
-                        </a>
-                    </li>
-                {% endif %}
-                <li class="page-item disabled">
-                    <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-                </li>
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.person_name %}&person_name={{ request.GET.person_name }}{% endif %}{% if request.GET.asset %}&asset={{ request.GET.asset }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}" aria-label="Siguiente">
-                            <span aria-hidden="true">&raquo;</span>
-                            <span class="sr-only">Siguiente</span>
-                        </a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-        
     </div>
 
 
-<div class="col-md-3">
+    <div class="col-md-3">
 
-    <form method="get" action="{% url 'overtime:export_overtime_excel' %}" class="mb-3">
-        <input type="hidden" name="person_name" value="{{ request.GET.person_name }}">
-        <input type="hidden" name="asset" value="{{ request.GET.asset }}">
-        <input type="hidden" name="date" value="{{ request.GET.date }}">
-        <button type="submit" class="btn btn-primary">Descargar Excel</button>
-    </form>
+        <form method="get" action="{% url 'overtime:export_overtime_excel' %}" class="mb-3">
+            <input type="hidden" name="person_name" value="{{ request.GET.person_name }}">
+            <input type="hidden" name="asset" value="{{ request.GET.asset }}">
+            <input type="hidden" name="date" value="{{ request.GET.date }}">
+            <button type="submit" class="btn btn-primary">Descargar Excel</button>
+        </form>
 
-    <form method="get" class="form-inline mb-3">
-        <div class="form-group me-2">
-            <input type="text" name="person_name" class="form-control" placeholder="Nombre de la persona" value="{{ request.GET.person_name }}">
-        </div>
-        <div class="form-group me-2">
-            <input type="text" name="asset" class="form-control" placeholder="Barco" value="{{ request.GET.asset }}">
-        </div>
-        <div class="form-group me-2">
-            <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
-        </div>
+        <form method="get" class="form-inline mb-3">
+            <div class="form-group me-2">
+                <input type="text" name="person_name" class="form-control" placeholder="Nombre de la persona" value="{{ request.GET.person_name }}">
+            </div>
+            <div class="form-group me-2">
+                <input type="text" name="asset" class="form-control" placeholder="Barco" value="{{ request.GET.asset }}">
+            </div>
+            <div class="form-group me-2">
+                <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
+            </div>
 
-        <div>
-            <label>
-                <input type="radio" name="aprobado" value="all" {% if aprobado_filter == 'all' %}checked{% endif %}>
-                Todos
-            </label>
-            <label>
-                <input type="radio" name="aprobado" value="aprobado" {% if aprobado_filter == 'aprobado' %}checked{% endif %}>
-                Aprobado
-            </label>
-            <label>
-                <input type="radio" name="aprobado" value="no_aprobado" {% if aprobado_filter == 'no_aprobado' %}checked{% endif %}>
-                No Aprobado
-            </label>
-        </div>        
-        <button type="submit" class="btn btn-primary mt-3">Buscar</button>
-    </form>
-</div>
+            <div>
+                <label>
+                    <input type="radio" name="aprobado" value="all" {% if aprobado_filter == 'all' %}checked{% endif %}>
+                    Todos
+                </label>
+                <label>
+                    <input type="radio" name="aprobado" value="aprobado" {% if aprobado_filter == 'aprobado' %}checked{% endif %}>
+                    Aprobado
+                </label>
+                <label>
+                    <input type="radio" name="aprobado" value="no_aprobado" {% if aprobado_filter == 'no_aprobado' %}checked{% endif %}>
+                    No Aprobado
+                </label>
+            </div>        
+            <button type="submit" class="btn btn-primary mt-3">Buscar</button>
+        </form>
+    </div>
 
 </div>
 

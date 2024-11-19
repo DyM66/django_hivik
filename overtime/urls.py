@@ -4,7 +4,7 @@ from . import views
 app_name = 'overtime'
 
 urlpatterns = [
-    path('', views.overtime_list, name='overtime_list'),
+    path('', views.OvertimeListView.as_view(), name='overtime_list'),
     path('approve/<int:pk>/', views.approve_overtime, name='approve_overtime'),
     path('edit/<int:pk>/', views.edit_overtime, name='edit_overtime'),
     path('delete/<int:pk>/', views.delete_overtime, name='delete_overtime'),

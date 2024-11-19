@@ -409,18 +409,26 @@ class RutActForm(forms.ModelForm):
 
     class Meta:
         model = Task
-        fields = ['responsible', 'description', 'procedimiento', 'hse', 'priority']
+        fields = ['responsible', 'description', 'procedimiento', 'hse', 'priority', 'equipo']
         labels = {
             'description': 'Descripción',
             'procedimiento': 'Procedimiento',
             'hse': 'Precauciones de seguridad',
             'priority': 'Prioridad (entre mayor sea el numero tendra mas prioridad)',
+            'equipo': 'Equipo',
             }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'procedimiento': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'hse': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'priority': forms.NumberInput(attrs={'class': 'form-control'}),
+            'equipo': forms.Select(attrs={'class': 'form-control'}),
             }
+
+    def __init__(self, *args, **kwargs):
+        asset = kwargs.pop('asset')
+        super().__init__(*args, **kwargs)
+        self.fields['equipo'].queryset = Equipo.objects.filter(system__asset=asset)
 
 
 # ---------------- Rutinas ------------------- #

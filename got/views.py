@@ -2102,6 +2102,11 @@ class TaskCreate(CreateView):
     def get_success_url(self):
         task = self.object
         return reverse('got:sys-detail', args=[task.ruta.system.id])
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['asset'] = Asset.objects.get(pk=self.kwargs['pk'])
+        return kwargs
 
 
 class TaskUpdate(UpdateView):

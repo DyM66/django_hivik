@@ -576,13 +576,13 @@ class Ruta(models.Model):
 class Task(models.Model):
 
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True)
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True)
     responsible = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     description = models.TextField()
     procedimiento = models.TextField(default="", blank=True, null=True)
     hse = models.TextField(default="", blank=True, null=True)
     news = models.TextField(blank=True, null=True)
-    # evidence = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     priority = models.IntegerField(default=0, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     men_time = models.IntegerField(default=0)

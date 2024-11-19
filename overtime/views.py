@@ -1,5 +1,9 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import permission_required, login_required
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.shortcuts import render, get_object_or_404, redirect
+from django.core.paginator import Paginator
 from datetime import date
 from itertools import groupby
 from dateutil.relativedelta import relativedelta
@@ -10,77 +14,75 @@ from .forms import *
 import openpyxl
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
-import time
+from datetime import datetime, time, date
 
 
-@login_required
-def overtime_list(request):
+class OvertimeListView(LoginRequiredMixin, ListView):
+    model = Overtime
+    template_name = 'overtime/overtime_list.html'
+    context_object_name = 'overtime_entries'
+    paginate_by = 25
 
-    person_name = request.GET.get('person_name', '')
-    asset_name = request.GET.get('asset', '')
-    date_filter = request.GET.get('date', '')
-    aprobado_filter = request.GET.get('aprobado', 'all')
+    def get_queryset(self):
+        person_name = self.request.GET.get('person_name', '')
+        asset_name = self.request.GET.get('asset', '')
+        date_filter = self.request.GET.get('date', '')
+        aprobado_filter = self.request.GET.get('aprobado', 'all')
 
-    today = date.today()
+        today = date.today()
 
-    if today.day < 24:
-        start_date = (today - relativedelta(months=1)).replace(day=24)
-        end_date = today.replace(day=24)
-    else:
-        start_date = today.replace(day=24)
-        end_date = (today + relativedelta(months=1)).replace(day=24)
+        if today.day < 24:
+            start_date = (today - relativedelta(months=1)).replace(day=24)
+            end_date = today.replace(day=24)
+        else:
+            start_date = today.replace(day=24)
+            end_date = (today + relativedelta(months=1)).replace(day=24)
 
-    overtime_entries = Overtime.objects.filter(fecha__gte=start_date, fecha__lt=end_date)
+        overtime_entries = Overtime.objects.filter(fecha__gte=start_date, fecha__lt=end_date)
 
-    if person_name:
-        overtime_entries = overtime_entries.filter(nombre_completo__icontains=person_name)
+        if person_name:
+            overtime_entries = overtime_entries.filter(nombre_completo__icontains=person_name)
 
-    if asset_name:
-        overtime_entries = overtime_entries.filter(asset__name__icontains=asset_name)
+        if asset_name:
+            overtime_entries = overtime_entries.filter(asset__name__icontains=asset_name)
 
-    if date_filter:
-        overtime_entries = overtime_entries.filter(fecha=date_filter)
+        if date_filter:
+            overtime_entries = overtime_entries.filter(fecha=date_filter)
 
-    if aprobado_filter == 'aprobado':
-        overtime_entries = overtime_entries.filter(approved=True)
-    elif aprobado_filter == 'no_aprobado':
-        overtime_entries = overtime_entries.filter(approved=False)
+        if aprobado_filter == 'aprobado':
+            overtime_entries = overtime_entries.filter(approved=True)
+        elif aprobado_filter == 'no_aprobado':
+            overtime_entries = overtime_entries.filter(approved=False)
 
-    overtime_entries = overtime_entries.order_by('-fecha', 'asset', 'justificacion')
+        overtime_entries = overtime_entries.order_by('-fecha', 'asset', 'justificacion')
 
-    paginator = Paginator(overtime_entries, 25)  # Mostrar 25 registros por página
+        return overtime_entries
 
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        page_obj = context['page_obj']
 
-    # Agrupar los registros por fecha y activo
-    date_asset_justification_groups = []
+        date_asset_justification_groups = []
 
-    for fecha, fecha_entries in groupby(page_obj.object_list, key=attrgetter('fecha')):
-        asset_groups = []
-        fecha_entries = list(fecha_entries)
-        # Agrupar por activo dentro de cada fecha
-        for asset, asset_entries in groupby(fecha_entries, key=attrgetter('asset')):
-            asset_entries = list(asset_entries)
-            # Agrupar por justificación dentro de cada activo
-            for justificacion, justificacion_entries in groupby(asset_entries, key=attrgetter('justificacion')):
-                justificacion_entries = list(justificacion_entries)
-                asset_groups.append({
-                    'asset': asset,
-                    'justificacion': justificacion,
-                    'entries': justificacion_entries
-                })
-        date_asset_justification_groups.append({
-            'fecha': fecha,
-            'assets': asset_groups
-        })
+        for fecha, fecha_entries in groupby(page_obj.object_list, key=attrgetter('fecha')):
+            asset_groups = []
+            fecha_entries = list(fecha_entries)
+            for asset, asset_entries in groupby(fecha_entries, key=attrgetter('asset')):
+                asset_entries = list(asset_entries)
+                for justificacion, justificacion_entries in groupby(asset_entries, key=attrgetter('justificacion')):
+                    justificacion_entries = list(justificacion_entries)
+                    asset_groups.append({
+                        'asset': asset,
+                        'justificacion': justificacion,
+                        'entries': justificacion_entries
+                    })
+            date_asset_justification_groups.append({
+                'fecha': fecha,
+                'assets': asset_groups
+            })
 
-    context = {
-        'date_asset_groups': date_asset_justification_groups,
-        'page_obj': page_obj,
-    }
-
-    return render(request, 'overtime/overtime_list.html', context)
+        context['date_asset_groups'] = date_asset_justification_groups
+        return context
 
 
 @login_required
@@ -91,6 +93,12 @@ def approve_overtime(request, pk):
         # Cambiar el estado de aprobación
         overtime_entry.approved = not overtime_entry.approved
         overtime_entry.save()
+        
+        next_url = request.POST.get('next')
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            return redirect(next_url)
+        else:
+            return redirect('overtime:overtime_list')
     return redirect('overtime:overtime_list')
 
 
