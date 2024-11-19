@@ -305,6 +305,16 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
                 if (ruta.percentage_remaining < 15)
             ]
 
+            # filtered_rutas = Ruta.objects.filter(
+            #     system__in=get_full_systems_ids(asset, user)
+            # ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+            # filtered_rutas = [
+            #     ruta for ruta in filtered_rutas
+            
+            # ]
+
+
+
         return filtered_rutas, current_month_name_es
 
     def post(self, request, *args, **kwargs):
@@ -1999,7 +2009,8 @@ def ot_pdf(request, num_ot):
         'rutina': rutina,
         'users': usuarios_participacion,
         'has_evidence': has_evidence,
-        'evidence_images': evidence_images
+        'evidence_images': evidence_images,
+        'tareas': tareas
     }
     template_path = 'got/ots/ot_pdf.html'
 
