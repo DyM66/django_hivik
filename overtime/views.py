@@ -220,7 +220,9 @@ def overtime_report(request):
                 cedula = person_form.cleaned_data.get('cedula')
                 cargo = person_form.cleaned_data.get('cargo')
 
-                # Crear el registro de Overtime
+                if not nombre_completo and not cargo:
+                    continue
+
                 Overtime.objects.create(
                     fecha=fecha,
                     hora_inicio=hora_inicio,
@@ -231,7 +233,7 @@ def overtime_report(request):
                     cargo=cargo,
                     reportado_por=request.user,
                     asset=asset,
-                    approved=False  # Por defecto, no aprobado
+                    approved=False 
                 )
 
             return redirect('overtime:overtime_success')

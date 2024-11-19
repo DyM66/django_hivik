@@ -160,7 +160,7 @@ class EquipoForm(forms.ModelForm):
 
     class Meta:
         model = Equipo
-        exclude = ['system', 'horometro', 'prom_hours', 'code', 'imagen', 'modified_by']
+        exclude = ['system', 'horometro', 'prom_hours', 'code', 'imagen', 'modified_by', 'related']
         labels = {
             'name': 'Nombre',
             'model': 'Modelo',
@@ -455,7 +455,7 @@ class RutaForm(forms.ModelForm):
 
     class Meta:
         model = Ruta
-        exclude = ['system', 'astillero', 'modified_by', 'related']
+        fields = ['system', 'astillero', 'modified_by']
         labels = {
             'name': 'Codigo interno',
             'frecuency': 'Frecuencia',
