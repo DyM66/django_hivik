@@ -212,6 +212,7 @@ def track_model_deletion(sender, instance, **kwargs):
 def create_transfer_history(sender, instance, created, **kwargs):
     if created:
         EquipmentHistory.objects.create(
+            date=timezone.now().date(),
             equipment=instance.equipo,
             subject='movement',
             annotations=f"Transferred from {instance.origen} to {instance.destino}. Observations: {instance.observaciones}",

@@ -2168,6 +2168,13 @@ class TaskUpdaterut(UpdateView):
         sys_id = self.object.ruta.system.id
         return reverse_lazy('got:sys-detail', kwargs={'pk': sys_id})
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        task = get_object_or_404(Task, pk=self.kwargs['pk'])
+        asset = task.ruta.system.asset
+        kwargs['asset'] = asset
+        return kwargs
+    
 
 class TaskDeleterut(DeleteView):
 
@@ -2381,7 +2388,7 @@ class RutaUpdate(UpdateView):
     form_class = RutaForm
 
     def form_valid(self, form):
-        form.instance.modified_by = self.request.user  # Asignar el usuario actual al campo modified_by
+        form.instance.modified_by = self.request.user 
         return super().form_valid(form)
 
     def get_form_kwargs(self):

@@ -455,7 +455,7 @@ class RutaForm(forms.ModelForm):
 
     class Meta:
         model = Ruta
-        fields = ['system', 'astillero', 'modified_by']
+        exclude = ['system', 'astillero', 'modified_by']
         labels = {
             'name': 'Codigo interno',
             'frecuency': 'Frecuencia',
