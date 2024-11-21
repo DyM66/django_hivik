@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required, login_required, user_passes_test
 from django.contrib.auth.views import PasswordResetView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.utils.timezone import localdate
 from django.views import generic, View
 from django.views.decorators.cache import never_cache, cache_control
+from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.db import transaction as db_transaction
 from datetime import timedelta, date, datetime
@@ -85,6 +86,35 @@ def service_worker(request):
 def get_unapproved_requests_count(request):
     count = Solicitud.objects.filter(approved=False).count()
     return JsonResponse({'count': count})
+
+
+@login_required
+def profile_update(request):
+    user = request.user
+    profile = user.profile
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, request.FILES, instance=profile, user=user)
+        if form.is_valid():
+            # Actualizar campos del usuario
+            user.first_name = form.cleaned_data['first_name']
+            user.last_name = form.cleaned_data['last_name']
+            user.email = form.cleaned_data['email']
+            user.save()
+            # Guardar perfil
+            form.save()
+            messages.success(request, 'Tu perfil ha sido actualizado exitosamente.')
+            return redirect('got:asset-list')
+        else:
+            messages.error(request, 'Por favor corrige los errores indicados.')
+    else:
+        form = UserProfileForm(instance=profile, user=user, initial={
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+        })
+
+    return render(request, 'profile_update.html', {'form': form})
 
 
 'ASSETS VIEWS'
@@ -4118,3 +4148,103 @@ class CustomPasswordResetView(PasswordResetView):
             'site_name': site_name,
         }
     
+
+
+class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'got/maintenance_dashboard.html'
+
+    def test_func(self):
+        # Verificar si el usuario pertenece al grupo 'super_members'
+        return self.request.user.groups.filter(name='super_members').exists()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Obtener todos los barcos (assets con area='a')
+        ships = Asset.objects.filter(area='a')
+
+        # Obtener sistemas de todos los barcos y agrupar por 'group' para obtener sistemas únicos
+        systems_queryset = System.objects.filter(asset__in=ships).select_related('asset')
+        unique_systems = {}
+        for system in systems_queryset:
+            key = system.group
+            if key not in unique_systems:
+                unique_systems[key] = system
+
+        # Ordenar los sistemas únicos por 'group' o como prefieras
+        systems = sorted(unique_systems.values(), key=lambda s: s.group)
+
+        # Preparar la estructura de datos
+        data = []
+        for ship in ships:
+            ship_row = {'ship': ship.name}
+            ship_systems = System.objects.filter(asset=ship).prefetch_related(
+                'rutas',
+                'equipos__failurereport_set',
+                'ot_set',
+            )
+
+            # Crear un diccionario de sistemas del barco actual por 'group'
+            ship_systems_dict = {system.group: system for system in ship_systems}
+
+            for system in systems:
+                system_group = system.group
+                ship_system = ship_systems_dict.get(system_group)
+                if ship_system:
+                    states = self.get_system_states(ship_system)
+                    ship_row[system_group] = states
+                else:
+                    ship_row[system_group] = []
+            data.append(ship_row)
+
+        context['systems'] = systems
+        context['data'] = data
+        return context
+
+    def get_system_states(self, system):
+        states = []
+        today = date.today()
+        
+        rutas = list(system.rutas.all())
+        equipos = list(system.equipos.all())
+        failure_reports = []
+        for equipo in equipos:
+            failure_reports.extend(list(equipo.failurereport_set.all()))
+        
+        requires_maintenance = False
+        all_up_to_date = True
+        has_planeacion = False
+
+        for ruta in rutas:
+            next_date = ruta.next_date
+            if next_date and next_date < today:
+                requires_maintenance = True
+                all_up_to_date = False
+            elif not next_date:
+                requires_maintenance = True
+                all_up_to_date = False
+            percentage = ruta.percentage_remaining
+            if percentage and 0 < percentage < 15:
+                has_planeacion = True
+
+        if requires_maintenance:
+            states.append(('Requiere', '#ff0000'))  # Rojo
+        elif all_up_to_date:
+            states.append(('Ok', '#86e49d'))  # Verde
+
+        if has_planeacion:
+            states.append(('Planeación', '#ffff00'))  # Amarillo
+
+        # Estado "Alerta"
+        if any(fr.critico for fr in failure_reports):
+            states.append(('Alerta', '#cc0000'))  # Rojo intenso
+
+        # Estado "Novedades"
+        if any(not fr.critico for fr in failure_reports):
+            states.append(('Novedades', '#ffa500'))  # Naranja
+
+        # Estado "Trabajando"
+        if any(ot.state == 'x' for ot in system.ot_set.all()):
+            states.append(('Trabajando', '#800080'))  # Morado
+
+        return states

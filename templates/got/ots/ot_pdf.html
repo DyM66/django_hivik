@@ -130,28 +130,20 @@
     </div>
 </div>
 
-<table class="deta">
-    <tbody>
-        <tr>
-            <th style="text-align: center;">
-                <h2>NOVEDADES</h2>
-            </th>
-        </tr>
-        <tr>
-            <td style="padding: 20px 0 20px 0;">
-                {% if act.news %}
-                <ul>
-                    {% for act in tareas %}
-                    {% if act.news %}
-                        <li>{{act.news|linebreaksbr}}</li>
-                    {% endif %}
-                    {% endfor %}
-                </ul>
-                {% endif %}
-            </td>
-        </tr>
-    </tbody>
-</table>
+<br>
+<div class="section">
+    <h2 class="section-title">NOVEDADES</h2>
+    <div class="section-content">
+        {% for act in tareas %}
+            {% if act.news %}
+            <strong>{{ act.start_date|date:"d/m/Y" }}:</strong>{{act.news|linebreaksbr}}
+            {% endif %}
+            {% if not forloop.last %}
+                <br><br>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
 
 <br>
 <table class="deta">

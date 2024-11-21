@@ -46,6 +46,7 @@ class UserProfile(models.Model):
     cargo = models.CharField(max_length=100, null=True, blank=True)
     firma = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     station = models.CharField(max_length=100, null=True, blank=True)
+    cedula = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s profile"

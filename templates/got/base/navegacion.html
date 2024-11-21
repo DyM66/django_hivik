@@ -12,6 +12,14 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
+                {% if request.user|has_group:"super_members" %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'maintenance_dashboard' %}active{% endif %}" href="{% url 'got:maintenance_dashboard' %}">
+                            Mantenimiento
+                        </a>
+                    </li>
+                {% endif %}
+
                 {% if asset_del_supervisor %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.path == asset_del_supervisor.get_absolute_url %}active{% endif %}" href="{{ asset_del_supervisor.get_absolute_url }}">
@@ -58,8 +66,7 @@
                     </li>
                 {% endif %}
 
-                <!-- {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
-                    <li class="nav-item dropdown">
+                <!-- <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'ruta-list' %}active{% endif %}" href="{% url 'got:ruta-list' %}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Rutinas
                         </a>
@@ -67,8 +74,7 @@
                             <li><a class="dropdown-item" href="{% url 'got:ruta-list' %}">Barcos</a></li>
                             <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
                         </ul>
-                    </li>
-                {% endif %} -->
+                    </li> -->
 
                 {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
                     <li class="nav-item">
@@ -111,10 +117,32 @@
                 {% endif %}
               </ul>
 
-              <!-- Boton de logout -->
-            <form class="d-flex" action="{% url 'logout' %}" method="post">{% csrf_token %}
-                <button class="terminar" type="submit">{{ user.first_name }} {{ user.last_name }}</button>
-            </form>
+              <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarUserMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ user.first_name }} {{ user.last_name }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserMenu">
+                        <li><strong class="dropdown-header">{{ user.first_name }} {{ user.last_name }}</strong></li>
+                        <li><span class="dropdown-item-text">{{ user.profile.cargo }}</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><span class="dropdown-item-text">{{ user.email }}</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% if request.user|has_group:"buzos_members" %}
+                            <li><span class="dropdown-item-text"><strong>Estación:</strong> {{ user.profile.station }}</span></li>
+                        {% endif %}
+                        <li><span class="dropdown-item-text"><strong>Cédula:</strong> {{ user.profile.cedula }}</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'got:profile_update' %}">Actualizar Información</a></li>
+                        <li>
+                            <form action="{% url 'logout' %}" method="post" class="dropdown-item">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-link" style="color: inherit; padding: 0;">Cerrar Sesión</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
         </div>
       </div>
 </nav>

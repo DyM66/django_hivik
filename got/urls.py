@@ -5,6 +5,8 @@ app_name = 'got'
 
 urlpatterns = [
 
+    path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
+    path('profile/', views.profile_update, name='profile_update'),
     path("", views.AssetsListView.as_view(), name="asset-list"),
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
     path("asset/<str:pk>/maintenance-plan/", views.AssetMaintenancePlanView.as_view(), name="asset-maintenance-plan"),

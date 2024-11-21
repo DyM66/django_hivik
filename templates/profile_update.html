@@ -1,0 +1,15 @@
+<!-- templates/got/profile_update.html -->
+
+{% extends 'got/base_generic.html' %}
+
+{% block content %}
+<h2>Actualizar Perfil</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+</form>
+
+{% endblock %}

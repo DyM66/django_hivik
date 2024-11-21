@@ -61,6 +61,31 @@ class MultipleFileField(forms.FileField):
             result = [single_file_clean(data, initial)]
         return result
     
+
+class UserProfileForm(forms.ModelForm):
+    first_name = forms.CharField(label='Nombre', max_length=30, required=False)
+    last_name = forms.CharField(label='Apellido', max_length=30, required=False)
+    email = forms.EmailField(label='Correo electrónico', required=False)
+
+    class Meta:
+        model = UserProfile
+        fields = ['cedula', 'cargo', 'station', 'firma']
+        labels = {
+            'cedula': 'Cédula',
+            'cargo': 'Cargo',
+            'station': 'Estación',
+            'firma': 'Firma',
+        }
+        widgets = {
+            'firma': forms.FileInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super(UserProfileForm, self).__init__(*args, **kwargs)
+        if user and not user.groups.filter(name='buzos_members').exists():
+            self.fields.pop('station')
+    
     
 class RutinaFilterForm(forms.Form):
     current_year = datetime.now().year

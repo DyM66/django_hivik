@@ -182,3 +182,8 @@ def get_firma(full_name):
             return ''
     except (User.DoesNotExist, ValueError):
         return ''
+    
+
+@register.filter
+def dict_key(d, key):
+    return d.get(key, None)
