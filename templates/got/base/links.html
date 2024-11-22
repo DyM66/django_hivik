@@ -65,6 +65,34 @@
         --color-recibido: #86e49d; /* Green */
     }
 
+    .card-alineada {
+        max-width: 100%;
+        width: 100%;
+        /* Para pantallas grandes, limita el ancho máximo y centra el cuadro */
+    }
+
+    @media (min-width: 992px) {
+        .card-alineada {
+            max-width: 960px; /* Ajusta este valor al ancho de tu tabla si es diferente */
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+
+    .tabla-alineada {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    @media (min-width: 992px) {
+        .tabla-alineada {
+            max-width: 960px; /* Debe ser el mismo valor que usaste para el cuadro */
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+
+
     /* Add classes for the new statuses */
     .no-aprobado {
         background-color: var(--color-no-aprobado);
