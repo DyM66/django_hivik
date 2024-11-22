@@ -99,6 +99,7 @@ class Asset(models.Model):
     area = models.CharField(max_length=1, choices=AREA, default='a')
     supervisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+    show = models.BooleanField(default=True)
 
     # Campos para Barcos
     capitan = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='Capitanes')

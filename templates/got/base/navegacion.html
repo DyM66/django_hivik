@@ -12,11 +12,16 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
-                {% if request.user|has_group:"super_members" %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'maintenance_dashboard' %}active{% endif %}" href="{% url 'got:maintenance_dashboard' %}">
+                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle 
+                        {% if request.resolver_match.url_name == 'maintenance_dashboard' or request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Mantenimiento
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
+                            <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
+                        </ul>
                     </li>
                 {% endif %}
 
@@ -62,24 +67,6 @@
                     <li class="nav-item">
                         <a class="position-relative nav-link {% if request.resolver_match.url_name == 'rq-list' %}active{% endif %}" href="{% url 'got:rq-list' %}">
                             Solicitudes
-                        </a>
-                    </li>
-                {% endif %}
-
-                <!-- <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'ruta-list' %}active{% endif %}" href="{% url 'got:ruta-list' %}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Rutinas
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'got:ruta-list' %}">Barcos</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
-                        </ul>
-                    </li> -->
-
-                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'got:dashboard' %}">
-                            Indicadores
                         </a>
                     </li>
                 {% endif %}

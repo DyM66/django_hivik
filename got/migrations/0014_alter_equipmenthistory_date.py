@@ -15,4 +15,10 @@ class Migration(migrations.Migration):
             name='date',
             field=models.DateField(),
         ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Overtime'),
+            ],
+        ),
     ]

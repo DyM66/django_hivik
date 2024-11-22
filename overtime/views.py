@@ -15,7 +15,19 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 from datetime import datetime, time, date
+import holidays
+from django.contrib import messages
+from datetime import time
+import json
 
+# Horarios de trabajo
+WEEKDAY_START = time(7, 30)
+WEEKDAY_END = time(17, 0)
+
+SATURDAY_START = time(8, 0)
+SATURDAY_END = time(12, 0)
+
+colombia_holidays = holidays.Colombia()
 
 class OvertimeListView(LoginRequiredMixin, ListView):
     model = Overtime
@@ -214,39 +226,96 @@ def overtime_report(request):
             hora_fin = common_form.cleaned_data['hora_fin']
             justificacion = common_form.cleaned_data['justificacion']
 
-            # Iterar sobre el formset y crear un registro por persona
-            for person_form in person_formset:
-                nombre_completo = person_form.cleaned_data.get('nombre_completo')
-                cedula = person_form.cleaned_data.get('cedula')
-                cargo = person_form.cleaned_data.get('cargo')
+            overtime_periods = calcular_horas_extras(fecha, hora_inicio, hora_fin)
 
-                if not nombre_completo and not cargo:
-                    continue
+            if not overtime_periods:
+                messages.warning(request, 'Las horas reportadas no califican como horas extras.')
+                return redirect('overtime:overtime_report')
 
-                Overtime.objects.create(
-                    fecha=fecha,
-                    hora_inicio=hora_inicio,
-                    hora_fin=hora_fin,
-                    justificacion=justificacion,
-                    nombre_completo=nombre_completo,
-                    cedula=cedula,
-                    cargo=cargo,
-                    reportado_por=request.user,
-                    asset=asset,
-                    approved=False 
-                )
+            for period_start, period_end in overtime_periods:
+                for person_form in person_formset:
+                    nombre_completo = person_form.cleaned_data.get('nombre_completo')
+                    cedula = person_form.cleaned_data.get('cedula')
+                    cargo = person_form.cleaned_data.get('cargo')
+
+                    if not nombre_completo and not cargo:
+                        continue
+
+                    Overtime.objects.create(
+                        fecha=fecha,
+                        hora_inicio=period_start,
+                        hora_fin=period_end,
+                        justificacion=justificacion,
+                        nombre_completo=nombre_completo,
+                        cedula=cedula,
+                        cargo=cargo,
+                        reportado_por=request.user,
+                        asset=asset,
+                        approved=False 
+                    )
 
             return redirect('overtime:overtime_success')
     else:
         common_form = OvertimeCommonForm()
         person_formset = OvertimePersonFormSet()
 
+    current_year = date.today().year
+    next_year = current_year + 1
+    colombia_holidays = holidays.Colombia(years=[current_year, next_year])
+    # Obtener las fechas en formato 'YYYY-MM-DD'
+    holiday_dates = [h.strftime('%Y-%m-%d') for h in colombia_holidays.keys()]
+
     context = {
         'common_form': common_form,
         'person_formset': person_formset,
+        'holiday_dates': json.dumps(holiday_dates),
     }
     return render(request, 'overtime/overtime_report.html', context)
 
 
 def overtime_success(request):
     return render(request, 'overtime/overtime_success.html')
+
+
+def calcular_horas_extras(fecha, hora_inicio, hora_fin):
+    overtime_periods = []
+    day_type = None  # 'weekday', 'saturday', 'sunday', 'holiday'
+
+    if fecha in colombia_holidays:
+        day_type = 'holiday'
+    elif fecha.weekday() == 6:  # Domingo
+        day_type = 'sunday'
+    elif fecha.weekday() == 5:  # Sábado
+        day_type = 'saturday'
+    else:
+        day_type = 'weekday'
+
+    # Definir el horario laboral según el tipo de día
+    if day_type == 'weekday':
+        start_work = WEEKDAY_START
+        end_work = WEEKDAY_END
+    elif day_type == 'saturday':
+        start_work = SATURDAY_START
+        end_work = SATURDAY_END
+    else:
+        # Domingos y festivos: todo es horas extras
+        if hora_inicio < hora_fin:
+            overtime_periods.append((hora_inicio, hora_fin))
+        return overtime_periods
+
+    # Horas antes del inicio de la jornada laboral
+    if hora_inicio < start_work:
+        overtime_periods.append((hora_inicio, min(hora_fin, start_work)))
+
+    # Horas después del fin de la jornada laboral
+    if hora_fin > end_work:
+        overtime_periods.append((max(hora_inicio, end_work), hora_fin))
+
+    # Horas completamente fuera del horario laboral
+    if hora_inicio >= hora_fin:
+        return overtime_periods
+
+    if hora_inicio >= end_work or hora_fin <= start_work:
+        overtime_periods.append((hora_inicio, hora_fin))
+
+    return overtime_periods

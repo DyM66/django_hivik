@@ -1,7 +1,9 @@
-{% extends 'got/base_generic.html' %}
+{% extends 'got/base/base_generic.html' %}
 
 {% block content %}
-    <h2>Reporte de Horas Extras</h2>
+<main class="px-3 mt-4">
+
+	<h2>Reporte de Horas Extras</h2>
     <form method="post">{% csrf_token %}
         <fieldset>
         <legend>Información de solicitud</legend>
@@ -39,68 +41,114 @@
         <button type="submit" class="btn btn-primary mt-2">Enviar</button>
     </form>
 
+</main>
+ 
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-  <script>
+<!-- Incluye el idioma español para Flatpickr -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
     document.addEventListener('DOMContentLoaded', function() {
-      flatpickr("#timepicker_inicio", {
-        enableTime: true,
-        noCalendar: true,
-        dateFormat: "h:i K",
-        time_24hr: false,
-        minuteIncrement: 1,
-        defaultHour: 12
-      });
-  
-      flatpickr("#timepicker_fin", {
-        enableTime: true,
-        noCalendar: true,
-        dateFormat: "h:i K",
-        time_24hr: false,
-        minuteIncrement: 1,
-        defaultHour: 12
-      });
-    });
-  </script>
-  <script>
+        // Obtener los días festivos desde la variable de contexto
+        var holidays = {{ holiday_dates|safe }};
 
+        flatpickr("#id_fecha", {
+            dateFormat: "Y-m-d",
+            locale: "es",  // Establecer el idioma español
+            firstDayOfWeek: 1, // Comenzar la semana en lunes
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                var date = dayElem.dateObj;
+                var formattedDate = fp.formatDate(date, "Y-m-d");
+                if (holidays.includes(formattedDate)) {
+                    // Añadir una clase CSS para resaltar los días festivos
+                    dayElem.className += " holiday";
+                    dayElem.innerHTML += "<span class='holiday-dot'></span>"; // Añadir un punto o marcador
+                }
+            }
+        });
+
+        // Tu código existente para los timepickers
+        flatpickr("#timepicker_inicio", {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "h:i K",
+            time_24hr: false,
+            minuteIncrement: 1,
+            defaultHour: 12
+        });
+
+        flatpickr("#timepicker_fin", {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "h:i K",
+            time_24hr: false,
+            minuteIncrement: 1,
+            defaultHour: 12
+        });
+    });
+</script>
+
+<script>
     // JavaScript para añadir formularios dinámicamente
     document.getElementById('add-person').addEventListener('click', function(e) {
-      e.preventDefault();
-      var formset = document.getElementById('formset');
-      var totalForms = document.querySelectorAll('#formset .person-form').length;
-      var newForm = document.querySelectorAll('#formset .person-form')[0].cloneNode(true);
+        e.preventDefault();
+        var formset = document.getElementById('formset');
+        var totalForms = document.querySelectorAll('#formset .person-form').length;
+        var newForm = document.querySelectorAll('#formset .person-form')[0].cloneNode(true);
 
-      // Limpiar los valores de los campos en el formulario clonado
-      var inputs = newForm.querySelectorAll('input, select');
-      inputs.forEach(function(input) {
-        input.value = '';
-      });
+        // Limpiar los valores de los campos en el formulario clonado
+        var inputs = newForm.querySelectorAll('input, select');
+        inputs.forEach(function(input) {
+            input.value = '';
+        });
 
-      // Actualizar los índices de los formularios
-      var formRegex = RegExp('form-(\\d+)-', 'g');
-      newForm.innerHTML = newForm.innerHTML.replace(formRegex, 'form-' + totalForms + '-');
-      formset.appendChild(newForm);
+        // Actualizar los índices de los formularios
+        var formRegex = RegExp('form-(\\d+)-', 'g');
+        newForm.innerHTML = newForm.innerHTML.replace(formRegex, 'form-' + totalForms + '-');
+        formset.appendChild(newForm);
 
-      // Actualizar el TOTAL_FORMS en el management form
-      document.getElementById('id_form-TOTAL_FORMS').value = totalForms + 1;
+        // Actualizar el TOTAL_FORMS en el management form
+        document.getElementById('id_form-TOTAL_FORMS').value = totalForms + 1;
     });
-  </script>
+</script>
 
-  <style>
-    @media (min-width: 768px) {
-      .form-row {
-        display: flex;
-        flex-wrap: wrap;
-      }
-      .form-group {
-        flex: 1;
-        margin-right: 10px;
-      }
-      .form-group:last-child {
-        margin-right: 0;
-      }
+<style>
+    /* Estilo para resaltar los días festivos */
+    .flatpickr-day.holiday {
+        background-color: #ffdddd;
+        color: #ff0000;
+        position: relative;
     }
-  </style>
+    .flatpickr-day.holiday:hover {
+        background-color: #ffcccc;
+    }
+    .holiday-dot {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 6px;
+        height: 6px;
+        background-color: #ff0000;
+        border-radius: 50%;
+    }
+
+    @media (min-width: 768px) {
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .form-group:last-child {
+            margin-right: 0;
+        }
+    }
+</style>
 {% endblock %}

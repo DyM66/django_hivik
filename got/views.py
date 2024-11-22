@@ -3835,8 +3835,7 @@ class SalidaUpdateView(LoginRequiredMixin, View):
 'GENERAL VIEWS'
 @login_required
 def indicadores(request):
-
-    m = 10
+    m = 11
 
     area_filter = request.GET.get('area', None)
 
@@ -3929,21 +3928,17 @@ def indicadores(request):
             suministro = Suministro.objects.get(asset=asset, item_id=132)
             total_quantity = suministro.cantidad
 
-            # Obtener la última transacción de consumo de combustible
-            try:
-                last_transaction = Transaction.objects.filter(
-                    suministro=suministro,
-                    tipo='c'  # Asumiendo que 'c' significa 'consumo'
-                ).latest('fecha')
+            last_transaction = Transaction.objects.filter(suministro=suministro, tipo='c').order_by('-fecha').first()
+            if last_transaction:
                 last_report_date = last_transaction.fecha
-            except Transaction.DoesNotExist:
+            else:
                 last_report_date = None
 
-                combustible_data.append({
-                    'asset_name': asset.name,
-                    'last_report_date': last_report_date,
-                    'total_quantity': total_quantity,
-                })
+            combustible_data.append({
+                'asset_name': asset.name,
+                'last_report_date': last_report_date,
+                'total_quantity': total_quantity,
+            })
         except Suministro.DoesNotExist:
             # Si el suministro de combustible no existe para este asset
             combustible_data.append({
