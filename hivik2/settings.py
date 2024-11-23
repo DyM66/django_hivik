@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'debug_toolbar',
     'overtime.apps.OvertimeConfig',
+    'preoperacionales.apps.PreoperacionalesConfig',
 ]
 
 SITE_ID = 1

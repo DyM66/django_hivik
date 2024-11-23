@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required, login_required, user_passes_test
 from django.contrib.auth.views import PasswordResetView
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin, PermissionRequiredMixin
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
@@ -334,16 +334,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
                 ruta for ruta in filtered_rutas
                 if (ruta.percentage_remaining < 15)
             ]
-
-            # filtered_rutas = Ruta.objects.filter(
-            #     system__in=get_full_systems_ids(asset, user)
-            # ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            # filtered_rutas = [
-            #     ruta for ruta in filtered_rutas
-            
-            # ]
-
-
 
         return filtered_rutas, current_month_name_es
 
@@ -2505,7 +2495,6 @@ def crear_ot_desde_ruta(request, ruta_id):
                     description=task.description,
                     procedimiento=task.procedimiento,
                     hse=task.hse,
-                    evidence=task.evidence,
                     start_date=timezone.now().date(),
                     men_time=1,
                     finished=False,
@@ -2622,50 +2611,6 @@ def rutina_form_view(request, ruta_id):
     return render(request, 'got/ruta_ot_form.html', 
                   {'formset_data': formset_data, 'ruta': ruta, 'dependencias': dependencias, 'fecha_seleccionada': fecha_seleccionada}
                   )
-
-
-
-def buceomtto(request):
-
-    location_filter = request.GET.get('location', None)
-    buceo = Asset.objects.filter(area='b')
-
-    buceo_rowspan = len(buceo) + 1
-    total_oks = 0
-    total_non_dashes = 0
-
-    buceo_data = []
-    for asset in buceo:
-        mensual = asset.check_ruta_status(30, location_filter)
-        trimestral = asset.check_ruta_status(90, location_filter)
-        semestral = asset.check_ruta_status(180, location_filter)
-        anual = asset.check_ruta_status(365, location_filter)
-        bianual = asset.check_ruta_status(730, location_filter)
-
-        for status in [mensual, trimestral, semestral, anual, bianual]:
-            if status == "Ok":
-                total_oks += 1
-            if status != "---":
-                total_non_dashes += 1
-
-        buceo_data.append({
-            'asset': asset,
-            'mensual': mensual,
-            'trimestral': trimestral,
-            'semestral': semestral,
-            'anual': anual,
-            'bianual': bianual,
-            'buceo': buceo_data,
-        })
-    
-    ind_mtto = round((total_oks*100)/total_non_dashes, 2)
-
-    context = {
-        'buceo': buceo_data,
-        'ind_mtto': ind_mtto,
-        'buceo_rowspan': buceo_rowspan,
-    }
-    return render(request, 'got/buceomtto.html', context)
 
 
 'OPERATIONS VIEW'
@@ -3587,7 +3532,6 @@ class SalListView(LoginRequiredMixin, generic.ListView):
         return queryset
     
 
-from django.contrib.auth.mixins import PermissionRequiredMixin
 class TransferSolicitudView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'got.can_transfer_solicitud'
 
@@ -4144,7 +4088,6 @@ class CustomPasswordResetView(PasswordResetView):
         }
     
 
-
 class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'got/maintenance_dashboard.html'
 
@@ -4155,8 +4098,7 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Obtener todos los barcos (assets con area='a')
-        ships = Asset.objects.filter(area='a')
+        ships = Asset.objects.filter(area='a', show=True)
 
         # Obtener sistemas de todos los barcos y agrupar por 'group' para obtener sistemas únicos
         systems_queryset = System.objects.filter(asset__in=ships).select_related('asset')
@@ -4243,3 +4185,46 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
             states.append(('Trabajando', '#800080'))  # Morado
 
         return states
+    
+
+def buceomtto(request):
+
+    location_filter = request.GET.get('location', None)
+    buceo = Asset.objects.filter(area='b')
+
+    buceo_rowspan = len(buceo) + 1
+    total_oks = 0
+    total_non_dashes = 0
+
+    buceo_data = []
+    for asset in buceo:
+        mensual = asset.check_ruta_status(30, location_filter)
+        trimestral = asset.check_ruta_status(90, location_filter)
+        semestral = asset.check_ruta_status(180, location_filter)
+        anual = asset.check_ruta_status(365, location_filter)
+        bianual = asset.check_ruta_status(730, location_filter)
+
+        for status in [mensual, trimestral, semestral, anual, bianual]:
+            if status == "Ok":
+                total_oks += 1
+            if status != "---":
+                total_non_dashes += 1
+
+        buceo_data.append({
+            'asset': asset,
+            'mensual': mensual,
+            'trimestral': trimestral,
+            'semestral': semestral,
+            'anual': anual,
+            'bianual': bianual,
+            'buceo': buceo_data,
+        })
+    
+    ind_mtto = round((total_oks*100)/total_non_dashes, 2)
+
+    context = {
+        'buceo': buceo_data,
+        'ind_mtto': ind_mtto,
+        'buceo_rowspan': buceo_rowspan,
+    }
+    return render(request, 'got/buceomtto.html', context)
