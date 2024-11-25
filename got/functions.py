@@ -12,10 +12,12 @@ from got.models import *
 from collections import defaultdict
 from datetime import date
 import openpyxl
+from openpyxl.styles import Alignment, Font
 from django.contrib.auth.models import Group
 import pandas as pd
 from django.contrib.admin.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
+from openpyxl.utils import get_column_letter
 
 def remove_invalid_permissions():
     """
@@ -550,9 +552,7 @@ def get_cargo(full_name):
         return user.profile.cargo if hasattr(user, 'profile') else ''
     except (User.DoesNotExist, ValueError, UserProfile.DoesNotExist):
         return ''
-    
 
-# utils.py
 
 from datetime import datetime
 import calendar
@@ -598,3 +598,62 @@ def get_filtered_rutas(asset, user, request_data=None):
         ]
 
     return filtered_rutas, current_month_name_es
+
+
+def pro_export_to_excel(model, headers, data, filename='export.xlsx', sheet_name=None, table_title=None):
+    """
+    Exporta datos a un archivo Excel.
+
+    :param model: Modelo de Django o nombre del modelo (str).
+    :param headers: Lista de nombres de encabezados de columnas.
+    :param data: Lista de listas con los datos de cada fila.
+    :param filename: Nombre del archivo Excel a generar.
+    :param sheet_name: Nombre de la hoja (por defecto, el nombre del modelo).
+    :param table_title: Título de la tabla que abarcará todas las columnas.
+    """
+    if sheet_name is None:
+        sheet_name = model.__name__ if hasattr(model, '__name__') else str(model)
+
+    # Crear un libro de trabajo y una hoja
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = sheet_name
+
+    # Agregar el título de la tabla si se proporciona
+    current_row = 1
+    if table_title:
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
+        cell = ws.cell(row=1, column=1)
+        cell.value = table_title
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.font = Font(bold=True, size=14)
+        current_row += 1
+
+    # Agregar los encabezados
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=current_row, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Agregar los datos
+    for row_data in data:
+        current_row += 1
+        for col_num, cell_value in enumerate(row_data, 1):
+            cell = ws.cell(row=current_row, column=col_num)
+            cell.value = cell_value
+
+    # Ajustar el ancho de las columnas automáticamente
+    for idx, column_cells in enumerate(ws.columns, 1):
+        length = max(len(str(cell.value)) if cell.value else 0 for cell in column_cells)
+        column_letter = get_column_letter(idx)
+        ws.column_dimensions[column_letter].width = length + 2
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Preparar la respuesta HTTP
+    response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    return response

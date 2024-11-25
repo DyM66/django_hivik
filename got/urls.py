@@ -6,12 +6,17 @@ app_name = 'got'
 urlpatterns = [
 
     path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
+    path('buceo/', views.buceomtto, name='buceomtto'),
+    path("dash/", views.indicadores, name='dashboard'),
+
+
     path('profile/', views.profile_update, name='profile_update'),
     path("", views.AssetsListView.as_view(), name="asset-list"),
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
     path("asset/<str:pk>/maintenance-plan/", views.AssetMaintenancePlanView.as_view(), name="asset-maintenance-plan"),
     path('asset/rutinas/<str:pk>/', views.preventivo_pdf, name='preventivo'),
     path('asset/<str:asset_id>/add-document/', views.AssetDocCreateView.as_view(), name='add-document'),
+
 
     path('asset/<str:abbreviation>/suministros/', views.asset_suministros_report, name='asset-suministros'),
     path('asset/<str:abbreviation>/inventario/', views.asset_inventario_report, name='asset_inventario_report'),
@@ -66,7 +71,6 @@ urlpatterns = [
     path('ruta/<str:pk>/delete/',views.RutaDelete.as_view(), name='ruta-delete'),
     path('ruta/<int:ruta_id>/crear_ot/',views.crear_ot_desde_ruta,name='crear_ot_desde_ruta'),
     path('ruta/<int:ruta_id>/create_ot/', views.rutina_form_view, name='create-ot-from-ruta'),
-    path('buceo/', views.buceomtto, name='buceomtto'),
 
     path("operations/", views.OperationListView, name="operation-list"),
     path('operation/<int:pk>/update/', views.OperationUpdate.as_view(), name='operation-update'),
@@ -85,10 +89,7 @@ urlpatterns = [
     path('preoperacional/excel/', views.export_preoperacional_to_excel, name='export-preoperacional-excel'),
     path('preoperacional/especifico/<str:code>/', views.preoperacional_especifico_view, name='preoperacional-especifico'),
     path('preoperacional/consolidado/', views.PreoperacionalListView.as_view(), name='preoperacional-consolidado'),
-    path("preoperacional/consolidado/<int:pk>/", views.PreoperacionalDetailView.as_view(), name="preoperacional-detail"),
-    path('preoperacional/diario/<str:code>/', views.preoperacional_diario_view, name='preoperacional-dia'),
     path('preoperacionaldiario/export/excel/', views.export_preoperacionaldiario_excel, name='export-preoperacionaldiario-excel'),
-    path("preoperacional/editar/<int:pk>/", views.PreoperacionalDiarioUpdateView.as_view(), name="preoperacional-edit"),
     path('gracias/<str:code>/', views.gracias_view, name='gracias'),
 
     path("solicitud/", views.SolicitudesListView.as_view(), name="rq-list"),
@@ -110,7 +111,6 @@ urlpatterns = [
     path('approve-salida/<int:pk>/', views.ApproveSalidaView.as_view(), name='approve-salida'),
     path('salida/<int:pk>/update/', views.SalidaUpdateView.as_view(), name='salida-update'),
 
-    path("dash/", views.indicadores, name='dashboard'),
     path('items/', views.ItemManagementView.as_view(), name='item_management'),
     path('items/edit/<int:item_id>/', views.edit_item, name='edit_item'),
 
@@ -128,7 +128,6 @@ urlpatterns = [
     path('equipment/<str:equipment_code>/history/add/', views.EquipmentHistoryCreateView.as_view(), name='equipment_history_add'),
     path('equipment/<str:equipment_code>/history/<int:pk>/edit/', views.EquipmentHistoryUpdateView.as_view(), name='equipment_history_edit'),
     path('equipment/<str:equipment_code>/history/<int:pk>/delete/', views.EquipmentHistoryDeleteView.as_view(), name='equipment_history_delete'),
-    
     
     path('preoperacional/<int:pk>/edit/', views.PreoperacionalUpdateView.as_view(), name='salida-edit'),
 ]

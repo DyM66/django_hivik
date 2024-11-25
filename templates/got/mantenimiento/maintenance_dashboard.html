@@ -1,0 +1,184 @@
+<!-- templates/got/maintenance_dashboard.html -->
+{% extends 'got/base/base_generic.html' %}
+
+{% load my_tags %}
+
+{% block content %}
+
+<style>
+.badge {
+    font-size: 0.9em;
+    padding: 0.5em 0.75em;
+    margin: 0.2em;
+    display: inline-block;
+}
+
+.state-ok {
+    background-color: #86e49d;
+    color: #fff;
+}
+
+.state-requiere {
+    background-color: #ff0000;
+    color: #fff;
+}
+
+.state-planeacion {
+    background-color: #ffff00;
+    color: #000;
+}
+
+.state-alerta {
+    background-color: #cc0000;
+    color: #fff;
+}
+
+.state-novedades {
+    background-color: #ffa500;
+    color: #fff;
+}
+
+.state-trabajando {
+    background-color: #800080;
+    color: #fff;
+}
+
+    /* Opcional: Estilos para la leyenda */
+    .legend {
+        margin-top: 20px;
+    }
+
+    .legend-item {
+        margin-bottom: 10px;
+    }
+
+
+/* Opcional: Estilos personalizados para las listas y cards en los modales */
+
+.reports-list .card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.reports-list .card-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.reports-list .card-text {
+    font-size: 1rem;
+}
+
+.list-group-item h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.list-group-item small {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.list-group-item a {
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.list-group-item a:hover {
+    text-decoration: underline;
+}
+
+</style>
+<div class="container my-4">
+    <h2 class="mb-4">Dashboard de Mantenimiento</h2>
+
+    <div class="table-responsive">
+    <table class="table table-hover table-striped table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th scope="col">Barco</th>
+                {% for system in systems %}
+                    <th scope="col">{{ system.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+                <tr>
+                    <th scope="row">{{ row.ship }}</th>
+                    {% for system in systems %}
+                        {% with key=system.group %}
+                            <td class="text-center">
+                                {% with system_data=row|dict_key:key %}
+                                {% if system_data.states %}
+                                    {% for state, color in system_data.states %}
+                                        {% if state != 'Ok' %}
+                                            <a href="#" data-bs-toggle="modal" data-bs-target="#modal-{{ row.ship|slugify }}-{{ system.name|slugify }}-{{ state|slugify }}">
+                                                <span class="badge state-{{ state|lower|slugify }}" data-bs-toggle="tooltip" title="Descripción del estado">{{ state }}</span>
+                                            </a>
+                                        {% else %}
+                                            <span class="badge state-{{ state|lower|slugify }}">{{ state }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Celda vacía si el barco no tiene este sistema -->
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                        {% endwith %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+
+    {% include 'got/mantenimiento/legends.html' %} 
+
+
+    <!-- Modales -->
+    {% for row in data %}
+        {% for system in systems %}
+            {% with key=system.group %}
+                {% with system_data=row|dict_key:key %}
+                {% if system_data.states %}
+                    {% for state, color in system_data.states %}
+                        {% if state != 'Ok' %}
+                            <!-- Modal -->
+                            <div class="modal fade" id="modal-{{ row.ship|slugify }}-{{ system.name|slugify }}-{{ state|slugify }}" tabindex="-1" aria-labelledby="modalLabel-{{ row.ship|slugify }}-{{ system.name|slugify }}-{{ state|slugify }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="modalLabel-{{ row.ship|slugify }}-{{ system.name|slugify }}-{{ state|slugify }}">
+                                                {{ state }} - {{ row.ship }} / {{ system.name }}
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            {% include 'got/mantenimiento/modal_content.html' with state=state state_data=system_data.state_data|dict_key:state %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+            {% endwith %}
+        {% endfor %}
+    {% endfor %}
+
+
+</div>
+
+<script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+{% endblock %}

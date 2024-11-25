@@ -1,0 +1,106 @@
+<!-- templates/got/buceomtto.html -->
+{% extends 'got/base/base_generic.html' %}
+{% load my_tags %}
+
+{% block content %}
+<style>
+    .badge {
+        font-size: 0.9em;
+        padding: 0.5em 0.75em;
+        margin: 0.2em;
+        display: inline-block;
+    }
+
+    .state-ok {
+        background-color: #86e49d;
+        color: #fff;
+    }
+
+    .state-requiere {
+        background-color: #ff0000;
+        color: #fff;
+    }
+
+    .state-planeacion {
+        background-color: #ffff00;
+        color: #000;
+    }
+
+    .state-alerta {
+        background-color: #cc0000;
+        color: #fff;
+    }
+
+    .state-novedades {
+        background-color: #ffa500;
+        color: #fff;
+    }
+
+    .state-trabajando {
+        background-color: #800080;
+        color: #fff;
+    }
+
+    /* Estilos para la leyenda */
+    .legend {
+        margin-top: 20px;
+    }
+
+    .legend-item {
+        margin-bottom: 10px;
+    }
+</style>
+
+<div class="container my-4">
+    <h2 class="mb-4">Dashboard de Mantenimiento - Buceo</h2>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-striped table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Activo</th>
+                    <th scope="col">General</th>
+                    {% for rutina_name in rutina_names %}
+                        <th scope="col">{{ rutina_name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in buceo_data %}
+                    <tr>
+                        <th scope="row">{{ item.asset.name }}</th>
+                        <!-- Columna "General" -->
+                        <td class="text-center">
+                            {% for state, color in item.general_states %}
+                                <span class="badge state-{{ state|lower|slugify }}">{{ state }}</span>
+                            {% endfor %}
+                        </td>
+                        <!-- Estados de las rutinas -->
+                        {% for rutina_name in rutina_names %}
+                            {% with status=item.rutina_status|dict_key:rutina_name %}
+                                <td class="text-center">
+                                    {% if status %}
+                                        <span class="badge state-{{ status.0|lower|slugify }}">{{ status.0 }}</span>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'got/mantenimiento/legends.html' %} 
+
+</div>
+
+<script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+{% endblock %}

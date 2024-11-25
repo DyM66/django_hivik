@@ -27,14 +27,13 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('got/', include('got.urls')),
     path('overtime/', include('overtime.urls')),
+    path('got/preoperacional/', include('preoperacionales.urls')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
 
     path('accounts/password_reset/', CustomPasswordResetView.as_view(), name='password_reset'),
     path('accounts/password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('accounts/reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('accounts/reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
-
-    # Incluye las rutas de autenticación de Django
     path('accounts/', include('django.contrib.auth.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

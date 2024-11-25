@@ -1,0 +1,61 @@
+<!-- templates/got/mantenimiento/modal_content.html -->
+
+{% if state == 'Requiere' or state == 'Planeación' %}
+    <!-- Mostrar rutinas -->
+    {% if state == 'Requiere' %}
+        <p>Las siguientes rutinas están vencidas:</p>
+    {% elif state == 'Planeación' %}
+        <p>Las siguientes rutinas pronto requerirán mantenimiento:</p>
+    {% endif %}
+    <ul class="list-group">
+        {% for ruta in state_data %}
+            <li class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">{{ ruta.name }}</h5>
+                    <small>Fecha próxima: {{ ruta.next_date }}</small>
+                </div>
+                {% if ruta.system.id %}
+                    <p class="mb-1">
+                        <a href="{% url 'got:sys-detail-view' ruta.system.id 'mtto' %}" target="_blank">Ver detalles del sistema</a>
+                    </p>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+
+{% elif state == 'Alerta' or state == 'Novedades' %}
+    <!-- Mostrar reportes de falla -->
+    <div class="reports-list">
+        {% for report in state_data %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Reporte de falla #{{ report.id }} - {{ report.equipo.name }}</h5>
+                    <p class="card-text"><strong>Descripción:</strong> {{ report.description }}</p>
+                    <p class="card-text"><strong>Causas:</strong> {{ report.causas }}</p>
+                    {% if report.id %}
+                        <a href="{% url 'got:failure-report-detail' report.id %}" target="_blank" class="card-link">Ver detalles del reporte</a>
+                    {% else %}
+                        <span class="text-danger">ID no disponible</span>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+{% elif state == 'Trabajando' %}
+    <!-- Mostrar órdenes de trabajo en ejecución -->
+    <p>Las siguientes órdenes de trabajo están en ejecución:</p>
+    <ul class="list-group">
+        {% for ot in state_data %}
+            <li class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">OT #{{ ot.num_ot }}</h5>
+                    <small>{{ ot.description }}</small>
+                </div>
+                <p class="mb-1">
+                    <a href="{% url 'got:ot-detail' ot.num_ot %}" target="_blank">Ver detalles de la OT</a>
+                </p>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

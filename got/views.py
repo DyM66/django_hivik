@@ -37,7 +37,6 @@ from decimal import Decimal, InvalidOperation
 from .functions import *
 from .models import *
 from .forms import *
-from openpyxl.utils import get_column_letter
 from datetime import datetime, time, date
 
 logger = logging.getLogger(__name__)
@@ -339,6 +338,7 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
 
     def post(self, request, *args, **kwargs):
         if 'download_excel' in request.POST:
+            # return self.export_rutinas_to_excel(request.POST)
             return self.export_rutinas_to_excel(request.POST)
         else:
             return redirect(request.path)
@@ -348,48 +348,43 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         user = self.request.user
 
         filtered_rutas, _ = self.get_filtered_rutas(asset, user, request_data)
+        headers = [
+            'Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante',
+            'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo', 'Actividad', 'Responsable'
+        ]
         data = []
 
         for ruta in filtered_rutas:
             days_left = (ruta.next_date - datetime.now().date()).days if ruta.next_date else '---'
-            data.append({
-                'equipo_name': ruta.equipo.name if ruta.equipo else ruta.system.name,
-                'location': ruta.equipo.system.location if ruta.equipo else ruta.system.location,
-                'name': ruta.name,
-                'frecuency': ruta.frecuency,
-                'control': ruta.get_control_display(),
-                'daysleft': days_left,
-                'intervention_date': ruta.intervention_date.strftime('%d/%m/%Y') if ruta.intervention_date else '---',
-                'next_date': ruta.next_date.strftime('%d/%m/%Y') if ruta.next_date else '---',
-                'ot_num_ot': ruta.ot.num_ot if ruta.ot else '---',
-                'activity': '---',
-                'responsable': '' 
-            })
+            data.append([
+                ruta.equipo.name if ruta.equipo else ruta.system.name,
+                ruta.equipo.system.location if ruta.equipo else ruta.system.location,
+                ruta.name,
+                ruta.frecuency,
+                ruta.get_control_display(),
+                days_left,
+                ruta.intervention_date.strftime('%d/%m/%Y') if ruta.intervention_date else '---',
+                ruta.next_date.strftime('%d/%m/%Y') if ruta.next_date else '---',
+                ruta.ot.num_ot if ruta.ot else '---',
+                '---',
+                ''
+            ])
 
             tasks = Task.objects.filter(ruta=ruta)
             for task in tasks:
                 responsable_name = task.responsible.get_full_name() if task.responsible else '---'
-                data.append({
-                    'equipo_name': '',
-                    'location': '',
-                    'name': '',
-                    'frecuency': '',
-                    'control': '',
-                    'daysleft': '',
-                    'intervention_date': '',
-                    'next_date': '',
-                    'ot_num_ot': '',
-                    'activity': f'- {task.description}', 
-                    'responsable': responsable_name
-                })
+                data.append(['', '', '', '', '', '', '', '', '', f'- {task.description}', responsable_name])
 
-        df = pd.DataFrame(data)
-        df.columns = ['Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante', 'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo', 'Actividad', 'Responsable']
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="rutinas.xlsx"'
-        with pd.ExcelWriter(response, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False)
-        return response
+        filename = 'rutinas.xlsx'
+        table_title = 'Reporte de Rutinas'
+
+        return pro_export_to_excel(
+            model=Ruta,
+            headers=headers,
+            data=data,
+            filename=filename,
+            table_title=table_title
+        )
 
 
 def preventivo_pdf(request, pk):
@@ -2849,7 +2844,7 @@ def megger_pdf(request, pk):
 class SalidaListView(LoginRequiredMixin, generic.ListView):
     model = Preoperacional
     paginate_by = 15
-    template_name = 'got/preoperacional/salida_list.html'
+    template_name = 'preoperacional/salida_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2871,7 +2866,7 @@ class SalidaListView(LoginRequiredMixin, generic.ListView):
 class SalidaDetailView(LoginRequiredMixin, generic.DetailView):
 
     model = Preoperacional
-    template_name = 'got/preoperacional/salida_detail.html'
+    template_name = 'preoperacional/salida_detail.html'
 
 
 def export_preoperacional_to_excel(request):
@@ -2966,14 +2961,14 @@ def preoperacional_especifico_view(request, code):
         form = PreoperacionalEspecificoForm(equipo_code=equipo.code, user=request.user)
         image_form = UploadImages()
 
-    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas})
+    return render(request, 'preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas})
 
 
 'PREOPERACIONAL DIARIO VIEW'
 class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
     model = PreoperacionalDiario
     paginate_by = 15
-    template_name = 'got/preoperacional/preoperacional_list.html'
+    template_name = 'preoperacional/preoperacional_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2991,61 +2986,6 @@ class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
         context['anios'] = anios
 
         return context
-
-
-class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
-
-    model = PreoperacionalDiario
-    template_name = 'got/preoperacional/preoperacional_detail.html'
-
-
-def preoperacional_diario_view(request, code):
-    
-    equipo = get_object_or_404(Equipo, code=code)
-    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
-
-    existente = PreoperacionalDiario.objects.filter(vehiculo=equipo, fecha=localdate()).first()
-
-    if existente:
-        mensaje = f"El preoperacional del vehículo {equipo} de la fecha actual ya fue diligenciado y exitosamente enviado. El resultado fue: {'Aprobado' if existente.aprobado else 'No aprobado'}."
-        messages.error(request, mensaje)
-        return render(request, 'got/preoperacional/preoperacional_restricted.html', {'mensaje': mensaje})
-    
-    if request.method == 'POST':
-        form = PreoperacionalDiarioForm(request.POST, equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages(request.POST, request.FILES)
-        if form.is_valid() and image_form.is_valid():
-            preop = form.save(commit=False)
-            preop.reporter = request.user if request.user.is_authenticated else None
-            preop.vehiculo = equipo
-            preop.kilometraje = form.cleaned_data['kilometraje']
-            preop.save()
-
-            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
-            kilometraje_reportado = preop.kilometraje - horometro_actual
-
-            history_hour, created = HistoryHour.objects.get_or_create(
-                component=equipo,
-                report_date=localdate(),
-                defaults={'hour': kilometraje_reportado}
-            )
-
-            if not created:
-                history_hour.hour = kilometraje_reportado
-                history_hour.save()
-
-            equipo.horometro = preop.kilometraje
-            equipo.save()
-
-            for file in request.FILES.getlist('file_field'):
-                Image.objects.create(preoperacional=preop, image=file)
-
-            return redirect('got:gracias', code=equipo.code) 
-    else:
-        form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages()
-
-    return render(request, 'got/preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas, 'pre': True})
 
 
 def export_preoperacionaldiario_excel(request):
@@ -3159,57 +3099,15 @@ def export_preoperacionaldiario_excel(request):
     return response
 
 
-class PreoperacionalDiarioUpdateView(LoginRequiredMixin, generic.UpdateView):
-    model = PreoperacionalDiario
-    form_class = PreoperacionalDiarioForm
-    template_name = 'got/preoperacional/preoperacionalform.html'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        preoperacional = self.get_object()
-        kwargs['equipo_code'] = preoperacional.vehiculo.code
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        preoperacional = form.instance
-        equipo = preoperacional.vehiculo
-        fecha_preoperacional = preoperacional.fecha
-        horometro_actual = equipo.initial_hours + (
-            equipo.hours.exclude(report_date=fecha_preoperacional).aggregate(total=Sum('hour'))['total'] or 0
-        )
-        kilometraje_reportado = form.cleaned_data['kilometraje'] - horometro_actual
-
-        history_hour, _ = HistoryHour.objects.get_or_create(
-            component=equipo,
-            report_date=preoperacional.fecha,
-            defaults={'hour': kilometraje_reportado}
-        )
-
-        history_hour.hour = kilometraje_reportado
-        history_hour.save()
-
-        equipo.horometro = form.cleaned_data['kilometraje']
-        equipo.save()
-
-        return response
-
-    def get_success_url(self):
-        return reverse('got:preoperacional-detail', kwargs={'pk': self.object.pk})
-
-
 def gracias_view(request, code):
     equipo = get_object_or_404(Equipo, code=code)
-    return render(request, 'got/preoperacional/gracias.html', {'equipo': equipo})
+    return render(request, 'preoperacional/gracias.html', {'equipo': equipo})
 
-
-# views.py
 
 class PreoperacionalUpdateView(LoginRequiredMixin, generic.UpdateView):
     model = Preoperacional
     form_class = PreoperacionalEspecificoForm
-    template_name = 'got/preoperacional/preoperacionalform.html'
+    template_name = 'preoperacional/preoperacionalform.html'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -3257,7 +3155,7 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
     
     model = Solicitud
     paginate_by = 20
-    template_name = 'got/solicitud/solicitud_list.html'
+    template_name = 'solicitud/solicitud_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3333,7 +3231,6 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
             queryset = queryset.filter(dpto=current_dpto)
 
         if user.has_perm('got.can_view_all_rqs'):
-            # User has full access
             return queryset
         else:
             filter_condition = Q()
@@ -3963,8 +3860,6 @@ def export_asset_system_equipo_excel(request):
     # Establecer el tipo de contenido de la respuesta HTTP
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=Asset_System_Equipo.xlsx'
-
-    # Guardar el libro de trabajo en la respuesta
     workbook.save(response)
 
     return response
@@ -4066,8 +3961,6 @@ class DarBajaCreateView(LoginRequiredMixin, CreateView):
         return reverse('got:sys-detail', kwargs={'pk': old_system.id})
 
 
-
-
 class CustomPasswordResetView(PasswordResetView):
     email_template_name = 'registration/password_reset_email.txt'  # Plantilla de texto plano
     html_email_template_name = 'registration/password_reset_email.html'  # Plantilla HTML
@@ -4089,7 +3982,7 @@ class CustomPasswordResetView(PasswordResetView):
     
 
 class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    template_name = 'got/maintenance_dashboard.html'
+    template_name = 'got/mantenimiento/maintenance_dashboard.html'
 
     def test_func(self):
         # Verificar si el usuario pertenece al grupo 'super_members'
@@ -4097,7 +3990,6 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         ships = Asset.objects.filter(area='a', show=True)
 
         # Obtener sistemas de todos los barcos y agrupar por 'group' para obtener sistemas únicos
@@ -4128,10 +4020,14 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
                 system_group = system.group
                 ship_system = ship_systems_dict.get(system_group)
                 if ship_system:
-                    states = self.get_system_states(ship_system)
-                    ship_row[system_group] = states
+                    states, state_data = self.get_system_states(ship_system)
+                    ship_row[system_group] = {
+                        'states': states,
+                        'state_data': state_data,
+                        'system_id': ship_system.id,
+                    }
                 else:
-                    ship_row[system_group] = []
+                    ship_row[system_group] = {'states': [], 'state_data': {}, 'system_id': None}
             data.append(ship_row)
 
         context['systems'] = systems
@@ -4140,91 +4036,160 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
 
     def get_system_states(self, system):
         states = []
+        state_data = {}
         today = date.today()
         
         rutas = list(system.rutas.all())
         equipos = list(system.equipos.all())
         failure_reports = []
+        
+        failure_reports = FailureReport.objects.none()
         for equipo in equipos:
-            failure_reports.extend(list(equipo.failurereport_set.all()))
+            failure_reports = failure_reports | equipo.failurereport_set.filter(closed=False).select_related('equipo')
+
+        ots = system.ot_set.filter(state='x')
         
         requires_maintenance = False
         all_up_to_date = True
         has_planeacion = False
+        overdue_rutinas = []
+        planeacion_rutinas = []
 
         for ruta in rutas:
             next_date = ruta.next_date
             if next_date and next_date < today:
                 requires_maintenance = True
                 all_up_to_date = False
+                overdue_rutinas.append(ruta)
             elif not next_date:
                 requires_maintenance = True
                 all_up_to_date = False
+                overdue_rutinas.append(ruta)
             percentage = ruta.percentage_remaining
             if percentage and 0 < percentage < 15:
                 has_planeacion = True
+                planeacion_rutinas.append(ruta)
 
         if requires_maintenance:
             states.append(('Requiere', '#ff0000'))  # Rojo
-        elif all_up_to_date:
-            states.append(('Ok', '#86e49d'))  # Verde
+            state_data['Requiere'] = overdue_rutinas
 
         if has_planeacion:
             states.append(('Planeación', '#ffff00'))  # Amarillo
+            state_data['Planeación'] = planeacion_rutinas
 
         # Estado "Alerta"
-        if any(fr.critico for fr in failure_reports):
+        alerta_reports = failure_reports.filter(critico=True)
+        if alerta_reports.exists():
             states.append(('Alerta', '#cc0000'))  # Rojo intenso
+            state_data['Alerta'] = alerta_reports
 
         # Estado "Novedades"
-        if any(not fr.critico for fr in failure_reports):
+        novedades_reports = failure_reports.filter(critico=False)
+        if novedades_reports.exists():
             states.append(('Novedades', '#ffa500'))  # Naranja
+            state_data['Novedades'] = novedades_reports
 
         # Estado "Trabajando"
-        if any(ot.state == 'x' for ot in system.ot_set.all()):
+        if ots.exists():
             states.append(('Trabajando', '#800080'))  # Morado
+            state_data['Trabajando'] = ots
 
-        return states
+        if not alerta_reports.exists() and not novedades_reports.exists():
+            if not requires_maintenance and all_up_to_date:
+                states.append(('Ok', '#86e49d'))  # Verde
+
+        return states, state_data
     
 
 def buceomtto(request):
+    # location_filter = request.GET.get('location', None)
+    buceo_assets = Asset.objects.filter(area='b')
 
-    location_filter = request.GET.get('location', None)
-    buceo = Asset.objects.filter(area='b')
+    all_rutinas = Ruta.objects.filter(system__asset__in=buceo_assets).exclude(system__state__in=['x', 's'])
+    # if location_filter:
+    #     all_rutinas = all_rutinas.filter(system__location=location_filter)
+    rutina_names = set(all_rutinas.values_list('name', flat=True))
 
-    buceo_rowspan = len(buceo) + 1
-    total_oks = 0
-    total_non_dashes = 0
+    rutina_names = sorted(rutina_names)
 
     buceo_data = []
-    for asset in buceo:
-        mensual = asset.check_ruta_status(30, location_filter)
-        trimestral = asset.check_ruta_status(90, location_filter)
-        semestral = asset.check_ruta_status(180, location_filter)
-        anual = asset.check_ruta_status(365, location_filter)
-        bianual = asset.check_ruta_status(730, location_filter)
+    for asset in buceo_assets:
+        asset_rutinas = Ruta.objects.filter(system__asset=asset).exclude(system__state__in=['x', 's'])
+        # if location_filter:
+        #     asset_rutinas = asset_rutinas.filter(system__location=location_filter)
 
-        for status in [mensual, trimestral, semestral, anual, bianual]:
-            if status == "Ok":
-                total_oks += 1
-            if status != "---":
-                total_non_dashes += 1
+        rutina_status = {}
+        for rutina_name in rutina_names:
+            rutinas = asset_rutinas.filter(name=rutina_name)
+            status = evaluate_rutina_status(rutinas)
+            rutina_status[rutina_name] = status
+    
+        general_states = evaluate_general_state(asset)
 
         buceo_data.append({
             'asset': asset,
-            'mensual': mensual,
-            'trimestral': trimestral,
-            'semestral': semestral,
-            'anual': anual,
-            'bianual': bianual,
-            'buceo': buceo_data,
+            'general_states': general_states,
+            'rutina_status': rutina_status,
         })
-    
-    ind_mtto = round((total_oks*100)/total_non_dashes, 2)
 
     context = {
-        'buceo': buceo_data,
-        'ind_mtto': ind_mtto,
-        'buceo_rowspan': buceo_rowspan,
+        'buceo_data': buceo_data,
+        'rutina_names': rutina_names,
     }
-    return render(request, 'got/buceomtto.html', context)
+
+    return render(request, 'got/mantenimiento/buceomtto.html', context)
+
+
+def evaluate_rutina_status(rutinas):
+    if not rutinas.exists():
+        return None
+    today = date.today()
+    requires_maintenance = False
+    all_up_to_date = True
+    has_planeacion = False
+
+    for ruta in rutinas:
+        next_date = ruta.next_date
+        if next_date and next_date < today:
+            requires_maintenance = True
+            all_up_to_date = False
+        elif not next_date:
+            requires_maintenance = True
+            all_up_to_date = False
+        percentage = ruta.percentage_remaining
+        if percentage and 0 < percentage < 15:
+            has_planeacion = True
+
+    if requires_maintenance:
+        return ('Requiere', '#ff0000')  # Rojo
+    elif all_up_to_date:
+        return ('Ok', '#86e49d')  # Verde
+    elif has_planeacion:
+        return ('Planeación', '#ffff00')  # Amarillo
+    else:
+        return ('---', '#ffffff')  # Blanco o sin estado
+
+def evaluate_general_state(asset):
+    failure_reports = FailureReport.objects.filter(
+        equipo__system__asset=asset,
+        equipo__system__state__in=['m', 'o'],
+        closed=False  # Solo reportes de falla abiertos
+    )
+    ots = Ot.objects.filter(system__asset=asset)
+
+    states = []
+
+    # Estado "Alerta"
+    if failure_reports.filter(critico=True).exists():
+        states.append(('Alerta', '#cc0000'))  # Rojo intenso
+
+    # Estado "Novedades"
+    if failure_reports.filter(critico=False).exists():
+        states.append(('Novedades', '#ffa500'))  # Naranja
+
+    # Estado "Trabajando"
+    if ots.filter(state='x').exists():
+        states.append(('Trabajando', '#800080'))  # Morado
+
+    return states
