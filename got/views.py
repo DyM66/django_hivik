@@ -3155,7 +3155,7 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
     
     model = Solicitud
     paginate_by = 20
-    template_name = 'solicitud/solicitud_list.html'
+    template_name = 'got/solicitud/solicitud_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
