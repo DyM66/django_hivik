@@ -89,6 +89,7 @@ class Asset(models.Model):
     AREA = (
         ('a', 'Motonave'),
         ('b', 'Buceo'),
+        ('c', 'Barcazas'),
         ('o', 'Oceanografía'),
         ('l', 'Locativo'),
         ('v', 'Vehiculos'),
