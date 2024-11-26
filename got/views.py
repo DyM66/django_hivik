@@ -4072,7 +4072,7 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
                 planeacion_rutinas.append(ruta)
 
         if requires_maintenance:
-            states.append(('Requiere', '#FF00FF'))  # Rojo
+            states.append(('Requiere', '#ff00ff'))  # Rojo
             state_data['Requiere'] = overdue_rutinas
 
         if has_planeacion:
