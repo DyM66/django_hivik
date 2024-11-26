@@ -139,8 +139,8 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
         context = super().get_context_data(**kwargs)
         areas = {
             'a': 'Motonave',
-            'b': 'Buceo',
             'c': 'Barcazas',
+            'b': 'Buceo',
             'o': 'Oceanografía',
             'l': 'Locativo',
             'v': 'Vehiculos',
