@@ -140,6 +140,7 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
         areas = {
             'a': 'Motonave',
             'b': 'Buceo',
+            'c': 'Barcazas',
             'o': 'Oceanografía',
             'l': 'Locativo',
             'v': 'Vehiculos',
