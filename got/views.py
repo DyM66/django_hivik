@@ -146,7 +146,7 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
             'v': 'Vehiculos',
             'x': 'Apoyo'
         }
-        assets = Asset.objects.all()
+        assets = Asset.objects.filter(show=True)
         context['assets_by_area'] = {
             area_name: [asset for asset in assets if asset.area == area_code]
             for area_code, area_name in areas.items()
@@ -4072,7 +4072,7 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
                 planeacion_rutinas.append(ruta)
 
         if requires_maintenance:
-            states.append(('Requiere', '#ff0000'))  # Rojo
+            states.append(('Requiere', '#FF00FF'))  # Rojo
             state_data['Requiere'] = overdue_rutinas
 
         if has_planeacion:
@@ -4163,7 +4163,7 @@ def evaluate_rutina_status(rutinas):
             has_planeacion = True
 
     if requires_maintenance:
-        return ('Requiere', '#ff0000')  # Rojo
+        return ('Requiere', '#FF00FF')  # Rojo
     elif all_up_to_date:
         return ('Ok', '#86e49d')  # Verde
     elif has_planeacion:
