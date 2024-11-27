@@ -32,6 +32,21 @@
                     <h5 class="card-title">Reporte de falla #{{ report.id }} - {{ report.equipo.name }}</h5>
                     <p class="card-text"><strong>Descripción:</strong> {{ report.description }}</p>
                     <p class="card-text"><strong>Causas:</strong> {{ report.causas }}</p>
+
+                    {% if report.related_ot %}
+                        <p><strong>Orden de Trabajo Asociada:</strong> OT #{{ report.related_ot.num_ot }} - {{ report.related_ot.description }}</p>
+                        <p><strong>Actividades en Ejecución:</strong></p>
+                        {% if report.related_ot.tasks_in_execution %}
+                            <ul>
+                                {% for task in report.related_ot.tasks_in_execution %}
+                                    <li>{{ task.description }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No hay actividades en ejecución.</p>
+                        {% endif %}
+                    {% endif %}
+
                     {% if report.id %}
                         <a href="{% url 'got:failure-report-detail' report.id %}" target="_blank" class="card-link">Ver detalles del reporte</a>
                     {% else %}
@@ -42,9 +57,13 @@
         {% endfor %}
     </div>
 
-{% elif state == 'Trabajando' %}
-    <!-- Mostrar órdenes de trabajo en ejecución -->
-    <p>Las siguientes órdenes de trabajo están en ejecución:</p>
+{% elif state == 'Trabajando' or state == 'Pendientes' %}
+    <!-- Mostrar órdenes de trabajo en ejecución o pendientes -->
+    {% if state == 'Trabajando' %}
+        <p>Las siguientes órdenes de trabajo tienen actividades en ejecución:</p>
+    {% else %}
+        <p>Las siguientes órdenes de trabajo están pendientes por iniciar actividades:</p>
+    {% endif %}
     <ul class="list-group">
         {% for ot in state_data %}
             <li class="list-group-item">
@@ -55,6 +74,14 @@
                 <p class="mb-1">
                     <a href="{% url 'got:ot-detail' ot.num_ot %}" target="_blank">Ver detalles de la OT</a>
                 </p>
+                {% if ot.tasks_in_execution %}
+                    <p><strong>Actividades en Ejecución:</strong></p>
+                    <ul>
+                        {% for task in ot.tasks_in_execution %}
+                            <li>{{ task.description }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </li>
         {% endfor %}
     </ul>

@@ -4044,11 +4044,33 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
         equipos = list(system.equipos.all())
         failure_reports = []
         
-        failure_reports = FailureReport.objects.none()
-        for equipo in equipos:
-            failure_reports = failure_reports | equipo.failurereport_set.filter(closed=False).select_related('equipo')
+        failure_reports = FailureReport.objects.filter(
+            equipo__in=equipos,
+            closed=False
+        ).select_related('equipo', 'related_ot').prefetch_related(
+            Prefetch(
+                'related_ot__task_set',
+                queryset=Task.objects.filter(finished=False),
+                to_attr='tasks_in_execution'
+            )
+        )
 
-        ots = system.ot_set.filter(state='x')
+        ots = system.ot_set.filter(state='x').prefetch_related(
+            Prefetch(
+                'task_set',
+                queryset=Task.objects.filter(finished=False),
+                to_attr='tasks_in_execution'
+            )
+        )
+
+        ots_with_tasks_in_execution = []
+        ots_without_tasks_in_execution = []
+
+        for ot in ots:
+            if ot.tasks_in_execution:
+                ots_with_tasks_in_execution.append(ot)
+            else:
+                ots_without_tasks_in_execution.append(ot)
         
         requires_maintenance = False
         all_up_to_date = True
@@ -4092,9 +4114,13 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
             state_data['Novedades'] = novedades_reports
 
         # Estado "Trabajando"
-        if ots.exists():
+        if ots_with_tasks_in_execution:
             states.append(('Trabajando', '#800080'))  # Morado
-            state_data['Trabajando'] = ots
+            state_data['Trabajando'] = ots_with_tasks_in_execution
+
+        if ots_without_tasks_in_execution:
+            states.append(('Pendientes', '#025669'))  # Color personalizado
+            state_data['Pendientes'] = ots_without_tasks_in_execution
 
         if not alerta_reports.exists() and not novedades_reports.exists():
             if not requires_maintenance and all_up_to_date:

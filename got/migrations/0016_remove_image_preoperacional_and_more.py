@@ -10,12 +10,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='image',
-            name='preoperacional',
-        ),
-        migrations.RemoveField(
-            model_name='image',
-            name='preoperacionaldiario',
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Preoperacional'),
+                migrations.DeleteModel(name='PreoperacionalDiario'),
+            ],
         ),
     ]

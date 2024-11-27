@@ -583,7 +583,10 @@ class Task(models.Model):
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True)
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True)
+
     responsible = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.CharField(max_length=50, blank=True, null=True)
+
     description = models.TextField()
     procedimiento = models.TextField(default="", blank=True, null=True)
     hse = models.TextField(default="", blank=True, null=True)

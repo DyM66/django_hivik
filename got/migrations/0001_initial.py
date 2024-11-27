@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('abbreviation', models.CharField(max_length=3, primary_key=True, serialize=False, unique=True)),
                 ('name', models.CharField(max_length=50)),
-                ('area', models.CharField(choices=[('a', 'Motonave'), ('b', 'Buceo'), ('o', 'Oceanografía'), ('l', 'Locativo'), ('v', 'Vehiculos'), ('x', 'Apoyo')], default='a', max_length=1)),
+                ('area', models.CharField(choices=[('a', 'Motonave'), ('b', 'Buceo'), ('c', 'Barcazas'), ('o', 'Oceanografía'), ('l', 'Locativo'), ('v', 'Vehiculos'), ('x', 'Apoyo')], default='a', max_length=1)),
                 ('bandera', models.CharField(blank=True, default='Colombia', max_length=50, null=True)),
                 ('eslora', models.DecimalField(blank=True, decimal_places=2, default=0, max_digits=8, null=True)),
                 ('manga', models.DecimalField(blank=True, decimal_places=2, default=0, max_digits=8, null=True)),

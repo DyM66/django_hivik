@@ -9,7 +9,6 @@ class Migration(migrations.Migration):
 
     initial = True
     dependencies = [
-        ('got', '0017_move_preoperacional_models'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
