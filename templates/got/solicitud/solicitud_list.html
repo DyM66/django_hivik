@@ -153,6 +153,9 @@
                                     {% if rq.estado == 'Tramitado' %}
                                         <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#receiveModal{{ rq.id }}">Reportar recibido</a></li>
                                     {% endif %}
+                                    {% if user.is_superuser %}
+                                        <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal{{ rq.id }}">Eliminar</a></li>
+                                    {% endif %}
                                 </ul>
                                 {% endif %}
                             </div>
@@ -190,6 +193,29 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Modal para Confirmar Eliminación -->
+                        <div class="modal fade" id="deleteModal{{ rq.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ rq.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="post" action="{% url 'got:delete-solicitud' rq.id %}">
+                                        {% csrf_token %}
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteModalLabel{{ rq.id }}">Eliminar Solicitud</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>¿Está seguro de que desea eliminar esta solicitud? Esta acción no se puede deshacer.</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
 
                         <!-- Modal para Transferir Solicitud -->
                         <div class="modal fade" id="transferModal{{ rq.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ rq.id }}" aria-hidden="true">

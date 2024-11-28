@@ -130,4 +130,5 @@ urlpatterns = [
     path('equipment/<str:equipment_code>/history/<int:pk>/delete/', views.EquipmentHistoryDeleteView.as_view(), name='equipment_history_delete'),
     
     path('preoperacional/<int:pk>/edit/', views.PreoperacionalUpdateView.as_view(), name='salida-edit'),
+    path('solicitud/<int:pk>/delete/', views.DeleteSolicitudView.as_view(), name='delete-solicitud'),
 ]

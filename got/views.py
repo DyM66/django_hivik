@@ -3323,6 +3323,20 @@ class ApproveSolicitudView(LoginRequiredMixin, View):
         solicitud.save()
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
+from django.http import HttpResponseForbidden
+class DeleteSolicitudView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        # Verificar si el usuario es superusuario (administrador)
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        return HttpResponseForbidden("No tiene permiso para eliminar esta solicitud.")
+
+    def post(self, request, *args, **kwargs):
+        solicitud = get_object_or_404(Solicitud, pk=kwargs['pk'])
+        solicitud.delete()
+        messages.success(request, "Solicitud eliminada exitosamente.")
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 @login_required
 def report_received(request, pk):

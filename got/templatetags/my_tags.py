@@ -1,5 +1,5 @@
 from django import template
-from got.models import Asset, FailureReport, Solicitud, UserProfile
+from got.models import Asset, FailureReport, Solicitud, UserProfile, Equipo
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
 import os
@@ -187,3 +187,7 @@ def get_firma(full_name):
 @register.filter
 def dict_key(d, key):
     return d.get(key, None)
+
+@register.simple_tag
+def obtener_vehiculos():
+    return Equipo.objects.filter(system__asset__abbreviation='VEH').order_by('name')
