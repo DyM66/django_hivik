@@ -6,7 +6,7 @@ app_name = 'got'
 urlpatterns = [
 
     path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
-    path('buceo/', views.buceomtto, name='buceomtto'),
+    path('buceo/', views.BuceoMttoView.as_view(), name='buceomtto'),
     path("dash/", views.indicadores, name='dashboard'),
 
 

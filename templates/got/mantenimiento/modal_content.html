@@ -11,7 +11,7 @@
         {% for ruta in state_data %}
             <li class="list-group-item">
                 <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">{{ ruta.name }}</h5>
+                    <h5 class="mb-1">{{ ruta.name }} - {{ ruta.equipo }}</h5>
                     <small>Fecha próxima: {{ ruta.next_date }}</small>
                 </div>
                 {% if ruta.system.id %}
