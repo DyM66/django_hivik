@@ -4141,102 +4141,7 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
                 states.append(('Ok', '#86e49d'))  # Verde
 
         return states, state_data
-    
 
-# def buceomtto(request):
-#     # location_filter = request.GET.get('location', None)
-#     buceo_assets = Asset.objects.filter(area='b')
-
-#     all_rutinas = Ruta.objects.filter(system__asset__in=buceo_assets).exclude(system__state__in=['x', 's'])
-#     # if location_filter:
-#     #     all_rutinas = all_rutinas.filter(system__location=location_filter)
-#     rutina_names = set(all_rutinas.values_list('name', flat=True))
-
-#     rutina_names = sorted(rutina_names)
-
-#     buceo_data = []
-#     for asset in buceo_assets:
-#         asset_rutinas = Ruta.objects.filter(system__asset=asset).exclude(system__state__in=['x', 's'])
-#         # if location_filter:
-#         #     asset_rutinas = asset_rutinas.filter(system__location=location_filter)
-
-#         rutina_status = {}
-#         for rutina_name in rutina_names:
-#             rutinas = asset_rutinas.filter(name=rutina_name)
-#             status = evaluate_rutina_status(rutinas)
-#             rutina_status[rutina_name] = status
-    
-#         general_states = evaluate_general_state(asset)
-
-#         buceo_data.append({
-#             'asset': asset,
-#             'general_states': general_states,
-#             'rutina_status': rutina_status,
-#         })
-
-#     context = {
-#         'buceo_data': buceo_data,
-#         'rutina_names': rutina_names,
-#     }
-
-#     return render(request, 'got/mantenimiento/buceomtto.html', context)
-
-
-# def evaluate_rutina_status(rutinas):
-#     if not rutinas.exists():
-#         return None
-#     today = date.today()
-#     requires_maintenance = False
-#     all_up_to_date = True
-#     has_planeacion = False
-
-#     for ruta in rutinas:
-#         next_date = ruta.next_date
-#         if next_date and next_date < today:
-#             requires_maintenance = True
-#             all_up_to_date = False
-#         elif not next_date:
-#             requires_maintenance = True
-#             all_up_to_date = False
-#         percentage = ruta.percentage_remaining
-#         if percentage and 0 < percentage < 15:
-#             has_planeacion = True
-
-#     if requires_maintenance:
-#         return ('Requiere', '#FF00FF')  # Rojo
-#     elif all_up_to_date:
-#         return ('Ok', '#86e49d')  # Verde
-#     elif has_planeacion:
-#         return ('Planeación', '#ffff00')  # Amarillo
-#     else:
-#         return ('---', '#ffffff')  # Blanco o sin estado
-
-# def evaluate_general_state(asset):
-#     failure_reports = FailureReport.objects.filter(
-#         equipo__system__asset=asset,
-#         equipo__system__state__in=['m', 'o'],
-#         closed=False  # Solo reportes de falla abiertos
-#     )
-#     ots = Ot.objects.filter(system__asset=asset)
-
-#     states = []
-
-#     # Estado "Alerta"
-#     if failure_reports.filter(critico=True).exists():
-#         states.append(('Alerta', '#cc0000'))  # Rojo intenso
-
-#     # Estado "Novedades"
-#     if failure_reports.filter(critico=False).exists():
-#         states.append(('Novedades', '#ffa500'))  # Naranja
-
-#     # Estado "Trabajando"
-#     if ots.filter(state='x').exists():
-#         states.append(('Trabajando', '#800080'))  # Morado
-
-#     return states
-
-
-# views.py
 
 class BuceoMttoView(LoginRequiredMixin, TemplateView):
     template_name = 'got/mantenimiento/buceomtto.html'
@@ -4279,7 +4184,7 @@ class BuceoMttoView(LoginRequiredMixin, TemplateView):
         # Obtener las ubicaciones únicas para el filtro
         locations = System.objects.filter(asset__in=buceo_assets).values_list('location', flat=True).distinct()
         unique_locations = sorted(set(location.strip() for location in locations if location))
-        context['locations'] = locations
+        context['locations'] = unique_locations
         context['current_location'] = location_filter
 
         return context
