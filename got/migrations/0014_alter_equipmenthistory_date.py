@@ -21,4 +21,11 @@ class Migration(migrations.Migration):
                 migrations.DeleteModel(name='Overtime'),
             ],
         ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Preoperacional'),
+                migrations.DeleteModel(name='PreoperacionalDiario'),
+            ],
+        ),
     ]

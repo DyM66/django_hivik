@@ -1,0 +1,50 @@
+<!-- templates/got/modals/task_modals.html -->
+<!-- Modal para Editar Actividad -->
+{% load my_tags %}
+
+<!-- Modal para Editar Actividad -->
+<div class="modal fade" id="editTaskModal{{ task.id }}" tabindex="-1" aria-labelledby="editTaskModalLabel{{ task.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTaskModalLabel{{ task.id }}">Editar Actividad</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="edit_task">
+                    <input type="hidden" name="task_id" value="{{ task.id }}">
+                    {{ edit_task_form.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Eliminar Actividad -->
+<div class="modal fade" id="deleteTaskModal{{ task.id }}" tabindex="-1" aria-labelledby="deleteTaskModalLabel{{ task.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteTaskModalLabel{{ task.id }}">Eliminar Actividad</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar esta actividad?</p>
+                    <p><strong>{{ task.description }}</strong></p>
+                    <input type="hidden" name="action" value="delete_task">
+                    <input type="hidden" name="task_id" value="{{ task.id }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

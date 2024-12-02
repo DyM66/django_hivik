@@ -115,55 +115,33 @@ class Asset(models.Model):
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_assets')
 
-
-    def check_ruta_status(self, frecuency, location=None):
-        '''
-        Propiedad para comprobar que un activo requiere mantenimiento
-        '''
-        if location:
-            rutas = self.system_set.filter(rutas__frecuency=frecuency, rutas__system__location=location)
-        else:
-            rutas = self.system_set.filter(rutas__frecuency=frecuency)
+    @property
+    def maintenance_compliance(self):
+        systems = self.system_set.all()
+        all_rutas = Ruta.objects.filter(system__in=systems)
+        total_rutas = all_rutas.count()
         
-        if not rutas.exists():
-            return "---"
-        all_on_time = True
-        for system in rutas:
-            for ruta in system.rutas.filter(frecuency=frecuency):
-                if ruta.next_date < date.today():
-                    all_on_time = False
-                    break
-            if not all_on_time:
-                break
-        return "Ok" if all_on_time else "Requiere" 
-
-
-    def ind_mtto(self):
-        '''
-        Indicador de mantenimiento por activo
-        '''
-        rutas = self.system_set.all().annotate(total_rutas=Count('rutas')).exclude(total_rutas=0)
-        if not rutas:
-            return "---"
-
-        total_rutas = 0
-        total_on_time = 0
-
-        for system in rutas:
-            for ruta in system.rutas.all():
-                total_rutas += 1
-                if ruta.next_date > date.today():
-                    if not ruta.ot:
-                        total_on_time += 0.4
-                    elif ruta.ot.state=='x':
-                        total_on_time += 0.5
-                    elif ruta.ot.state=='f':
-                        total_on_time += 1
-
         if total_rutas == 0:
-            return "---"  
-        maintenance_percentage = (total_on_time / total_rutas) * 100
-        return f'{round(maintenance_percentage, 2)}%'
+            return '---'
+
+        compliant_count = 0
+
+        for ruta in all_rutas:
+            if ruta.control == 'd':
+                if ruta.next_date >= date.today():
+                    compliant_count += 1
+            elif ruta.control == 'h' or ruta.control == 'k':
+                accumulated_hours = ruta.equipo.hours.filter(
+                    report_date__gte=ruta.intervention_date,
+                    report_date__lte=date.today()
+                ).aggregate(total_hours=Sum('hour'))['total_hours'] or 0
+                
+                if accumulated_hours <= ruta.frecuency:
+                    compliant_count += 1
+
+        compliance_percentage = (compliant_count / total_rutas) * 100
+        return round(compliance_percentage, 2)
+
 
     def __str__(self):
         return self.name
@@ -482,7 +460,7 @@ class Ruta(models.Model):
 
     NIVEL = (
         (1, 'Nivel 1 - Operadores'),
-        (2, 'Nivel 2 - Operador Técnico'),
+        (2, 'Nivel 2 - Técnico'),
         (3, 'Nivel 3 - Proveedor especializado'),
         (4, 'Nivel 4 - Fabricante')
     )
@@ -523,8 +501,6 @@ class Ruta(models.Model):
         MAX_DAYS = 365 * 10
         if ndays > MAX_DAYS:
             ndays = MAX_DAYS
-        if ndays < 0:
-            ndays = 0
         return date.today() + timedelta(days=ndays)
 
     @property
@@ -575,6 +551,26 @@ class Ruta(models.Model):
 
     class Meta:
         ordering = ['frecuency']
+
+
+class MaintenanceRequirement(models.Model):
+    TIPO_REQUISITO = (
+        ('m', 'Material'),
+        ('h', 'Herramienta/Equipo'),
+        ('s', 'Servicio'),
+    )
+
+    ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, related_name='requisitos')
+    item = models.ForeignKey(Item, on_delete=models.SET_NULL, null=True, blank=True)
+    descripcion = models.CharField(max_length=200, null=True, blank=True)
+    tipo = models.CharField(max_length=1, choices=TIPO_REQUISITO)
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.descripcion or self.item.name} ({self.cantidad})"
+    
+    def get_absolute_url(self):
+        return reverse('got:ruta_detail', args=[str(self.pk)])
 
 
 # Model 11: Actividades (para OT o Rutinas de mantenimiento)

@@ -1,0 +1,80 @@
+{% extends "got/base/pdf_template.html" %}
+{% load my_tags %}
+{% block title %}REPORTE GERENCIAL{% endblock %}
+{% block doc_info %}
+    <th>CÓDIGO:</th>
+    <th>VERSIÓN 001</th>
+    <th>FECHA DE ACTUALIZACIÓN: {{ today|date:"d/m/Y" }}</th>
+{% endblock %}
+{% block content %}
+
+{% for asset in assets %}
+    <br>
+    <h2>{{ asset.name }} ({{ asset.abbreviation }})</h2>
+    <p><strong>Supervisor:</strong> {{ asset.supervisor }}</p>
+    <p><strong>Indicador de cumplimiento:</strong> {{ asset.maintenance_compliance }}%</p>
+    <h3>Rutinas próximas a vencer o vencidas</h3>
+    <table class="deta">
+        <thead>
+            <tr>
+                <th>Equipo</th>
+                <th>Código</th>
+                <th>Frecuencia</th>
+                <th>Tiempo Restante</th>
+                <th>Fecha Última Intervención</th>
+                <th>Fecha Próxima Intervención</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ruta in asset.rutas %}
+                <tr {% if ruta.overdue %}class="overdue"{% endif %}>
+                    <td>
+                        {{ ruta.equipo }}
+                    </td>
+                    <td>
+                        {{ ruta.name }}
+                    </td>
+                    <td>{{ ruta.frecuencia }}</td>
+                    <td>{{ ruta.tiempo_restante }} {{ ruta.unidad }}</td>
+                    <td>{{ ruta.fecha_ultima_intervencion|date:"d/m/Y" }}</td>
+                    <td>{{ ruta.fecha_proxima_intervencion|date:"d/m/Y" }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">No hay rutinas próximas a vencer o vencidas.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    <h3>Reportes de Falla Abiertos</h3>
+    {% if asset.failure_reports %}
+        {% for report in asset.failure_reports %}
+            <p><strong>ID Reporte:</strong> {{ report.id }}</p>
+            <p><strong>Equipo:</strong> {{ report.equipo }}</p>
+            <p><strong>Descripción:</strong> {{ report.description }}</p>
+            {% if report.ot %}
+                <p><strong>Orden de Trabajo Asociada:</strong> OT {{ report.ot.num_ot }} - {{ report.ot.description }} ({{ report.ot.state }})</p>
+                <h4>Actividades en Ejecución</h4>
+                {% if report.tasks %}
+                    <ul>
+                        {% for task in report.tasks %}
+                            <li>
+                                <br>
+                                <strong>Descripción:</strong> {{ task.description }}<br>
+                                <strong>Fecha de Inicio:</strong> {{ task.start_date|date:"d/m/Y" }}<br>
+                                <strong>Responsable:</strong> {{ task.responsible }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No hay actividades en ejecución.</p>
+                {% endif %}
+            {% endif %}
+            <hr>
+        {% endfor %}
+    {% else %}
+        <p>No hay reportes de falla abiertos.</p>
+    {% endif %}
+{% endfor %}
+{% endblock %}

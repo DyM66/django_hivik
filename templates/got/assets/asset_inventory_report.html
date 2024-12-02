@@ -1,49 +1,51 @@
 {% extends "got/base/base_generic.html" %}
 {% load my_tags %}
-
 {% block content %}
 
 <div class="container">
     <h1>
         <a href="{% url 'got:asset-detail' asset.abbreviation %}"><i class="bi bi-arrow-bar-left"></i></a>
-        Inventario General-{{ asset.name }}
+        {% if group_by == 'presentacion' %}
+            Reporte consumos de Lubricantes, Combustibles y Filtros<br>
+        {% else %}
+            Inventario General - {{ asset.name }}
+        {% endif %}
     </h1>
+
     {% if perms.got.can_add_supply %}
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSuministroModal">
             Añadir Suministro
         </button>
-    {% endif %}
 
-    <!-- Modal para añadir un suministro -->
-    <div class="modal fade" id="addSuministroModal" tabindex="-1" aria-labelledby="addSuministroModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
-                    {% csrf_token %}
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addSuministroModalLabel">Añadir Suministro</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Campo oculto para indicar que se trata de una creación de suministro -->
-                        <input type="hidden" name="action" value="add_suministro">
-
-                        <div class="form-group">
-                            <label for="itemSelect">Seleccionar Artículo</label>
-                            <select class="form-control" id="itemSelect" name="item_id" required>
-                                {% for item in available_items %}
-                                    <option value="{{ item.id }}">{{ item }} ({{ item.presentacion }})</option>
-                                {% endfor %}
-                            </select>
+        <!-- Modal para añadir un suministro -->
+        <div class="modal fade" id="addSuministroModal" tabindex="-1" aria-labelledby="addSuministroModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">{% csrf_token %}
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addSuministroModalLabel">Añadir Suministro</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Crear Suministro</button>
-                    </div>
-                </form>
+                        <div class="modal-body">
+                            <input type="hidden" name="action" value="add_suministro">
+
+                            <div class="form-group">
+                                <label for="itemSelect">Seleccionar Artículo</label>
+                                <select class="form-control" id="itemSelect" name="item_id" required>
+                                    {% for item in available_items %}
+                                        <option value="{{ item.id }}">{{ item }} ({{ item.presentacion }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Crear Suministro</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
+    {% endif %}
 
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <p>Último reporte realizado: {{ ultima_fecha_transaccion }}</p>
@@ -51,39 +53,46 @@
     </div>
 
     <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="update_inventory">
         <input type="hidden" name="confirm_overwrite" id="confirm_overwrite" value="no">
         <div class="form-group">
             <label for="fecha_reporte">Fecha del Reporte</label>
-            <input type="date" id="fecha_reporte" name="fecha_reporte" class="form-control" value="{{ fecha_actual }}" required>
+            <input type="date" id="fecha_reporte" name="fecha_reporte" class="form-control" value="{{ fecha_actual }}" required max="{{ fecha_actual }}">
         </div>
 
-        {% for seccion_key, group in grouped_suministros.items %}
-            <h2>{{ secciones_dict|get_item:seccion_key }}</h2>
+        {% for group_key, group in grouped_suministros.items %}
+            {% if group_by != 'presentacion' %}
+                <h2>{{ secciones_dict|get_item:group_key }}</h2>
+            {% endif %}
             <table class="table-list table-detail">
                 <thead>
                     <tr>
-                        <th>Descripción</th>
-                        <th>Última cantidad reportada</th>
+                        <th scope="col">Descripción</th>
+                        <th scope="col">Última cantidad reportada</th>
                         {% if perms.got.can_add_supply %}
-                            <th>Cantidad Ingresada</th>
+                            <th scope="col">Cantidad Ingresada</th>
                         {% endif %}
-                        {% if seccion_key != 'h' %}
-                            <th>Cantidad Consumida</th>
+                        {% if group_by != 'presentacion' and group_key != 'h' %}
+                            <th scope="col">Cantidad Consumida</th>
+                        {% elif group_by == 'presentacion' %}
+                            <th scope="col">Cantidad Consumida</th>
                         {% endif %}
-                        <th>Total</th>
-                        <th>Acciones</th>
+                        <th scope="col">Total</th>
+                        <th scope="col">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for suministro in group %}
                         <tr>
-                            <td>{{ suministro.item }} ({{ suministro.item.presentacion }})</td>
-                            <td>{{ suministro.cantidad|floatformat:2 }}</td>
+                            <td data-cell="Articulo">{{ suministro.item }} ({{ suministro.item.presentacion }})</td>
+                            <td data-cell="Ultima cantidad reportada">{{ suministro.cantidad|floatformat:2 }}</td>
                             {% if perms.got.can_add_supply %}
-                                <td><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
+                                <td data-cell="Cantidad ingresada"><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
                             {% endif %}
-                            {% if suministro.item.seccion != 'h' %}
-                                <td><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
+                            {% if group_by != 'presentacion' and group_key != 'h' %}
+                                <td data-cell="Cantidad consumida"><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
+                            {% elif group_by == 'presentacion' %}
+                                <td data-cell="Cantidad consumida"><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
                             {% endif %}
                             <td><span id="total_{{ suministro.id }}"> {{ suministro.cantidad|floatformat:2 }} </span></td>
                             <td data-cell="Acciones">
@@ -100,21 +109,21 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <br>
-
-
+        <br>
         {% endfor %}
+        
         <button type="submit" class="btn btn-primary submit-button">Actualizar Inventario</button>
     </form>
 
 
-    {% for seccion_key, group in grouped_suministros.items %}
-            <!-- Modales para transferir suministros -->
-            {% for suministro in group %}
+    <!-- Modales para transferir suministros -->
+    {% for group in grouped_suministros.values %}
+        {% for suministro in group %}
             <div class="modal fade" id="transferModal{{ suministro.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ suministro.id }}" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
+                            <input type="hidden" name="action" value="transfer_suministro">
                             {% csrf_token %}
                             <div class="modal-header">
                                 <h5 class="modal-title" id="transferModalLabel{{ suministro.id }}">Transferir {{ suministro.item }} ({{ suministro.item.presentacion }})</h5>
@@ -139,7 +148,7 @@
                                 <!-- Fecha de transferencia -->
                                 <div class="form-group">
                                     <label for="transferFecha{{ suministro.id }}">Fecha de la transferencia</label>
-                                    <input type="date" class="form-control" id="transferFecha{{ suministro.id }}" name="transfer_fecha" value="{{ fecha_actual }}" required>
+                                    <input type="date" class="form-control" id="transferFecha{{ suministro.id }}" name="transfer_fecha" value="{{ fecha_actual }}" required max="{{ fecha_actual }}">
                                 </div>
                                 <!-- Cantidad a transferir -->
                                 <div class="form-group">
@@ -193,8 +202,8 @@
             <input type="date" id="filtro_fecha_fin">
 
             <button type="button" class="btn btn-secondary" onclick="aplicarFiltros()">Aplicar Filtros</button>
-            <form method="post" style="display:inline;">
-                {% csrf_token %}
+            <form method="post" style="display:inline;">{% csrf_token %}
+                <input type="hidden" name="action" value="download_excel">
                 <button type="submit" name="download_excel" class="btn btn-info">Descargar Excel</button>
             </form>
         </div>
@@ -205,12 +214,18 @@
                     <th>Fecha</th>
                     <th class="nowrap">Reportado por</th>
                     <th>Artículo</th>
-                    <th>Categoría</th>
+                    {% if group_by == 'seccion' %}
+                        <th>Categoría</th>
+                    {% else %}
+                        <th>Presentación</th>
+                    {% endif %}
                     <th>Cantidad</th>
                     <th>Movimiento</th>
                     <th>Total Reportado</th>
                     <th>Descripción</th>
-                    <th></th>
+                    {% if perms.got.delete_transaction %}
+                        <th></th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -219,7 +234,11 @@
                         <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
                         <td>{{ transaccion.user }}</td>
                         <td data-item-name="{{ transaccion.suministro.item.name }}">{{ transaccion.suministro.item }}</td>
-                        <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
+                        {% if group_by == 'seccion' %}
+                            <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
+                        {% else %}
+                            <td>{{ transaccion.suministro.item.presentacion }}</td>
+                        {% endif %}
                         <td>{{ transaccion.cant }}</td>
                         <td>
                             {{ transaccion.get_tipo_display }} 

@@ -5,23 +5,24 @@ app_name = 'got'
 
 urlpatterns = [
 
-    path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
-    path('buceo/', views.BuceoMttoView.as_view(), name='buceomtto'),
-    path("dash/", views.indicadores, name='dashboard'),
-
-
     path('profile/', views.profile_update, name='profile_update'),
     path("", views.AssetsListView.as_view(), name="asset-list"),
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
     path("asset/<str:pk>/maintenance-plan/", views.AssetMaintenancePlanView.as_view(), name="asset-maintenance-plan"),
+    path('asset/<str:abbreviation>/suministros/', views.AssetSuministrosReportView.as_view(), name='asset-suministros'),
+    path('asset/<str:abbreviation>/inventario/', views.AssetInventarioReportView.as_view(), name='asset_inventario_report'),
+    path('transaction/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
+
+    path('ruta/<int:pk>/', views.RutaDetailView.as_view(), name='ruta_detail'),
+    path('reporte-gerencial/', views.ManagerialReportView.as_view(), name='managerial_report'),
+
+
+    path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
+    path('buceo/', views.BuceoMttoView.as_view(), name='buceomtto'),
+    path("dash/", views.indicadores, name='dashboard'),
+
     path('asset/rutinas/<str:pk>/', views.preventivo_pdf, name='preventivo'),
     path('asset/<str:asset_id>/add-document/', views.AssetDocCreateView.as_view(), name='add-document'),
-
-
-    path('asset/<str:abbreviation>/suministros/', views.asset_suministros_report, name='asset-suministros'),
-    path('asset/<str:abbreviation>/inventario/', views.asset_inventario_report, name='asset_inventario_report'),
-    path('transactions/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
-
     path("asset/<str:pk>/schedule/", views.schedule, name="schedule"),
     path('assets/<str:asset_id>/generate-pdf/', views.generate_asset_pdf, name='generate_asset_pdf'),
     path('asset/acta/<str:pk>/', views.acta_entrega_pdf, name='acta_entrega'),

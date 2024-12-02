@@ -5,7 +5,7 @@
 <main class="container">
     <h1>Listado de activos</h1>
 
-    <!-- <a href="{% url 'got:export_excel' %}" class="btn btn-success">Descargar Excel</a> -->
+    <a href="{% url 'got:managerial_report' %}" class="btn btn-success">Reporte gerencial</a>
     <div class="assets-masonry">
         {% for area, assets in assets_by_area.items %}
             {% if assets %}
@@ -21,7 +21,7 @@
                         <tbody>
                             {% for asset in assets %}
                             <tr data-href="{{ asset.get_absolute_url }}">
-                                <td data-cell="Nombre" class="nowrap">{{ asset.abbreviation }} - {{ asset.name }}</td>
+                                <td data-cell="Nombre">{{ asset.abbreviation }} - {{ asset.name }}</td>
                                 <td data-cell="Supervisor" class="nowrap">{{ asset.supervisor.get_full_name }}</td>
                             </tr>
                             {% endfor %}

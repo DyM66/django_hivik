@@ -56,6 +56,7 @@ class Migration(migrations.Migration):
                 ('supervisor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('capitan', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='Capitanes', to=settings.AUTH_USER_MODEL)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_assets', to=settings.AUTH_USER_MODEL)),
+                ('show', models.BooleanField(default=True)),
             ],
             options={
                 'ordering': ['area', 'name'],
@@ -139,6 +140,7 @@ class Migration(migrations.Migration):
                 ('finished', models.BooleanField()),
                 ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.ot')),
                 ('responsible', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('user', models.CharField(blank=True, max_length=50, null=True)),
                 ('priority', models.IntegerField(blank=True, default=0, null=True)),
                 ('ruta', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.ruta')),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_tasks', to=settings.AUTH_USER_MODEL)),

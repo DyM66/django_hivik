@@ -1,0 +1,85 @@
+<!-- templates/got/ruta_detail.html -->
+{% extends "got/base/base_generic.html" %}
+{% load my_tags %}
+{% block content %}
+<div class="container my-4">
+    <h1>Detalle de Rutina: {{ ruta.name }}</h1>
+    <p><strong>Equipo:</strong> {{ ruta.equipo }}</p>
+    <p><strong>Sistema:</strong> {{ ruta.system.name }}</p>
+    <p><strong>Frecuencia:</strong> {{ ruta.frecuency }} {{ ruta.get_control_display }}</p>
+    <p><strong>Nivel:</strong> {{ ruta.get_nivel_display }}</p>
+    <p><strong>Fecha de última intervención:</strong> {{ ruta.intervention_date|date:"d/m/Y" }}</p>
+    <p><strong>Fecha próxima intervención:</strong> {{ ruta.next_date|date:"d/m/Y" }}</p>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h2>Actividades
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                    <i class="bi bi-plus-circle"></i> Añadir
+                </button>
+            </h2>
+            <ul class="list-group mt-3">
+                {% for task in tasks %}
+                <li class="list-group-item">
+                    <!-- <h5>{{ task.description }}</h5> -->
+                    <p><strong>Responsable:</strong> {{ task.responsible.get_full_name }} ({{ task.responsible.profile.cargo }})</p>
+                    <p><strong>Descripción:</strong> {{ task.description|linebreaksbr }}</p>
+                    <p><strong>Procedimiento:</strong> {{ task.procedimiento|linebreaksbr }}</p>
+                    <p><strong>Precauciones de seguridad:</strong> {{ task.hse|linebreaksbr }}</p>
+                    <p><strong>Prioridad:</strong> {{ task.priority }}</p>
+                    <p><strong>Tiempo de ejecución:</strong> {{ task.men_time }} días</p>
+                    <!-- Botones de editar y eliminar -->
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editTaskModal{{ task.id }}">Editar</button>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTaskModal{{ task.id }}">Eliminar</button>
+                </li>
+                <!-- Modales para editar y eliminar -->
+                {% include 'got/rutinas/task_modals.html' with task=task ruta=ruta edit_task_form=task_edit_forms|get_item:task.id %}
+
+                {% empty %}
+                <li class="list-group-item">No hay actividades registradas.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h2>Requerimientos
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createRequirementModal">
+                    <i class="bi bi-plus-circle"></i> Añadir
+                </button>
+            </h2>
+            <ul class="list-group mt-3">
+                {% for req in requirements %}
+                <li class="list-group-item">
+                    <h5>{{ req.descripcion|default:req.item }}</h5>
+                    <p><strong>Cantidad:</strong> {{ req.cantidad }} {{ req.item.presentacion }}</p>
+                    <!-- Botones de editar y eliminar -->
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editRequirementModal{{ req.id }}">Editar</button>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteRequirementModal{{ req.id }}">Eliminar</button>
+                </li>
+                <!-- Modales para editar y eliminar -->
+                {% include 'got/rutinas/requirement_modals.html' with req=req %}
+                {% empty %}
+                <li class="list-group-item">No hay requerimientos registrados.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Información de creación y modificación -->
+    <div class="text-end mt-4">
+        <small>
+            Creado por: {{ ruta.modified_by.get_full_name }}<br>
+            Modificado por:
+            {% for log in activity_logs %}
+                {{ log.user_name }} ({{ log.timestamp|date:"d/m/Y H:i" }})<br>
+            {% empty %}
+                Sin modificaciones registradas.
+            {% endfor %}
+        </small>
+    </div>
+</div>
+
+<!-- Modales para crear actividades y requerimientos -->
+{% include 'got/rutinas/create_task_modal.html' %}
+{% include 'got/rutinas/create_requirement_modal.html' %}
+
+{% endblock %}

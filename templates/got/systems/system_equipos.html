@@ -83,6 +83,8 @@
 									<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill add-more"></i></a>
 								{% endif %}
 							</h4>
+							<a href="{% url 'got:ruta_detail' ruta.code %}">Ver detalle</a>
+
 							{% if ruta.dependencia %}
 								Relación con rutina {{ ruta.dependencia.name }}
 							{% endif %}
@@ -101,9 +103,6 @@
 										<ul style="list-style-type: none;">
 											{% if task.procedimiento %}
 											<li><strong>Procedimiento:<br></strong>{{ task.procedimiento|linebreaksbr }}</li>
-											{% endif %}
-											{% if task.suministros %}
-											<li><strong>Equipos, herramientas y consumibles:<br></strong>{{ task.suministros|linebreaksbr }}</li>
 											{% endif %}
 											{% if task.hse %}
 											<li><strong>Precauciones de seguridad:<br></strong>{{ task.hse|linebreaksbr }}</li>

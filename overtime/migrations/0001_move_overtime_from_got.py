@@ -6,6 +6,8 @@ from django.conf import settings
 
 class Migration(migrations.Migration):
 
+    initial = True
+
     dependencies = [
     ]
 

@@ -34,7 +34,7 @@ from collections import OrderedDict
 from itertools import groupby
 from operator import attrgetter
 from decimal import Decimal, InvalidOperation
-from .functions import *
+from .utils import *
 from .models import *
 from .forms import *
 from datetime import datetime, time, date
@@ -147,10 +147,7 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
             'x': 'Apoyo'
         }
         assets = Asset.objects.filter(show=True)
-        context['assets_by_area'] = {
-            area_name: [asset for asset in assets if asset.area == area_code]
-            for area_code, area_name in areas.items()
-        }
+        context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in areas.items()}
         return context
 
 
@@ -196,81 +193,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         else:
             context = {'asset': asset, 'sys_form': sys_form}
             return render(request, self.template_name, context)
-        
-
-class EquipmentHistoryView(LoginRequiredMixin, generic.ListView):
-    model = EquipmentHistory
-    template_name = 'got/equipment_history.html'
-    context_object_name = 'histories'
-    paginate_by = 20
-
-    def get_queryset(self):
-        equipment_id = self.kwargs['equipment_id']
-        return EquipmentHistory.objects.filter(equipment__code=equipment_id)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        equipment_id = self.kwargs['equipment_id']
-        equipment = get_object_or_404(Equipo, code=equipment_id)
-        context['equipment'] = equipment
-        return context
-    
-
-class EquipmentHistoryCreateView(LoginRequiredMixin, generic.CreateView):
-    model = EquipmentHistory
-    form_class = EquipmentHistoryForm
-    template_name = 'got/equipment_history_form.html'
-
-    def form_valid(self, form):
-        equipment_id = self.kwargs['equipment_id']
-        equipment = get_object_or_404(Equipo, code=equipment_id)
-        form.instance.equipment = equipment
-        form.instance.reporter = self.request.user
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse_lazy('got:equipment_history', kwargs={'equipment_id': self.kwargs['equipment_id']})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        equipment_id = self.kwargs['equipment_id']
-        equipment = get_object_or_404(Equipo, code=equipment_id)
-        context['equipment'] = equipment
-        return context
-
-
-class EquipmentHistoryUpdateView(LoginRequiredMixin, generic.UpdateView):
-    model = EquipmentHistory
-    form_class = EquipmentHistoryForm
-    template_name = 'got/equipment_history_form.html'
-    permission_required = 'got.change_equipmenthistory'
-
-    def get_success_url(self):
-        return reverse_lazy('got:equipment_history', kwargs={'equipment_code': self.object.equipment.code})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['equipment'] = self.object.equipment
-        return context
-    
-
-class EquipmentHistoryDeleteView(LoginRequiredMixin, generic.DeleteView):
-    model = EquipmentHistory
-    template_name = 'got/equipment_history_confirm_delete.html'
-    permission_required = 'got.delete_equipmenthistory'
-
-    def get_success_url(self):
-        return reverse_lazy('got:equipment_history', kwargs={'equipment_code': self.object.equipment.code})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['equipment'] = self.object.equipment
-        return context
-    
-def delete_equipment_history(request, equipment_code, pk):
-    history = get_object_or_404(EquipmentHistory, pk=pk, equipment__code=equipment_code)
-    history.delete()
-    return redirect('got:equipment_history', equipment_code=equipment_code)
 
 
 class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
@@ -283,7 +205,7 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         asset = self.get_object()
         user = self.request.user
 
-        filtered_rutas, current_month_name_es = self.get_filtered_rutas(asset, user, self.request.GET)
+        filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, self.request.GET)
         rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
 
         context['rotativos'] = rotativos
@@ -293,53 +215,10 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         context['page_obj_rutas'] = filtered_rutas
         context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
         context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
-
         return context
-
-    def get_filtered_rutas(self, asset, user, request_data=None):
-
-        form = RutinaFilterForm(request_data, asset=asset)
-        current_month_name_es = traductor(datetime.now().strftime('%B'))
-
-        if form.is_valid():
-            month = int(form.cleaned_data['month'])
-            year = int(form.cleaned_data['year'])
-            show_execute = form.cleaned_data.get('execute', False)
-            selected_locations = form.cleaned_data.get('locations')
-            current_month_name_es = traductor(calendar.month_name[month])
-            
-            filtered_rutas = Ruta.objects.filter(
-                system__in=get_full_systems_ids(asset, user),
-                system__location__in=selected_locations
-            ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-
-            if show_execute == 'on':
-                filtered_rutas = [
-                    ruta for ruta in filtered_rutas
-                    if (ruta.next_date.month <= month and ruta.next_date.year <= year)
-                    or (ruta.ot and ruta.ot.state == 'x')
-                    or (ruta.percentage_remaining < 15)
-                ]
-            else:
-                filtered_rutas = [
-                    ruta for ruta in filtered_rutas
-                    if (ruta.next_date.month <= month and ruta.next_date.year <= year)
-                    or (ruta.percentage_remaining < 15)
-                ]
-        else:
-            filtered_rutas = Ruta.objects.filter(
-                system__in=get_full_systems_ids(asset, user)
-            ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-            filtered_rutas = [
-                ruta for ruta in filtered_rutas
-                if (ruta.percentage_remaining < 15)
-            ]
-
-        return filtered_rutas, current_month_name_es
 
     def post(self, request, *args, **kwargs):
         if 'download_excel' in request.POST:
-            # return self.export_rutinas_to_excel(request.POST)
             return self.export_rutinas_to_excel(request.POST)
         else:
             return redirect(request.path)
@@ -379,15 +258,314 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         filename = 'rutinas.xlsx'
         table_title = 'Reporte de Rutinas'
 
-        return pro_export_to_excel(
-            model=Ruta,
-            headers=headers,
-            data=data,
-            filename=filename,
-            table_title=table_title
-        )
+        return pro_export_to_excel(model=Ruta, headers=headers, data=data, filename=filename, table_title=table_title)
 
 
+class AssetInventoryBaseView(LoginRequiredMixin, View):
+    template_name = 'got/assets/asset_inventory_report.html'
+    keyword_filter = None
+
+    def get(self, request, abbreviation):
+        asset = get_object_or_404(Asset, abbreviation=abbreviation)
+        suministros = get_suministros(asset, self.keyword_filter)
+
+        transacciones_historial = self.get_transacciones_historial(asset)
+        ultima_fecha_transaccion = transacciones_historial.aggregate(Max('fecha'))['fecha__max'] or "---"
+        context = self.get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
+        return render(request, self.template_name, context)
+
+    def post(self, request, abbreviation):
+        asset = get_object_or_404(Asset, abbreviation=abbreviation)
+        suministros = get_suministros(asset, self.keyword_filter)
+
+        action = request.POST.get('action', '')
+
+        if action == 'download_excel':
+            headers_mapping = self.get_headers_mapping()
+            filename = self.get_filename()
+            transacciones_historial = self.get_transacciones_historial(asset)
+            return generate_excel(transacciones_historial, headers_mapping, filename)
+
+        elif action == 'transfer_suministro':
+            suministro_id = request.POST.get('transfer_suministro_id')
+            suministro = get_object_or_404(Suministro, id=suministro_id, asset=asset)
+            result = handle_transfer(
+                request,
+                asset,
+                suministro,
+                request.POST.get('transfer_cantidad', '0') or '0',
+                request.POST.get('destination_asset_id'),
+                request.POST.get('transfer_motivo', ''),
+                request.POST.get('transfer_fecha', '')
+            )
+            if isinstance(result, HttpResponse):
+                return result
+            else:
+                return redirect(request.path)
+
+        elif action == 'update_inventory':
+            motivo_global = ''
+            fecha_reporte_str = request.POST.get('fecha_reporte', timezone.now().date().strftime('%Y-%m-%d'))
+            try:
+                fecha_reporte = datetime.strptime(fecha_reporte_str, '%Y-%m-%d').date()
+            except ValueError:
+                fecha_reporte = timezone.now().date()
+
+            if fecha_reporte > timezone.now().date():
+                messages.error(request, 'La fecha del reporte no puede ser mayor a la fecha actual.')
+                return redirect(request.path)
+
+            operation = Operation.objects.filter(
+                asset=asset,
+                confirmado=True,
+                start__lte=fecha_reporte,
+                end__gte=fecha_reporte
+            ).first()
+
+            if operation:
+                motivo_global = operation.proyecto
+
+            result = handle_inventory_update(request, asset, suministros, motivo_global)
+            if isinstance(result, HttpResponse):
+                return result
+            else:
+                return redirect(request.path)
+
+        elif action == 'add_suministro' and request.user.has_perm('got.can_add_supply'):
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(Item, id=item_id)
+            suministro_existente = Suministro.objects.filter(asset=asset, item=item).exists()
+            if suministro_existente:
+                messages.error(request, f'El suministro para el artículo "{item.name}" ya existe en este asset.')
+            else:
+                Suministro.objects.create(
+                    item=item,
+                    cantidad=Decimal('0.00'),
+                    asset=asset
+                )
+                messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
+            return redirect(request.path)
+
+        else:
+            messages.error(request, 'Acción no reconocida.')
+            return redirect(request.path)
+
+    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
+        # Datos comunes para las vistas
+        motonaves = Asset.objects.filter(area='a', show=True)
+        available_items = Item.objects.exclude(id__in=suministros.values_list('item_id', flat=True))
+        context = {
+            'asset': asset,
+            'suministros': suministros,
+            'ultima_fecha_transaccion': ultima_fecha_transaccion,
+            'transacciones_historial': transacciones_historial,
+            'fecha_actual': timezone.now().date(),
+            'motonaves': motonaves,
+            'available_items': available_items,
+        }
+        return context
+
+    def get_headers_mapping(self):
+        # Para ser definido en subclases
+        return {}
+
+    def get_filename(self):
+        # Para ser definido en subclases
+        return 'export.xlsx'
+    
+    def get_transacciones_historial(self, asset):
+        """
+        Obtiene el historial de transacciones para el asset dado.
+
+        :param asset: Instancia de Asset.
+        :return: QuerySet de transacciones históricas.
+        """
+        transacciones_historial = Transaction.objects.filter(
+            Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)
+        ).order_by('-fecha')
+        return transacciones_historial
+
+
+class AssetSuministrosReportView(AssetInventoryBaseView):
+    keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
+
+    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
+        context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
+        # Agrupar suministros por presentación
+        suministros = suministros.order_by('item__presentacion')
+        grouped_suministros = {}
+        for key, group in groupby(suministros, key=attrgetter('item.presentacion')):
+            grouped_suministros[key] = list(group)
+        context['grouped_suministros'] = grouped_suministros
+        context['group_by'] = 'presentacion'  # Indicador para la plantilla
+        return context
+
+    def get_headers_mapping(self):
+        return {
+            'fecha': 'Fecha',
+            'suministro__item__presentacion': 'Presentación',
+            'suministro__item__name': 'Artículo',
+            'cant': 'Cantidad',
+            'tipo': 'Tipo',
+            'user': 'Usuario',
+            'motivo': 'Motivo',
+            'cant_report': 'Cantidad Reportada',
+        }
+
+    def get_filename(self):
+        return 'historial_suministros.xlsx'
+
+
+class AssetInventarioReportView(AssetInventoryBaseView):
+    keyword_filter = ~(Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro'))
+
+    def get_headers_mapping(self):
+        return {
+            'fecha': 'Fecha',
+            'suministro__item__seccion': 'Categoría',
+            'suministro__item__name': 'Artículo',
+            'cant': 'Cantidad',
+            'tipo': 'Tipo',
+            'user': 'Usuario',
+            'motivo': 'Motivo',
+            'cant_report': 'Cantidad Reportada',
+        }
+
+    def get_filename(self):
+        return 'historial_inventario.xlsx'
+
+    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
+        context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
+        # Agrupar suministros por sección (categoría)
+        suministros = suministros.order_by('item__seccion')
+        grouped_suministros = {}
+        for key, group in groupby(suministros, key=attrgetter('item.seccion')):
+            grouped_suministros[key] = list(group)
+        context['grouped_suministros'] = grouped_suministros
+        context['group_by'] = 'seccion'  # Indicador para la plantilla
+        # Obtener el diccionario de secciones
+        secciones_dict = dict(Item.SECCION)
+        context['secciones_dict'] = secciones_dict
+        return context
+    
+
+@permission_required('got.delete_transaction', raise_exception=True)
+def delete_transaction(request, transaction_id):
+    transaccion = get_object_or_404(Transaction, id=transaction_id)
+    next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/'))
+
+    if request.method == 'POST':
+        result = handle_delete_transaction(request, transaccion)
+        if isinstance(result, HttpResponse):
+            return result
+        else:
+            return redirect(next_url)
+    else:
+        # Redirigir a la página anterior si no es una solicitud POST
+        return redirect(next_url)
+
+
+'RUTINAS VIEWS'
+class RutaDetailView(LoginRequiredMixin, generic.DetailView):
+    model = Ruta
+    template_name = 'got/rutinas/ruta_detail.html'
+    context_object_name = 'ruta'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        ruta = self.get_object()
+
+        # Existing context data
+        context['tasks'] = ruta.task_set.all().order_by('-priority')
+        context['requirements'] = ruta.requisitos.all()
+        context['task_form'] = RutActForm(asset=ruta.system.asset)
+        context['requirement_form'] = MaintenanceRequirementForm()
+        context['activity_logs'] = ActivityLog.objects.filter(
+            model_name='Ruta',
+            object_id=str(ruta.code)
+        ).order_by('-timestamp')
+
+        # Edit forms for tasks and requirements
+        context['task_edit_forms'] = {
+            task.id: RutActForm(instance=task, asset=ruta.system.asset)
+            for task in ruta.task_set.all()
+        }
+        context['requirement_edit_forms'] = {
+            req.id: MaintenanceRequirementForm(instance=req)
+            for req in ruta.requisitos.all()
+        }
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        ruta = self.get_object()
+        action = request.POST.get('action')
+
+        if action == 'create_task':
+            task_form = RutActForm(request.POST, asset=ruta.system.asset)
+            if task_form.is_valid():
+                task = task_form.save(commit=False)
+                task.ruta = ruta
+                task.modified_by = request.user
+                task.save()
+                messages.success(request, 'Actividad creada exitosamente.')
+            else:
+                messages.error(request, 'Error al crear la actividad.')
+
+        elif action == 'edit_task':
+            task_id = request.POST.get('task_id')
+            task = get_object_or_404(Task, id=task_id, ruta=ruta)
+            task_form = RutActForm(request.POST, instance=task, asset=ruta.system.asset)
+            if task_form.is_valid():
+                task = task_form.save(commit=False)
+                task.modified_by = request.user
+                task.save()
+                messages.success(request, 'Actividad actualizada exitosamente.')
+            else:
+                messages.error(request, 'Error al actualizar la actividad.')
+
+        elif action == 'delete_task':
+            task_id = request.POST.get('task_id')
+            task = get_object_or_404(Task, id=task_id, ruta=ruta)
+            task.delete()
+            messages.success(request, 'Actividad eliminada exitosamente.')
+
+        elif action == 'create_requirement':
+            requirement_form = MaintenanceRequirementForm(request.POST)
+            if requirement_form.is_valid():
+                requirement = requirement_form.save(commit=False)
+                requirement.ruta = ruta
+                requirement.modified_by = request.user
+                requirement.save()
+                messages.success(request, 'Requerimiento creado exitosamente.')
+            else:
+                messages.error(request, 'Error al crear el requerimiento.')
+
+        elif action == 'edit_requirement':
+            requirement_id = request.POST.get('requirement_id')
+            requirement = get_object_or_404(MaintenanceRequirement, id=requirement_id, ruta=ruta)
+            requirement_form = MaintenanceRequirementForm(request.POST, instance=requirement)
+            if requirement_form.is_valid():
+                requirement = requirement_form.save(commit=False)
+                requirement.modified_by = request.user
+                requirement.save()
+                messages.success(request, 'Requerimiento actualizado exitosamente.')
+            else:
+                messages.error(request, 'Error al actualizar el requerimiento.')
+
+        elif action == 'delete_requirement':
+            requirement_id = request.POST.get('requirement_id')
+            requirement = get_object_or_404(MaintenanceRequirement, id=requirement_id, ruta=ruta)
+            requirement.delete()
+            messages.success(request, 'Requerimiento eliminado exitosamente.')
+
+        else:
+            messages.error(request, 'Acción no reconocida.')
+
+        return redirect('got:ruta_detail', pk=ruta.pk)
+
+
+#############################
 def preventivo_pdf(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
     user = request.user
@@ -419,715 +597,6 @@ class AssetDocCreateView(generic.View):
             document.save()
             return redirect('got:asset-detail', pk=asset_id)
         return render(request, self.template_name, {'form': form})
-
-
-def asset_suministros_report(request, abbreviation):
-
-    asset = get_object_or_404(Asset, abbreviation=abbreviation)
-    keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
-    suministros = Suministro.objects.filter(asset=asset, item__seccion='c').filter(keyword_filter).select_related('item').order_by('item__presentacion')
-
-    motonaves = Asset.objects.filter(Q(area='a') | Q(area='l'))
-
-    grouped_suministros = {}
-    for key, group in groupby(suministros, key=attrgetter('item.presentacion')):
-        grouped_suministros[key] = list(group)
-
-    ultima_fecha_transaccion = Transaction.objects.filter(suministro__asset=asset).aggregate(Max('fecha'))['fecha__max'] or "---"
-    transacciones_historial = Transaction.objects.filter(
-        Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)
-    ).order_by('-fecha')
-
-
-    if request.method == 'POST' and 'download_excel' in request.POST:
-        df = pd.DataFrame(list(transacciones_historial.values(
-            'fecha',
-            'suministro__item__presentacion',
-            'suministro__item__name',
-            'cant',
-            'tipo',
-            'user',
-            'motivo',
-            'cant_report',
-        )))
-        df.rename(columns={
-            'fecha': 'Fecha',
-            'suministro__item__presentacion': 'Presentación',
-            'suministro__item__name': 'Artículo',
-            'cant': 'Cantidad',
-            'tipo': 'Tipo',
-            'user': 'Usuario',
-            'motivo': 'Motivo',
-            'cant_report': 'Cantidad Reportada',
-        }, inplace=True)
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="historial_suministros.xlsx"'
-        with pd.ExcelWriter(response, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False)
-        return response
-
-    if request.method == 'POST' and 'transfer_suministro_id' in request.POST:
-    
-        suministro_id = request.POST.get('transfer_suministro_id')
-        transfer_cantidad_str = request.POST.get('transfer_cantidad', '0') or '0'
-        destination_asset_id = request.POST.get('destination_asset_id')
-        transfer_motivo = request.POST.get('transfer_motivo', '')
-        transfer_fecha_str = request.POST.get('transfer_fecha', '')  # New field
-        confirm_overwrite = request.POST.get('confirm_overwrite', 'no')
-
-        try:
-            transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, 'Fecha inválida.')
-            return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
-
-        operation = Operation.objects.filter(
-            asset=asset,
-            confirmado=True,
-            start__lte=transfer_fecha,
-            end__gte=transfer_fecha
-        ).first()
-
-        if operation:
-            transfer_motivo = f"{transfer_motivo} - {operation.proyecto}"
-
-        try:
-            transfer_cantidad = Decimal(transfer_cantidad_str)
-        except InvalidOperation:
-            messages.error(request, 'Cantidad inválida.')
-            return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
-
-        if transfer_cantidad <= 0:
-            messages.error(request, 'La cantidad a transferir debe ser mayor a cero.')
-            return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
-
-        suministro_origen = get_object_or_404(Suministro, id=suministro_id, asset=asset)
-
-        if transfer_cantidad > suministro_origen.cantidad:
-            messages.error(request, 'La cantidad a transferir no puede ser mayor a la cantidad disponible.')
-            return redirect(reverse('got:asset_suministros_report', kwargs={'abbreviation': asset.abbreviation}))
-
-        existing_transaction = None
-        try:
-            existing_transaction = Transaction.objects.get(
-                suministro=suministro_origen,
-                fecha=transfer_fecha,
-                tipo='t'
-            )
-        except Transaction.DoesNotExist:
-            pass
-
-        if existing_transaction and confirm_overwrite != 'yes':
-            context = {
-                'asset': asset,
-                'suministros': suministros,
-                'overwriting_transactions': [('Transferencia', existing_transaction)],
-                'post_data': request.POST,
-            }
-            return render(request, 'got/assets/confirm_overwrite.html', context)
-
-        # Obtener el barco destino
-        destination_asset = get_object_or_404(Asset, abbreviation=destination_asset_id)
-
-        suministro_destino, _ = Suministro.objects.get_or_create(
-            asset=destination_asset,
-            item=suministro_origen.item,
-            defaults={'cantidad': Decimal('0.00')}
-        )
-
-        if existing_transaction:
-            suministro_origen.cantidad += existing_transaction.cant
-            suministro_destino.cantidad -= existing_transaction.cant
-
-            suministro_origen.cantidad -= transfer_cantidad
-            suministro_destino.cantidad += transfer_cantidad
-
-            suministro_origen.save()
-            suministro_destino.save()
-
-            existing_transaction.cant = transfer_cantidad
-            existing_transaction.user = request.user.get_full_name()
-            existing_transaction.motivo = transfer_motivo
-            existing_transaction.cant_report = suministro_origen.cantidad
-            existing_transaction.cant_report_transf = suministro_destino.cantidad
-            existing_transaction.suministro_transf = suministro_destino
-            existing_transaction.save()
-
-        else:
-            # Update quantities
-            suministro_origen.cantidad -= transfer_cantidad
-            suministro_destino.cantidad += transfer_cantidad
-            
-            suministro_origen.save()
-            suministro_destino.save()
-
-            Transaction.objects.create(
-                suministro=suministro_origen,
-                cant=transfer_cantidad,
-                fecha=transfer_fecha,
-                user=request.user.get_full_name(),
-                motivo=transfer_motivo,
-                tipo='t',
-                cant_report=suministro_origen.cantidad,
-                suministro_transf=suministro_destino,
-                cant_report_transf=suministro_destino.cantidad
-            )
-
-        messages.success(request, f'Se ha transferido {transfer_cantidad} {suministro_origen.item.presentacion} de {suministro_origen.item.name} al barco {destination_asset.name}.')
-        return redirect(reverse('got:asset-suministros', kwargs={'abbreviation': asset.abbreviation}))
-
-    elif request.method == 'POST':
-    
-        fecha_reporte = request.POST.get('fecha_reporte', timezone.now().date())
-        confirm_overwrite = request.POST.get('confirm_overwrite', 'no')
-        overwriting_transactions = []
-
-        operation = Operation.objects.filter(
-            asset=asset,
-            confirmado=True,
-            start__lte=fecha_reporte,
-            end__gte=fecha_reporte
-        ).first()
-
-        if operation:
-            motivo = operation.proyecto
-        else:
-            motivo = ''
-
-        for suministro in suministros:
-            cantidad_consumida_str = request.POST.get(f'consumido_{suministro.id}', '0') or '0'
-            cantidad_ingresada_str = request.POST.get(f'ingresado_{suministro.id}', '0') or '0'
-
-            try:
-                cantidad_consumida = Decimal(cantidad_consumida_str)
-            except InvalidOperation:
-                cantidad_consumida = Decimal('0')
-
-            try:
-                cantidad_ingresada = Decimal(cantidad_ingresada_str)
-            except InvalidOperation:
-                cantidad_ingresada = Decimal('0')
-
-            if cantidad_consumida == Decimal('0') and cantidad_ingresada == Decimal('0'):
-                continue
-
-            existing_transactions = []
-
-            if cantidad_ingresada > Decimal('0'):
-                try:
-                    existing_ingreso = Transaction.objects.get(
-                        suministro=suministro,
-                        fecha=fecha_reporte,
-                        tipo='i'
-                    )
-                    existing_transactions.append(('Ingreso', existing_ingreso))
-                except Transaction.DoesNotExist:
-                    pass
-
-            # Check for existing Consumo transaction
-            if cantidad_consumida > Decimal('0'):
-                try:
-                    existing_consumo = Transaction.objects.get(
-                        suministro=suministro,
-                        fecha=fecha_reporte,
-                        tipo='c'
-                    )
-                    existing_transactions.append(('Consumo', existing_consumo))
-                except Transaction.DoesNotExist:
-                    pass
-
-            if existing_transactions and confirm_overwrite != 'yes':
-                overwriting_transactions.extend(existing_transactions)
-
-        if overwriting_transactions and confirm_overwrite != 'yes':
-            # Render the warning template
-            context = {
-                'asset': asset,
-                'suministros': suministros,
-                'overwriting_transactions': overwriting_transactions,
-                'post_data': request.POST,
-            }
-            return render(request, 'got/assets/confirm_overwrite.html', context)
-        else:
-            for suministro in suministros:
-                cantidad_consumida_str = request.POST.get(f'consumido_{suministro.id}', '0') or '0'
-                cantidad_ingresada_str = request.POST.get(f'ingresado_{suministro.id}', '0') or '0'
-
-                try:
-                    cantidad_consumida = Decimal(cantidad_consumida_str)
-                except InvalidOperation:
-                    cantidad_consumida = Decimal('0')
-
-                try:
-                    cantidad_ingresada = Decimal(cantidad_ingresada_str)
-                except InvalidOperation:
-                    cantidad_ingresada = Decimal('0')
-
-                if cantidad_consumida == Decimal('0') and cantidad_ingresada == Decimal('0'):
-                    continue
-
-                # Handle Ingreso
-                if cantidad_ingresada > Decimal('0'):
-                    suministro, _ = Suministro.objects.get_or_create(asset=asset, item=suministro.item)
-                    try:
-                        transaccion_ingreso = Transaction.objects.get(
-                            suministro=suministro,
-                            fecha=fecha_reporte,
-                            tipo='i'
-                        )
-                        # Reverse previous effect
-                        suministro.cantidad -= transaccion_ingreso.cant
-                        # Update transaction
-                        transaccion_ingreso.cant = cantidad_ingresada
-                        transaccion_ingreso.user = request.user.get_full_name()
-                        transaccion_ingreso.motivo = motivo
-                        transaccion_ingreso.cant_report = suministro.cantidad + cantidad_ingresada
-                        transaccion_ingreso.save()
-                    except Transaction.DoesNotExist:
-                        transaccion_ingreso = Transaction.objects.create(
-                            suministro=suministro,
-                            cant=cantidad_ingresada,
-                            fecha=fecha_reporte,
-                            user=request.user.get_full_name(),
-                            motivo=motivo,
-                            tipo='i',
-                            cant_report=suministro.cantidad + cantidad_ingresada
-                        )
-
-                    suministro.cantidad += cantidad_ingresada
-                    suministro.save()
-
-                # Handle Consumo
-                if cantidad_consumida > Decimal('0'):
-                    suministro, _ = Suministro.objects.get_or_create(asset=asset, item=suministro.item)
-                    try:
-                        transaccion_consumo = Transaction.objects.get(
-                            suministro=suministro,
-                            fecha=fecha_reporte,
-                            tipo='c'
-                        )
-                        # Reverse previous effect
-                        suministro.cantidad += transaccion_consumo.cant
-                        # Update transaction
-                        transaccion_consumo.cant = cantidad_consumida
-                        transaccion_consumo.user = request.user.get_full_name()
-                        transaccion_consumo.motivo = motivo
-                        transaccion_consumo.cant_report = suministro.cantidad - cantidad_consumida
-                        transaccion_consumo.save()
-                    except Transaction.DoesNotExist:
-                        transaccion_consumo = Transaction.objects.create(
-                            suministro=suministro,
-                            cant=cantidad_consumida,
-                            fecha=fecha_reporte,
-                            user=request.user.get_full_name(),
-                            motivo=motivo,
-                            tipo='c',
-                            cant_report=suministro.cantidad - cantidad_consumida
-                        )
-                    # Update supply quantity
-                    suministro.cantidad -= cantidad_consumida
-                    suministro.save()
-
-            messages.success(request, 'Completado')
-            return redirect(reverse('got:asset-suministros', kwargs={'abbreviation': asset.abbreviation}))
-
-    transacciones_por_presentacion = {}
-    for presentacion, suministros_group in grouped_suministros.items():
-        transacciones_por_presentacion[presentacion] = transacciones_historial.filter(suministro__in=suministros_group)
-
-    articles = sorted(set(
-        [transaccion.suministro.item.name for transaccion in transacciones_historial if transaccion.suministro and transaccion.suministro.asset == asset] +
-        [transaccion.suministro_transf.item.name for transaccion in transacciones_historial if transaccion.suministro_transf and transaccion.suministro_transf.asset == asset]
-    ))
-
-    context = {
-        'asset': asset, 
-        'suministros': suministros, 
-        'grouped_suministros': grouped_suministros,
-        'ultima_fecha_transaccion': ultima_fecha_transaccion,
-        'transacciones_historial': transacciones_historial,
-        'transacciones_por_presentacion': transacciones_por_presentacion,
-        'fecha_actual': timezone.now().date(),
-        'articles': articles,
-        'motonaves': motonaves,
-        }
-
-    return render(request, 'got/assets/asset_suministros_report.html', context)
-
-
-def asset_inventario_report(request, abbreviation):
-    asset = get_object_or_404(Asset, abbreviation=abbreviation)
-
-    keyword_filter = ~(
-        Q(item__name__icontains='Combustible') | 
-        Q(item__name__icontains='Aceite') | 
-        Q(item__name__icontains='Filtro')
-    )
-    suministros = Suministro.objects.filter(asset=asset).filter(keyword_filter).select_related('item').order_by('item__seccion')
-
-    motonaves = Asset.objects.filter(area='a')
-
-    # Agrupar suministros por la categoría del artículo (seccion)
-    grouped_suministros = {}
-    for key, group in groupby(suministros, key=attrgetter('item.seccion')):
-        grouped_suministros[key] = list(group)
-
-    transacciones_historial = Transaction.objects.filter(
-        Q(suministro__asset=asset) | Q(suministro_transf__asset=asset),
-        Q(suministro__in=suministros) | Q(suministro_transf__in=suministros)
-    ).order_by('-fecha')
-
-    # Obtener la última fecha de transacción
-    ultima_fecha_transaccion = transacciones_historial.aggregate(Max('fecha'))['fecha__max'] or "---"
-
-    # Obtener el diccionario de secciones para mostrar los nombres completos en la plantilla
-    secciones_dict = dict(Item.SECCION)
-
-    articles = sorted(set(
-        transaccion.suministro.item.name if transaccion.suministro and transaccion.suministro.asset == asset else transaccion.suministro_transf.item.name
-        for transaccion in transacciones_historial
-    ))
-
-    if request.method == 'POST':
-        action = request.POST.get('action', '')
-        if action == 'add_suministro' and request.user.has_perm('got.can_add_supply'):
-            # Manejar la creación de un nuevo suministro
-            item_id = request.POST.get('item_id')
-            item = get_object_or_404(Item, id=item_id)
-
-            # Verificar si el suministro ya existe
-            suministro_existente = Suministro.objects.filter(asset=asset, item=item).exists()
-            if suministro_existente:
-                messages.error(request, f'El suministro para el artículo "{item.name}" ya existe en este asset.')
-            else:
-                Suministro.objects.create(
-                    item=item,
-                    cantidad=Decimal('0.00'),
-                    asset=asset
-                )
-                messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
-            return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
-    
-        elif 'transfer_suministro_id' in request.POST:
-            # Manejar la transferencia
-            suministro_id = request.POST.get('transfer_suministro_id')
-            transfer_cantidad_str = request.POST.get('transfer_cantidad', '0') or '0'
-            destination_asset_id = request.POST.get('destination_asset_id')
-            transfer_motivo = request.POST.get('transfer_motivo', '')
-            transfer_fecha_str = request.POST.get('transfer_fecha', '')  # New field
-            confirm_overwrite = request.POST.get('confirm_overwrite', 'no')
-
-            try:
-                transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
-            except ValueError:
-                messages.error(request, 'Fecha inválida.')
-                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
-
-            try:
-                transfer_cantidad = Decimal(transfer_cantidad_str)
-            except InvalidOperation:
-                messages.error(request, 'Cantidad inválida.')
-                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
-
-            if transfer_cantidad <= 0:
-                messages.error(request, 'La cantidad a transferir debe ser mayor a cero.')
-                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
-
-            suministro_origen = get_object_or_404(Suministro, id=suministro_id, asset=asset)
-
-            if transfer_cantidad > suministro_origen.cantidad:
-                messages.error(request, 'La cantidad a transferir no puede ser mayor a la cantidad disponible.')
-                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
-
-            existing_transaction = None
-            try:
-                existing_transaction = Transaction.objects.get(
-                    suministro=suministro_origen,
-                    fecha=transfer_fecha,
-                    tipo='t'
-                )
-            except Transaction.DoesNotExist:
-                pass
-
-            if existing_transaction and confirm_overwrite != 'yes':
-                # Prepare data for confirmation modal
-                context = {
-                    'asset': asset,
-                    'suministros': suministros,
-                    'overwriting_transactions': [('Transferencia', existing_transaction)],
-                    'post_data': request.POST,
-                }
-                return render(request, 'got/assets/confirm_overwrite.html', context)
-            else:
-                destination_asset = get_object_or_404(Asset, abbreviation=destination_asset_id)
-
-                suministro_destino, _ = Suministro.objects.get_or_create(
-                    asset=destination_asset,
-                    item=suministro_origen.item,
-                    defaults={'cantidad': Decimal('0.00')}
-                )
-
-                if existing_transaction:
-                    # Revert previous quantities
-                    suministro_origen.cantidad += existing_transaction.cant
-                    suministro_destino.cantidad -= existing_transaction.cant
-
-                suministro_origen.cantidad -= transfer_cantidad
-                suministro_destino.cantidad += transfer_cantidad
-
-                suministro_origen.save()
-                suministro_destino.save()
-
-                if existing_transaction:
-                    # Update existing transaction
-                    existing_transaction.cant = transfer_cantidad
-                    existing_transaction.user = request.user.get_full_name()
-                    existing_transaction.motivo = transfer_motivo
-                    existing_transaction.cant_report = suministro_origen.cantidad
-                    existing_transaction.cant_report_transf = suministro_destino.cantidad
-                    existing_transaction.suministro_transf = suministro_destino
-                    existing_transaction.save()
-                else:
-                    # Create Transaction of type 't'
-                    Transaction.objects.create(
-                        suministro=suministro_origen,
-                        cant=transfer_cantidad,
-                        fecha=transfer_fecha,
-                        user=request.user.get_full_name(),
-                        motivo=transfer_motivo,
-                        tipo='t',
-                        cant_report=suministro_origen.cantidad,
-                        suministro_transf=suministro_destino,
-                        cant_report_transf=suministro_destino.cantidad
-                    )
-
-                messages.success(request, f'Se ha transferido {transfer_cantidad} {suministro_origen.item.presentacion} de {suministro_origen.item.name} al barco {destination_asset.name}.')
-                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
-
-        elif 'download_excel' in request.POST:
-            # Lógica para descargar Excel
-            df = pd.DataFrame(list(transacciones_historial.values(
-                'fecha',
-                'suministro__item__seccion',
-                'suministro__item__name',
-                'cant',
-                'tipo',
-                'user',
-                'motivo',
-                'cant_report',
-            )))
-            df.rename(columns={
-                'fecha': 'Fecha',
-                'suministro__item__seccion': 'Categoría',
-                'suministro__item__name': 'Artículo',
-                'cant': 'Cantidad',
-                'tipo': 'Tipo',
-                'user': 'Usuario',
-                'motivo': 'Motivo',
-                'cant_report': 'Cantidad Reportada',
-            }, inplace=True)
-            df['Categoría'] = df['Categoría'].map(secciones_dict)
-            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response['Content-Disposition'] = 'attachment; filename="historial_inventario.xlsx"'
-            with pd.ExcelWriter(response, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False)
-            return response
-
-        else:
-            fecha_reporte = request.POST.get('fecha_reporte', timezone.now().date())
-            confirm_overwrite = request.POST.get('confirm_overwrite', 'no')
-            overwriting_transactions = []
-
-            for suministro in suministros:
-                cantidad_consumida_str = request.POST.get(f'consumido_{suministro.id}', '0') or '0'
-                cantidad_ingresada_str = request.POST.get(f'ingresado_{suministro.id}', '0') or '0'
-
-                try:
-                    cantidad_consumida = Decimal(cantidad_consumida_str)
-                except InvalidOperation:
-                    cantidad_consumida = Decimal('0')
-
-                try:
-                    cantidad_ingresada = Decimal(cantidad_ingresada_str)
-                except InvalidOperation:
-                    cantidad_ingresada = Decimal('0')
-
-                if cantidad_consumida == Decimal('0') and cantidad_ingresada == Decimal('0'):
-                    continue
-
-                existing_transactions = []
-
-                if cantidad_ingresada > Decimal('0'):
-                    try:
-                        existing_ingreso = Transaction.objects.get(
-                            suministro=suministro,
-                            fecha=fecha_reporte,
-                            tipo='i'
-                        )
-                        existing_transactions.append(('Ingreso', existing_ingreso))
-                    except Transaction.DoesNotExist:
-                        pass
-
-                if cantidad_consumida > Decimal('0'):
-                    try:
-                        existing_consumo = Transaction.objects.get(
-                            suministro=suministro,
-                            fecha=fecha_reporte,
-                            tipo='c'
-                        )
-                        existing_transactions.append(('Consumo', existing_consumo))
-                    except Transaction.DoesNotExist:
-                        pass
-
-            if overwriting_transactions and confirm_overwrite != 'yes':
-                # Render the warning template
-                context = {
-                    'asset': asset,
-                    'suministros': suministros,
-                    'overwriting_transactions': overwriting_transactions,
-                    'post_data': request.POST,
-                }
-                return render(request, 'got/assets/confirm_overwrite.html', context)
-            else:
-                for suministro in suministros:
-                    cantidad_consumida_str = request.POST.get(f'consumido_{suministro.id}', '0') or '0'
-                    cantidad_ingresada_str = request.POST.get(f'ingresado_{suministro.id}', '0') or '0'
-
-                    try:
-                        cantidad_consumida = Decimal(cantidad_consumida_str)
-                    except InvalidOperation:
-                        cantidad_consumida = Decimal('0')
-
-                    try:
-                        cantidad_ingresada = Decimal(cantidad_ingresada_str)
-                    except InvalidOperation:
-                        cantidad_ingresada = Decimal('0')
-
-                    if cantidad_consumida == Decimal('0') and cantidad_ingresada == Decimal('0'):
-                        continue
-
-                    # Handle Ingreso
-                    if cantidad_ingresada > Decimal('0'):
-                        suministro, _ = Suministro.objects.get_or_create(asset=asset, item=suministro.item)
-                        try:
-                            transaccion_ingreso = Transaction.objects.get(
-                                suministro=suministro,
-                                fecha=fecha_reporte,
-                                tipo='i'
-                            )
-                            suministro.cantidad -= transaccion_ingreso.cant
-                            # Update transaction
-                            transaccion_ingreso.cant = cantidad_ingresada
-                            transaccion_ingreso.user = request.user.get_full_name()
-                            transaccion_ingreso.motivo = request.POST.get('motivo', '')
-                            transaccion_ingreso.cant_report = suministro.cantidad + cantidad_ingresada
-                            transaccion_ingreso.save()
-                        except Transaction.DoesNotExist:
-                            transaccion_ingreso = Transaction.objects.create(
-                                suministro=suministro,
-                                cant=cantidad_ingresada,
-                                fecha=fecha_reporte,
-                                user=request.user.get_full_name(),
-                                motivo=request.POST.get('motivo', ''),
-                                tipo='i',
-                                cant_report=suministro.cantidad + cantidad_ingresada
-                            )
-                        suministro.cantidad += cantidad_ingresada
-                        suministro.save()
-
-                    # Handle Consumo
-                    if cantidad_consumida > Decimal('0'):
-                        suministro, _ = Suministro.objects.get_or_create(asset=asset, item=suministro.item)
-                        try:
-                            transaccion_consumo = Transaction.objects.get(
-                                suministro=suministro,
-                                fecha=fecha_reporte,
-                                tipo='c'
-                            )
-                            # Reverse previous effect
-                            suministro.cantidad += transaccion_consumo.cant
-                            # Update transaction
-                            transaccion_consumo.cant = cantidad_consumida
-                            transaccion_consumo.user = request.user.get_full_name()
-                            transaccion_consumo.motivo = request.POST.get('motivo', '')
-                            transaccion_consumo.cant_report = suministro.cantidad - cantidad_consumida
-                            transaccion_consumo.save()
-                        except Transaction.DoesNotExist:
-                            transaccion_consumo = Transaction.objects.create(
-                                suministro=suministro,
-                                cant=cantidad_consumida,
-                                fecha=fecha_reporte,
-                                user=request.user.get_full_name(),
-                                motivo=request.POST.get('motivo', ''),
-                                tipo='c',
-                                cant_report=suministro.cantidad - cantidad_consumida
-                            )
-                        # Update supply quantity
-                        suministro.cantidad -= cantidad_consumida
-                        suministro.save()
-
-                messages.success(request, 'Inventario actualizado exitosamente.')
-                return redirect(reverse('got:asset_inventario_report', kwargs={'abbreviation': asset.abbreviation}))
-            
-    existing_item_ids = suministros.values_list('item_id', flat=True)
-    available_items = Item.objects.exclude(id__in=existing_item_ids)
-
-    context = {
-        'asset': asset,
-        'suministros': suministros,
-        'grouped_suministros': grouped_suministros,
-        'ultima_fecha_transaccion': ultima_fecha_transaccion,
-        'transacciones_historial': transacciones_historial,
-        'fecha_actual': timezone.now().date(),
-        'motonaves': motonaves,
-        'secciones_dict': secciones_dict,
-        'articles': articles,
-        'available_items': available_items,
-    }
-
-    return render(request, 'got/assets/asset_inventario_report.html', context)
-
-
-@permission_required('got.delete_transaction', raise_exception=True)
-def delete_transaction(request, transaction_id):
-    transaccion = get_object_or_404(Transaction, id=transaction_id)
-    next_url = request.POST.get('next', '')
-
-    if request.method == 'POST':
-        with db_transaction.atomic():
-            # Revert quantities based on transaction type
-            if transaccion.tipo in ['i', 'c']:
-                suministro = transaccion.suministro
-                if transaccion.tipo == 'i':
-                    # Revert an Ingreso: subtract the quantity from the suministro
-                    suministro.cantidad -= transaccion.cant
-                elif transaccion.tipo == 'c':
-                    # Revert a Consumo: add the quantity back to the suministro
-                    suministro.cantidad += transaccion.cant
-                suministro.save()
-            elif transaccion.tipo == 't':
-                # Revert quantities in both source and destination suministros
-                suministro_origen = transaccion.suministro
-                suministro_destino = transaccion.suministro_transf
-
-                # Revert the quantities
-                suministro_origen.cantidad += transaccion.cant
-                suministro_destino.cantidad -= transaccion.cant
-
-                suministro_origen.save()
-                suministro_destino.save()
-            else:
-                # Handle other types if necessary
-                pass
-
-            # Delete the transaction
-            transaccion.delete()
-
-        messages.success(request, 'La transacción ha sido eliminada y las cantidades han sido actualizadas.')
-        return redirect(next_url)
-    else:
-        # If not POST, redirect back to the previous page
-        return redirect(next_url)
 
 
 @login_required
@@ -1246,6 +715,8 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
         context['unique_subsystems'] = list(set(subsystems))
         context['items'] = Item.objects.all()
         return context
+
+
     
 
 class SysUpdate(UpdateView):
@@ -4279,3 +3750,192 @@ class BuceoMttoView(LoginRequiredMixin, TemplateView):
             state_data['Pendientes'] = ots_without_tasks_in_execution
 
         return states, state_data
+    
+
+
+class EquipmentHistoryView(LoginRequiredMixin, generic.ListView):
+    model = EquipmentHistory
+    template_name = 'got/equipment_history.html'
+    context_object_name = 'histories'
+    paginate_by = 20
+
+    def get_queryset(self):
+        equipment_id = self.kwargs['equipment_id']
+        return EquipmentHistory.objects.filter(equipment__code=equipment_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipment_id = self.kwargs['equipment_id']
+        equipment = get_object_or_404(Equipo, code=equipment_id)
+        context['equipment'] = equipment
+        return context
+    
+
+class EquipmentHistoryCreateView(LoginRequiredMixin, generic.CreateView):
+    model = EquipmentHistory
+    form_class = EquipmentHistoryForm
+    template_name = 'got/equipment_history_form.html'
+
+    def form_valid(self, form):
+        equipment_id = self.kwargs['equipment_id']
+        equipment = get_object_or_404(Equipo, code=equipment_id)
+        form.instance.equipment = equipment
+        form.instance.reporter = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('got:equipment_history', kwargs={'equipment_id': self.kwargs['equipment_id']})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipment_id = self.kwargs['equipment_id']
+        equipment = get_object_or_404(Equipo, code=equipment_id)
+        context['equipment'] = equipment
+        return context
+
+
+class EquipmentHistoryUpdateView(LoginRequiredMixin, generic.UpdateView):
+    model = EquipmentHistory
+    form_class = EquipmentHistoryForm
+    template_name = 'got/equipment_history_form.html'
+    permission_required = 'got.change_equipmenthistory'
+
+    def get_success_url(self):
+        return reverse_lazy('got:equipment_history', kwargs={'equipment_code': self.object.equipment.code})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['equipment'] = self.object.equipment
+        return context
+    
+
+class EquipmentHistoryDeleteView(LoginRequiredMixin, generic.DeleteView):
+    model = EquipmentHistory
+    template_name = 'got/equipment_history_confirm_delete.html'
+    permission_required = 'got.delete_equipmenthistory'
+
+    def get_success_url(self):
+        return reverse_lazy('got:equipment_history', kwargs={'equipment_code': self.object.equipment.code})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['equipment'] = self.object.equipment
+        return context
+    
+def delete_equipment_history(request, equipment_code, pk):
+    history = get_object_or_404(EquipmentHistory, pk=pk, equipment__code=equipment_code)
+    history.delete()
+    return redirect('got:equipment_history', equipment_code=equipment_code)
+
+import re
+
+class ManagerialReportView(View):
+    def get(self, request, *args, **kwargs):
+        # Obtener todos los activos en el área de barcos ('a' corresponde a 'Motonave')
+        assets = Asset.objects.filter(area='a', show=True)
+
+        def insert_zero_width_space(text):
+            return re.sub(r'([a-zA-Z0-9])', '\g<1>\u200B', text)
+        
+        # Preparar datos para cada activo
+        assets_data = []
+        for asset in assets:
+            # Información del activo
+            asset_info = {
+                'name': asset.name,
+                'abbreviation': asset.abbreviation,
+                'supervisor': asset.supervisor.get_full_name() if asset.supervisor else '',
+                'maintenance_compliance': asset.maintenance_compliance,
+            }
+
+            # Obtener todos los sistemas del activo
+            systems = asset.system_set.all()
+
+            # Obtener todas las rutas de los sistemas
+            rutas = Ruta.objects.filter(system__in=systems)
+
+            # Filtrar rutas vencidas o próximas a vencer
+            rutas_filtered = []
+            for ruta in rutas:
+                percentage_remaining = ruta.percentage_remaining
+                if percentage_remaining < 15:
+                    # Determinar tiempo restante
+                    if ruta.control == 'd':
+                        tiempo_restante = ruta.daysleft
+                        unidad = 'días'
+                    elif ruta.control == 'h' or ruta.control == 'k':
+                        accumulated_hours = ruta.equipo.hours.filter(
+                            report_date__gte=ruta.intervention_date,
+                            report_date__lte=date.today()
+                        ).aggregate(total_hours=Sum('hour'))['total_hours'] or 0
+                        tiempo_restante = ruta.frecuency - accumulated_hours
+                        unidad = 'horas'
+                    else:
+                        tiempo_restante = ''
+                        unidad = ''
+
+                    # Recopilar la información requerida
+                    ruta_info = {
+                        'equipo': ruta.equipo.name if ruta.equipo else '',
+                        'name': ruta.name,
+                        'frecuencia': ruta.frecuency,
+                        'tiempo_restante': tiempo_restante,
+                        'unidad': unidad,
+                        'fecha_ultima_intervencion': ruta.intervention_date,
+                        'fecha_proxima_intervencion': ruta.next_date,
+                        'overdue': percentage_remaining <= 0,
+                    }
+                    rutas_filtered.append(ruta_info)
+
+            # Obtener reportes de falla relacionados con los equipos en los sistemas
+            # Solo reportes de falla abiertos
+            equipos = Equipo.objects.filter(system__in=systems)
+            failure_reports = FailureReport.objects.filter(
+                equipo__in=equipos,
+                closed=False
+            )
+
+            failure_reports_data = []
+            for report in failure_reports:
+                report_data = {
+                    'id': report.id,
+                    'description': report.description,
+                    'equipo': report.equipo.name if report.equipo else '',
+                    'ot': None,
+                    'tasks': [],
+                }
+
+                if report.related_ot:
+                    ot = report.related_ot
+                    ot_info = {
+                        'num_ot': ot.num_ot,
+                        'description': ot.description,
+                        'state': ot.get_state_display(),
+                    }
+                    report_data['ot'] = ot_info
+
+                    # Obtener actividades en ejecución relacionadas con la OT
+                    tasks_in_execution = Task.objects.filter(ot=ot, finished=False)
+                    tasks_data = []
+                    for task in tasks_in_execution:
+                        task_info = {
+                            'description': task.description,
+                            'start_date': task.start_date,
+                            'responsible': task.responsible.get_full_name() if task.responsible else '',
+                        }
+                        tasks_data.append(task_info)
+                    report_data['tasks'] = tasks_data
+
+                failure_reports_data.append(report_data)
+
+            asset_info['rutas'] = rutas_filtered
+            asset_info['failure_reports'] = failure_reports_data
+
+            assets_data.append(asset_info)
+
+        context = {
+            'assets': assets_data,
+            'today': date.today(),
+        }
+
+        return render_to_pdf('got/managerial_report.html', context)

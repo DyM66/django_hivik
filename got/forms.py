@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User, Group
 from .models import *
-from .functions import *
+from .utils import *
 from datetime import datetime
 
 from django.forms import modelformset_factory
@@ -1164,4 +1164,22 @@ class EquipmentHistoryForm(forms.ModelForm):
             'date': XYZ_DateInput(format=['%Y-%m-%d'],),
             'subject': forms.Select(attrs={'class': 'form-control'}),
             'annotations': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+
+
+class MaintenanceRequirementForm(forms.ModelForm):
+    class Meta:
+        model = MaintenanceRequirement
+        fields = ['item', 'descripcion', 'tipo', 'cantidad']
+        labels = {
+            'item': 'Artículo',
+            'descripcion': 'Descripción',
+            'tipo': 'Tipo',
+            'cantidad': 'Cantidad',
+        }
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-control'}),
+            'descripcion': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control'}),
         }

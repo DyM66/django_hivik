@@ -1,0 +1,48 @@
+<!-- templates/got/modals/requirement_modals.html -->
+<!-- Modal para Editar Requerimiento -->
+{% load my_tags %}
+<div class="modal fade" id="editRequirementModal{{ req.id }}" tabindex="-1" aria-labelledby="editRequirementModalLabel{{ req.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editRequirementModalLabel{{ req.id }}">Editar Requerimiento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="edit_requirement">
+                    <input type="hidden" name="task_id" value="{{ task.id }}">
+                    {{ edit_requirement_form.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Eliminar Requerimiento -->
+<div class="modal fade" id="deleteRequirementModal{{ req.id }}" tabindex="-1" aria-labelledby="deleteRequirementModalLabel{{ req.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteRequirementModalLabel{{ req.id }}">Eliminar Requerimiento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar este requerimiento?</p>
+                    <p><strong>{{ req.get_tipo_display }} - {{ req.descripcion|default:req.item.name }}</strong></p>
+                    <input type="hidden" name="action" value="delete_task">
+                    <input type="hidden" name="task_id" value="{{ task.id }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
