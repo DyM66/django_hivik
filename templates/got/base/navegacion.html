@@ -101,7 +101,7 @@
                     <ul class="dropdown-menu" aria-labelledby="vehiclesDropdown">
                         {% for vehiculo in vehiculos %}
                             <li>
-                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#vehiculoModal{{ vehiculo.abbreviation }}">
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#vehiculoModal{{ vehiculo.code }}">
                                     {{ vehiculo.system.name }}
                                 </a>
                             </li>
@@ -109,7 +109,6 @@
                     </ul>
                 </li>
             </ul>
-
 
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
@@ -144,7 +143,7 @@
 
 {% for vehiculo in vehiculos %}
 <!-- Modal para {{ vehiculo.name }} -->
-<div class="modal fade" id="vehiculoModal{{ vehiculo.abbreviation }}" tabindex="-1" aria-labelledby="vehiculoModalLabel{{ vehiculo.abbreviation }}" aria-hidden="true">
+<div class="modal fade" id="vehiculoModal{{ vehiculo.code }}" tabindex="-1" aria-labelledby="vehiculoModalLabel{{ vehiculo.abbreviation }}" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
