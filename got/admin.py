@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Salida, Operation, Solicitud, Item,
-    Megger, Suministro, UserProfile, Document
+    Megger, Suministro, UserProfile, Document, MaintenanceRequirement
 )
 
 from django.utils import timezone
@@ -74,6 +74,7 @@ class UserProfileAdmin(admin.ModelAdmin):
 admin.site.register(UserProfile, UserProfileAdmin)
 
 admin.site.register(Asset)
+admin.site.register(MaintenanceRequirement)
 admin.site.register(Megger)
 admin.site.register(Operation)
 admin.site.register(FailureReport)
