@@ -38,9 +38,12 @@
                                     {% for entry in asset_group.entries %}
                                         <li>
                                             <strong>{{ entry.nombre_completo }}</strong> - {{ entry.get_cargo_display }}
+                                            {% if perms.overtime.change_overtime %}
                                                 <a href="#" data-bs-toggle="modal" data-bs-target="#editEntryModal{{ entry.id }}">
                                                     <i class="fas fa-edit"></i>
-                                                </a><br>
+                                                </a>
+                                            {% endif %}
+                                        
                                             Cédula: {{ entry.cedula }}<br>
                                             Horario: {{ entry.hora_inicio|time:"h:i A" }} - {{ entry.hora_fin|time:"h:i A" }}<br>
                                             {% if entry.approved %}

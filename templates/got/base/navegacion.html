@@ -74,21 +74,24 @@
                     </li>
                 {% endif %}
 
-                {% if perms.got.view_overtime %}
+                {% if request.user|has_group:"maq_members" %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'overtime_report' %}active{% endif %}" href="#" id="overtimeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Horas extras
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="overtimeDropdown">
+                            <li><a class="dropdown-item" href="{% url 'overtime:overtime_report' %}">Reportar horas extras</a></li>
+                            <li><a class="dropdown-item" href="{% url 'overtime:overtime_list' %}">Mis reportes</a></li>
+                        </ul>
+                    </li>
+                {% elif perms.got.view_overtime %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'overtime_list' %}active{% endif %}" href="{% url 'overtime:overtime_list' %}">
                             Horas extras
                         </a>
                     </li>
                 {% endif %}
-
-                {% if request.user|has_group:"maq_members" %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'overtime_report' %}active{% endif %}" href="{% url 'overtime:overtime_report' %}">
-                            Horas extras
-                        </a>
-                    </li>
-                {% endif %}
+            
                 
                 <!-- Dropdown de Vehículos -->
                 <li class="nav-item dropdown">

@@ -484,6 +484,57 @@ def copiar_rutas_de_sistema(system_id):
                     )
     print(f"Rutas y tareas copiadas exitosamente a otros sistemas en el mismo activo {asset.name}.")
 
+
+
+def calculate_executions(ruta, period_start, period_end):
+    if ruta.control == 'd':
+        frecuency_days = ruta.frecuency
+        last_intervention = ruta.intervention_date
+
+        # Primera fecha programada después de la última intervención
+        next_date = last_intervention + timedelta(days=frecuency_days)
+        execution_count = 0
+
+        while next_date <= period_end:
+            if next_date >= period_start:
+                execution_count += 1
+            next_date += timedelta(days=frecuency_days)
+
+        return execution_count
+
+    elif ruta.control == 'h':
+        average_hours_per_day = 12  # Promedio de horas operativas por día
+
+        last_intervention = ruta.intervention_date
+
+        frequency_hours = ruta.frecuency
+
+        # Intervalo entre ejecuciones en días
+        execution_interval_days = frequency_hours / average_hours_per_day
+
+        execution_count = 0
+        execution_number = 1
+
+        # Fecha de la primera ejecución
+        execution_date = last_intervention + timedelta(days=execution_interval_days * execution_number)
+
+        while execution_date <= period_end:
+            if execution_date >= period_start:
+                execution_count += 1
+            execution_number += 1
+            execution_date = last_intervention + timedelta(days=execution_interval_days * execution_number)
+
+        return execution_count
+
+    else:
+        return 0
+
+
+
+
+
+
+
 def calcular_repeticiones(ruta, periodo='anual'):
     periodos = {
         'trimestral': 90,

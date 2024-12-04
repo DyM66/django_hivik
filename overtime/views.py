@@ -36,6 +36,7 @@ class OvertimeListView(LoginRequiredMixin, ListView):
     paginate_by = 25
 
     def get_queryset(self):
+        user = self.request.user
         person_name = self.request.GET.get('person_name', '')
         asset_name = self.request.GET.get('asset', '')
         date_filter = self.request.GET.get('date', '')
@@ -51,6 +52,13 @@ class OvertimeListView(LoginRequiredMixin, ListView):
             end_date = (today + relativedelta(months=1)).replace(day=24)
 
         overtime_entries = Overtime.objects.filter(fecha__gte=start_date, fecha__lt=end_date)
+
+        if user.groups.filter(name='maq_members').exists():
+            asset = Asset.objects.filter(models.Q(supervisor=user) | models.Q(capitan=user)).first()
+            if asset:
+                overtime_entries = overtime_entries.filter(asset=asset)
+            else:
+                overtime_entries = overtime_entries.filter(reportado_por=user)
 
         if person_name:
             overtime_entries = overtime_entries.filter(nombre_completo__icontains=person_name)
@@ -216,7 +224,7 @@ def overtime_report(request):
         if common_form.is_valid() and person_formset.is_valid():
 
             try:
-                asset = Asset.objects.get(supervisor=request.user)
+                asset = Asset.objects.filter(models.Q(supervisor=request.user) | models.Q(capitan=request.user)).first()
             except Asset.DoesNotExist:
                 asset = None 
                 
@@ -225,34 +233,76 @@ def overtime_report(request):
             hora_inicio = common_form.cleaned_data['hora_inicio']
             hora_fin = common_form.cleaned_data['hora_fin']
             justificacion = common_form.cleaned_data['justificacion']
-
             overtime_periods = calcular_horas_extras(fecha, hora_inicio, hora_fin)
 
             if not overtime_periods:
                 messages.warning(request, 'Las horas reportadas no califican como horas extras.')
                 return redirect('overtime:overtime_report')
+            
+            def subtract_time_ranges(desired_start, desired_end, existing_ranges):
+                intervals = [(desired_start, desired_end)]
+                for ex_start, ex_end in existing_ranges:
+                    new_intervals = []
+                    for interval_start, interval_end in intervals:
+                        # No hay solapamiento
+                        if ex_end <= interval_start or ex_start >= interval_end:
+                            new_intervals.append((interval_start, interval_end))
+                        else:
+                            # Hay solapamiento, ajustamos los intervalos
+                            if ex_start > interval_start:
+                                new_intervals.append((interval_start, ex_start))
+                            if ex_end < interval_end:
+                                new_intervals.append((ex_end, interval_end))
+                    intervals = new_intervals
+                return intervals
 
-            for period_start, period_end in overtime_periods:
-                for person_form in person_formset:
-                    nombre_completo = person_form.cleaned_data.get('nombre_completo')
-                    cedula = person_form.cleaned_data.get('cedula')
-                    cargo = person_form.cleaned_data.get('cargo')
+            for person_form in person_formset:
+                nombre_completo = person_form.cleaned_data.get('nombre_completo')
+                cedula = person_form.cleaned_data.get('cedula')
+                cargo = person_form.cleaned_data.get('cargo')
 
-                    if not nombre_completo and not cargo:
+                if not nombre_completo and not cargo:
+                    continue
+
+                # Obtener los registros existentes para la cédula y fecha
+                existing_entries = Overtime.objects.filter(
+                    cedula=cedula,
+                    fecha=fecha,
+                ).order_by('hora_inicio')
+
+                existing_ranges = [(entry.hora_inicio, entry.hora_fin) for entry in existing_entries]
+
+                created_any = False  # Para verificar si se creó al menos un registro
+
+                for period_start, period_end in overtime_periods:
+                    # Restar los intervalos existentes
+                    non_overlapping_intervals = subtract_time_ranges(period_start, period_end, existing_ranges)
+                    if not non_overlapping_intervals:
+                        messages.warning(request, f'Todas las horas reportadas para {nombre_completo} ({cedula}) en el periodo {period_start.strftime("%I:%M %p")} - {period_end.strftime("%I:%M %p")} ya han sido registradas.')
                         continue
-
-                    Overtime.objects.create(
-                        fecha=fecha,
-                        hora_inicio=period_start,
-                        hora_fin=period_end,
-                        justificacion=justificacion,
-                        nombre_completo=nombre_completo,
-                        cedula=cedula,
-                        cargo=cargo,
-                        reportado_por=request.user,
-                        asset=asset,
-                        approved=False 
-                    )
+                    for interval_start, interval_end in non_overlapping_intervals:
+                        Overtime.objects.create(
+                            fecha=fecha,
+                            hora_inicio=interval_start,
+                            hora_fin=interval_end,
+                            justificacion=justificacion,
+                            nombre_completo=nombre_completo,
+                            cedula=cedula,
+                            cargo=cargo,
+                            reportado_por=request.user,
+                            asset=asset,
+                            approved=False 
+                        )
+                        # Añadir el nuevo intervalo a la lista de existentes
+                        existing_ranges.append((interval_start, interval_end))
+                        existing_ranges.sort(key=lambda x: x[0])  # Ordenar por hora de inicio
+                        created_any = True
+                    if len(non_overlapping_intervals) < len(overtime_periods):
+                        messages.warning(request, f'Algunas horas reportadas para {nombre_completo} ({cedula}) en el periodo {period_start.strftime("%I:%M %p")} - {period_end.strftime("%I:%M %p")} ya han sido registradas y fueron excluidas.')
+                if created_any:
+                    messages.success(request, f'Reporte de horas extras para {nombre_completo} ({cedula}) ha sido registrado.')
+                else:
+                    messages.warning(request, f'No se pudo registrar ninguna hora extra para {nombre_completo} ({cedula}).')
 
             return redirect('overtime:overtime_success')
     else:

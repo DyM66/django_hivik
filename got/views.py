@@ -124,9 +124,7 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.groups.filter(name='maq_members').exists():
-            asset = Asset.objects.filter(
-                models.Q(supervisor=request.user) | models.Q(capitan=request.user)
-            ).first()
+            asset = Asset.objects.filter(models.Q(supervisor=request.user) | models.Q(capitan=request.user)).first()
 
             if asset:
                 return redirect('got:asset-detail', pk=asset.abbreviation)
@@ -3939,3 +3937,55 @@ class ManagerialReportView(View):
         }
 
         return render_to_pdf('got/managerial_report.html', context)
+    
+
+class BudgetView(TemplateView):
+    template_name = 'got/budget_view.html'
+
+    def get(self, request, *args, **kwargs):
+        # Definir el periodo de interés: Primer semestre de 2025
+        period_start = date(2025, 1, 1)
+        period_end = date(2025, 6, 30)
+
+        rutas = Ruta.objects.all()
+
+        # Diccionario para almacenar los totales por artículo
+        item_totals = {}
+
+        for ruta in rutas:
+            # Calcular el número de ejecuciones en el periodo
+            num_executions = calculate_executions(ruta, period_start, period_end)
+            if num_executions == 0:
+                continue  # Si no se ejecuta en el periodo, pasamos a la siguiente
+
+            # Obtener los requisitos de mantenimiento asociados con la rutina
+            requisitos = ruta.requisitos.all()
+
+            for req in requisitos:
+                # Calcular la cantidad total requerida
+                total_quantity = req.cantidad * num_executions
+
+                # Determinar la clave para agrupar (puede ser el item o la descripción)
+                if req.item:
+                    key = (req.item, req.item.presentacion)
+                else:
+                    key = (req.descripcion, 'Sin presentación')
+
+                # Sumar la cantidad total al diccionario
+                if key in item_totals:
+                    item_totals[key]['total_quantity'] += total_quantity
+                else:
+                    item_totals[key] = {
+                        'name': key[0],
+                        'presentacion': key[1],
+                        'total_quantity': total_quantity,
+                        'num_executions': num_executions
+                    }
+
+        context = {
+            'item_totals': item_totals.values(),
+            'period_start': period_start,
+            'period_end': period_end,
+        }
+
+        return self.render_to_response(context)

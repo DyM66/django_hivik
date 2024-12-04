@@ -5,7 +5,9 @@
 <main class="container">
     <h1>Listado de activos</h1>
 
-    <a href="{% url 'got:managerial_report' %}" class="btn btn-success">Reporte gerencial</a>
+    <!-- {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+        <a href="{% url 'got:managerial_report' %}" class="btn btn-success">Reporte gerencial</a>
+    {% endif %} -->
     <div class="assets-masonry">
         {% for area, assets in assets_by_area.items %}
             {% if assets %}
