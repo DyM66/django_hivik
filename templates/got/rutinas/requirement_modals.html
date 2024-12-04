@@ -34,7 +34,9 @@
                 </div>
                 <div class="modal-body">
                     <p>¿Está seguro de que desea eliminar este requerimiento?</p>
+                    {% if req.item %}
                     <p><strong>{{ req.get_tipo_display }} - {{ req.descripcion|default:req.item.name }}</strong></p>
+                    {% endif %}
                     <input type="hidden" name="action" value="delete_task">
                     <input type="hidden" name="task_id" value="{{ task.id }}">
                 </div>

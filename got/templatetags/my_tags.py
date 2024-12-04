@@ -190,5 +190,4 @@ def dict_key(d, key):
 
 @register.simple_tag
 def obtener_vehiculos():
-    print(Equipo.objects.filter(system__asset__abbreviation='VEH').order_by('name'))
     return Equipo.objects.filter(system__asset__abbreviation='VEH').order_by('name')
