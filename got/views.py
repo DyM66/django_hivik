@@ -41,7 +41,6 @@ from datetime import datetime, time, date
 
 logger = logging.getLogger(__name__)
 
-
 @cache_control(max_age=86400)
 def manifest(request):
     manifest_data = {
@@ -714,8 +713,6 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
         context['items'] = Item.objects.all()
         return context
 
-
-    
 
 class SysUpdate(UpdateView):
 
@@ -2080,7 +2077,7 @@ def rutina_form_view(request, ruta_id):
 
 'OPERATIONS VIEW'
 def OperationListView(request):
-    assets = Asset.objects.filter(area='a')
+    assets = Asset.objects.filter(area='a', show=True)
 
     today = timezone.now().date()
     show_past = request.GET.get('show_past', 'false').lower() == 'true'
@@ -2103,7 +2100,7 @@ def OperationListView(request):
 
     # Paginación
     page = request.GET.get('page', 1)
-    paginator = Paginator(operaciones_list, 10)  # Mostrar 10 operaciones por página
+    paginator = Paginator(operaciones_list, 40)  # Mostrar 10 operaciones por página
 
     try:
         operaciones = paginator.page(page)

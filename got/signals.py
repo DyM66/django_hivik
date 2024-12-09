@@ -5,6 +5,12 @@ from django.db.models import Avg, Sum, Min
 from decimal import Decimal
 from datetime import datetime
 
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+    instance.profile.save()
+
 @receiver(post_save, sender=HistoryHour)
 @receiver(post_delete, sender=HistoryHour)
 def update_equipo_horometro(sender, instance, **kwargs):

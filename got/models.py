@@ -27,6 +27,7 @@ def get_upload_pdfs(instance, filename):
     return filename
 
 
+# Model 1: Registro de actividades
 class ActivityLog(models.Model):
     user_name = models.CharField(max_length=100)
     action = models.CharField(max_length=100)
@@ -41,7 +42,7 @@ class ActivityLog(models.Model):
         return f"{self.user_name} {self.action} {self.model_name} {self.field_name} at {self.timestamp}"
 
 
-# Model 1: Carasteristicas del usuario
+# Model 2: Carasteristicas del usuario
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     cargo = models.CharField(max_length=100, null=True, blank=True)
@@ -52,22 +53,10 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username}'s profile"
 
-@receiver(post_save, sender=User)
-def create_or_update_user_profile(sender, instance, created, **kwargs):
-    if created:
-        UserProfile.objects.create(user=instance)
-    instance.profile.save()
 
-
-# Model 2: Articulos
+# Model 3: Articulos
 class Item(models.Model):
-
-    SECCION = (
-        ('c', 'Consumibles'),
-        ('h', 'Herramientas y equipos'),
-        ('r', 'Repuestos'),
-    )
-
+    SECCION = (('c', 'Consumibles'), ('h', 'Herramientas y equipos'), ('r', 'Repuestos'))
     name = models.CharField(max_length=50)
     reference = models.CharField(max_length=100, null=True, blank=True)
     imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
@@ -83,9 +72,8 @@ class Item(models.Model):
         ordering = ['name', 'reference']
         
 
-# Model 3: Activos (Centro de costos)
+# Model 4: Activos (Centro de costos)
 class Asset(models.Model):
-
     AREA = (
         ('a', 'Motonave'),
         ('b', 'Buceo'),
@@ -95,14 +83,13 @@ class Asset(models.Model):
         ('v', 'Vehiculos'),
         ('x', 'Apoyo'),
     )
-
     abbreviation = models.CharField(max_length=3, unique=True, primary_key=True)
     name = models.CharField(max_length=50)
     area = models.CharField(max_length=1, choices=AREA, default='a')
     supervisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     show = models.BooleanField(default=True)
-
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_assets')
     # Campos para Barcos
     capitan = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='Capitanes')
     bandera = models.CharField(default='Colombia', max_length=50, null=True, blank=True)
@@ -113,7 +100,6 @@ class Asset(models.Model):
     deadweight = models.IntegerField(default=0, null=True, blank=True)
     arqueo_bruto = models.IntegerField(default=0, null=True, blank=True)
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
-    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_assets')
 
     @property
     def maintenance_compliance(self):
@@ -142,7 +128,6 @@ class Asset(models.Model):
         compliance_percentage = (compliant_count / total_rutas) * 100
         return round(compliance_percentage, 2)
 
-
     def __str__(self):
         return self.name
 
@@ -154,50 +139,20 @@ class Asset(models.Model):
         ordering = ['area', 'name']
 
 
-# Model 4: Sistemas (Grupos constructivos)
+# Model 5: Sistemas (Grupos constructivos, Equipos especiales)
 class System(models.Model):
-
     STATUS = (
         ('m', 'Mantenimiento'),
         ('o', 'Operativo'),
         ('x', 'Fuera de servicio'),
         ('s', 'Stand by')
     )
-
     name = models.CharField(max_length=50)
     group = models.IntegerField()
     location = models.CharField(max_length=50, default="Cartagena", null=True, blank=True)
     state = models.CharField(choices=STATUS, default='m', max_length=1)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-
-
-    @property
-    def maintenance_percentage(self):
-        '''
-        Porcentaje de mantenimiento por sistema
-        '''
-        rutas = self.rutas.all()
-        if not rutas:
-            return 0
-
-        total_value = 0
-
-        for ruta in rutas:
-            if ruta.maintenance_status == 'c':
-                total_value += 1
-            elif ruta.maintenance_status == 'p':
-                total_value += 0.2
-            elif ruta.maintenance_status == 'e' and ruta.next_date > date.today():
-                total_value += 0.3
-            elif ruta.maintenance_status == 'x':
-                total_value += 0.5
-
-        max_possible_value = len(rutas)
-        if max_possible_value == 0:
-            return "---"
-
-        return round((total_value / max_possible_value) * 100, 2)
     
     def __str__(self):
         return '%s/ %s' % (self.asset, self.name)
@@ -209,22 +164,15 @@ class System(models.Model):
         ordering = ['asset__name', 'group']
 
 
-# Model 5: Ordenes de trabajo
+# Model 6: Ordenes de trabajo
 class Ot(models.Model):
-
     STATUS = (
         ('a', 'Abierto'),
         ('x', 'En ejecución'),
         ('f', 'Finalizado'),
         ('c', 'Cancelado'),
     )
-
-    TIPO_MTTO = (
-        ('p', 'Preventivo'),
-        ('c', 'Correctivo'),
-        ('m', 'Modificativo'),
-    )
-
+    TIPO_MTTO = (('p', 'Preventivo'), ('c', 'Correctivo'), ('m', 'Modificativo'),)
     creation_date = models.DateField(auto_now_add=True)
     num_ot = models.AutoField(primary_key=True)
     system = models.ForeignKey(System, on_delete=models.CASCADE)
@@ -251,9 +199,8 @@ class Ot(models.Model):
         ordering = ['-num_ot']
 
 
-# Model 6: Equipos (Grupos constructivos)
+# Model 7: Equipos
 class Equipo(models.Model):
-
     TIPO = (
         ('a', 'Climatización'),
         ('b', 'Bomba'),
@@ -308,7 +255,6 @@ class Equipo(models.Model):
     'Tanques'
     tipo_almacenamiento = models.CharField(max_length=100, null=True, blank=True)
     volumen = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
-
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     
     @property
@@ -342,18 +288,6 @@ class Equipo(models.Model):
     def last_hour_report_date(self):
         last_report = self.hours.order_by('-report_date').first()
         return last_report.report_date if last_report else None
-    
-    @property
-    def ruta_proxima(self):
-        rutas = self.equipos.exclude(nivel=1)
-        future_rutas = [ruta for ruta in rutas if ruta.next_date and ruta.next_date > date.today()]
-
-        if not future_rutas:
-            return None 
-
-        next_ruta = min(future_rutas, key=lambda ruta: ruta.next_date)
-
-        return next_ruta
 
     def __str__(self):
         return f"{self.system.asset} - {self.name}"
@@ -365,9 +299,8 @@ class Equipo(models.Model):
         return reverse('got:sys-detail-view', args=[self.system.id, self.code])
 
 
-# Model 7: Registro de transferencias de equipos
+# Model 8: Registro de transferencias de equipos
 class Transferencia(models.Model):
-
     fecha = models.DateField(auto_now_add=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     responsable = models.CharField(max_length=100)
@@ -382,16 +315,9 @@ class Transferencia(models.Model):
         return f"{self.equipo} - {self.origen} -> {self.destino}"
     
 
-# Model 8: Registro de equipos de baja
+# Model 9: Registro de equipos de baja
 class DarBaja(models.Model):
-
-    MOTIVO = (
-        ('o', 'Obsoleto'),
-        ('r', 'Robo/Hurto'),
-        ('p', 'Perdida'),
-        ('i', 'Inservible/depreciado')
-    )
-
+    MOTIVO = (('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('i', 'Inservible/depreciado'))
     fecha = models.DateField(auto_now_add=True)
     reporter = models.CharField(max_length=100)
     responsable = models.CharField(max_length=100)
@@ -410,7 +336,7 @@ class DarBaja(models.Model):
         return f"{self.activo}/{self.equipo} - {self.fecha}"
 
 
-# Model 9: Historial de horas de equipos con horometro
+# Model 10: Historial de horas de equipos con horometro
 class HistoryHour(models.Model):
 
     report_date = models.DateField()
