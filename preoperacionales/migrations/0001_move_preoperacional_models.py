@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
                         ('nombre_no_registrado', models.CharField(blank=True, max_length=100, null=True)),
                     ],
                     options={
-                        'db_table': 'got_preopeacional',
+                        'db_table': 'got_preoperacional',
                         'ordering': ['-fecha'],
                     },
                 ),

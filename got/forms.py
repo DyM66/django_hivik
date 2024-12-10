@@ -69,9 +69,8 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = UserProfile
-        fields = ['cedula', 'cargo', 'station', 'firma']
+        fields = ['cargo', 'station', 'firma']
         labels = {
-            'cedula': 'Cédula',
             'cargo': 'Cargo',
             'station': 'Estación',
             'firma': 'Firma',

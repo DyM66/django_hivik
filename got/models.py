@@ -53,7 +53,6 @@ class UserProfile(models.Model):
     cargo = models.CharField(max_length=100, null=True, blank=True)
     firma = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     station = models.CharField(max_length=100, null=True, blank=True)
-    cedula = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s profile"
@@ -497,6 +496,30 @@ class Ruta(models.Model):
         ordering = ['frecuency']
 
 
+
+class Salida(models.Model):
+
+    destino = models.CharField(max_length=200)
+    fecha = models.DateField(auto_now_add=True)
+    motivo = models.TextField()
+    propietario = models.CharField(max_length=100)
+    responsable = models.CharField(max_length=100)
+    recibe = models.CharField(max_length=100)
+    vehiculo = models.CharField(max_length=100, null=True, blank=False)
+    auth = models.BooleanField(default=False)
+    sign_recibe = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+    adicional = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.motivo} - {self.fecha}"
+    
+    class Meta:
+        db_table = 'got_salida'
+        managed = False 
+        permissions = (('can_approve_it', 'Aprobar salidas'), )
+        ordering = ['-fecha']
+
+
 # Model 12+1: Requerimientos para realizar rutina de mantenimiento
 class MaintenanceRequirement(models.Model):
 
@@ -695,8 +718,8 @@ class Suministro(models.Model):
     Solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
-    # salida = models.ForeignKey(Salida, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
-    salida = models.ForeignKey(OutboundDelivery, related_name='suministros', on_delete=models.CASCADE, null=True, blank=True)
+    salida = models.ForeignKey(Salida, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
+    # salida = models.ForeignKey(OutboundDelivery, related_name='suministros', on_delete=models.CASCADE, null=True, blank=True)
 
 
     def __str__(self):
@@ -864,10 +887,10 @@ class Image(models.Model):
     task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     solicitud = models.ForeignKey(Solicitud, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
-    salida = models.ForeignKey(OutboundDelivery, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    # salida= models.ForeignKey(Salida, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    preoperacional = models.ForeignKey(Preoperacional, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    preoperacionaldiario = models.ForeignKey(PreoperacionalDiario, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    # salida = models.ForeignKey(OutboundDelivery, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    salida= models.ForeignKey(Salida, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    preoperacional = models.ForeignKey('preoperacionales.preoperacional', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    preoperacionaldiario = models.ForeignKey('preoperacionales.preoperacionaldiario', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     darbaja = models.ForeignKey(DarBaja, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     requirements = models.ForeignKey(Requirement, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 

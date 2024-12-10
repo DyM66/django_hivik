@@ -21,7 +21,6 @@ class Migration(migrations.Migration):
                 ('cargo', models.CharField(blank=True, max_length=100, null=True)),
                 ('firma', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
-                ('cedula', models.CharField(blank=True, max_length=20, null=True)),
             ],
         ),
         migrations.CreateModel(

@@ -87,7 +87,7 @@ DATABASES = {
         "NAME": "dbmaster",
         "USER": "dbmasteruser",
         "PASSWORD": os.getenv('DATABASE_PASSWORD'),
-        "HOST": "ls-eff0c3a4061237c27e40bc1fc4bab86621d123dc.c1488e8iswlk.us-east-1.rds.amazonaws.com",
+        "HOST": "ls-d8139c3d44c02d059a5520fc27dfb9afd932ec3c.c1488e8iswlk.us-east-1.rds.amazonaws.com",
         "DATABASE_PORT": "5432",
     }
 }

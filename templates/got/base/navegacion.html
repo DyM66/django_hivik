@@ -66,13 +66,13 @@
                     </li>
                 {% endif %}
 
-                <!-- {% if perms.got.view_salida %}
+                {% if perms.got.view_salida %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'outbound-list' %}active{% endif %}" href="{% url 'outbound:outbound-list' %}">
                             Salidas
                         </a>
                     </li>
-                {% endif %} -->
+                {% endif %}
 
                 {% if request.user|has_group:"maq_members" %}
                     <li class="nav-item dropdown">
@@ -124,7 +124,6 @@
                         {% if request.user|has_group:"buzos_members" %}
                             <li><span class="dropdown-item-text"><strong>Estación:</strong> {{ user.profile.station }}</span></li>
                         {% endif %}
-                        <li><span class="dropdown-item-text"><strong>Cédula:</strong> {{ user.profile.cedula }}</span></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'got:profile_update' %}">Actualizar Información</a></li>
                         <li>
