@@ -7,6 +7,10 @@
 {% block content %}
 
 <aside>
+    <div class="btn-group box-shadow" role="group">
+        <a class="btn btn-primary" href="{% url 'outbound:create-salida' %}">Reportar salida</a>
+    </div>
+
 
     <div class="btn-group box-shadow" role="group">
         <a class="btn btn-primary" href="{% url 'got:item_management' %}">Articulos</a>
@@ -61,7 +65,19 @@
                         <button class="btn status {% if rq.auth %}finished{% elif not rq.sign_recibe %}exe{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                             {% if rq.auth %}Aprobado{% elif not rq.sign_recibe %}Por firmar{% else %}No aprobado{% endif %}
                         </button>
-
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                            <li><a class="dropdown-item" href="{% url 'outbound:salida_pdf' rq.id %}">Ver detalle</a></li>
+                            {% if not rq.auth %}
+                                {% if perms.got.can_approve_it %}
+                                    <li><a class="dropdown-item" href="{% url 'outbound:approve-salida' rq.id %}">Aprobar</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{% url 'outbound:salida-update' rq.id %}">Notificar</a></li>
+                            {% else %}
+                                {% if perms.got.can_approve_it %}
+                                    <li><a class="dropdown-item" href="{% url 'outbound:approve-salida' rq.id %}">Desaprobar</a></li>
+                                {% endif %}
+                            {% endif %}
+                        </ul>
                     </div>
                 </td>
             </tr>

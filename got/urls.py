@@ -105,12 +105,6 @@ urlpatterns = [
     path('solicitud/cancel-sc/<int:pk>/', views.cancel_sc, name='cancel-sc'),
     path('solicitudes/download_pdf/', views.download_pdf, name='download_pdf'),
 
-    # path('salida/create/', views.SalidaCreateView.as_view(), name='create-salida'),
-    # path('salida/<int:pk>/notify/', views.NotifySalidaView.as_view(), name='notify-salida'),
-    # path('salida_pdf/<int:pk>/', views.salida_pdf, name='salida_pdf'),
-    # path('approve-salida/<int:pk>/', views.ApproveSalidaView.as_view(), name='approve-salida'),
-    # path('salida/<int:pk>/update/', views.SalidaUpdateView.as_view(), name='salida-update'),
-
     path('items/', views.ItemManagementView.as_view(), name='item_management'),
     path('items/edit/<int:item_id>/', views.edit_item, name='edit_item'),
 
