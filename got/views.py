@@ -971,6 +971,7 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
         queryset = super().get_queryset()
         asset_id = self.request.GET.get('asset_id')
         state = self.request.GET.get('state')
+        user = self.request.user
 
         if asset_id:
             queryset = queryset.filter(equipo__system__asset_id=asset_id)
@@ -983,7 +984,7 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
             queryset = queryset.filter(closed=True)
 
         if self.request.user.groups.filter(name='maq_members').exists():
-            supervised_assets = Asset.objects.filter(supervisor=self.request.user)
+            supervised_assets = Asset.objects.filter(Q(supervisor=user) | Q(capitan=user))
             queryset = queryset.filter(equipo__system__asset__in=supervised_assets)
         elif self.request.user.groups.filter(name='buzos_members').exists():
             supervised_assets = Asset.objects.filter(area='b')
@@ -2881,35 +2882,6 @@ def download_pdf(request):
 
 
 'SALIDAS VIEW'
-class SalListView(LoginRequiredMixin, generic.ListView):
-
-    model = Salida
-    paginate_by = 20
-    template_name = 'got/salidas/salidas_list.html'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        # Obtener los parámetros de filtro individuales
-        destino = self.request.GET.get('destino', '').strip()
-        fecha = self.request.GET.get('fecha', '').strip()
-        motivo = self.request.GET.get('motivo', '').strip()
-        propietario = self.request.GET.get('propietario', '').strip()
-        adicional = self.request.GET.get('adicional', '').strip()
-
-        # Aplicar filtros individualmente
-        if destino:
-            queryset = queryset.filter(destino__icontains=destino)
-        if fecha:
-            queryset = queryset.filter(fecha=fecha)  # Fecha en formato 'YYYY-MM-DD'
-        if motivo:
-            queryset = queryset.filter(motivo__icontains=motivo)
-        if propietario:
-            queryset = queryset.filter(propietario__icontains=propietario)
-        if adicional:
-            queryset = queryset.filter(adicional__icontains=adicional)
-        return queryset
-    
-
 class TransferSolicitudView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'got.can_transfer_solicitud'
 
@@ -2924,234 +2896,234 @@ class TransferSolicitudView(LoginRequiredMixin, PermissionRequiredMixin, View):
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 
-class SalidaCreateView(LoginRequiredMixin, View):
-    form_class = SalidaForm
-    template_name = 'got/salidas/create-salida.html'
+# class SalidaCreateView(LoginRequiredMixin, View):
+#     form_class = SalidaForm
+#     template_name = 'got/salidas/create-salida.html'
 
-    def get(self, request):
-        items = Item.objects.all()
-        form = self.form_class()
-        image_form = UploadImages(request.POST, request.FILES)
+#     def get(self, request):
+#         items = Item.objects.all()
+#         form = self.form_class()
+#         image_form = UploadImages(request.POST, request.FILES)
 
-        return render(request, self.template_name, {
-            'items': items,
-            'form': form,
-            'image_form': image_form
-        })
+#         return render(request, self.template_name, {
+#             'items': items,
+#             'form': form,
+#             'image_form': image_form
+#         })
 
-    def post(self, request):
+#     def post(self, request):
 
-            form = self.form_class(request.POST, request.FILES)
-            image_form = UploadImages(request.POST, request.FILES)
-            items_ids = request.POST.getlist('item_id[]') 
-            cantidades = request.POST.getlist('cantidad[]')
+#             form = self.form_class(request.POST, request.FILES)
+#             image_form = UploadImages(request.POST, request.FILES)
+#             items_ids = request.POST.getlist('item_id[]') 
+#             cantidades = request.POST.getlist('cantidad[]')
 
-            context = {
-                'items': Item.objects.all(),
-                'form': form,
-                'image_form': image_form
-            }
+#             context = {
+#                 'items': Item.objects.all(),
+#                 'form': form,
+#                 'image_form': image_form
+#             }
 
-            if form.is_valid() and image_form.is_valid():
-                solicitud = form.save(commit=False)
-                solicitud.responsable = self.request.user.get_full_name()
-                solicitud.save()
+#             if form.is_valid() and image_form.is_valid():
+#                 solicitud = form.save(commit=False)
+#                 solicitud.responsable = self.request.user.get_full_name()
+#                 solicitud.save()
 
-                for item_id, cantidad in zip(items_ids, cantidades):
-                    if item_id and cantidad:
-                        item = get_object_or_404(Item, id=item_id)
-                        Suministro.objects.create(
-                            item=item,
-                            cantidad=int(cantidad),
-                            salida=solicitud
-                        )
+#                 for item_id, cantidad in zip(items_ids, cantidades):
+#                     if item_id and cantidad:
+#                         item = get_object_or_404(Item, id=item_id)
+#                         Suministro.objects.create(
+#                             item=item,
+#                             cantidad=int(cantidad),
+#                             salida=solicitud
+#                         )
                 
-                for file in request.FILES.getlist('file_field'):
-                    Image.objects.create(salida=solicitud, image=file)
-                return redirect('got:salida-list')
-            return render(request, self.template_name, context)
+#                 for file in request.FILES.getlist('file_field'):
+#                     Image.objects.create(salida=solicitud, image=file)
+#                 return redirect('got:salida-list')
+#             return render(request, self.template_name, context)
 
 
-class NotifySalidaView(LoginRequiredMixin, View):
+# class NotifySalidaView(LoginRequiredMixin, View):
 
-    def post(self, request, pk):
-        salida = get_object_or_404(Salida, pk=pk)
+#     def post(self, request, pk):
+#         salida = get_object_or_404(Salida, pk=pk)
         
-        # Obtener y guardar la firma
-        signature_data = request.POST.get('signature')
-        if signature_data:
-            format, imgstr = signature_data.split(';base64,')
-            ext = format.split('/')[-1]
-            filename = f'signature_{uuid.uuid4()}.{ext}'
-            signature_file = ContentFile(base64.b64decode(imgstr), name=filename)
-            salida.sign_recibe.save(filename, signature_file, save=True)
+#         # Obtener y guardar la firma
+#         signature_data = request.POST.get('signature')
+#         if signature_data:
+#             format, imgstr = signature_data.split(';base64,')
+#             ext = format.split('/')[-1]
+#             filename = f'signature_{uuid.uuid4()}.{ext}'
+#             signature_file = ContentFile(base64.b64decode(imgstr), name=filename)
+#             salida.sign_recibe.save(filename, signature_file, save=True)
 
-        # Enviar el correo electrónico con el PDF adjunto
-        pdf_buffer = salida_email_pdf(salida.pk)
-        subject = f'Solicitud salida de materiales: {salida}'
-        message = f'''
-        Cordial saludo,
+#         # Enviar el correo electrónico con el PDF adjunto
+#         pdf_buffer = salida_email_pdf(salida.pk)
+#         subject = f'Solicitud salida de materiales: {salida}'
+#         message = f'''
+#         Cordial saludo,
 
-        Notificación de salida.
+#         Notificación de salida.
 
-        Por favor, revise el archivo adjunto para más detalles.
-        '''
-        email = EmailMessage(
-            subject,
-            message,
-            settings.EMAIL_HOST_USER,
-            ['analistamto@serport.co']  # Puedes añadir más destinatarios aquí
-        )
-        email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
-        email.send()
+#         Por favor, revise el archivo adjunto para más detalles.
+#         '''
+#         email = EmailMessage(
+#             subject,
+#             message,
+#             settings.EMAIL_HOST_USER,
+#             ['analistamto@serport.co']  # Puedes añadir más destinatarios aquí
+#         )
+#         email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
+#         email.send()
 
-        # Redirigir al usuario a la página anterior
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
-
-
-def salida_pdf(request, pk):
-    salida = Salida.objects.get(pk=pk)
-    nombre_completo = salida.responsable.split()
-    if len(nombre_completo) > 1:
-        first_name = nombre_completo[0]
-        last_name = nombre_completo[1]
-    else:
-        first_name = salida.responsable
-        last_name = ""
-
-    # Buscar el usuario basado en el nombre y apellido
-    try:
-        user = User.objects.get(first_name=first_name, last_name=last_name)
-        cargo = user.profile.cargo  # Asume que el perfil tiene un campo 'cargo'
-    except User.DoesNotExist:
-        cargo = 'Cargo no encontrado'
-    context = {
-        'rq': salida,
-        'pro': cargo
-        }
-    return render_to_pdf('got/salidas/salida_detail.html', context)
+#         # Redirigir al usuario a la página anterior
+#         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 
-def salida_email_pdf(pk):
-    salida = Salida.objects.get(pk=pk)
-    nombre_completo = salida.responsable.split()
-    if len(nombre_completo) > 1:
-        first_name = nombre_completo[0]
-        last_name = nombre_completo[1]
-    else:
-        first_name = salida.responsable
-        last_name = ""
+# def salida_pdf(request, pk):
+#     salida = Salida.objects.get(pk=pk)
+#     nombre_completo = salida.responsable.split()
+#     if len(nombre_completo) > 1:
+#         first_name = nombre_completo[0]
+#         last_name = nombre_completo[1]
+#     else:
+#         first_name = salida.responsable
+#         last_name = ""
 
-    # Buscar el usuario basado en el nombre y apellido
-    try:
-        user = User.objects.get(first_name=first_name, last_name=last_name)
-        cargo = user.profile.cargo  # Asume que el perfil tiene un campo 'cargo'
-    except User.DoesNotExist:
-        cargo = 'Cargo no encontrado'
-    context = {
-        'rq': salida,
-        'pro': cargo
-        }
-    # pdf_content = render_to_pdf('got/salidas/salida_detail.html', context)
+#     # Buscar el usuario basado en el nombre y apellido
+#     try:
+#         user = User.objects.get(first_name=first_name, last_name=last_name)
+#         cargo = user.profile.cargo  # Asume que el perfil tiene un campo 'cargo'
+#     except User.DoesNotExist:
+#         cargo = 'Cargo no encontrado'
+#     context = {
+#         'rq': salida,
+#         'pro': cargo
+#         }
+#     return render_to_pdf('got/salidas/salida_detail.html', context)
 
-    template = get_template('got/salidas/salida_detail.html')
-    html = template.render(context)
-    pdf_content = BytesIO()
-    pisa.CreatePDF(html, dest=pdf_content)
-    return pdf_content.getvalue()
+
+# def salida_email_pdf(pk):
+#     salida = Salida.objects.get(pk=pk)
+#     nombre_completo = salida.responsable.split()
+#     if len(nombre_completo) > 1:
+#         first_name = nombre_completo[0]
+#         last_name = nombre_completo[1]
+#     else:
+#         first_name = salida.responsable
+#         last_name = ""
+
+#     # Buscar el usuario basado en el nombre y apellido
+#     try:
+#         user = User.objects.get(first_name=first_name, last_name=last_name)
+#         cargo = user.profile.cargo  # Asume que el perfil tiene un campo 'cargo'
+#     except User.DoesNotExist:
+#         cargo = 'Cargo no encontrado'
+#     context = {
+#         'rq': salida,
+#         'pro': cargo
+#         }
+#     # pdf_content = render_to_pdf('got/salidas/salida_detail.html', context)
+
+#     template = get_template('got/salidas/salida_detail.html')
+#     html = template.render(context)
+#     pdf_content = BytesIO()
+#     pisa.CreatePDF(html, dest=pdf_content)
+#     return pdf_content.getvalue()
 
         
-class ApproveSalidaView(LoginRequiredMixin, View):
-    def get(self, request, *args, **kwargs):
-        solicitud = Salida.objects.get(id=kwargs['pk'])
-        solicitud.auth = not solicitud.auth
-        solicitud.save()
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+# class ApproveSalidaView(LoginRequiredMixin, View):
+#     def get(self, request, *args, **kwargs):
+#         solicitud = Salida.objects.get(id=kwargs['pk'])
+#         solicitud.auth = not solicitud.auth
+#         solicitud.save()
+#         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
 
-class SalidaUpdateView(LoginRequiredMixin, View):
-    form_class = SalidaForm
-    template_name = 'got/salidas/update-salida.html'
+# class SalidaUpdateView(LoginRequiredMixin, View):
+#     form_class = SalidaForm
+#     template_name = 'got/salidas/update-salida.html'
 
-    def get(self, request, pk):
-        salida = get_object_or_404(Salida, pk=pk)
-        form = self.form_class(instance=salida)
-        image_form = UploadImages()
-        items = Item.objects.all()
-        suministros = salida.suministros.all()
+#     def get(self, request, pk):
+#         salida = get_object_or_404(Salida, pk=pk)
+#         form = self.form_class(instance=salida)
+#         image_form = UploadImages()
+#         items = Item.objects.all()
+#         suministros = salida.suministros.all()
 
-        return render(request, self.template_name, {
-            'form': form,
-            'image_form': image_form,
-            'items': items,
-            'suministros': suministros,
-            'salida': salida,
-        })
+#         return render(request, self.template_name, {
+#             'form': form,
+#             'image_form': image_form,
+#             'items': items,
+#             'suministros': suministros,
+#             'salida': salida,
+#         })
 
-    def post(self, request, pk):
-        salida = get_object_or_404(Salida, pk=pk)
-        form = self.form_class(request.POST, request.FILES, instance=salida)
-        image_form = UploadImages(request.POST, request.FILES)
-        items_ids = request.POST.getlist('item_id[]') 
-        cantidades = request.POST.getlist('cantidad[]')
+#     def post(self, request, pk):
+#         salida = get_object_or_404(Salida, pk=pk)
+#         form = self.form_class(request.POST, request.FILES, instance=salida)
+#         image_form = UploadImages(request.POST, request.FILES)
+#         items_ids = request.POST.getlist('item_id[]') 
+#         cantidades = request.POST.getlist('cantidad[]')
 
-        context = {
-            'form': form,
-            'image_form': image_form,
-            'items': Item.objects.all(),
-            'suministros': salida.suministros.all(),
-            'salida': salida,
-        }
+#         context = {
+#             'form': form,
+#             'image_form': image_form,
+#             'items': Item.objects.all(),
+#             'suministros': salida.suministros.all(),
+#             'salida': salida,
+#         }
 
-        if form.is_valid() and image_form.is_valid():
-            salida = form.save()
+#         if form.is_valid() and image_form.is_valid():
+#             salida = form.save()
 
-            # Manejo de la firma
-            signature_data = request.POST.get('signature')
-            if signature_data:
-                format, imgstr = signature_data.split(';base64,')
-                ext = format.split('/')[-1]
-                filename = f'signature_{uuid.uuid4()}.{ext}'
-                data = ContentFile(base64.b64decode(imgstr), name=filename)
-                salida.sign_recibe.save(filename, data, save=True)
+#             # Manejo de la firma
+#             signature_data = request.POST.get('signature')
+#             if signature_data:
+#                 format, imgstr = signature_data.split(';base64,')
+#                 ext = format.split('/')[-1]
+#                 filename = f'signature_{uuid.uuid4()}.{ext}'
+#                 data = ContentFile(base64.b64decode(imgstr), name=filename)
+#                 salida.sign_recibe.save(filename, data, save=True)
 
-            # Actualizar Suministros
-            salida.suministros.all().delete()  # Eliminar suministros existentes
-            for item_id, cantidad in zip(items_ids, cantidades):
-                if item_id and cantidad:
-                    item = get_object_or_404(Item, id=item_id)
-                    Suministro.objects.create(
-                        item=item,
-                        cantidad=int(cantidad),
-                        salida=salida
-                    )
+#             # Actualizar Suministros
+#             salida.suministros.all().delete()  # Eliminar suministros existentes
+#             for item_id, cantidad in zip(items_ids, cantidades):
+#                 if item_id and cantidad:
+#                     item = get_object_or_404(Item, id=item_id)
+#                     Suministro.objects.create(
+#                         item=item,
+#                         cantidad=int(cantidad),
+#                         salida=salida
+#                     )
 
-            # Manejo de imágenes
-            for file in request.FILES.getlist('file_field'):
-                Image.objects.create(salida=salida, image=file)
+#             # Manejo de imágenes
+#             for file in request.FILES.getlist('file_field'):
+#                 Image.objects.create(salida=salida, image=file)
 
-            # Enviar correo electrónico con el PDF adjunto
-            pdf_buffer = salida_email_pdf(salida.pk)
-            subject = f'Solicitud salida de materiales: {salida}'
-            message = f'''
-            Cordial saludo,
+#             # Enviar correo electrónico con el PDF adjunto
+#             pdf_buffer = salida_email_pdf(salida.pk)
+#             subject = f'Solicitud salida de materiales: {salida}'
+#             message = f'''
+#             Cordial saludo,
 
-            Notificación de salida.
+#             Notificación de salida.
 
-            Por favor, revise el archivo adjunto para más detalles.
-            '''
-            email = EmailMessage(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                ['seguridad@serport.co']
-            )
-            email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
-            email.send()
+#             Por favor, revise el archivo adjunto para más detalles.
+#             '''
+#             email = EmailMessage(
+#                 subject,
+#                 message,
+#                 settings.EMAIL_HOST_USER,
+#                 ['seguridad@serport.co']
+#             )
+#             email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
+#             email.send()
 
 
-            return redirect('got:salida-list')
-        return render(request, self.template_name, context)
+#             return redirect('got:salida-list')
+#         return render(request, self.template_name, context)
 
 
 'GENERAL VIEWS'
@@ -3828,9 +3800,6 @@ class ManagerialReportView(View):
     def get(self, request, *args, **kwargs):
         # Obtener todos los activos en el área de barcos ('a' corresponde a 'Motonave')
         assets = Asset.objects.filter(area='a', show=True)
-
-        def insert_zero_width_space(text):
-            return re.sub(r'([a-zA-Z0-9])', '\g<1>\u200B', text)
         
         # Preparar datos para cada activo
         assets_data = []

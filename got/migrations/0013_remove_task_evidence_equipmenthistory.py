@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             name='EquipmentHistory',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date', models.DateField(auto_now_add=True)),
+                ('date', models.DateField()),
                 ('subject', models.CharField(choices=[('movement', 'Movimiento'), ('part_change', 'Cambio de repuesto/pieza'), ('preventive_maintenance', 'Mantenimiento Preventivo'), ('corrective_maintenance', 'Mantenimiento Correctivo'), ('specialized_intervention', 'Intervención Especializada')], max_length=50)),
                 ('annotations', models.TextField(blank=True, null=True)),
                 ('equipment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='histories', to='got.equipo')),
@@ -30,5 +30,32 @@ class Migration(migrations.Migration):
             options={
                 'ordering': ['-date'],
             },
+        ),
+
+
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Overtime'),
+            ],
+        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Preoperacional'),
+                migrations.DeleteModel(name='PreoperacionalDiario'),
+            ],
+        ),
+
+        migrations.CreateModel(
+            name='MaintenanceRequirement',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('descripcion', models.CharField(blank=True, max_length=200, null=True)),
+                ('tipo', models.CharField(choices=[('m', 'Material'), ('h', 'Herramienta/Equipo'), ('s', 'Servicio')], max_length=1)),
+                ('cantidad', models.DecimalField(decimal_places=2, default=0.0, max_digits=10)),
+                ('item', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.item')),
+                ('ruta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requisitos', to='got.ruta')),
+            ],
         ),
     ]

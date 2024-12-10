@@ -66,13 +66,13 @@
                     </li>
                 {% endif %}
 
-                {% if perms.got.view_salida %}
+                <!-- {% if perms.got.view_salida %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'salida-list' %}active{% endif %}" href="{% url 'got:salida-list' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'outbound-list' %}active{% endif %}" href="{% url 'outbound:outbound-list' %}">
                             Salidas
                         </a>
                     </li>
-                {% endif %}
+                {% endif %} -->
 
                 {% if request.user|has_group:"maq_members" %}
                     <li class="nav-item dropdown">

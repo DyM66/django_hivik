@@ -12,16 +12,19 @@ from django.utils.formats import number_format
 from django.utils.translation import gettext as _
 from decimal import Decimal
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
+from outbound.models import OutboundDelivery
 
 
 # Funciones auxiliares
 def get_upload_path(instance, filename):
+
     ext = filename.split('.')[-1]
     filename = f"media/{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
     return filename
 
 
 def get_upload_pdfs(instance, filename):
+
     ext = filename.split('.')[-1]
     filename = f"pdfs/{uuid.uuid4()}.{ext}"
     return filename
@@ -29,6 +32,7 @@ def get_upload_pdfs(instance, filename):
 
 # Model 1: Registro de actividades
 class ActivityLog(models.Model):
+
     user_name = models.CharField(max_length=100)
     action = models.CharField(max_length=100)
     model_name = models.CharField(max_length=100)
@@ -44,6 +48,7 @@ class ActivityLog(models.Model):
 
 # Model 2: Carasteristicas del usuario
 class UserProfile(models.Model):
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     cargo = models.CharField(max_length=100, null=True, blank=True)
     firma = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
@@ -56,6 +61,7 @@ class UserProfile(models.Model):
 
 # Model 3: Articulos
 class Item(models.Model):
+
     SECCION = (('c', 'Consumibles'), ('h', 'Herramientas y equipos'), ('r', 'Repuestos'))
     name = models.CharField(max_length=50)
     reference = models.CharField(max_length=100, null=True, blank=True)
@@ -74,6 +80,7 @@ class Item(models.Model):
 
 # Model 4: Activos (Centro de costos)
 class Asset(models.Model):
+
     AREA = (
         ('a', 'Motonave'),
         ('b', 'Buceo'),
@@ -83,6 +90,7 @@ class Asset(models.Model):
         ('v', 'Vehiculos'),
         ('x', 'Apoyo'),
     )
+
     abbreviation = models.CharField(max_length=3, unique=True, primary_key=True)
     name = models.CharField(max_length=50)
     area = models.CharField(max_length=1, choices=AREA, default='a')
@@ -141,12 +149,14 @@ class Asset(models.Model):
 
 # Model 5: Sistemas (Grupos constructivos, Equipos especiales)
 class System(models.Model):
+
     STATUS = (
         ('m', 'Mantenimiento'),
         ('o', 'Operativo'),
         ('x', 'Fuera de servicio'),
         ('s', 'Stand by')
     )
+
     name = models.CharField(max_length=50)
     group = models.IntegerField()
     location = models.CharField(max_length=50, default="Cartagena", null=True, blank=True)
@@ -166,12 +176,14 @@ class System(models.Model):
 
 # Model 6: Ordenes de trabajo
 class Ot(models.Model):
+
     STATUS = (
         ('a', 'Abierto'),
         ('x', 'En ejecución'),
         ('f', 'Finalizado'),
         ('c', 'Cancelado'),
     )
+
     TIPO_MTTO = (('p', 'Preventivo'), ('c', 'Correctivo'), ('m', 'Modificativo'),)
     creation_date = models.DateField(auto_now_add=True)
     num_ot = models.AutoField(primary_key=True)
@@ -201,6 +213,7 @@ class Ot(models.Model):
 
 # Model 7: Equipos
 class Equipo(models.Model):
+
     TIPO = (
         ('a', 'Climatización'),
         ('b', 'Bomba'),
@@ -301,6 +314,7 @@ class Equipo(models.Model):
 
 # Model 8: Registro de transferencias de equipos
 class Transferencia(models.Model):
+
     fecha = models.DateField(auto_now_add=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     responsable = models.CharField(max_length=100)
@@ -317,7 +331,9 @@ class Transferencia(models.Model):
 
 # Model 9: Registro de equipos de baja
 class DarBaja(models.Model):
+
     MOTIVO = (('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('i', 'Inservible/depreciado'))
+
     fecha = models.DateField(auto_now_add=True)
     reporter = models.CharField(max_length=100)
     responsable = models.CharField(max_length=100)
@@ -336,7 +352,7 @@ class DarBaja(models.Model):
         return f"{self.activo}/{self.equipo} - {self.fecha}"
 
 
-# Model 10: Historial de horas de equipos con horometro
+# Model 10: Historial de horas de equipos/ Kilometros
 class HistoryHour(models.Model):
 
     report_date = models.DateField()
@@ -353,7 +369,9 @@ class HistoryHour(models.Model):
         unique_together = ('component', 'report_date')
 
 
+# Model 11: Historial de cambios en equipos
 class EquipmentHistory(models.Model):
+
     ASUNTO_CHOICES = (
         ('movement', 'Movimiento'),
         ('part_change', 'Cambio de repuesto/pieza'),
@@ -375,7 +393,7 @@ class EquipmentHistory(models.Model):
         ordering = ['-date']
 
 
-# Model 10: Rutinas de mantenimiento de equipos
+# Model 12: Rutinas de mantenimiento
 class Ruta(models.Model):
 
     CONTROL = (
@@ -479,7 +497,9 @@ class Ruta(models.Model):
         ordering = ['frecuency']
 
 
+# Model 12+1: Requerimientos para realizar rutina de mantenimiento
 class MaintenanceRequirement(models.Model):
+
     TIPO_REQUISITO = (
         ('m', 'Material'),
         ('h', 'Herramienta/Equipo'),
@@ -499,16 +519,13 @@ class MaintenanceRequirement(models.Model):
         return reverse('got:ruta_detail', args=[str(self.pk)])
 
 
-# Model 11: Actividades (para OT o Rutinas de mantenimiento)
+# Model 14: Actividades (para OT o Rutinas de mantenimiento)
 class Task(models.Model):
-
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True)
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True) #En prueba
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True)
-
     responsible = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     user = models.CharField(max_length=50, blank=True, null=True)
-
     description = models.TextField()
     procedimiento = models.TextField(default="", blank=True, null=True)
     hse = models.TextField(default="", blank=True, null=True)
@@ -535,14 +552,11 @@ class Task(models.Model):
         return reverse('got:task-detail', args=[str(self.id)])
  
     class Meta:
-        permissions = (
-            ('can_reschedule_task', 'Reprogramar actividades'),
-            ('can_modify_any_task', 'Can modify any task'),
-            )
+        permissions = (('can_reschedule_task', 'Reprogramar actividades'), ('can_modify_any_task', 'Can modify any task'),)
         ordering = ['-priority', '-start_date'] 
 
 
-# Model 12: Reportes de falla
+# Model 15: Reportes de falla
 class FailureReport(models.Model):
 
     IMPACT = (
@@ -581,7 +595,7 @@ class FailureReport(models.Model):
         return dict(self.IMPACT).get(impact_code, "Desconocido")
 
 
-# Model 12+1: Proyectos/operaciones para barcos
+# Model 16: Proyectos/operaciones para barcos
 class Operation(models.Model):
 
     start = models.DateField()
@@ -601,9 +615,9 @@ class Operation(models.Model):
 
     def __str__(self):
         return f"{self.proyecto}/{self.asset} ({self.start} - {self.start})"
-    
 
-# Model 14: Requerimientos para proyectos
+
+# Model 17: Requerimientos para proyectos
 class Requirement(models.Model):
 
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
@@ -619,7 +633,7 @@ class Requirement(models.Model):
         ]
 
 
-# Model 15: Solicitudes de compra
+# Model 16: Solicitudes de compra $app
 class Solicitud(models.Model):
 
     DPTO = (
@@ -673,45 +687,7 @@ class Solicitud(models.Model):
         ordering = ['-creation_date']
 
 
-# Model 16: Salidas de articulos de la empresa
-class Salida(models.Model):
-
-    destino = models.CharField(max_length=200)
-    fecha = models.DateField(auto_now_add=True)
-    motivo = models.TextField()
-    propietario = models.CharField(max_length=100)
-    responsable = models.CharField(max_length=100)
-    recibe = models.CharField(max_length=100)
-    vehiculo = models.CharField(max_length=100, null=True, blank=False)
-    auth = models.BooleanField(default=False)
-    sign_recibe = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
-    adicional = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.motivo} - {self.fecha}"
-    
-    class Meta:
-        permissions = (
-            ('can_approve_it', 'Aprobar salidas'),
-            )
-        ordering = ['-fecha']
-
-@receiver(pre_save, sender=Solicitud)
-def update_solicitud_dates(sender, instance, **kwargs):
-    if instance.id is not None:
-        old_instance = Solicitud.objects.get(id=instance.id)
-        
-        if not old_instance.approved and instance.approved:
-            instance.approval_date = timezone.now()
-
-        if not old_instance.num_sc and instance.num_sc:
-            instance.sc_change_date = timezone.now()
-
-        if not old_instance.num_sc and instance.cancel:
-            instance.cancel_date = timezone.now()
-
-
-# Model 17: Suministros (Inventario para barcos o bodegas, contenido de equipos o ...)
+# Model 18: Suministros (Inventario para barcos o bodegas, contenido de equipos o ...)
 class Suministro(models.Model):
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
@@ -719,13 +695,15 @@ class Suministro(models.Model):
     Solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
-    salida = models.ForeignKey(Salida, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
+    # salida = models.ForeignKey(Salida, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
+    salida = models.ForeignKey(OutboundDelivery, related_name='suministros', on_delete=models.CASCADE, null=True, blank=True)
+
 
     def __str__(self):
         return f"{self.cantidad} {self.item.presentacion} - {self.item} "
 
 
-# Model 18: Registro de movimientos de suminsitros realizados en los barcos o bodegas locativas
+# Model 19: Registro de movimientos de suminsitros realizados en los barcos o bodegas locativas
 class Transaction(models.Model):
 
     TIPO = (
@@ -755,7 +733,7 @@ class Transaction(models.Model):
         ]
 
 
-# Model 19: Registro estimado de reportes de combustible
+# Model 20: Registro estimado de reportes de combustible
 class DailyFuelConsumption(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='fuel_consumptions')
     fecha = models.DateField(default=timezone.now)
@@ -769,7 +747,7 @@ class DailyFuelConsumption(models.Model):
         return f'{self.equipo}: {self.com_estimado_motor} - {self.fecha}'
 
 
-# Model 20: Registros de pruebas megger (Pruebas de aislamiento)
+# Model 21: Registros de pruebas megger (Pruebas de aislamiento)
 class Megger(models.Model):
 
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE)
@@ -782,7 +760,7 @@ class Megger(models.Model):
         return f"Prueba #{self.id}/{self.equipo}"
 
 
-# Model 20.1: 
+# Model 21.1: 
 class Estator(models.Model):
 
     megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
@@ -829,7 +807,7 @@ class Estator(models.Model):
     pf_obs_l3_l1 = models.TextField(null=True, blank=True)
 
 
-# Model 20.2
+# Model 21.2
 class Excitatriz(models.Model):
 
     megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
@@ -842,7 +820,7 @@ class Excitatriz(models.Model):
     pf_obs_l_tierra = models.TextField(null=True, blank=True)
 
 
-# Model 20.3
+# Model 21.3
 class RotorMain(models.Model):
 
     megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
@@ -855,7 +833,7 @@ class RotorMain(models.Model):
     pf_obs_l_tierra = models.TextField(null=True, blank=True)
 
 
-# Model 20.4
+# Model 21.4
 class RotorAux(models.Model):
 
     megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
@@ -868,7 +846,7 @@ class RotorAux(models.Model):
     pf_obs_l_tierra = models.TextField(null=True, blank=True)
 
 
-# Model 20.5
+# Model 21.5
 class RodamientosEscudos(models.Model):
 
     megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
@@ -876,7 +854,6 @@ class RodamientosEscudos(models.Model):
     rodamientobs = models.TextField(null=True, blank=True)
     escudoas = models.TextField(null=True, blank=True)
     escudobs = models.TextField(null=True, blank=True)
-
 
 # Model 22: Imagenes
 class Image(models.Model):
@@ -886,7 +863,9 @@ class Image(models.Model):
     equipo = models.ForeignKey(Equipo, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     solicitud = models.ForeignKey(Solicitud, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    salida= models.ForeignKey(Salida, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+
+    salida = models.ForeignKey(OutboundDelivery, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    # salida= models.ForeignKey(Salida, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacional = models.ForeignKey(Preoperacional, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacionaldiario = models.ForeignKey(PreoperacionalDiario, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     darbaja = models.ForeignKey(DarBaja, related_name='images', on_delete=models.CASCADE, null=True, blank=True)

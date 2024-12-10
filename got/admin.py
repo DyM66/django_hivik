@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Salida, Operation, Solicitud, Item,
+    Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Operation, Solicitud, Item,
     Megger, Suministro, UserProfile, Document, MaintenanceRequirement
 )
 
@@ -84,7 +84,7 @@ admin.site.register(System)
 admin.site.register(HistoryHour)
 admin.site.register(Item)
 admin.site.register(Document)
-admin.site.register(Salida)
+# admin.site.register(Salida)
 admin.site.register(Ot, OtAdmin)
 admin.site.register(Task)
 

@@ -11,6 +11,20 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
     instance.profile.save()
 
+@receiver(pre_save, sender=Solicitud)
+def update_solicitud_dates(sender, instance, **kwargs):
+    if instance.id is not None:
+        old_instance = Solicitud.objects.get(id=instance.id)
+        
+        if not old_instance.approved and instance.approved:
+            instance.approval_date = timezone.now()
+
+        if not old_instance.num_sc and instance.num_sc:
+            instance.sc_change_date = timezone.now()
+
+        if not old_instance.num_sc and instance.cancel:
+            instance.cancel_date = timezone.now()
+
 @receiver(post_save, sender=HistoryHour)
 @receiver(post_delete, sender=HistoryHour)
 def update_equipo_horometro(sender, instance, **kwargs):

@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'overtime.apps.OvertimeConfig',
     'preoperacionales.apps.PreoperacionalesConfig',
+    'outbound.apps.OutboundConfig',
 ]
 
 SITE_ID = 1
