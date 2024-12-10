@@ -9,6 +9,7 @@ class OutboundListView(LoginRequiredMixin, generic.ListView):
     model = OutboundDelivery
     paginate_by = 20
     template_name = 'outbound/salidas_list.html'
+    context_object_name = 'salida_list'
 
     def get_queryset(self):
         queryset = super().get_queryset()

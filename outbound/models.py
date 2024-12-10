@@ -28,6 +28,5 @@ class OutboundDelivery(models.Model):
     
     class Meta:
         db_table = 'got_salida'
-        managed = False 
         permissions = (('can_approve_it', 'Aprobar salidas'), )
         ordering = ['-fecha']
