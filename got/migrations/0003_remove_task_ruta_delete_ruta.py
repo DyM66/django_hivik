@@ -57,6 +57,7 @@ class Migration(migrations.Migration):
                 ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.asset')),
                 ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.ot')),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.equipo')),
+                ('creation', models.DateField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(

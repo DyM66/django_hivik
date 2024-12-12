@@ -231,12 +231,6 @@
             {% endfor %}
             <button type="submit" class="btn btn-info">Descargar Rutinas como Excel</button>
         </form>
-        
-        <br />
-        <a class="btn btn-info"
-            href="{% url 'got:preventivo' asset.abbreviation %}?month={{ rutinas_filter_form.month.value }}&year={{ rutinas_filter_form.year.value }}{% if rutinas_filter_form.execute.value %}&execute=on{% endif %}{% for location in rutinas_filter_form.locations.value %}&locations={{ location }}{% endfor %}">
-            Descargar Rutinas como PDF
-        </a>
     </div>
 </div>
 

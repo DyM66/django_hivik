@@ -13,10 +13,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='task',
-            name='evidence',
-        ),
         migrations.CreateModel(
             name='EquipmentHistory',
             fields=[
@@ -57,5 +53,16 @@ class Migration(migrations.Migration):
                 ('item', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.item')),
                 ('ruta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requisitos', to='got.ruta')),
             ],
+        ),
+
+        migrations.AlterModelOptions(
+            name='salida',
+            options={'managed': False, 'ordering': ['-fecha'], 'permissions': (('can_approve_it', 'Aprobar salidas'),)},
+        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Salida'),
+            ]
         ),
     ]

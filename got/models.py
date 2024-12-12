@@ -13,6 +13,13 @@ from django.utils.translation import gettext as _
 from decimal import Decimal
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
 from outbound.models import OutboundDelivery
+import tempfile
+from PIL import Image
+import os
+from pdf2image import convert_from_path
+from django.conf import settings
+from django.core.files.base import ContentFile
+from pdf2image import convert_from_bytes
 
 
 # Funciones auxiliares
@@ -496,30 +503,6 @@ class Ruta(models.Model):
         ordering = ['frecuency']
 
 
-
-# class Salida(models.Model):
-
-#     destino = models.CharField(max_length=200)
-#     fecha = models.DateField(auto_now_add=True)
-#     motivo = models.TextField()
-#     propietario = models.CharField(max_length=100)
-#     responsable = models.CharField(max_length=100)
-#     recibe = models.CharField(max_length=100)
-#     vehiculo = models.CharField(max_length=100, null=True, blank=False)
-#     auth = models.BooleanField(default=False)
-#     sign_recibe = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
-#     adicional = models.TextField(null=True, blank=True)
-
-#     def __str__(self):
-#         return f"{self.motivo} - {self.fecha}"
-    
-#     class Meta:
-#         db_table = 'got_salida'
-#         managed = False 
-#         permissions = (('can_approve_it', 'Aprobar salidas'), )
-#         ordering = ['-fecha']
-
-
 # Model 12+1: Requerimientos para realizar rutina de mantenimiento
 class MaintenanceRequirement(models.Model):
 
@@ -544,6 +527,7 @@ class MaintenanceRequirement(models.Model):
 
 # Model 14: Actividades (para OT o Rutinas de mantenimiento)
 class Task(models.Model):
+
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True) #En prueba
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True)
@@ -903,5 +887,6 @@ class Document(models.Model):
     equipo = models.ForeignKey(Equipo, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
     file = models.FileField(upload_to=get_upload_pdfs)
     description = models.CharField(max_length=200)
+    creation = models.DateField(auto_now_add=True)
 
 

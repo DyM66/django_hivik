@@ -13,6 +13,11 @@ urlpatterns = [
     path('asset/<str:abbreviation>/inventario/', views.AssetInventarioReportView.as_view(), name='asset_inventario_report'),
     path('transaction/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
 
+    path('asset/<str:abbreviation>/add-document/', views.AssetDocumentsView.as_view(), name='add-document'),
+    path('documents/<int:pk>/delete/', views.delete_document, name='delete-document'),
+    path('documents/<int:pk>/edit/', views.edit_document_description, name='edit-document-description'),
+
+
     path('ruta/<int:pk>/', views.RutaDetailView.as_view(), name='ruta_detail'),
     path('reporte-gerencial/', views.ManagerialReportView.as_view(), name='managerial_report'),
 
@@ -21,8 +26,8 @@ urlpatterns = [
     path('buceo/', views.BuceoMttoView.as_view(), name='buceomtto'),
     path("dash/", views.indicadores, name='dashboard'),
 
-    path('asset/rutinas/<str:pk>/', views.preventivo_pdf, name='preventivo'),
-    path('asset/<str:asset_id>/add-document/', views.AssetDocCreateView.as_view(), name='add-document'),
+
+
     path("asset/<str:pk>/schedule/", views.schedule, name="schedule"),
     path('assets/<str:asset_id>/generate-pdf/', views.generate_asset_pdf, name='generate_asset_pdf'),
     path('asset/acta/<str:pk>/', views.acta_entrega_pdf, name='acta_entrega'),

@@ -246,7 +246,7 @@
                         <th>Documentos Asociados</th>
                         <th>
                             {% if perms.got.add_document %}
-                                <a class="btn-add-table" href="{% url 'got:add-document' asset_id=asset.abbreviation %}">
+                                <a class="btn-add-table" href="{% url 'got:add-document' asset.abbreviation %}">
                                     <i class="bi bi-plus-circle btn-add-table"></i>
                                 </a>
                             {% endif %}

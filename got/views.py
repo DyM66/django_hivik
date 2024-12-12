@@ -462,6 +462,66 @@ def delete_transaction(request, transaction_id):
         return redirect(next_url)
 
 
+class AssetDocumentsView(View):
+    form_class = DocumentForm
+    template_name = 'got/assets/add-document.html'
+
+    def get(self, request, abbreviation):
+        asset = get_object_or_404(Asset, abbreviation=abbreviation)
+        systems = asset.system_set.all()
+        ots = Ot.objects.filter(system__in=systems)
+        equipos = Equipo.objects.filter(system__in=systems)
+        docs_asset = Document.objects.filter(asset=asset)
+        docs_ots = Document.objects.filter(ot__in=ots)
+        docs_equipos = Document.objects.filter(equipo__in=equipos)
+
+        # Unir los tres QuerySets evitando duplicados (distinct)
+        all_docs = (docs_asset | docs_ots | docs_equipos).distinct()
+
+        form = self.form_class()
+        context = {
+            'asset': asset,
+            'documents': all_docs,
+            'form': form,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, abbreviation):
+        # Este post se utilizará para la creación de un nuevo documento desde el modal
+        asset = get_object_or_404(Asset, abbreviation=abbreviation)
+        form = self.form_class(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.asset = asset
+            # document.modified_by = request.user  # si manejas el usuario modificador
+            document.save()
+            return redirect('got:asset-documents', abbreviation=abbreviation)
+        else:
+            # Si hay error, volver a la misma página con mensajes de error
+            # Opcionalmente puedes retornar JSON si quieres manejar errores con JS
+            return redirect('got:asset-documents', abbreviation=abbreviation)
+
+def delete_document(request, pk):
+    # Vista para eliminar el documento via POST
+    if request.method == 'POST':
+        doc = get_object_or_404(Document, pk=pk)
+        doc.delete()
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
+
+def edit_document_description(request, pk):
+    # Vista para editar el nombre del documento via ajax (post)
+    if request.method == 'POST':
+        doc = get_object_or_404(Document, pk=pk)
+        new_desc = request.POST.get('description', '').strip()
+        if new_desc:
+            doc.description = new_desc
+            doc.save()
+            return JsonResponse({'status':'ok', 'description': new_desc})
+        return JsonResponse({'status':'error', 'message':'Descripción inválida'}, status=400)
+    return JsonResponse({'status':'error'}, status=400)
+
+
 'RUTINAS VIEWS'
 class RutaDetailView(LoginRequiredMixin, generic.DetailView):
     model = Ruta
@@ -560,40 +620,6 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
             messages.error(request, 'Acción no reconocida.')
 
         return redirect('got:ruta_detail', pk=ruta.pk)
-
-
-#############################
-def preventivo_pdf(request, pk):
-    asset = get_object_or_404(Asset, pk=pk)
-    user = request.user
-    filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, request.GET)
-    context = {
-        'rq': asset,
-        'filtered_rutas': filtered_rutas,
-        'mes': current_month_name_es,
-    }
-
-    return render_to_pdf('got/assets/asset-routine.html', context)
-
-
-class AssetDocCreateView(generic.View):
-    form_class = DocumentForm
-    template_name = 'got/assets/add-document.html'
-
-    def get(self, request, asset_id):
-        asset = get_object_or_404(Asset, pk=asset_id)
-        form = self.form_class()
-        return render(request, self.template_name, {'form': form, 'asset': asset})
-
-    def post(self, request, asset_id):
-        form = self.form_class(request.POST, request.FILES)
-        if form.is_valid():
-            document = form.save(commit=False)
-            document.asset = get_object_or_404(Asset, pk=asset_id)
-            document.modified_by = request.user
-            document.save()
-            return redirect('got:asset-detail', pk=asset_id)
-        return render(request, self.template_name, {'form': form})
 
 
 @login_required
@@ -2895,11 +2921,10 @@ class TransferSolicitudView(LoginRequiredMixin, PermissionRequiredMixin, View):
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 
-
 'GENERAL VIEWS'
 @login_required
 def indicadores(request):
-    m = 11
+    m = 12
 
     area_filter = request.GET.get('area', None)
 
