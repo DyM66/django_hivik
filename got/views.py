@@ -3512,7 +3512,6 @@ class BuceoMttoView(LoginRequiredMixin, TemplateView):
             state_data['Pendientes'] = ots_without_tasks_in_execution
 
         return states, state_data
-    
 
 
 class EquipmentHistoryView(LoginRequiredMixin, generic.ListView):

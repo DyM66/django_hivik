@@ -8,6 +8,7 @@ from datetime import datetime
 from django.forms import modelformset_factory
 from django.utils.timezone import localdate
 from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
+from django.forms.widgets import ClearableFileInput
 
 from django.core.files.base import ContentFile
 import base64
@@ -1036,7 +1037,7 @@ class ItemForm(forms.ModelForm):
             'presentacion': forms.TextInput(attrs={'class': 'form-control'}),
             'code': forms.TextInput(attrs={'class': 'form-control'}),
             'seccion': forms.Select(attrs={'class': 'form-control'}),
-            'imagen': forms.FileInput(attrs={'class': 'form-control'})
+            'imagen': ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
 

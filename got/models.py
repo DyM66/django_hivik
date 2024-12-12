@@ -13,13 +13,13 @@ from django.utils.translation import gettext as _
 from decimal import Decimal
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
 from outbound.models import OutboundDelivery
-import tempfile
-from PIL import Image
+# import tempfile
+# from PIL import Image
 import os
-from pdf2image import convert_from_path
+# from pdf2image import convert_from_path
 from django.conf import settings
-from django.core.files.base import ContentFile
-from pdf2image import convert_from_bytes
+# from django.core.files.base import ContentFile
+# from pdf2image import convert_from_bytes
 
 
 # Funciones auxiliares
