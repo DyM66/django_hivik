@@ -3,92 +3,87 @@
 <!-- Modal Crear Requerimiento -->
 <div class="modal fade" id="createRequirementModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <form method="post" action="" id="createRequirementForm">
-          {% csrf_token %}
-          <div class="modal-header">
-            <h5 class="modal-title">Crear Requerimiento</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-          </div>
-          <div class="modal-body">
-            <!-- Botones para alternar entre Servicio y Artículo -->
-            <div class="mb-3">
-              <button type="button" class="btn btn-outline-primary me-2" id="serviceBtn">Servicio</button>
-              <button type="button" class="btn btn-outline-primary" id="articleBtn">Artículo</button>
-            </div>
+        <div class="modal-content">
+            <form method="post" action="" id="createRequirementForm">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Crear Requerimiento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Botones para alternar entre Servicio y Artículo -->
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-primary me-2" id="articleBtn">Artículo</button>
+
+                        <button type="button" class="btn btn-outline-primary" id="serviceBtn">Servicio</button>
+                    </div>
   
-            <!-- Campos del formulario (ocultaremos/mostraremos con JS) -->
-            <div id="serviceFields" style="display:none;">
-              <div class="mb-3">
-                <label for="id_descripcion" class="form-label">Descripción del Servicio</label>
-                {{ requirement_form.descripcion }}
-              </div>
-              <input type="hidden" name="tipo" value="s" id="serviceTipo">
-              <div class="mb-3">
-                <label for="id_cantidad" class="form-label">Cantidad</label>
-                {{ requirement_form.cantidad }}
-              </div>
-            </div>
+                    <!-- Campos del formulario (ocultaremos/mostraremos con JS) -->
+                    <div id="serviceFields" style="display:none;">
+                        <div class="mb-3">
+                            <label for="id_descripcion" class="form-label">Descripción del Servicio</label>
+                            {{ requirement_form.descripcion }}
+                        </div>
+                        <input type="hidden" name="tipo" value="s" id="serviceTipo">
+                        <div class="mb-3">
+                            <label for="id_cantidad" class="form-label">Cantidad</label>
+                            {{ requirement_form.cantidad }}
+                        </div>
+                    </div>
   
-            <div id="articleFields" style="display:none;">
-              <div class="mb-3">
-                <!-- Campo de búsqueda -->
-                <input type="text" class="form-control" id="itemSearch" placeholder="Buscar por nombre o referencia...">
-              </div>
+                    <div id="articleFields" style="display:none;">
+                        <div class="mb-3">
+                            <!-- Campo de búsqueda -->
+                            <input type="text" class="form-control" id="itemSearch" placeholder="Buscar por nombre o referencia...">
+                        </div>
   
-              <!-- Tabla de artículos -->
-              <div class="table-responsive" style="max-height:300px; overflow:auto;">
-                <table class="table table-striped" id="itemTable">
-                  <thead>
-                    <tr>
-                      <th>Nombre</th>
-                      <th>Referencia</th>
-                      <th>Presentación</th>
-                      <th>Seleccionar</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for it in all_items %}
-                    <tr data-name="{{ it.name|lower }}" data-ref="{{ it.reference|lower }}">
-                      <td>{{ it.name }}</td>
-                      <td>{{ it.reference }}</td>
-                      <td>{{ it.presentacion }}</td>
-                      <td><button type="button" class="btn btn-sm btn-success select-item-btn" data-item-id="{{ it.id }}">Seleccionar</button></td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
+                        <!-- Tabla de artículos -->
+                        <div class="table-responsive" style="max-height:300px; overflow:auto;">
+                            <table class="table table-striped" id="itemTable">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Articulo</th>
+                                        <th>Presentación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for it in all_items %}
+                                        <tr data-name="{{ it.name|lower }}" data-ref="{{ it.reference|lower }}">
+                                            <td><input type="radio" name="item" value="{{ it.id }}" class="item-radio"></td>
+                                            <td>{{ it }}</td>
+                                            <td>{{ it.presentacion }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Tipo para artículo (solo 'herramienta/equipo' o 'material') -->
+                        <div class="mb-3 mt-3">
+                            <label for="articleTipo" class="form-label">Tipo</label>
+                            <select name="tipo" class="form-control" id="articleTipo">
+                                <option value="m">Material</option>
+                                <option value="h">Herramienta/Equipo</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_cantidad" class="form-label">Cantidad</label>
+                            {{ requirement_form.cantidad }}
+                        </div>
+                    </div>
   
-              <!-- Guardaremos el id del item seleccionado en un input hidden -->
-              <input type="hidden" name="item" id="selectedItemId">
-  
-              <!-- Tipo para artículo (solo 'herramienta/equipo' o 'material') -->
-              <div class="mb-3 mt-3">
-                <label for="id_tipo" class="form-label">Tipo</label>
-                <select name="tipo" class="form-control" id="articleTipo">
-                  <option value="h">Herramienta/Equipo</option>
-                  <option value="m">Material</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label for="id_cantidad" class="form-label">Cantidad</label>
-                {{ requirement_form.cantidad }}
-              </div>
-            </div>
-  
-          </div>
-          <div class="modal-footer">
-            <input type="hidden" name="action" value="create_requirement">
-            <button type="submit" class="btn btn-success">Guardar</button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          </div>
-        </form>
-      </div>
+                </div>
+                <div class="modal-footer">
+                    <input type="hidden" name="action" value="create_requirement">
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
     </div>
-  </div>
+</div>
   
-  <script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
         const serviceBtn = document.getElementById('serviceBtn');
         const articleBtn = document.getElementById('articleBtn');
@@ -96,15 +91,13 @@
         const articleFields = document.getElementById('articleFields');
     
         const descripcionField = document.getElementById('id_descripcion');
-        const itemField = document.getElementById('selectedItemId');
         const tipoServiceHidden = document.getElementById('serviceTipo');
-        const articleTipo = document.getElementById('articleTipo');
     
         const itemSearch = document.getElementById('itemSearch');
         const itemTable = document.getElementById('itemTable');
     
-        // Por defecto, podemos iniciar en modo "Servicio"
-        showServiceMode();
+        // Por defecto, mostrar Artículo primero
+        showArticleMode();
     
         serviceBtn.addEventListener('click', showServiceMode);
         articleBtn.addEventListener('click', showArticleMode);
@@ -112,8 +105,6 @@
         function showServiceMode() {
             serviceFields.style.display = 'block';
             articleFields.style.display = 'none';
-            // Limpiar campos artículo
-            itemField.value = '';
             descripcionField.value = '';
             tipoServiceHidden.value = 's';
         }
@@ -140,16 +131,6 @@
                 }
             });
         });
-    
-        // Seleccionar ítem
-        itemTable.addEventListener('click', function(e) {
-            if (e.target.classList.contains('select-item-btn')) {
-                const itemId = e.target.getAttribute('data-item-id');
-                itemField.value = itemId;
-                // Ya con esto el usuario puede guardar el requerimiento
-            }
-        });
-    
     });
-    </script>
+</script>
     

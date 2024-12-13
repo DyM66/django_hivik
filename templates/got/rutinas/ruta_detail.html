@@ -3,13 +3,24 @@
 {% load my_tags %}
 {% block content %}
 <div class="container my-4">
-    <h1>Detalle de Rutina: {{ ruta.name }}</h1>
-    <p><strong>Equipo:</strong> {{ ruta.equipo }}</p>
-    <p><strong>Sistema:</strong> {{ ruta.system.name }}</p>
-    <p><strong>Frecuencia:</strong> {{ ruta.frecuency }} {{ ruta.get_control_display }}</p>
-    <p><strong>Nivel:</strong> {{ ruta.get_nivel_display }}</p>
-    <p><strong>Fecha de última intervención:</strong> {{ ruta.intervention_date|date:"d/m/Y" }}</p>
-    <p><strong>Fecha próxima intervención:</strong> {{ ruta.next_date|date:"d/m/Y" }}</p>
+
+    
+    <div class="ruta-info-section p-3 mb-4" style="background: linear-gradient(45deg, var(--color-primary), #0157a4);color: #fff;border-radius: 10px;">
+        <h1 class="mb-1">
+            <a href="{{ ruta.system.get_absolute_url }}" style="color: #fff;">
+                <i class="bi bi-arrow-90deg-left"></i>
+            </a>
+            Rutina {{ ruta.name }}
+        </h1>
+        <p style="line-height: 1.5; margin-left: 40px;">
+            {{ ruta.equipo }}/ {{ ruta.system.name }}<br>
+            Frecuencia: {{ ruta.frecuency }} {{ ruta.get_control_display }}<br>
+            Nivel: {{ ruta.get_nivel_display }}<br>
+            Última intervención: {{ ruta.intervention_date|date:"d/m/Y" }}<br>
+            Próxima intervención: {{ ruta.next_date|date:"d/m/Y" }}
+        </p>
+    </div>
+
 
     <div class="row">
         <div class="col-md-6">

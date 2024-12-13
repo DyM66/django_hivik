@@ -53,12 +53,12 @@ def manifest(request):
         "icons": [
             {
                 "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png",
-                "sizes": "192x192",
+                # "sizes": "200x200",
                 "type": "image/png"
             },
             {
                 "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png",
-                "sizes": "512x512",
+                # "sizes": "512x512",
                 "type": "image/png"
             }
         ]
@@ -532,7 +532,8 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         ruta = self.get_object()
 
-        # Existing context data
+        all_items = Item.objects.all()
+        context['all_items'] = all_items
         context['tasks'] = ruta.task_set.all().order_by('-priority')
         context['requirements'] = ruta.requisitos.all()
         context['task_form'] = RutActForm(asset=ruta.system.asset)

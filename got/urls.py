@@ -26,8 +26,6 @@ urlpatterns = [
     path('buceo/', views.BuceoMttoView.as_view(), name='buceomtto'),
     path("dash/", views.indicadores, name='dashboard'),
 
-
-
     path("asset/<str:pk>/schedule/", views.schedule, name="schedule"),
     path('assets/<str:asset_id>/generate-pdf/', views.generate_asset_pdf, name='generate_asset_pdf'),
     path('asset/acta/<str:pk>/', views.acta_entrega_pdf, name='acta_entrega'),
