@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'overtime.apps.OvertimeConfig',
     'preoperacionales.apps.PreoperacionalesConfig',
     'outbound.apps.OutboundConfig',
+    'taggit',
 ]
 
 SITE_ID = 1

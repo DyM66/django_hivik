@@ -1,0 +1,169 @@
+{% extends 'got/base/base_generic.html' %}
+{% load my_tags %}
+
+{% block content %}
+<style>
+    .badge {
+        font-size: 0.9em;
+        padding: 0.5em 0.75em;
+        margin: 0.2em;
+        display: inline-block;
+    }
+
+    .state-ok {
+        background-color: #86e49d;
+        color: #fff;
+    }
+
+    .state-requiere {
+        background-color: #cc0000;
+        color: #fff;
+    }
+
+    .state-planeacion {
+        background-color: #ffff00;
+        color: #000;
+    }
+
+    .state-alerta {
+        background-color: #cc0000;
+        color: #fff;
+    }
+
+    .state-novedades {
+        background-color: #ffa500;
+        color: #fff;
+    }
+
+    .state-trabajando {
+        background-color: #800080;
+        color: #fff;
+    }
+
+    .state-pendientes {
+        background-color: #025669; 
+        color: #fff;
+    }
+
+    .legend {
+        margin-top: 20px;
+    }
+
+    .legend-item {
+        margin-bottom: 10px;
+    }
+</style>
+
+<div class="container my-4">
+    <h2 class="mb-4">Dashboard de Mantenimiento - Vehículos</h2>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-striped table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Vehículo</th>
+                    <th scope="col">General</th>
+                    {% for rutina_name in rutina_names %}
+                        <th scope="col">{{ rutina_name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in veh_data %}
+                    <tr>
+                        <th scope="row">{{ item.system.name }}</th>
+                        <!-- Columna "General" -->
+                        <td class="text-center">
+                            {% for state, color in item.general_states %}
+                                {% if state != 'Ok' %}
+                                    <a href="#" data-bs-toggle="modal" data-bs-target="#modal-{{ item.system.name|slugify }}-general-{{ state|slugify }}">
+                                        <span class="badge state-{{ state|lower|slugify }}">{{ state }}</span>
+                                    </a>
+                                {% else %}
+                                    <span class="badge state-{{ state|lower|slugify }}">{{ state }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <!-- Estados de las rutinas -->
+                        {% for rutina_name in rutina_names %}
+                            {% with status=item.rutina_status|dict_key:rutina_name %}
+                                <td class="text-center">
+                                    {% if status %}
+                                        {% if status.0 != 'Ok' %}
+                                            <a href="#" data-bs-toggle="modal" data-bs-target="#modal-{{ item.system.name|slugify }}-{{ rutina_name|slugify }}-{{ status.0|slugify }}">
+                                                <span class="badge state-{{ status.0|lower|slugify }}">{{ status.0 }}</span>
+                                            </a>
+                                        {% else %}
+                                            <span class="badge state-{{ status.0|lower|slugify }}">{{ status.0 }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'got/mantenimiento/legends.html' %} 
+
+    <!-- Modales para Estados Generales -->
+    {% for item in veh_data %}
+        {% for state, color in item.general_states %}
+            {% if state != 'Ok' %}
+                <!-- Modal General -->
+                <div class="modal fade" id="modal-{{ item.system.name|slugify }}-general-{{ state|slugify }}" tabindex="-1" aria-labelledby="modalLabel-{{ item.system.name|slugify }}-general-{{ state|slugify }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel-{{ item.system.name|slugify }}-general-{{ state|slugify }}">
+                                    {{ state }} - {{ item.system.name }}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                {% include 'got/mantenimiento/modal_content.html' with state=state state_data=item.state_data|dict_key:state %}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+    <!-- Modales para Rutinas -->
+    {% for item in veh_data %}
+        {% for rutina_name in rutina_names %}
+            {% with status=item.rutina_status|dict_key:rutina_name %}
+                {% if status and status.0 != 'Ok' %}
+                    <!-- Modal Rutinas -->
+                    <div class="modal fade" id="modal-{{ item.system.name|slugify }}-{{ rutina_name|slugify }}-{{ status.0|slugify }}" tabindex="-1" aria-labelledby="modalLabel-{{ item.system.name|slugify }}-{{ rutina_name|slugify }}-{{ status.0|slugify }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="modalLabel-{{ item.system.name|slugify }}-{{ rutina_name|slugify }}-{{ status.0|slugify }}">
+                                        {{ status.0 }} - {{ item.system.name }} / {{ rutina_name }}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    {% include 'got/mantenimiento/modal_content.html' with state=status.0 state_data=status.2 %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endwith %}
+        {% endfor %}
+    {% endfor %}
+</div>
+{% endblock %}

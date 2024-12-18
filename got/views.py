@@ -462,6 +462,7 @@ def delete_transaction(request, transaction_id):
         return redirect(next_url)
 
 
+# @method_decorator(login_required, name='dispatch')
 class AssetDocumentsView(View):
     form_class = DocumentForm
     template_name = 'got/assets/add-document.html'
@@ -471,55 +472,88 @@ class AssetDocumentsView(View):
         systems = asset.system_set.all()
         ots = Ot.objects.filter(system__in=systems)
         equipos = Equipo.objects.filter(system__in=systems)
-        docs_asset = Document.objects.filter(asset=asset)
-        docs_ots = Document.objects.filter(ot__in=ots)
-        docs_equipos = Document.objects.filter(equipo__in=equipos)
 
-        # Unir los tres QuerySets evitando duplicados (distinct)
-        all_docs = (docs_asset | docs_ots | docs_equipos).distinct()
+        all_docs = Document.objects.filter(
+            models.Q(asset=asset) | models.Q(ot__in=ots) | models.Q(equipo__in=equipos)
+        ).distinct()
 
-        form = self.form_class()
+        keyword = request.GET.get('keyword', '').strip()
+        if keyword:
+            all_docs = all_docs.filter(description__icontains=keyword)
+
+        paginator = Paginator(all_docs, 30)  # 30 archivos por página
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+
+        today = date.today()
+        for doc in page_obj:
+            doc.is_expired = False
+            if doc.date_expiry and doc.date_expiry < today:
+                doc.is_expired = True
+
+        existing_tags = Tag.objects.all().order_by('name') 
+
         context = {
             'asset': asset,
-            'documents': all_docs,
-            'form': form,
+            'documents': page_obj,
+            'form': self.form_class(),
+            'today': today,
+            'is_paginated': page_obj.has_other_pages(),
+            'page_obj': page_obj,
+            'existing_tags': existing_tags,
+            'request': request  
         }
         return render(request, self.template_name, context)
 
     def post(self, request, abbreviation):
-        # Este post se utilizará para la creación de un nuevo documento desde el modal
         asset = get_object_or_404(Asset, abbreviation=abbreviation)
         form = self.form_class(request.POST, request.FILES)
         if form.is_valid():
             document = form.save(commit=False)
             document.asset = asset
-            # document.modified_by = request.user  # si manejas el usuario modificador
+            document.uploaded_by = request.user
             document.save()
+            form.save_m2m()
             return redirect('got:asset-documents', abbreviation=abbreviation)
         else:
-            # Si hay error, volver a la misma página con mensajes de error
-            # Opcionalmente puedes retornar JSON si quieres manejar errores con JS
             return redirect('got:asset-documents', abbreviation=abbreviation)
 
+def edit_document(request, pk):
+    doc = get_object_or_404(Document, pk=pk)
+    if request.method == 'POST':
+        form = DocumentEditForm(request.POST, instance=doc)
+        if form.is_valid():
+            form.save()
+            if doc.asset:
+                abbr = doc.asset.abbreviation
+            elif doc.ot:
+                abbr = doc.ot.system.asset.abbreviation
+            elif doc.equipo:
+                abbr = doc.equipo.system.asset.abbreviation
+            else:
+                abbr = 'AAA'
+
+            return redirect('got:asset-documents', abbreviation=abbr)
+    # Si no es POST, vuelve a la página de documentos
+    if doc.asset:
+        abbr = doc.asset.abbreviation
+    elif doc.ot:
+        abbr = doc.ot.system.asset.abbreviation
+    elif doc.equipo:
+        abbr = doc.equipo.system.asset.abbreviation
+    else:
+        abbr = 'AAA'
+
+    return redirect('got:asset-documents', abbreviation=abbr)
+
+
+@login_required
 def delete_document(request, pk):
-    # Vista para eliminar el documento via POST
     if request.method == 'POST':
         doc = get_object_or_404(Document, pk=pk)
         doc.delete()
-        return JsonResponse({'status': 'ok'})
-    return JsonResponse({'status': 'error'}, status=400)
-
-def edit_document_description(request, pk):
-    # Vista para editar el nombre del documento via ajax (post)
-    if request.method == 'POST':
-        doc = get_object_or_404(Document, pk=pk)
-        new_desc = request.POST.get('description', '').strip()
-        if new_desc:
-            doc.description = new_desc
-            doc.save()
-            return JsonResponse({'status':'ok', 'description': new_desc})
-        return JsonResponse({'status':'error', 'message':'Descripción inválida'}, status=400)
-    return JsonResponse({'status':'error'}, status=400)
+        return redirect('got:asset-documents', abbreviation=doc.asset.abbreviation if doc.asset else 'AAA')
+    return redirect('got:asset-documents', abbreviation='AAA')
 
 
 'RUTINAS VIEWS'
@@ -564,6 +598,7 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
             if task_form.is_valid():
                 task = task_form.save(commit=False)
                 task.ruta = ruta
+                task.finished = False
                 task.modified_by = request.user
                 task.save()
                 messages.success(request, 'Actividad creada exitosamente.')
@@ -1541,7 +1576,7 @@ def ot_pdf(request, num_ot):
 class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 
     model = Task
-    template_name = 'got/ots/assignedtasks_list_pendient.html'
+    template_name = 'got/ots/tasks_pendient.html'
     paginate_by = 20
 
     def get_context_data(self, **kwargs):
@@ -1580,13 +1615,7 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         return queryset.none() 
 
 
-class TaskDetailView(LoginRequiredMixin, generic.DetailView):
-
-    model = Task
-
-
 class TaskCreate(CreateView):
-
     model = Task
     http_method_names = ['get', 'post']
     form_class = RutActForm
@@ -1614,9 +1643,8 @@ class TaskCreate(CreateView):
 
 
 class TaskUpdate(UpdateView):
-
     model = Task
-    template_name = 'got/task_form.html'
+    template_name = 'got/ots/task_form.html'
     form_class = ActForm
     second_form_class = UploadImages
 
@@ -1648,6 +1676,12 @@ class TaskUpdate(UpdateView):
     def form_invalid(self, form, **kwargs):
         return self.render_to_response(self.get_context_data(form=form, **kwargs))
     
+    def get_success_url(self):
+        task = self.object
+        if task.ot:
+            return reverse('got:ot-detail', kwargs={'pk': task.ot.num_ot})
+        else:
+            return reverse('got:my-tasks')
 
 class TaskDelete(DeleteView):
 
@@ -3515,6 +3549,149 @@ class BuceoMttoView(LoginRequiredMixin, TemplateView):
         return states, state_data
 
 
+class VehiculosMttoView(LoginRequiredMixin, TemplateView):
+    template_name = 'got/mantenimiento/vehiculosmtto.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Obtenemos el asset con abbreviation='VEH'
+        veh_asset = get_object_or_404(Asset, abbreviation='VEH')
+
+        # Obtenemos todos los sistemas asociados a este asset que estén en estado 'm' o 'o' (mantenimiento u operativo)
+        systems = System.objects.filter(asset=veh_asset).exclude(state__in=['x', 's'])
+
+        # Filtramos todas las rutinas de todos los sistemas
+        all_rutinas = Ruta.objects.filter(system__in=systems)
+        # Extraemos los nombres únicos de rutinas
+        rutina_names = set(all_rutinas.values_list('name', flat=True))
+        rutina_names = sorted(rutina_names)
+
+        veh_data = []
+        for system in systems:
+            # Rutinas de este sistema
+            system_rutinas = Ruta.objects.filter(system=system).exclude(system__state__in=['x', 's'])
+
+            rutina_status = {}
+            for rutina_name in rutina_names:
+                rutinas = system_rutinas.filter(name=rutina_name)
+                status = self.evaluate_rutina_status(rutinas)
+                rutina_status[rutina_name] = status
+
+            general_states, state_data = self.evaluate_general_state(system)
+
+            veh_data.append({
+                'system': system,  # Sistema que representa el vehiculo
+                'general_states': general_states,
+                'state_data': state_data,
+                'rutina_status': rutina_status,
+            })
+
+        context['veh_data'] = veh_data
+        context['rutina_names'] = rutina_names
+
+        return context
+
+    def evaluate_rutina_status(self, rutinas):
+        if not rutinas.exists():
+            return None
+        today = date.today()
+        requires_maintenance = False
+        all_up_to_date = True
+        has_planeacion = False
+        overdue_rutinas = []
+        planeacion_rutinas = []
+
+        for ruta in rutinas:
+            next_date = ruta.next_date
+            if next_date and next_date < today:
+                requires_maintenance = True
+                all_up_to_date = False
+                overdue_rutinas.append(ruta)
+            elif not next_date:
+                requires_maintenance = True
+                all_up_to_date = False
+                overdue_rutinas.append(ruta)
+            percentage = ruta.percentage_remaining
+            if percentage and 0 < percentage < 15:
+                has_planeacion = True
+                planeacion_rutinas.append(ruta)
+
+        if requires_maintenance:
+            return ('Requiere', '#cc0000', overdue_rutinas)  # Rojo
+        elif has_planeacion:
+            return ('Planeación', '#ffff00', planeacion_rutinas)  # Amarillo
+        elif all_up_to_date:
+            return ('Ok', '#86e49d', [])  # Verde
+        else:
+            return ('---', '#ffffff', [])  # Sin estado
+
+    def evaluate_general_state(self, system):
+        # Evaluamos el estado general del sistema: fallas y OTs
+        equipos = system.equipos.all()
+        failure_reports = FailureReport.objects.filter(
+            equipo__in=equipos,
+            closed=False
+        ).select_related('equipo', 'related_ot').prefetch_related(
+            Prefetch(
+                'related_ot__task_set',
+                queryset=Task.objects.filter(finished=False),
+                to_attr='tasks_in_execution'
+            )
+        )
+
+        ots = Ot.objects.filter(system=system, state='x').prefetch_related(
+            Prefetch(
+                'task_set',
+                queryset=Task.objects.filter(finished=False),
+                to_attr='tasks_in_execution'
+            )
+        )
+
+        ots_with_tasks_in_execution = []
+        ots_without_tasks_in_execution = []
+
+        for ot in ots:
+            if ot.tasks_in_execution:
+                ots_with_tasks_in_execution.append(ot)
+            else:
+                ots_without_tasks_in_execution.append(ot)
+
+        states = []
+        state_data = {}
+
+        # Estado "Alerta"
+        alerta_reports = failure_reports.filter(critico=True)
+        if alerta_reports.exists():
+            states.append(('Alerta', '#cc0000')) 
+            state_data['Alerta'] = alerta_reports
+
+        # Estado "Novedades"
+        novedades_reports = failure_reports.filter(critico=False)
+        if novedades_reports.exists():
+            states.append(('Novedades', '#ffa500')) 
+            state_data['Novedades'] = novedades_reports
+
+        # Estado "Trabajando"
+        if ots_with_tasks_in_execution:
+            states.append(('Trabajando', '#800080')) 
+            state_data['Trabajando'] = ots_with_tasks_in_execution
+
+        # Estado "Pendientes"
+        if ots_without_tasks_in_execution:
+            states.append(('Pendientes', '#025669'))
+            state_data['Pendientes'] = ots_without_tasks_in_execution
+
+        # Si no hay alertas ni novedades y no entra en las otras categorías, entonces está OK
+        if not alerta_reports.exists() and not novedades_reports.exists():
+            # Verificamos si no hay requisitos de mantenimiento pendientes en rutinas
+            # Esta lógica podría ser más compleja si quieres integrarla con las rutinas
+            # Por simplicidad, si no tiene fallas ni OTs en ejecución o pendientes, decimos OK
+            if not states:
+                states.append(('Ok', '#86e49d'))
+
+        return states, state_data
+
+
 class EquipmentHistoryView(LoginRequiredMixin, generic.ListView):
     model = EquipmentHistory
     template_name = 'got/equipment_history.html'
@@ -3589,7 +3766,6 @@ def delete_equipment_history(request, equipment_code, pk):
     history.delete()
     return redirect('got:equipment_history', equipment_code=equipment_code)
 
-import re
 
 class ManagerialReportView(View):
     def get(self, request, *args, **kwargs):

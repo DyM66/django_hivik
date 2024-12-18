@@ -441,14 +441,14 @@ class RutActForm(forms.ModelForm):
             'hse': 'Precauciones de seguridad',
             'priority': 'Prioridad (entre mayor sea el numero tendra mas prioridad)',
             'equipo': 'Equipo',
-            }
+        }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'procedimiento': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'hse': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'priority': forms.NumberInput(attrs={'class': 'form-control'}),
             'equipo': forms.Select(attrs={'class': 'form-control'}),
-            }
+        }
 
     def __init__(self, *args, **kwargs):
         asset = kwargs.pop('asset')
@@ -673,18 +673,51 @@ class OperationForm(forms.ModelForm):
             # 'requirements': 'Requerimientos',
         }
 
-
+from taggit.forms import TagWidget
 class DocumentForm(forms.ModelForm):
     class Meta:
         model = Document
-        fields = ['description', 'file']
+        fields = ['description', 'file', 'doc_type', 'date_expiry', 'tags']
         widgets = {
             'description':forms.TextInput(attrs={'class': 'form-control'}),
-            'file': forms.FileInput(attrs={'class': 'form-control'})
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+            'doc_type': forms.Select(attrs={'class': 'form-control'}),
+            'date_expiry': forms.DateInput(attrs={'class': 'form-control', 'type':'date'}),
+            # 'tags': forms.SelectMultiple(attrs={'class': 'form-control'})
+            'tags': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: seguridad, manual'}),
+            # 'tags': TagWidget(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Etiquetas separadas por coma'})
         }
         labels = {
             'description': 'Nombre del documento',
-            'file': 'Documento'
+            'file': 'Archivo',
+            'doc_type': 'Tipo de documento',
+            'date_expiry': 'Fecha de expiración',
+            'uploaded_by': 'Subido por',
+            'tags': 'Etiquetas'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Aquí puedes personalizar widgets si lo deseas
+        self.fields['tags'].help_text = "Ingrese etiquetas separadas por comas"
+
+class DocumentEditForm(forms.ModelForm):
+    class Meta:
+        model = Document
+        fields = ['description', 'doc_type', 'date_expiry', 'tags']
+        widgets = {
+            'description':forms.TextInput(attrs={'class': 'form-control'}),
+            'doc_type': forms.Select(attrs={'class': 'form-control'}),
+            'date_expiry': forms.DateInput(attrs={'class': 'form-control', 'type':'date'}),
+            # 'tags': forms.SelectMultiple(attrs={'class': 'form-control'})
+            'tags': TagWidget(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Etiquetas separadas por coma'})
+        }
+        labels = {
+            'description': 'Nombre del documento',
+            'doc_type': 'Tipo de documento',
+            'date_expiry': 'Fecha de expiración',
+            'uploaded_by': 'Subido por',
+            'tags': 'Etiquetas'
         }
 
 

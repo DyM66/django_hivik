@@ -237,36 +237,6 @@
                 {% endif %}
             </tbody>
         </table>
-
-        <br>
-        <div class="documents-section">
-            <table class="table-list table-detail">
-                <thead>
-                    <tr>
-                        <th>Documentos Asociados</th>
-                        <th>
-                            {% if perms.got.add_document %}
-                                <a class="btn-add-table" href="{% url 'got:add-document' asset.abbreviation %}">
-                                    <i class="bi bi-plus-circle btn-add-table"></i>
-                                </a>
-                            {% endif %}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for document in asset.documents.all %}
-                        <tr>
-                            <td>{{ document.description }}</td>
-                            <td><a href="{{ document.file.url }}" target="_blank">Abrir</a></td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="2">No hay documentos disponibles.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
     </div>
 </div>
 

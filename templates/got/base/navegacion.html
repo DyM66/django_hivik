@@ -21,11 +21,12 @@
                     <ul class="dropdown-menu" aria-labelledby="maintenanceDropdown">
                         {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
                             <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
-                            <!-- <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li> -->
+                            <li><a class="dropdown-item" href="{% url 'got:vehiculosmtto' %}">Vehiculos</a></li>
                         {% endif %}
-                        <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
-                        <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
+                        {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" or request.user|has_group:"buzos_members" %}
+                            <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
+                            <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
+                        {% endif %}
                         {% if perms.got.view_task %}
                             <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
                         {% endif %}
@@ -144,7 +145,7 @@
 
 {% for vehiculo in vehiculos %}
 <!-- Modal para {{ vehiculo.name }} -->
-<div class="modal fade" id="vehiculoModal{{ vehiculo.code }}" tabindex="-1" aria-labelledby="vehiculoModalLabel{{ vehiculo.abbreviation }}" aria-hidden="true">
+<div class="modal fade" id="vehiculoModal{{ vehiculo.code }}" tabindex="-1" aria-labelledby="vehiculoModalLabel{{ vehiculo.code }}" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">

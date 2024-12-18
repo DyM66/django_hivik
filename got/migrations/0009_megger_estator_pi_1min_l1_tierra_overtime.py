@@ -26,8 +26,6 @@ class Migration(migrations.Migration):
                 ('hora_inicio', models.TimeField()),
                 ('hora_fin', models.TimeField()),
                 ('justificacion', models.TextField()),
-                ('nombre', models.CharField(max_length=100)),
-                ('apellido', models.CharField(max_length=100)),
                 ('cargo', models.CharField(choices=[('a', 'Capitan'), ('b', 'Primer Oficial de puente'), ('c', 'Marino'), ('d', 'Jefe de maquinas'), ('e', 'Primer Oficial de maquinas'), ('f', 'Maquinista'), ('g', 'Otro')], max_length=1)),
                 ('reportado_por', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],

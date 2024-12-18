@@ -13,9 +13,11 @@ urlpatterns = [
     path('asset/<str:abbreviation>/inventario/', views.AssetInventarioReportView.as_view(), name='asset_inventario_report'),
     path('transaction/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
 
+    path('asset/<str:abbreviation>/documents/', views.AssetDocumentsView.as_view(), name='asset-documents'),
+    # path('asset/<str:abbreviation>/documents/', views.AssetDocumentsView.as_view(), name='asset-documents'),
     path('asset/<str:abbreviation>/add-document/', views.AssetDocumentsView.as_view(), name='add-document'),
-    path('documents/<int:pk>/delete/', views.delete_document, name='delete-document'),
-    path('documents/<int:pk>/edit/', views.edit_document_description, name='edit-document-description'),
+    path('document/<int:pk>/edit/', views.edit_document, name='edit-document'),
+    path('document/<int:pk>/delete/', views.delete_document, name='delete-document'),
 
 
     path('ruta/<int:pk>/', views.RutaDetailView.as_view(), name='ruta_detail'),
@@ -24,6 +26,7 @@ urlpatterns = [
 
     path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
     path('buceo/', views.BuceoMttoView.as_view(), name='buceomtto'),
+    path('vehiculos/', views.VehiculosMttoView.as_view(), name='vehiculosmtto'),
     path("dash/", views.indicadores, name='dashboard'),
 
     path("asset/<str:pk>/schedule/", views.schedule, name="schedule"),
@@ -59,7 +62,6 @@ urlpatterns = [
     path("report_pdf/<int:num_ot>/", views.ot_pdf, name='report'),
 
     path("tasks/", views.AssignedTaskByUserListView.as_view(), name="my-tasks"),
-    path("task/<int:pk>/", views.TaskDetailView.as_view(), name="task-detail"),
     path('task/<str:pk>/create/', views.TaskCreate.as_view(), name='task-create'),
     path('task/<int:pk>/update/', views.TaskUpdate.as_view(), name='task-update'),
     path('task/<int:pk>/delete/', views.TaskDelete.as_view(), name='task-delete'),

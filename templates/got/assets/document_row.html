@@ -1,0 +1,66 @@
+{% comment %}
+Se quita box-shadow y se agrega alternado de color con nth-child(even).
+No se requiere inline box-shadow.
+Se asume que el alternating se logrará con CSS nth-child, 
+por ejemplo en un CSS global:
+tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+Aquí lo dejamos sin box-shadow y sin background inline.
+{% endcomment %}
+<tr data-doc-name="{{ doc.description|lower }}">
+    <td data-field="description" style="padding:0.5rem;font-weight:500;">{{ doc.description }}</td>
+    <td style="padding:0.5rem;" class="text-muted">{{ doc.get_doc_type_display }}</td>
+    <td style="padding:0.5rem;">
+        {% if doc.ot %}
+            <a href="{{ doc.ot.get_absolute_url }}" class="text-decoration-none text-body">OT-{{ doc.ot.num_ot }}</a>
+        {% elif doc.equipo %}
+            <a href="{{ doc.equipo.get_absolute_url }}" class="text-decoration-none text-body">{{ doc.equipo.name }}</a>
+        {% elif doc.asset %}
+            <a href="{{ doc.asset.get_absolute_url }}" class="text-decoration-none text-body">{{ doc.asset.name }}</a>
+        {% else %}
+            <span class="text-muted">-</span>
+        {% endif %}
+    </td>
+    <td style="padding:0.5rem;">
+        {% if doc.tags.all %}
+            {% for t in doc.tags.all %}
+                <span class="badge bg-light text-secondary border me-1" style="font-size:0.75rem;">{{ t.name }}</span>
+            {% endfor %}
+        {% else %}
+            <span class="text-muted">-</span>
+        {% endif %}
+    </td>
+    <td style="padding:0.5rem;">
+        {% if doc.date_expiry %}
+            {% if doc.date_expiry < today %}
+                <span style="color:red;font-weight:bold;font-size:0.85rem;">{{ doc.date_expiry|date:"d/m/Y" }}</span>
+            {% else %}
+                <span class="text-muted" style="font-size:0.85rem;">{{ doc.date_expiry|date:"d/m/Y" }}</span>
+            {% endif %}
+        {% else %}
+            <span class="text-muted">-</span>
+        {% endif %}
+    </td>
+    <td style="padding:0.5rem;" class="text-muted">{{ doc.creation|date:"d/m/Y" }}</td>
+    <td style="padding:0.5rem;" class="text-muted">
+        {% if doc.uploaded_by %}
+            {{ doc.uploaded_by.get_full_name }}
+        {% else %}
+            <span class="text-muted">-</span>
+        {% endif %}
+    </td>
+    <td style="padding:0.5rem;" class="text-end">
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-light border edit-doc-btn" data-doc-id="{{ doc.id }}" data-doc-desc="{{ doc.description }}" style="opacity:0.8;">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button type="button" class="btn btn-light border delete-doc-btn" data-doc-id="{{ doc.id }}" style="opacity:0.8;">
+                <i class="bi bi-trash"></i>
+            </button>
+            <a href="{{ doc.file.url }}" class="btn btn-light border" target="_blank" title="Ver Documento" style="opacity:0.8;">
+                <i class="bi bi-file-earmark"></i>
+            </a>
+        </div>
+    </td>
+</tr>

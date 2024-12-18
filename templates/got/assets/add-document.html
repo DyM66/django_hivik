@@ -3,56 +3,169 @@
 {% block content %}
 <div class="container my-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Documentos asociados a {{ asset.name }} ({{ asset.abbreviation }})</h2>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDocumentModal">
-            <i class="bi bi-plus"></i> Agregar Documento
+        <h2 class="m-0" style="font-size:1.2rem; font-weight:500;">
+            Documentos de {{ asset.name }} ({{ asset.abbreviation }})
+        </h2>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addDocumentModal">
+            <i class="bi bi-plus"></i> Agregar
         </button>
     </div>
 
-    <!-- Opcional: Filtro por nombre -->
+    <!-- Filtro por nombre -->
     <div class="mb-3">
-        <input type="text" id="docFilter" class="form-control" placeholder="Filtrar documentos por nombre...">
+        <form method="get" class="d-flex" style="gap:0.5rem;">
+            <input type="text" name="keyword" class="form-control form-control-sm" placeholder="Filtrar documentos..." value="{{ request.GET.keyword }}">
+            <button type="submit" class="btn btn-sm btn-secondary">Buscar</button>
+        </form>
     </div>
 
-    <table class="table table-striped table-bordered align-middle">
-        <thead class="table-light">
-            <tr>
-                <th>Nombre del Documento</th>
-                <th style="width: 120px;">Acciones</th>
-            </tr>
-        </thead>
-        <tbody id="docTableBody">
+    <div class="table-responsive" style="font-size:0.9rem;">
+        <table class="table align-middle" id="docTable">
+            <thead style="font-size:0.85rem; font-weight:600; background-color:#f0f0f3;">
+                <tr>
+                    <th style="padding:0.5rem;">Nombre</th>
+                    <th style="padding:0.5rem;">Tipo</th>
+                    <th style="padding:0.5rem;">Asociación</th>
+                    <th style="padding:0.5rem;">Etiquetas</th>
+                    <th style="padding:0.5rem;">Expiración</th>
+                    <th style="padding:0.5rem;">Creado</th>
+                    <th style="padding:0.5rem;" class="nowrap">Subido por</th>
+                    <th style="padding:0.5rem;" class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="docTableBody" style="font-size:0.9rem;">
             {% for doc in documents %}
-                <tr data-doc-name="{{ doc.description|lower }}">
-                    <td>{{ doc.description }}</td>
-                    <td class="text-center">
-                        <!-- Botón Editar -->
-                        <button type="button" class="btn btn-sm btn-warning edit-doc-btn" data-doc-id="{{ doc.id }}" data-doc-desc="{{ doc.description }}">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <!-- Botón Eliminar -->
-                        <button type="button" class="btn btn-sm btn-danger delete-doc-btn" data-doc-id="{{ doc.id }}">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                        <!-- Link de descarga del archivo -->
-                        <a href="{{ doc.file.url }}" class="btn btn-sm btn-info" target="_blank" title="Ver Documento">
-                            <i class="bi bi-file-earmark"></i>
-                        </a>
+                <tr data-doc-name="{{ doc.description|lower }}"{% if forloop.counter0|divisibleby:2 %} style="background:#fcfcfc;"{% endif %}>
+                    <td style="padding:0.5rem;font-weight:500;">{{ doc.description }}</td>
+                    <td style="padding:0.5rem;" class="text-muted">{{ doc.get_doc_type_display }}</td>
+                    <td style="padding:0.5rem;">
+                        {% if doc.ot %}
+                            <a href="{{ doc.ot.get_absolute_url }}" class="text-decoration-none text-body">OT-{{ doc.ot.num_ot }}</a>
+                        {% elif doc.equipo %}
+                            <a href="{{ doc.equipo.get_absolute_url }}" class="text-decoration-none text-body">{{ doc.equipo.name }}</a>
+                        {% elif doc.asset %}
+                            <a href="{{ doc.asset.get_absolute_url }}" class="text-decoration-none text-body">{{ doc.asset.name }}</a>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.5rem;">
+                        {% if doc.tags.all %}
+                            {% for t in doc.tags.all %}
+                                <span class="badge bg-light text-secondary border me-1" style="font-size:0.75rem;">{{ t.name }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.5rem;">
+                        {% if doc.date_expiry %}
+                            {% if doc.is_expired %}
+                                <span style="color:red;font-weight:bold;font-size:0.85rem;">{{ doc.date_expiry|date:"d/m/Y" }}</span>
+                            {% else %}
+                                <span class="text-muted" style="font-size:0.85rem;">{{ doc.date_expiry|date:"d/m/Y" }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.5rem;" class="text-muted">{{ doc.creation|date:"d/m/Y" }}</td>
+                    <td style="padding:0.5rem;" class="text-muted">
+                        {% if doc.uploaded_by %}
+                            {{ doc.uploaded_by.get_full_name }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.5rem;" class="text-end">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-light border" data-bs-toggle="modal" data-bs-target="#editDocumentModal{{ doc.id }}" style="opacity:0.8;">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <form method="post" action="{% url 'got:delete-document' doc.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-light border" style="opacity:0.8;">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            <a href="{{ doc.file.url }}" class="btn btn-light border" target="_blank" title="Ver Documento" style="opacity:0.8;">
+                                <i class="bi bi-file-earmark"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
+
+                <!-- Modal Editar para este doc -->
+                <div class="modal fade" id="editDocumentModal{{ doc.id }}" tabindex="-1" aria-labelledby="editDocumentModalLabel{{ doc.id }}" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content" style="font-size:0.9rem;">
+                        <form method="post" action="{% url 'got:edit-document' doc.id %}">
+                            {% csrf_token %}
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editDocumentModalLabel{{ doc.id }}">Editar Documento</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre del Documento</label>
+                                    <input type="text" class="form-control" name="description" value="{{ doc.description }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Tipo de documento</label>
+                                    <select class="form-select" name="doc_type">
+                                        <option value="o" {% if doc.doc_type == 'o' %}selected{% endif %}>Otro</option>
+                                        <option value="c" {% if doc.doc_type == 'c' %}selected{% endif %}>Certificado</option>
+                                        <option value="f" {% if doc.doc_type == 'f' %}selected{% endif %}>Ficha técnica</option>
+                                        <option value="i" {% if doc.doc_type == 'i' %}selected{% endif %}>Informe</option>
+                                        <option value="m" {% if doc.doc_type == 'm' %}selected{% endif %}>Manual</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input edit-expiry-checkbox" type="checkbox" id="edit_has_expiry_checkbox{{ doc.id }}" {% if doc.date_expiry %}checked{% endif %}>
+                                        <label class="form-check-label" for="edit_has_expiry_checkbox{{ doc.id }}">¿Tiene fecha de expiración?</label>
+                                    </div>
+                                    <div class="mt-2 edit-expiry-container" {% if not doc.date_expiry %}style="display:none;"{% endif %}>
+                                        <label class="form-label">Fecha de expiración</label>
+                                        <input type="date" class="form-control" name="date_expiry" {% if doc.date_expiry %}value="{{ doc.date_expiry|date:'Y-m-d' }}"{% endif %}>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Etiquetas (opcional)</label>
+                                    <small class="text-muted d-block mb-1">Use comas para separar.</small>
+                                    {% if doc.tags.all %}
+                                        {% with tag_list=doc.tags.all|join:", " %}
+                                            <input type="text" class="form-control" name="tags" value="{{ tag_list }}">
+                                        {% endwith %}
+                                    {% else %}
+                                        <input type="text" class="form-control" name="tags" placeholder="ej: seguridad, manual, repuesto">
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                  </div>
+                </div>
             {% empty %}
                 <tr>
-                    <td colspan="2">No se han encontrado documentos.</td>
+                    <td colspan="8" class="text-muted" style="padding:0.5rem; text-align:center;">
+                        No se han encontrado documentos.
+                    </td>
                 </tr>
             {% endfor %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Modal Agregar Documento -->
 <div class="modal fade" id="addDocumentModal" tabindex="-1" aria-labelledby="addDocumentModalLabel" aria-hidden="true">
   <div class="modal-dialog">
-    <div class="modal-content">
+    <div class="modal-content" style="font-size:0.9rem;">
         <form method="post" enctype="multipart/form-data" action="{% url 'got:add-document' asset.abbreviation %}">
             {% csrf_token %}
             <div class="modal-header">
@@ -60,7 +173,33 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                {{ form.as_p }}
+                <div class="mb-3">
+                    <label for="id_description" class="form-label">Nombre del documento</label>
+                    {{ form.description }}
+                </div>
+                <div class="mb-3">
+                    <label for="id_file" class="form-label">Archivo</label>
+                    {{ form.file }}
+                </div>
+                <div class="mb-3">
+                    <label for="id_doc_type" class="form-label">Tipo de documento</label>
+                    {{ form.doc_type }}
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input add-expiry-checkbox" type="checkbox" value="1" id="add_has_expiry_checkbox">
+                        <label class="form-check-label" for="add_has_expiry_checkbox">¿Tiene fecha de expiración?</label>
+                    </div>
+                    <div id="add_expiry_date_container" style="display:none;margin-top:10px;">
+                        <label for="id_date_expiry" class="form-label">Fecha de expiración</label>
+                        {{ form.date_expiry }}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="id_tags" class="form-label">Etiquetas (opcional)</label>
+                    <small class="text-muted d-block mb-1">Use comas para separar.</small>
+                    {{ form.tags }}
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-success">Guardar</button>
@@ -71,140 +210,22 @@
   </div>
 </div>
 
-<!-- Modal Editar Documento -->
-<div class="modal fade" id="editDocumentModal" tabindex="-1" aria-labelledby="editDocumentModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-        <form id="editDocumentForm" method="post">
-            {% csrf_token %}
-            <div class="modal-header">
-                <h5 class="modal-title" id="editDocumentModalLabel">Editar Nombre de Documento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" name="doc_id" id="editDocId">
-                <div class="mb-3">
-                    <label for="editDocDesc" class="form-label">Nombre del Documento</label>
-                    <input type="text" class="form-control" id="editDocDesc" name="description" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            </div>
-        </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Confirmar Eliminación -->
-<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-        <input type="hidden" id="deleteDocId">
-        <div class="modal-header">
-            <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmar Eliminación</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-            ¿Está seguro que desea eliminar este documento?
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        </div>
-    </div>
-  </div>
-</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Filtro
-    const docFilterInput = document.getElementById('docFilter');
-    const docTableBody = document.getElementById('docTableBody');
-    docFilterInput.addEventListener('input', function() {
-        const filterValue = this.value.toLowerCase();
-        const rows = docTableBody.querySelectorAll('tr[data-doc-name]');
-        rows.forEach(row => {
-            const docName = row.getAttribute('data-doc-name');
-            if (docName.includes(filterValue)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+    // Para el modal de agregar
+    const addExpiryCheckbox = document.getElementById('add_has_expiry_checkbox');
+    const addExpiryContainer = document.getElementById('add_expiry_date_container');
+    addExpiryCheckbox.addEventListener('change', function() {
+        addExpiryContainer.style.display = this.checked ? 'block' : 'none';
+    });
+
+    // Para los modales de editar
+    document.querySelectorAll('.edit-expiry-checkbox').forEach(checkbox => {
+        const modal = checkbox.closest('.modal-content');
+        const container = modal.querySelector('.edit-expiry-container');
+        checkbox.addEventListener('change', function() {
+            container.style.display = this.checked ? 'block' : 'none';
         });
-    });
-
-    // Eliminar documento
-    let deleteDocId = null;
-    document.querySelectorAll('.delete-doc-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            deleteDocId = this.getAttribute('data-doc-id');
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-            deleteModal.show();
-        });
-    });
-
-    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-        if (deleteDocId) {
-            fetch("{% url 'got:delete-document' 0 %}".replace('/0/', '/' + deleteDocId + '/'), {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{csrf_token}}'
-                }
-            }).then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok') {
-                    // Eliminar la fila de la tabla
-                    const row = docTableBody.querySelector('button.delete-doc-btn[data-doc-id="'+deleteDocId+'"]').closest('tr');
-                    row.remove();
-                }
-            });
-            const deleteModalEl = document.getElementById('deleteConfirmModal');
-            const deleteModal = bootstrap.Modal.getInstance(deleteModalEl);
-            deleteModal.hide();
-        }
-    });
-
-    // Editar documento
-    let editDocId = null;
-    document.querySelectorAll('.edit-doc-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            editDocId = this.getAttribute('data-doc-id');
-            const docDesc = this.getAttribute('data-doc-desc');
-            document.getElementById('editDocId').value = editDocId;
-            document.getElementById('editDocDesc').value = docDesc;
-            const editModal = new bootstrap.Modal(document.getElementById('editDocumentModal'));
-            editModal.show();
-        });
-    });
-
-    document.getElementById('editDocumentForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const docId = document.getElementById('editDocId').value;
-        const newDesc = document.getElementById('editDocDesc').value.trim();
-        if (newDesc) {
-            fetch("{% url 'got:edit-document-description' 0 %}".replace('/0/', '/' + docId + '/'), {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{csrf_token}}',
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: 'description=' + encodeURIComponent(newDesc)
-            }).then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok') {
-                    // Actualizar la fila en la tabla
-                    const row = docTableBody.querySelector('button.edit-doc-btn[data-doc-id="'+docId+'"]').closest('tr');
-                    row.querySelector('td:first-child').textContent = data.description;
-                    row.setAttribute('data-doc-name', data.description.toLowerCase());
-                    row.querySelector('.edit-doc-btn').setAttribute('data-doc-desc', data.description);
-                }
-            });
-            const editModalEl = document.getElementById('editDocumentModal');
-            const editModal = bootstrap.Modal.getInstance(editModalEl);
-            editModal.hide();
-        }
     });
 });
 </script>

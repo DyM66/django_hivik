@@ -1,0 +1,104 @@
+{% extends "got/base/base_generic.html" %}
+{% load my_tags %}
+{% block content %}
+<main class="px-3">
+    <h1>
+        Actividades pendientes
+        {% if request.GET.asset_id %}
+            - {{ request.GET.asset_id|asset_info }}
+        {% endif %}
+        {% if request.GET.worker %}
+           / {{ request.GET.worker|user_info }}
+        {% endif %}
+    </h1>
+
+    <div class="row">
+        <div class="col-auto mb-3">
+            <div class="card rounded shadow ind">
+                <div class="row">
+                    <div class="card-body col-auto">
+                        <h5 class="card-title">Total de actividades pendientes</h5>
+                        <h1 class="display-1">{{ total_tasks }}</h1> 
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <aside>
+                {% if not request.user|has_group:"maq_members" %}
+                    <div class="btn-group-vertical w-100 mb-2" role="group">
+                        <button type="button" class="btn btn-primary dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                            Filtrar por equipo
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}?worker={{ request.GET.worker }}">Mostrar todos</a></li>
+                            {% for asset in assets %}
+                                <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}?asset_id={{ asset.abbreviation }}&worker={{ request.GET.worker }}">{{ asset.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                {% if not request.user|has_group:"serport_members" %}
+                    <div class="btn-group-vertical w-100 mb-2" role="group">
+                        <button type="button" class="btn btn-primary dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                            Filtrar por taller
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}?asset_id={{ request.GET.asset_id }}">Mostrar todos</a></li>
+                            {% for u in all_users %}
+                                <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}?asset_id={{ request.GET.asset_id }}&worker={{ u.id }}">{{ u.first_name }} {{ u.last_name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </aside>
+        </div>
+    </div>
+
+    <table class="table-list">
+        <thead>
+            <tr>
+                <th scope="col">#OT</th>
+                <th scope="col">Sistema</th>
+                <th scope="col">Descripción</th>
+                <th scope="col">Responsable</th>
+                <th scope="col">Tiempo de ejecución</th>
+                <th scope="col">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for act in task_list %}
+                <tr data-dropdown-target="#dropdown-{{ act.id }}">
+                    <td data-cell="Orden de trabajo" class="nowrap"><strong>OT-{{ act.ot.num_ot }}</strong></td>
+                    <td data-cell="Sistema">{{ act.ot.system.asset }}/{{ act.ot.system.name }}</td>
+                    <td data-cell="Descripción">{{ act.description }}</td>
+                    <td data-cell="Responsable">{{ act.responsible.first_name }} {{ act.responsible.last_name }}</td>
+                    <td data-cell="Tiempo de ejecución">{{ act.start_date|date:"d/m/Y" }}-{{ act.final_date|date:"d/m/Y" }}</td>
+                    <td data-cell="Estado">
+                        <div class="dropdown">
+                            <button class="btn status {% if act.is_overdue %}close{% else %}pending{% endif %} btn-sm dropdown-toggle" type="button" id="dropdown-{{ act.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% if act.is_overdue %}Retrasado{% else %}En progreso{% endif %}
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdown-{{ act.id }}">
+                                <li><a class="dropdown-item" href="{% url 'got:ot-detail' act.ot.num_ot %}">Ver detalle</a></li>
+                                {% if not request.user|can_edit_task:act %}
+                                    <li><a class="dropdown-item" href="{% url 'got:finish-task' act.id %}">Finalizar</a></li>
+                                {% endif %}
+                                {% if perms.got.can_reschedule_task %}
+                                    <li><a class="dropdown-item" href="{% url 'got:reschedule-task' act.id %}">Reprogramar</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{% url 'got:create-solicitud-ot' act.ot.system.asset.abbreviation act.ot.num_ot %}">Nueva solicitud</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td>No hay actividades registradas</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</main>
+{% endblock %}

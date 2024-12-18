@@ -554,9 +554,6 @@ class Task(models.Model):
 
     def __str__(self):
         return self.description
-
-    def get_absolute_url(self):
-        return reverse('got:task-detail', args=[str(self.id)])
  
     class Meta:
         permissions = (('can_reschedule_task', 'Reprogramar actividades'), ('can_modify_any_task', 'Can modify any task'),)
@@ -879,8 +876,24 @@ class Image(models.Model):
     requirements = models.ForeignKey(Requirement, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+from taggit.managers import TaggableManager
 # Model 24: Documentos
 class Document(models.Model):
+    DOC_TYPES = [
+        ('c', 'Certificado'),
+        ('f', 'Ficha técnica'),
+        ('i', 'Informe'),
+        ('m', 'Manual'),
+        ('p', 'plano'),
+        ('o', 'Otro'),
+    ]
 
     asset = models.ForeignKey(Asset, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
     ot = models.ForeignKey(Ot, related_name='documents', on_delete=models.CASCADE, null=True, blank=True)
@@ -888,5 +901,12 @@ class Document(models.Model):
     file = models.FileField(upload_to=get_upload_pdfs)
     description = models.CharField(max_length=200)
     creation = models.DateField(auto_now_add=True)
+    doc_type = models.CharField(max_length=1, choices=DOC_TYPES, default='o')
+    date_expiry = models.DateField(null=True, blank=True)
+    uploaded_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='uploaded_documents')
+    tags = TaggableManager(blank=True)
+
+    def __str__(self):
+        return self.description
 
 
