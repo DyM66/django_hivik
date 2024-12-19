@@ -3946,7 +3946,7 @@ def calculate_executions(ruta, period_start, period_end):
 
     else:
         return 0
-
+    
 
 class BudgetView(TemplateView):
     template_name = 'got/mantenimiento/budget_view.html'
@@ -3964,7 +3964,7 @@ class BudgetView(TemplateView):
         else:
             rutas = Ruta.objects.all()
 
-        # Periodo de interés
+        # Periodo de interés: enero 2025 a julio 2025
         period_start = date(2025, 1, 1)
         period_end = date(2025, 7, 31)
 
@@ -3975,6 +3975,7 @@ class BudgetView(TemplateView):
             num_executions = calculate_executions(ruta, period_start, period_end)
             if num_executions == 0:
                 continue
+
             requisitos = ruta.requisitos.all()
             for req in requisitos:
                 total_quantity = req.cantidad * num_executions
@@ -4001,7 +4002,7 @@ class BudgetView(TemplateView):
                             'num_executions': num_executions,
                             'unit_price': unit_price,
                             'reference': reference,
-                            'type': 'item',  # para saber que es artículo
+                            'type': 'item',
                             'id': key if isinstance(key, int) else None
                         }
                     else:
@@ -4013,7 +4014,7 @@ class BudgetView(TemplateView):
                         name = req.service.description
                         presentacion = 'Serv'
                         unit_price = req.service.unit_price if req.service.unit_price else Decimal('0.00')
-                        reference = ''  # no aplica
+                        reference = ''
                     else:
                         key = ('desc_s', req.descripcion)
                         name = req.descripcion
@@ -4028,7 +4029,7 @@ class BudgetView(TemplateView):
                             'total_quantity': total_quantity,
                             'num_executions': num_executions,
                             'unit_price': unit_price,
-                            'type': 'service',  # para saber que es servicio
+                            'type': 'service',
                             'id': key if isinstance(key, int) else None
                         }
                     else:
@@ -4041,18 +4042,16 @@ class BudgetView(TemplateView):
         for svc in service_totals.values():
             svc['total_cost'] = svc['total_quantity'] * svc['unit_price']
 
-        # Ordenar artículos por nombre, luego por reference (si tuviéramos el reference en item):
-        # Convertir a lista para ordenar
+        # Ordenar artículos por nombre y luego por reference
         item_list = list(item_totals.values())
         item_list.sort(key=lambda x: (
-            x['name'].name.lower() if hasattr(x['name'], 'name') else str(x['name']).lower(),
+            str(x['name'].name).lower() if hasattr(x['name'], 'name') and x['name'].name is not None else str(x['name']).lower(),
             x['reference'].lower() if x['reference'] else ''
         ))
 
-
         # Ordenar servicios por nombre
         service_list = list(service_totals.values())
-        service_list.sort(key=lambda x: x['name'].lower())
+        service_list.sort(key=lambda x: str(x['name'] or '').lower())
 
         total_articulos = sum(i['total_cost'] for i in item_list)
         total_servicios = sum(s['total_cost'] for s in service_list)
@@ -4083,7 +4082,6 @@ class BudgetView(TemplateView):
                 new_price = Decimal('0.00')
 
             if obj_type == 'item':
-                # Actualizar el precio del Item
                 item = get_object_or_404(Item, pk=obj_id)
                 item.unit_price = new_price
                 item.save()
