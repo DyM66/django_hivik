@@ -117,6 +117,22 @@
 							{% else %}
 								<p>No hay actividades registradas.</p>
 							{% endif %}
+							    
+							<!-- Agregar el listado de requerimientos -->
+							{% if ruta.requisitos.all %}
+								<h4>Requerimientos:</h4>
+								<ul>
+									{% for req in ruta.requisitos.all %}
+										<li>
+											{{ req.descripcion|default:req.item }} - {{ req.cantidad }}
+											{% if req.tipo in material_types and req.item %}{{ req.item.presentacion }}{% endif %}
+											{% if req.tipo == 's' %} servicios{% endif %}
+										</li>
+									{% endfor %}
+								</ul>
+							{% else %}
+								<p>No hay requerimientos registrados.</p>
+							{% endif %}
 						</div>
 					</td>
 				</tr>
