@@ -124,7 +124,18 @@
 								<ul>
 									{% for req in ruta.requisitos.all %}
 										<li>
-											{{ req.descripcion|default:req.item }} - {{ req.cantidad }}
+											{% if req.tipo in material_types %}
+												{{ req.item }}
+											{% elif req.tipo == 's' %}
+												{% if req.service %}
+													{{ req.service.description }}
+												{% else %}
+													Servicio sin nombre
+												{% endif %}
+											{% else %}
+												Requerimiento sin tipo definido
+											{% endif %}
+											- {{ req.cantidad }}
 											{% if req.tipo in material_types and req.item %}{{ req.item.presentacion }}{% endif %}
 											{% if req.tipo == 's' %} servicios{% endif %}
 										</li>
@@ -133,6 +144,7 @@
 							{% else %}
 								<p>No hay requerimientos registrados.</p>
 							{% endif %}
+
 						</div>
 					</td>
 				</tr>
