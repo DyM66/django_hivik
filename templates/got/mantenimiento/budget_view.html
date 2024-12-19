@@ -1,6 +1,13 @@
 {% extends 'got/base/base_generic.html' %}
-{% load static %} 
+{% load my_tags %}
+
 {% block content %}
+<style>
+    body {
+        font-size: 0.9rem; /* Disminuir un poco el tamaño de la letra */
+    }
+</style>
+
 <h1>Presupuesto Enero 2025 - Julio 2025</h1>
 <p>Período: {{ period_start|date:"d/m/Y" }} - {{ period_end|date:"d/m/Y" }}</p>
 
@@ -17,7 +24,7 @@
 </form>
 
 <h2>Artículos</h2>
-<table class="table">
+<table class="table table-sm">
     <thead>
         <tr>
             <th>Artículo</th>
@@ -34,26 +41,26 @@
             <td>{{ item.presentacion }}</td>
             <td>{{ item.total_quantity }}</td>
             <td>
-                {{ item.unit_price|floatformat:2 }} COP
+                {{ item.unit_price|currency }}
                 {% if item.id %}
                 <a href="#" class="ms-2" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
-                   data-obj-type="item" data-obj-id="{{ item.id }}" data-current-price="{{ item.unit_price|floatformat:2 }}">
+                   data-obj-type="item" data-obj-id="{{ item.id }}" data-current-price="{{ item.unit_price }}">
                    <i class="bi bi-pencil" style="opacity:0.7;"></i>
                 </a>
                 {% endif %}
             </td>
-            <td>{{ item.total_cost|floatformat:2 }} COP</td>
+            <td>{{ item.total_cost|currency }}</td>
         </tr>
         {% endfor %}
         <tr>
             <td colspan="4" class="text-end"><strong>Total Artículos:</strong></td>
-            <td><strong>{{ total_articulos|floatformat:2 }} COP</strong></td>
+            <td><strong>{{ total_articulos|currency }}</strong></td>
         </tr>
     </tbody>
 </table>
 
 <h2>Servicios</h2>
-<table class="table">
+<table class="table table-sm">
     <thead>
         <tr>
             <th>Servicio</th>
@@ -70,20 +77,20 @@
             <td>{{ svc.presentacion }}</td>
             <td>{{ svc.total_quantity }}</td>
             <td>
-                {{ svc.unit_price|floatformat:2 }} COP
+                {{ svc.unit_price|currency }}
                 {% if svc.id %}
                 <a href="#" class="ms-2" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
-                   data-obj-type="service" data-obj-id="{{ svc.id }}" data-current-price="{{ svc.unit_price|floatformat:2 }}">
+                   data-obj-type="service" data-obj-id="{{ svc.id }}" data-current-price="{{ svc.unit_price }}">
                    <i class="bi bi-pencil" style="opacity:0.7;"></i>
                 </a>
                 {% endif %}
             </td>
-            <td>{{ svc.total_cost|floatformat:2 }} COP</td>
+            <td>{{ svc.total_cost|currency }}</td>
         </tr>
         {% endfor %}
         <tr>
             <td colspan="4" class="text-end"><strong>Total Servicios:</strong></td>
-            <td><strong>{{ total_servicios|floatformat:2 }} COP</strong></td>
+            <td><strong>{{ total_servicios|currency }}</strong></td>
         </tr>
     </tbody>
 </table>

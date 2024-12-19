@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 import os
 from django.db.models.functions import Concat
 from django.db.models import Value
+from decimal import Decimal
 
 register = template.Library()
 
@@ -191,3 +192,12 @@ def dict_key(d, key):
 @register.simple_tag
 def obtener_vehiculos():
     return Equipo.objects.filter(system__asset__abbreviation='VEH').order_by('name')
+
+@register.filter
+def currency(value):
+    try:
+        val = Decimal(value)
+    except:
+        val = Decimal('0.00')
+    # Formatear con separador de miles y 2 decimales
+    return f"{val:,.2f} COP"

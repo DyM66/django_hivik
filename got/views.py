@@ -595,8 +595,6 @@ def delete_document(request, pk):
         return redirect('got:asset-documents', abbreviation=abbr)
     return redirect('got:asset-documents', abbreviation='AAA')
 
-
-'RUTINAS VIEWS'
 class RutaDetailView(LoginRequiredMixin, generic.DetailView):
     model = Ruta
     template_name = 'got/rutinas/ruta_detail.html'
@@ -611,7 +609,42 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
         context['all_items'] = all_items
         context['all_services'] = all_services
         context['tasks'] = ruta.task_set.all().order_by('-priority')
-        context['requirements'] = ruta.requisitos.all()
+        requirements = ruta.requisitos.all()
+
+        # Separar requerimientos en artículos y servicios
+        art_requirements = []
+        svc_requirements = []
+        material_types = ['m', 'h']
+
+        for req in requirements:
+            if req.tipo in material_types:
+                # Requerimiento de artículo
+                # Determinar nombre para orden
+                if req.item:
+                    name = str(req.item)
+                else:
+                    name = str(req.descripcion)
+                art_requirements.append((name.lower(), req))
+            elif req.tipo == 's':
+                # Requerimiento de servicio
+                # Determinar nombre para orden
+                if req.service:
+                    name = req.service.description.lower()
+                else:
+                    name = str(req.descripcion).lower()
+                svc_requirements.append((name, req))
+
+        # Ordenar listas por nombre
+        art_requirements.sort(key=lambda x: x[0])
+        svc_requirements.sort(key=lambda x: x[0])
+
+        # Extraer solo los requerimientos ya ordenados
+        art_requirements = [req for _, req in art_requirements]
+        svc_requirements = [req for _, req in svc_requirements]
+
+        context['requirements_art'] = art_requirements
+        context['requirements_svc'] = svc_requirements
+
         context['task_form'] = RutActForm(asset=ruta.system.asset)
         context['requirement_form'] = MaintenanceRequirementForm()
         context['service_form'] = ServiceForm()  # Para crear un nuevo servicio
@@ -627,10 +660,10 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
         }
         context['requirement_edit_forms'] = {
             req.id: MaintenanceRequirementForm(instance=req)
-            for req in ruta.requisitos.all()
+            for req in requirements
         }
 
-        context['material_types'] = ['m', 'h']
+        context['material_types'] = material_types
 
         return context
 
@@ -3952,19 +3985,15 @@ class BudgetView(TemplateView):
     template_name = 'got/mantenimiento/budget_view.html'
 
     def get_assets_list(self):
-        # Filtrar los assets tipo 'a' (motonaves) y show=True
         return Asset.objects.filter(area='a', show=True).order_by('name')
 
     def get(self, request, *args, **kwargs):
-        # Manejar el filtrado por asset
         asset_abbr = request.GET.get('asset_abbr', '')
         if asset_abbr:
-            # Filtrar rutas por este asset
             rutas = Ruta.objects.filter(system__asset__abbreviation=asset_abbr)
         else:
             rutas = Ruta.objects.all()
 
-        # Periodo de interés: enero 2025 a julio 2025
         period_start = date(2025, 1, 1)
         period_end = date(2025, 7, 31)
 
@@ -4035,21 +4064,18 @@ class BudgetView(TemplateView):
                     else:
                         service_totals[key]['total_quantity'] += total_quantity
 
-        # Calcular total_cost
         for item in item_totals.values():
             item['total_cost'] = item['total_quantity'] * item['unit_price']
 
         for svc in service_totals.values():
             svc['total_cost'] = svc['total_quantity'] * svc['unit_price']
 
-        # Ordenar artículos por nombre y luego por reference
         item_list = list(item_totals.values())
         item_list.sort(key=lambda x: (
             str(x['name'].name).lower() if hasattr(x['name'], 'name') and x['name'].name is not None else str(x['name']).lower(),
             x['reference'].lower() if x['reference'] else ''
         ))
 
-        # Ordenar servicios por nombre
         service_list = list(service_totals.values())
         service_list.sort(key=lambda x: str(x['name'] or '').lower())
 
@@ -4072,7 +4098,6 @@ class BudgetView(TemplateView):
     def post(self, request, *args, **kwargs):
         action = request.POST.get('action')
         if action == 'update_unit_price':
-            # Actualizar el valor unitario de item o servicio
             obj_type = request.POST.get('obj_type')
             obj_id = request.POST.get('obj_id')
             new_price = request.POST.get('new_price')
