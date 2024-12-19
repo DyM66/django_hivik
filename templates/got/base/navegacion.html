@@ -95,6 +95,13 @@
                     </li>
                 {% endif %}
             
+                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'budget_view' %}active{% endif %}" href="{% url 'got:budget_view' %}">
+                        Presupuesto
+                    </a>
+                </li>
+                {% endif %}
                 
                 <!-- Dropdown de Vehículos -->
                 <li class="nav-item dropdown">

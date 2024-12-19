@@ -38,6 +38,9 @@ from .utils import *
 from .models import *
 from .forms import *
 from datetime import datetime, time, date
+from taggit.models import Tag 
+from django.http import HttpResponseForbidden
+
 
 logger = logging.getLogger(__name__)
 
@@ -462,7 +465,6 @@ def delete_transaction(request, transaction_id):
         return redirect(next_url)
 
 
-# @method_decorator(login_required, name='dispatch')
 class AssetDocumentsView(View):
     form_class = DocumentForm
     template_name = 'got/assets/add-document.html'
@@ -491,7 +493,7 @@ class AssetDocumentsView(View):
             if doc.date_expiry and doc.date_expiry < today:
                 doc.is_expired = True
 
-        existing_tags = Tag.objects.all().order_by('name') 
+        existing_tags = Tag.objects.annotate(num_docs=Count('taggit_taggeditem_items')).filter(num_docs__gt=0).order_by('name')
 
         context = {
             'asset': asset,
@@ -516,8 +518,44 @@ class AssetDocumentsView(View):
             form.save_m2m()
             return redirect('got:asset-documents', abbreviation=abbreviation)
         else:
-            return redirect('got:asset-documents', abbreviation=abbreviation)
+            systems = asset.systems.all()
+            ots = Ot.objects.filter(system__in=systems)
+            equipos = Equipo.objects.filter(system__in=systems)
 
+            all_docs = Document.objects.filter(
+                Q(asset=asset) | Q(ot__in=ots) | Q(equipo__in=equipos)
+            ).distinct()
+
+            keyword = request.GET.get('keyword', '').strip()
+            if keyword:
+                all_docs = all_docs.filter(description__icontains=keyword)
+
+            paginator = Paginator(all_docs, 30)  # 30 archivos por página
+            page_number = request.GET.get('page', 1)
+            page_obj = paginator.get_page(page_number)
+
+            today = date.today()
+            for doc in page_obj:
+                doc.is_expired = False
+                if doc.date_expiry and doc.date_expiry < today:
+                    doc.is_expired = True
+
+            existing_tags = Tag.objects.annotate(num_docs=Count('taggit_taggeditem_items')).filter(num_docs__gt=0).order_by('name')
+
+            context = {
+                'asset': asset,
+                'documents': page_obj,
+                'form': form,  # Mostrar el formulario con errores
+                'today': today,
+                'is_paginated': page_obj.has_other_pages(),
+                'page_obj': page_obj,
+                'existing_tags': existing_tags,
+                'request': request
+            }
+            return render(request, self.template_name, context)
+
+
+@login_required
 def edit_document(request, pk):
     doc = get_object_or_404(Document, pk=pk)
     if request.method == 'POST':
@@ -531,10 +569,11 @@ def edit_document(request, pk):
             elif doc.equipo:
                 abbr = doc.equipo.system.asset.abbreviation
             else:
-                abbr = 'AAA'
+                # Este caso nunca debería ocurrir debido a la validación del modelo
+                return redirect('got:asset-documents', abbreviation=abbr)
 
             return redirect('got:asset-documents', abbreviation=abbr)
-    # Si no es POST, vuelve a la página de documentos
+    # Si no es POST, redirigir a la lista de documentos
     if doc.asset:
         abbr = doc.asset.abbreviation
     elif doc.ot:
@@ -542,17 +581,18 @@ def edit_document(request, pk):
     elif doc.equipo:
         abbr = doc.equipo.system.asset.abbreviation
     else:
-        abbr = 'AAA'
+        abbr = 'AAA'  # Este caso no debería ocurrir
 
     return redirect('got:asset-documents', abbreviation=abbr)
 
 
 @login_required
 def delete_document(request, pk):
+    doc = get_object_or_404(Document, pk=pk)
     if request.method == 'POST':
-        doc = get_object_or_404(Document, pk=pk)
+        abbr = doc.asset.abbreviation if doc.asset else 'AAA'  # Este 'AAA' puede eliminarse si siempre hay un asset
         doc.delete()
-        return redirect('got:asset-documents', abbreviation=doc.asset.abbreviation if doc.asset else 'AAA')
+        return redirect('got:asset-documents', abbreviation=abbr)
     return redirect('got:asset-documents', abbreviation='AAA')
 
 
@@ -567,17 +607,20 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
         ruta = self.get_object()
 
         all_items = Item.objects.all()
+        all_services = Service.objects.all()  # servicios existentes
         context['all_items'] = all_items
+        context['all_services'] = all_services
         context['tasks'] = ruta.task_set.all().order_by('-priority')
         context['requirements'] = ruta.requisitos.all()
         context['task_form'] = RutActForm(asset=ruta.system.asset)
         context['requirement_form'] = MaintenanceRequirementForm()
+        context['service_form'] = ServiceForm()  # Para crear un nuevo servicio
+
         context['activity_logs'] = ActivityLog.objects.filter(
             model_name='Ruta',
             object_id=str(ruta.code)
         ).order_by('-timestamp')
 
-        # Edit forms for tasks and requirements
         context['task_edit_forms'] = {
             task.id: RutActForm(instance=task, asset=ruta.system.asset)
             for task in ruta.task_set.all()
@@ -587,10 +630,13 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
             for req in ruta.requisitos.all()
         }
 
+        context['material_types'] = ['m', 'h']
+
         return context
 
     def post(self, request, *args, **kwargs):
         ruta = self.get_object()
+        self.object = ruta
         action = request.POST.get('action')
 
         if action == 'create_task':
@@ -602,8 +648,12 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
                 task.modified_by = request.user
                 task.save()
                 messages.success(request, 'Actividad creada exitosamente.')
+                return redirect('got:ruta_detail', pk=ruta.pk)
             else:
                 messages.error(request, 'Error al crear la actividad.')
+                context = self.get_context_data()
+                context['task_form'] = task_form
+                return render(request, self.template_name, context)
 
         elif action == 'edit_task':
             task_id = request.POST.get('task_id')
@@ -616,12 +666,14 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
                 messages.success(request, 'Actividad actualizada exitosamente.')
             else:
                 messages.error(request, 'Error al actualizar la actividad.')
+            return redirect('got:ruta_detail', pk=ruta.pk)
 
         elif action == 'delete_task':
             task_id = request.POST.get('task_id')
             task = get_object_or_404(Task, id=task_id, ruta=ruta)
             task.delete()
             messages.success(request, 'Actividad eliminada exitosamente.')
+            return redirect('got:ruta_detail', pk=ruta.pk)
 
         elif action == 'create_requirement':
             requirement_form = MaintenanceRequirementForm(request.POST)
@@ -631,8 +683,15 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
                 requirement.modified_by = request.user
                 requirement.save()
                 messages.success(request, 'Requerimiento creado exitosamente.')
+                return redirect('got:ruta_detail', pk=ruta.pk)
             else:
+                for field, errors in requirement_form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"{field}: {error}")
                 messages.error(request, 'Error al crear el requerimiento.')
+                context = self.get_context_data()
+                context['requirement_form'] = requirement_form
+                return render(request, self.template_name, context)
 
         elif action == 'edit_requirement':
             requirement_id = request.POST.get('requirement_id')
@@ -645,17 +704,52 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
                 messages.success(request, 'Requerimiento actualizado exitosamente.')
             else:
                 messages.error(request, 'Error al actualizar el requerimiento.')
+            return redirect('got:ruta_detail', pk=ruta.pk)
 
         elif action == 'delete_requirement':
             requirement_id = request.POST.get('requirement_id')
             requirement = get_object_or_404(MaintenanceRequirement, id=requirement_id, ruta=ruta)
             requirement.delete()
             messages.success(request, 'Requerimiento eliminado exitosamente.')
+            return redirect('got:ruta_detail', pk=ruta.pk)
+
+        elif action == 'create_service':
+            # Crear un nuevo servicio
+            service_form = ServiceForm(request.POST)
+            if service_form.is_valid():
+                service_form.save()
+                messages.success(request, 'Servicio creado exitosamente.')
+            else:
+                for field, errors in service_form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"{field}: {error}")
+                messages.error(request, 'Error al crear el servicio.')
+            return redirect('got:ruta_detail', pk=ruta.pk)
 
         else:
             messages.error(request, 'Acción no reconocida.')
+            return redirect('got:ruta_detail', pk=ruta.pk)
 
-        return redirect('got:ruta_detail', pk=ruta.pk)
+
+@login_required
+def create_service(request):
+    # Esta vista no es necesaria si todo se maneja desde RutaDetailView.
+    # Si prefieres la lógica separada, puedes usar esta vista en lugar de la acción dentro del post.
+    # Ejemplo si quisieras una vista separada:
+    if request.method == 'POST':
+        form = ServiceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Servicio creado exitosamente.")
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+            messages.error(request, "Error al crear el servicio.")
+        return redirect(request.META.get('HTTP_REFERER', 'got:ruta_detail'))  # Ajustar redirect
+    else:
+        return redirect('got:ruta_detail', pk=1)  # Ajusta según convenga
+
 
 
 @login_required
@@ -1558,11 +1652,8 @@ def ot_pdf(request, num_ot):
         'tareas': tareas
     }
     template_path = 'got/ots/ot_pdf.html'
-
     download = request.GET.get('download', None)
-    
     response = render_to_pdf(template_path, context)
-    
     filename = f'orden_de_trabajo_{num_ot}.pdf'
     if download:
         content = f'attachment; filename="{filename}"'
@@ -1574,7 +1665,6 @@ def ot_pdf(request, num_ot):
 
 'TASKS VIEW'
 class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
-
     model = Task
     template_name = 'got/ots/tasks_pendient.html'
     paginate_by = 20
@@ -1684,13 +1774,11 @@ class TaskUpdate(UpdateView):
             return reverse('got:my-tasks')
 
 class TaskDelete(DeleteView):
-
     model = Task
     success_url = reverse_lazy('got:ot-list')
 
 
 class TaskUpdaterut(UpdateView):
-
     model = Task
     form_class = RutActForm
     template_name = 'got/task_form.html'
@@ -1713,9 +1801,7 @@ class TaskUpdaterut(UpdateView):
     
 
 class TaskDeleterut(DeleteView):
-
     model = Task
-
     def get_success_url(self):
         sys_id = self.object.ruta.system.id
         return reverse_lazy('got:sys-detail', kwargs={'pk': sys_id})
@@ -1726,7 +1812,6 @@ class TaskDeleterut(DeleteView):
 
 
 class Finish_task(UpdateView):
-
     model = Task
     form_class = FinishTask
     template_name = 'got/task_finish_form.html'
@@ -1760,7 +1845,6 @@ class Finish_task(UpdateView):
     
 
 class Finish_task_ot(UpdateView):
-
     model = Task
     form_class = FinishTask
     template_name = 'got/task_finish_form.html'
@@ -2209,7 +2293,6 @@ def OperationListView(request):
 
 
 class OperationUpdate(UpdateView):
-
     model = Operation
     form_class = OperationForm
     template_name = 'got/operations/operation_form.html'
@@ -2220,7 +2303,6 @@ class OperationUpdate(UpdateView):
 
 
 class OperationDelete(DeleteView):
-
     model = Operation
     success_url = reverse_lazy('got:operation-list')
 
@@ -2370,34 +2452,6 @@ def megger_pdf(request, pk):
 
 
 'PREOPERACIONAL VIEW'
-class SalidaListView(LoginRequiredMixin, generic.ListView):
-    model = Preoperacional
-    paginate_by = 15
-    template_name = 'preoperacional/salida_list.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Obtener la fecha actual
-        fecha_actual = timezone.now()
-
-        # Generar rangos de meses y años
-        meses = [(i, _(calendar.month_name[i])) for i in range(1, 13)]  # De enero a diciembre
-        anios = range(fecha_actual.year - 5, fecha_actual.year + 1)  # Últimos 5 años hasta el actual
-
-        # Pasar estos valores al contexto
-        context['fecha_actual'] = fecha_actual
-        context['meses'] = meses
-        context['anios'] = anios
-
-        return context
-
-class SalidaDetailView(LoginRequiredMixin, generic.DetailView):
-
-    model = Preoperacional
-    template_name = 'preoperacional/salida_detail.html'
-
-
 def export_preoperacional_to_excel(request):
     # Obtener el mes y año del request
     mes = int(request.GET.get('mes', datetime.now().month))
@@ -2681,7 +2735,6 @@ class PreoperacionalUpdateView(LoginRequiredMixin, generic.UpdateView):
 
 'SOLICITUDES VIEWS'
 class SolicitudesListView(LoginRequiredMixin, generic.ListView):
-    
     model = Solicitud
     paginate_by = 20
     template_name = 'got/solicitud/solicitud_list.html'
@@ -2851,7 +2904,7 @@ class ApproveSolicitudView(LoginRequiredMixin, View):
         solicitud.save()
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
-from django.http import HttpResponseForbidden
+
 class DeleteSolicitudView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         # Verificar si el usuario es superusuario (administrador)
@@ -3554,7 +3607,6 @@ class VehiculosMttoView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Obtenemos el asset con abbreviation='VEH'
         veh_asset = get_object_or_404(Asset, abbreviation='VEH')
 
         # Obtenemos todos los sistemas asociados a este asset que estén en estado 'm' o 'o' (mantenimiento u operativo)
@@ -3683,9 +3735,6 @@ class VehiculosMttoView(LoginRequiredMixin, TemplateView):
 
         # Si no hay alertas ni novedades y no entra en las otras categorías, entonces está OK
         if not alerta_reports.exists() and not novedades_reports.exists():
-            # Verificamos si no hay requisitos de mantenimiento pendientes en rutinas
-            # Esta lógica podría ser más compleja si quieres integrarla con las rutinas
-            # Por simplicidad, si no tiene fallas ni OTs en ejecución o pendientes, decimos OK
             if not states:
                 states.append(('Ok', '#86e49d'))
 
@@ -3821,9 +3870,6 @@ class ManagerialReportView(View):
                         'overdue': percentage_remaining <= 0,
                     }
                     rutas_filtered.append(ruta_info)
-
-            # Obtener reportes de falla relacionados con los equipos en los sistemas
-            # Solo reportes de falla abiertos
             equipos = Equipo.objects.filter(system__in=systems)
             failure_reports = FailureReport.objects.filter(
                 equipo__in=equipos,
@@ -3876,53 +3922,185 @@ class ManagerialReportView(View):
         return render_to_pdf('got/managerial_report.html', context)
     
 
+def calculate_executions(ruta, period_start, period_end):
+    if ruta.control == 'd':
+        freq_days = ruta.frecuency
+        start_date = ruta.intervention_date
+        executions = 0
+        current_date = start_date
+        while current_date <= period_end:
+            next_execution = current_date + timedelta(days=freq_days)
+            if next_execution >= period_start and next_execution <= period_end:
+                executions += 1
+            current_date = next_execution
+        return executions
+
+    elif ruta.control == 'h':
+        freq_hours = ruta.frecuency
+        equipo = ruta.equipo
+        prom_hours = equipo.prom_hours if equipo.prom_hours else 2
+        delta_days = (period_end - period_start).days + 1
+        total_hours_period = delta_days * prom_hours
+        executions = total_hours_period // freq_hours
+        return int(executions)
+
+    else:
+        return 0
+
+
 class BudgetView(TemplateView):
-    template_name = 'got/budget_view.html'
+    template_name = 'got/mantenimiento/budget_view.html'
+
+    def get_assets_list(self):
+        # Filtrar los assets tipo 'a' (motonaves) y show=True
+        return Asset.objects.filter(area='a', show=True).order_by('name')
 
     def get(self, request, *args, **kwargs):
-        # Definir el periodo de interés: Primer semestre de 2025
+        # Manejar el filtrado por asset
+        asset_abbr = request.GET.get('asset_abbr', '')
+        if asset_abbr:
+            # Filtrar rutas por este asset
+            rutas = Ruta.objects.filter(system__asset__abbreviation=asset_abbr)
+        else:
+            rutas = Ruta.objects.all()
+
+        # Periodo de interés
         period_start = date(2025, 1, 1)
-        period_end = date(2025, 6, 30)
+        period_end = date(2025, 7, 31)
 
-        rutas = Ruta.objects.all()
-
-        # Diccionario para almacenar los totales por artículo
         item_totals = {}
+        service_totals = {}
 
         for ruta in rutas:
-            # Calcular el número de ejecuciones en el periodo
             num_executions = calculate_executions(ruta, period_start, period_end)
             if num_executions == 0:
-                continue  # Si no se ejecuta en el periodo, pasamos a la siguiente
-
-            # Obtener los requisitos de mantenimiento asociados con la rutina
+                continue
             requisitos = ruta.requisitos.all()
-
             for req in requisitos:
-                # Calcular la cantidad total requerida
                 total_quantity = req.cantidad * num_executions
 
-                # Determinar la clave para agrupar (puede ser el item o la descripción)
-                if req.item:
-                    key = (req.item, req.item.presentacion)
-                else:
-                    key = (req.descripcion, 'Sin presentación')
+                if req.tipo in ['m', 'h']:
+                    if req.item:
+                        key = req.item.id
+                        name = req.item
+                        presentacion = req.item.presentacion
+                        unit_price = req.item.unit_price if hasattr(req.item, 'unit_price') and req.item.unit_price else Decimal('0.00')
+                        reference = req.item.reference if req.item.reference else ''
+                    else:
+                        key = ('desc', req.descripcion)
+                        name = req.descripcion
+                        presentacion = 'Sin presentación'
+                        unit_price = Decimal('0.00')
+                        reference = ''
 
-                # Sumar la cantidad total al diccionario
-                if key in item_totals:
-                    item_totals[key]['total_quantity'] += total_quantity
-                else:
-                    item_totals[key] = {
-                        'name': key[0],
-                        'presentacion': key[1],
-                        'total_quantity': total_quantity,
-                        'num_executions': num_executions
-                    }
+                    if key not in item_totals:
+                        item_totals[key] = {
+                            'name': name,
+                            'presentacion': presentacion,
+                            'total_quantity': total_quantity,
+                            'num_executions': num_executions,
+                            'unit_price': unit_price,
+                            'reference': reference,
+                            'type': 'item',  # para saber que es artículo
+                            'id': key if isinstance(key, int) else None
+                        }
+                    else:
+                        item_totals[key]['total_quantity'] += total_quantity
+
+                elif req.tipo == 's':
+                    if req.service:
+                        key = req.service.id
+                        name = req.service.description
+                        presentacion = 'Serv'
+                        unit_price = req.service.unit_price if req.service.unit_price else Decimal('0.00')
+                        reference = ''  # no aplica
+                    else:
+                        key = ('desc_s', req.descripcion)
+                        name = req.descripcion
+                        presentacion = 'Serv'
+                        unit_price = Decimal('0.00')
+                        reference = ''
+
+                    if key not in service_totals:
+                        service_totals[key] = {
+                            'name': name,
+                            'presentacion': presentacion,
+                            'total_quantity': total_quantity,
+                            'num_executions': num_executions,
+                            'unit_price': unit_price,
+                            'type': 'service',  # para saber que es servicio
+                            'id': key if isinstance(key, int) else None
+                        }
+                    else:
+                        service_totals[key]['total_quantity'] += total_quantity
+
+        # Calcular total_cost
+        for item in item_totals.values():
+            item['total_cost'] = item['total_quantity'] * item['unit_price']
+
+        for svc in service_totals.values():
+            svc['total_cost'] = svc['total_quantity'] * svc['unit_price']
+
+        # Ordenar artículos por nombre, luego por reference (si tuviéramos el reference en item):
+        # Convertir a lista para ordenar
+        item_list = list(item_totals.values())
+        item_list.sort(key=lambda x: (
+            x['name'].name.lower() if hasattr(x['name'], 'name') else str(x['name']).lower(),
+            x['reference'].lower() if x['reference'] else ''
+        ))
+
+
+        # Ordenar servicios por nombre
+        service_list = list(service_totals.values())
+        service_list.sort(key=lambda x: x['name'].lower())
+
+        total_articulos = sum(i['total_cost'] for i in item_list)
+        total_servicios = sum(s['total_cost'] for s in service_list)
 
         context = {
-            'item_totals': item_totals.values(),
+            'item_totals': item_list,
+            'service_totals': service_list,
             'period_start': period_start,
             'period_end': period_end,
+            'total_articulos': total_articulos,
+            'total_servicios': total_servicios,
+            'assets_list': self.get_assets_list(),
+            'selected_asset': asset_abbr
         }
 
         return self.render_to_response(context)
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'update_unit_price':
+            # Actualizar el valor unitario de item o servicio
+            obj_type = request.POST.get('obj_type')
+            obj_id = request.POST.get('obj_id')
+            new_price = request.POST.get('new_price')
+            try:
+                new_price = Decimal(new_price)
+            except:
+                new_price = Decimal('0.00')
+
+            if obj_type == 'item':
+                # Actualizar el precio del Item
+                item = get_object_or_404(Item, pk=obj_id)
+                item.unit_price = new_price
+                item.save()
+                messages.success(request, 'Precio del artículo actualizado.')
+            elif obj_type == 'service':
+                svc = get_object_or_404(Service, pk=obj_id)
+                svc.unit_price = new_price
+                svc.save()
+                messages.success(request, 'Precio del servicio actualizado.')
+            else:
+                messages.error(request, 'Tipo no reconocido.')
+
+            asset_abbr = request.GET.get('asset_abbr', '')
+            redirect_url = reverse('got:budget_view')
+            if asset_abbr:
+                redirect_url += f"?asset_abbr={asset_abbr}"
+            return redirect(redirect_url)
+        else:
+            messages.error(request, 'Acción no reconocida.')
+            return redirect('got:budget_view')

@@ -13,8 +13,8 @@ from django.utils.translation import gettext as _
 from decimal import Decimal
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
 from outbound.models import OutboundDelivery
-# import tempfile
-# from PIL import Image
+from taggit.managers import TaggableManager
+from django.core.exceptions import ValidationError
 import os
 # from pdf2image import convert_from_path
 from django.conf import settings
@@ -67,7 +67,6 @@ class UserProfile(models.Model):
 
 # Model 3: Articulos
 class Item(models.Model):
-
     SECCION = (('c', 'Consumibles'), ('h', 'Herramientas y equipos'), ('r', 'Repuestos'))
     name = models.CharField(max_length=50)
     reference = models.CharField(max_length=100, null=True, blank=True)
@@ -75,6 +74,7 @@ class Item(models.Model):
     presentacion = models.CharField(max_length=10)
     code = models.CharField(max_length=50, null=True, blank=True)
     seccion = models.CharField(max_length=1, choices=SECCION, default='c')
+    unit_price = models.DecimalField(max_digits=15, decimal_places=2, default=0.00) 
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
@@ -82,7 +82,18 @@ class Item(models.Model):
 
     class Meta:
         ordering = ['name', 'reference']
-        
+
+
+class Service(models.Model):
+    description = models.CharField(max_length=200, unique=True)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return self.description
+
+    class Meta:
+        ordering = ['description']
+
 
 # Model 4: Activos (Centro de costos)
 class Asset(models.Model):
@@ -505,7 +516,6 @@ class Ruta(models.Model):
 
 # Model 12+1: Requerimientos para realizar rutina de mantenimiento
 class MaintenanceRequirement(models.Model):
-
     TIPO_REQUISITO = (
         ('m', 'Material'),
         ('h', 'Herramienta/Equipo'),
@@ -514,12 +524,42 @@ class MaintenanceRequirement(models.Model):
 
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, related_name='requisitos')
     item = models.ForeignKey(Item, on_delete=models.SET_NULL, null=True, blank=True)
+    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='maintenance_requirements')
     descripcion = models.CharField(max_length=200, null=True, blank=True)
     tipo = models.CharField(max_length=1, choices=TIPO_REQUISITO)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
-        return f"{self.get_tipo_display()} - {self.descripcion or self.item.name} ({self.cantidad})"
+        if self.tipo == 'm' and self.item:
+            return f"Material: {self.item.name} - Cantidad: {self.cantidad}"
+        elif self.tipo == 's' and self.service:
+            return f"Servicio: {self.service.description} - Cantidad: {self.cantidad}"
+        elif self.tipo == 'h' and self.item:
+            return f"Herramienta/Equipo: {self.item.name} - Cantidad: {self.cantidad}"
+        else:
+            return f"Requerimiento: {self.descripcion} - Cantidad: {self.cantidad}"
+
+    def clean(self):
+        # Asegurar que solo se asocie un Item o un Service según el tipo
+        if self.tipo in ['m', 'h']:
+            if not self.item:
+                raise ValidationError('Para tipo Material/Herramienta, debe asociarse a un Item.')
+            if self.service:
+                raise ValidationError('No puede asociar un Service a un requerimiento de tipo Material/Herramienta.')
+        elif self.tipo == 's':
+            if not self.service:
+                raise ValidationError('Para tipo Servicio, debe asociarse a un Service.')
+            if self.item:
+                raise ValidationError('No puede asociar un Item a un requerimiento de tipo Servicio.')
+        else:
+            raise ValidationError('Tipo de requerimiento no válido.')
+        
+    def total_cost(self):
+        if self.tipo in ['m', 'h'] and self.item:
+            return self.cantidad * self.item.unit_price
+        elif self.tipo == 's' and self.service:
+            return self.cantidad * self.service.unit_price
+        return Decimal('0.00')
     
     def get_absolute_url(self):
         return reverse('got:ruta_detail', args=[str(self.pk)])
@@ -693,15 +733,11 @@ class Solicitud(models.Model):
 
 # Model 18: Suministros (Inventario para barcos o bodegas, contenido de equipos o ...)
 class Suministro(models.Model):
-
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00')) 
     Solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
-    # salida = models.ForeignKey(Salida, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
-    # salida = models.ForeignKey(OutboundDelivery, related_name='suministros', on_delete=models.CASCADE, null=True, blank=True)
-
 
     def __str__(self):
         return f"{self.cantidad} {self.item.presentacion} - {self.item} "
@@ -876,14 +912,6 @@ class Image(models.Model):
     requirements = models.ForeignKey(Requirement, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
 
-class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-
-    def __str__(self):
-        return self.name
-
-
-from taggit.managers import TaggableManager
 # Model 24: Documentos
 class Document(models.Model):
     DOC_TYPES = [
@@ -891,7 +919,7 @@ class Document(models.Model):
         ('f', 'Ficha técnica'),
         ('i', 'Informe'),
         ('m', 'Manual'),
-        ('p', 'plano'),
+        ('p', 'Plano'),
         ('o', 'Otro'),
     ]
 
@@ -909,4 +937,6 @@ class Document(models.Model):
     def __str__(self):
         return self.description
 
-
+    def clean(self):
+        if not (self.asset or self.ot or self.equipo):
+            raise ValidationError('El documento debe estar asociado a un asset, OT o equipo.')

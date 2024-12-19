@@ -41,7 +41,7 @@
             </thead>
             <tbody>
                 {% for preop in preoperacional_list %}
-                    <tr  data-href="{% url 'got:salidas-detail' preop.id %}">
+                    <tr  data-href="{% url 'preoperacionales:salidas-detail' preop.id %}">
                         <td data-cell="Fecha del reporte">{{preop.fecha|date:"d/m/Y"}}</td>
                         <td data-cell="Placa">{{preop.vehiculo}}</td>
                         {% if preop.reporter %}

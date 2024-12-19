@@ -6,11 +6,14 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import generic, View
 from django.urls import reverse
+from django.utils import timezone
+import calendar
 from django.utils.timezone import localdate
 from .models import *
 from .forms import *
 from got.forms import UploadImages
 from got.models import Equipo, HistoryHour, Image
+from django.utils.translation import gettext as _
 
 
 class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
@@ -106,3 +109,31 @@ class PreoperacionalDiarioUpdateView(LoginRequiredMixin, generic.UpdateView):
 
     def get_success_url(self):
         return reverse('preoperacionales:preoperacional-detail', kwargs={'pk': self.object.pk})
+    
+
+class SalidaListView(LoginRequiredMixin, generic.ListView):
+    model = Preoperacional
+    paginate_by = 15
+    template_name = 'preoperacional/salida_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Obtener la fecha actual
+        fecha_actual = timezone.now()
+
+        # Generar rangos de meses y años
+        meses = [(i, _(calendar.month_name[i])) for i in range(1, 13)]  # De enero a diciembre
+        anios = range(fecha_actual.year - 5, fecha_actual.year + 1)  # Últimos 5 años hasta el actual
+
+        # Pasar estos valores al contexto
+        context['fecha_actual'] = fecha_actual
+        context['meses'] = meses
+        context['anios'] = anios
+
+        return context
+
+class SalidaDetailView(LoginRequiredMixin, generic.DetailView):
+
+    model = Preoperacional
+    template_name = 'preoperacional/salida_detail.html'

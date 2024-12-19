@@ -9,7 +9,7 @@ from django.forms import modelformset_factory
 from django.utils.timezone import localdate
 from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
 from django.forms.widgets import ClearableFileInput
-
+from taggit.forms import TagWidget
 from django.core.files.base import ContentFile
 import base64
 import uuid
@@ -673,7 +673,7 @@ class OperationForm(forms.ModelForm):
             # 'requirements': 'Requerimientos',
         }
 
-from taggit.forms import TagWidget
+
 class DocumentForm(forms.ModelForm):
     class Meta:
         model = Document
@@ -683,9 +683,7 @@ class DocumentForm(forms.ModelForm):
             'file': forms.FileInput(attrs={'class': 'form-control'}),
             'doc_type': forms.Select(attrs={'class': 'form-control'}),
             'date_expiry': forms.DateInput(attrs={'class': 'form-control', 'type':'date'}),
-            # 'tags': forms.SelectMultiple(attrs={'class': 'form-control'})
-            'tags': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: seguridad, manual'}),
-            # 'tags': TagWidget(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Etiquetas separadas por coma'})
+            'tags': TagWidget(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Etiquetas separadas por coma'})
         }
         labels = {
             'description': 'Nombre del documento',
@@ -696,10 +694,6 @@ class DocumentForm(forms.ModelForm):
             'tags': 'Etiquetas'
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Aquí puedes personalizar widgets si lo deseas
-        self.fields['tags'].help_text = "Ingrese etiquetas separadas por comas"
 
 class DocumentEditForm(forms.ModelForm):
     class Meta:
@@ -1182,16 +1176,53 @@ class EquipmentHistoryForm(forms.ModelForm):
 class MaintenanceRequirementForm(forms.ModelForm):
     class Meta:
         model = MaintenanceRequirement
-        fields = ['item', 'descripcion', 'tipo', 'cantidad']
+        fields = ['item', 'service', 'descripcion', 'tipo', 'cantidad']
         labels = {
             'item': 'Artículo',
+            'service': 'Servicio',
             'descripcion': 'Descripción',
             'tipo': 'Tipo',
             'cantidad': 'Cantidad',
         }
         widgets = {
             'item': forms.Select(attrs={'class': 'form-control'}),
+            'service': forms.Select(attrs={'class': 'form-control'}),
             'descripcion': forms.TextInput(attrs={'class': 'form-control'}),
-            'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'tipo': forms.HiddenInput(),  # Campo oculto
             'cantidad': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo = cleaned_data.get('tipo')
+        item = cleaned_data.get('item')
+        service = cleaned_data.get('service')
+
+        if tipo in ['m', 'h']:
+            # Requerimiento de tipo material/herramienta requiere item
+            if not item:
+                self.add_error('item', 'Para tipo Material/Herramienta, debe asociarse a un Item.')
+            # No se permite un servicio
+            if service:
+                self.add_error('service', 'No puede asociar un Service a un requerimiento de tipo Material/Herramienta.')
+        elif tipo == 's':
+            # Requerimiento de tipo servicio requiere un servicio existente
+            if not service:
+                self.add_error('service', 'Para tipo Servicio, debe seleccionar un Service existente.')
+            # No se permite un item
+            if item:
+                self.add_error('item', 'No puede asociar un Item a un requerimiento de tipo Servicio.')
+
+
+class ServiceForm(forms.ModelForm):
+    class Meta:
+        model = Service
+        fields = ['description', 'unit_price']
+        labels = {
+            'description': 'Descripción del Servicio',
+            'unit_price': 'Precio Unitario (COP)',
+        }
+        widgets = {
+            'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Calibración de equipos'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
         }

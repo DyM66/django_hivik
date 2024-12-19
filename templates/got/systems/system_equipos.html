@@ -22,7 +22,11 @@
 		<tbody>
 			{% for ruta in system.rutas.all %}
 				<tr id="row{{forloop.counter}}" onclick="toggleDetails('details{{forloop.counter}}', this, event)">
-					<td>{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}</td>
+					<td>
+						<a href="{% url 'got:ruta_detail' ruta.code %}">
+							{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}
+						</a>
+					</td>
 					<td class="nowrap">{{ ruta.name }}</td>
 					<td>{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
 					<td data-cell="Ultima intervención">{{ ruta.daysleft }}</td>
@@ -83,7 +87,6 @@
 									<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill add-more"></i></a>
 								{% endif %}
 							</h4>
-							<a href="{% url 'got:ruta_detail' ruta.code %}">Ver detalle</a>
 
 							{% if ruta.dependencia %}
 								Relación con rutina {{ ruta.dependencia.name }}

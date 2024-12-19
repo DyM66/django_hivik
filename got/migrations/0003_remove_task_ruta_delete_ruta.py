@@ -59,7 +59,7 @@ class Migration(migrations.Migration):
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.equipo')),
                 ('creation', models.DateField(auto_now_add=True)),
                 ('date_expiry', models.DateField(blank=True, null=True)),
-                ('doc_type', models.CharField(choices=[('c', 'Certificado'), ('f', 'Ficha técnica'), ('i', 'Informe'), ('m', 'Manual'), ('o', 'Otro')], default='o', max_length=1)),
+                ('doc_type', models.CharField(choices=[('c', 'Certificado'), ('f', 'Ficha técnica'), ('i', 'Informe'), ('m', 'Manual'), ('p', 'Plano'), ('o', 'Otro')], default='o', max_length=1)),
                 ('uploaded_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='uploaded_documents', to=settings.AUTH_USER_MODEL)),
             ],
         ),

@@ -1,3 +1,5 @@
+<!-- got/templates/got/assets/add-document.html -->
+
 {% extends "got/base/base_generic.html" %}
 
 {% block content %}
@@ -97,59 +99,64 @@
 
                 <!-- Modal Editar para este doc -->
                 <div class="modal fade" id="editDocumentModal{{ doc.id }}" tabindex="-1" aria-labelledby="editDocumentModalLabel{{ doc.id }}" aria-hidden="true">
-                  <div class="modal-dialog">
-                    <div class="modal-content" style="font-size:0.9rem;">
-                        <form method="post" action="{% url 'got:edit-document' doc.id %}">
-                            {% csrf_token %}
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="editDocumentModalLabel{{ doc.id }}">Editar Documento</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label class="form-label">Nombre del Documento</label>
-                                    <input type="text" class="form-control" name="description" value="{{ doc.description }}" required>
+                    <div class="modal-dialog">
+                        <div class="modal-content" style="font-size:0.9rem;">
+                            <form method="post" action="{% url 'got:edit-document' doc.id %}">{% csrf_token %}
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editDocumentModalLabel{{ doc.id }}">Editar Documento</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Tipo de documento</label>
-                                    <select class="form-select" name="doc_type">
-                                        <option value="o" {% if doc.doc_type == 'o' %}selected{% endif %}>Otro</option>
-                                        <option value="c" {% if doc.doc_type == 'c' %}selected{% endif %}>Certificado</option>
-                                        <option value="f" {% if doc.doc_type == 'f' %}selected{% endif %}>Ficha técnica</option>
-                                        <option value="i" {% if doc.doc_type == 'i' %}selected{% endif %}>Informe</option>
-                                        <option value="m" {% if doc.doc_type == 'm' %}selected{% endif %}>Manual</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input edit-expiry-checkbox" type="checkbox" id="edit_has_expiry_checkbox{{ doc.id }}" {% if doc.date_expiry %}checked{% endif %}>
-                                        <label class="form-check-label" for="edit_has_expiry_checkbox{{ doc.id }}">¿Tiene fecha de expiración?</label>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre del Documento</label>
+                                        <input type="text" class="form-control" name="description" value="{{ doc.description }}" required>
                                     </div>
-                                    <div class="mt-2 edit-expiry-container" {% if not doc.date_expiry %}style="display:none;"{% endif %}>
-                                        <label class="form-label">Fecha de expiración</label>
-                                        <input type="date" class="form-control" name="date_expiry" {% if doc.date_expiry %}value="{{ doc.date_expiry|date:'Y-m-d' }}"{% endif %}>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tipo de documento</label>
+                                        <select class="form-select" name="doc_type">
+                                            <option value="c" {% if doc.doc_type == 'c' %}selected{% endif %}>Certificado</option>
+                                            <option value="f" {% if doc.doc_type == 'f' %}selected{% endif %}>Ficha técnica</option>
+                                            <option value="i" {% if doc.doc_type == 'i' %}selected{% endif %}>Informe</option>
+                                            <option value="m" {% if doc.doc_type == 'm' %}selected{% endif %}>Manual</option>
+                                            <option value="p" {% if doc.doc_type == 'p' %}selected{% endif %}>Plano</option>
+                                            <option value="o" {% if doc.doc_type == 'o' %}selected{% endif %}>Otro</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input edit-expiry-checkbox" type="checkbox" id="edit_has_expiry_checkbox{{ doc.id }}" {% if doc.date_expiry %}checked{% endif %}>
+                                            <label class="form-check-label" for="edit_has_expiry_checkbox{{ doc.id }}">¿Tiene fecha de expiración?</label>
+                                        </div>
+                                        <div class="mt-2 edit-expiry-container" {% if not doc.date_expiry %}style="display:none;"{% endif %}>
+                                            <label class="form-label">Fecha de expiración</label>
+                                            <input type="date" class="form-control" name="date_expiry" {% if doc.date_expiry %}value="{{ doc.date_expiry|date:'Y-m-d' }}"{% endif %}>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Etiquetas (opcional)</label>
+                                        <small class="text-muted d-block mb-1">Use comas para separar.</small>
+                                        <input type="text" class="form-control" name="tags" value="{% for tag in doc.tags.all %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% endfor %}" placeholder="ej: seguridad, manual, repuesto">
+                                    </div>
+                
+                                    <!-- Buscador de etiquetas existentes en el modal de edición -->
+                                    <div class="mb-3">
+                                        <input type="text" id="tagSearchEdit{{ doc.id }}" class="form-control form-control-sm mb-2" placeholder="Buscar etiqueta...">
+                                        <div class="tag-cloud">
+                                            {% for t in existing_tags %}
+                                                <span class="existing-tag badge bg-light text-secondary border me-1" data-tag="{{ t.name }}">{{ t.name }}</span>
+                                            {% endfor %}
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Etiquetas (opcional)</label>
-                                    <small class="text-muted d-block mb-1">Use comas para separar.</small>
-                                    {% if doc.tags.all %}
-                                        {% with tag_list=doc.tags.all|join:", " %}
-                                            <input type="text" class="form-control" name="tags" value="{{ tag_list }}">
-                                        {% endwith %}
-                                    {% else %}
-                                        <input type="text" class="form-control" name="tags" placeholder="ej: seguridad, manual, repuesto">
-                                    {% endif %}
+                                <div class="modal-footer">
+                                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                                 </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
-                  </div>
                 </div>
+  
             {% empty %}
                 <tr>
                     <td colspan="8" class="text-muted" style="padding:0.5rem; text-align:center;">
@@ -160,6 +167,43 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Paginación (si es necesario) -->
+    {% if is_paginated %}
+        <div class="px-3 mt-2" style="overflow-x: auto;">
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page=1">Primera</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page={{ page_obj.previous_page_number }}"><i class="bi bi-caret-left-fill"></i></a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active" aria-current="page"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page={{ page_obj.next_page_number }}"><i class="bi bi-caret-right-fill"></i></a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page={{ page_obj.paginator.num_pages }}">Última</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
 </div>
 
 <!-- Modal Agregar Documento -->
@@ -200,6 +244,16 @@
                     <small class="text-muted d-block mb-1">Use comas para separar.</small>
                     {{ form.tags }}
                 </div>
+
+                <!-- Buscador de etiquetas existentes -->
+                <div class="mb-3">
+                    <input type="text" id="tagSearch" class="form-control form-control-sm mb-2" placeholder="Buscar etiqueta...">
+                    <div id="existing-tags" class="tag-cloud">
+                        {% for t in existing_tags %}
+                            <span class="existing-tag badge bg-light text-secondary border me-1" data-tag="{{ t.name }}">{{ t.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-success">Guardar</button>
@@ -210,23 +264,127 @@
   </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Para el modal de agregar
-    const addExpiryCheckbox = document.getElementById('add_has_expiry_checkbox');
-    const addExpiryContainer = document.getElementById('add_expiry_date_container');
-    addExpiryCheckbox.addEventListener('change', function() {
-        addExpiryContainer.style.display = this.checked ? 'block' : 'none';
-    });
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="font-size:0.9rem;">
+        <form method="post" id="deleteForm">
+            {% csrf_token %}
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-muted">
+                ¿Está seguro que desea eliminar este documento?
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </form>
+    </div>
+  </div>
+</div>
 
-    // Para los modales de editar
-    document.querySelectorAll('.edit-expiry-checkbox').forEach(checkbox => {
-        const modal = checkbox.closest('.modal-content');
-        const container = modal.querySelector('.edit-expiry-container');
-        checkbox.addEventListener('change', function() {
-            container.style.display = this.checked ? 'block' : 'none';
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Para el modal de agregar
+        const addExpiryCheckbox = document.getElementById('add_has_expiry_checkbox');
+        const addExpiryContainer = document.getElementById('add_expiry_date_container');
+        addExpiryCheckbox.addEventListener('change', function() {
+            addExpiryContainer.style.display = this.checked ? 'block' : 'none';
+        });
+    
+        // Para los modales de editar
+        document.querySelectorAll('.edit-expiry-checkbox').forEach(checkbox => {
+            const modal = checkbox.closest('.modal-content');
+            const container = modal.querySelector('.edit-expiry-container');
+            checkbox.addEventListener('change', function() {
+                container.style.display = this.checked ? 'block' : 'none';
+            });
+        });
+    
+        // Manejar la selección de etiquetas existentes en el formulario de agregar
+        const existingTags = document.querySelectorAll('.existing-tag');
+        const tagInput = document.getElementById('id_tags');
+        existingTags.forEach(tagElement => {
+            tagElement.addEventListener('click', function() {
+                const tagName = this.getAttribute('data-tag');
+                // Obtener las etiquetas actuales en el input
+                let currentTags = tagInput.value.split(',').map(t => t.trim()).filter(t => t !== '');
+                if (!currentTags.includes(tagName)) {
+                    currentTags.push(tagName);
+                    tagInput.value = currentTags.join(', ');
+                }
+            });
+        });
+    
+        // Buscador de etiquetas en el formulario de agregar
+        const tagSearch = document.getElementById('tagSearch');
+        tagSearch.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            existingTags.forEach(tagElement => {
+                const tagName = tagElement.getAttribute('data-tag').toLowerCase();
+                if (tagName.includes(query)) {
+                    tagElement.style.display = 'inline-block';
+                } else {
+                    tagElement.style.display = 'none';
+                }
+            });
+        });
+    
+        // Manejar el formulario de eliminación
+        const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        document.querySelectorAll('.btn-trash').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                const form = this.closest('form');
+                document.getElementById('deleteForm').action = form.action;
+                deleteConfirmModal.show();
+            });
+        });
+    
+        // Reemplaza los botones de eliminar para manejar el modal de confirmación
+        document.querySelectorAll('form[action*="delete-document"]').forEach(form => {
+            const button = form.querySelector('button[type="submit"]');
+            button.classList.add('btn-trash');
+            button.removeAttribute('type');
+            button.setAttribute('type', 'button');
+        });
+    
+        // Manejar la selección de etiquetas en los modales de edición
+        document.querySelectorAll('.existing-tag').forEach(tagElement => {
+            tagElement.addEventListener('click', function() {
+                const tagName = this.getAttribute('data-tag');
+                // Encontrar el input de tags dentro del modal
+                const modal = this.closest('.modal-content');
+                const tagInputEdit = modal.querySelector('input[name="tags"]');
+                let currentTags = tagInputEdit.value.split(',').map(t => t.trim()).filter(t => t !== '');
+                if (!currentTags.includes(tagName)) {
+                    currentTags.push(tagName);
+                    tagInputEdit.value = currentTags.join(', ');
+                }
+            });
+        });
+    
+        // Buscador de etiquetas en los modales de edición
+        document.querySelectorAll('input[id^="tagSearchEdit"]').forEach(searchInput => {
+            searchInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase();
+                const modal = this.closest('.modal-content');
+                const existingTagsInModal = modal.querySelectorAll('.existing-tag');
+                existingTagsInModal.forEach(tagElement => {
+                    const tagName = tagElement.getAttribute('data-tag').toLowerCase();
+                    if (tagName.includes(query)) {
+                        tagElement.style.display = 'inline-block';
+                    } else {
+                        tagElement.style.display = 'none';
+                    }
+                });
+            });
         });
     });
-});
 </script>
+
 {% endblock %}

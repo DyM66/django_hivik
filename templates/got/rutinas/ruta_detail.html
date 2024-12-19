@@ -1,10 +1,9 @@
-<!-- templates/got/ruta_detail.html -->
+<!-- templates/got/rutinas/ruta_detail.html -->
 {% extends "got/base/base_generic.html" %}
 {% load my_tags %}
 {% block content %}
 <div class="container my-4">
 
-    
     <div class="ruta-info-section p-3 mb-4" style="background: linear-gradient(45deg, var(--color-primary), #0157a4);color: #fff;border-radius: 10px;">
         <h1 class="mb-1">
             <a href="{{ ruta.system.get_absolute_url }}" style="color: #fff;">
@@ -21,7 +20,6 @@
         </p>
     </div>
 
-
     <div class="row">
         <div class="col-md-6">
             <h2>Actividades
@@ -32,7 +30,6 @@
             <ul class="list-group mt-3">
                 {% for task in tasks %}
                 <li class="list-group-item">
-                    <!-- <h5>{{ task.description }}</h5> -->
                     <p><strong>Responsable:</strong> {{ task.responsible.get_full_name }} ({{ task.responsible.profile.cargo }})</p>
                     <p><strong>Descripción:</strong> {{ task.description|linebreaksbr }}</p>
                     <p><strong>Procedimiento:</strong> {{ task.procedimiento|linebreaksbr }}</p>
@@ -45,7 +42,6 @@
                 </li>
                 <!-- Modales para editar y eliminar -->
                 {% include 'got/rutinas/task_modals.html' with task=task ruta=ruta edit_task_form=task_edit_forms|get_item:task.id %}
-
                 {% empty %}
                 <li class="list-group-item">No hay actividades registradas.</li>
                 {% endfor %}
@@ -60,8 +56,21 @@
             <ul class="list-group mt-3">
                 {% for req in requirements %}
                 <li class="list-group-item">
-                    <h5>{{ req.descripcion|default:req.item }}</h5>
-                    <p><strong>Cantidad:</strong> {{ req.cantidad }} {{ req.item.presentacion }}</p>
+                    <h5>
+                        {% if req.tipo == 's' and req.service %}
+                            Servicio: {{ req.service.description }}
+                        {% else %}
+                            {{ req.descripcion|default:req.item }}
+                        {% endif %}
+                    </h5>
+                    <p><strong>Cantidad:</strong> {{ req.cantidad }} 
+                        {% if req.tipo in material_types and req.item %}
+                            {{ req.item.presentacion }}
+                        {% endif %}
+                        {% if req.tipo == 's' %}
+                            servicios
+                        {% endif %}
+                    </p>
                     <!-- Botones de editar y eliminar -->
                     <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editRequirementModal{{ req.id }}">Editar</button>
                     <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteRequirementModal{{ req.id }}">Eliminar</button>

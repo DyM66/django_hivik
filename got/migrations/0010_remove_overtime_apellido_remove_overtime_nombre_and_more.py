@@ -17,28 +17,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='overtime',
-            name='approved',
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name='overtime',
-            name='asset',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.asset'),
-        ),
-        migrations.AddField(
-            model_name='overtime',
-            name='cedula',
-            field=models.CharField(default='', max_length=20),
-        ),
-        migrations.AddField(
-            model_name='overtime',
-            name='nombre_completo',
-            field=models.CharField(default='', max_length=200),
-        ),
-
-        ####
         migrations.AlterModelOptions(
             name='solicitud',
             options={'ordering': ['-creation_date'], 'permissions': (('can_approve', 'Aprobar solicitudes'), ('can_cancel', 'Puede cancelar'), ('can_view_all_rqs', 'Puede ver todas las solicitudes'), ('can_transfer_solicitud', 'Puede transferir solicitudes'))},
@@ -90,13 +68,6 @@ class Migration(migrations.Migration):
             state_operations=[
                 migrations.DeleteModel(name='Salida'),
             ]
-        ),
-        migrations.CreateModel(
-            name='Tag',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50, unique=True)),
-            ],
         ),
         migrations.AddField(
             model_name='document',

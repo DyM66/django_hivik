@@ -90,8 +90,6 @@ urlpatterns = [
     path('ots/<int:ot_id>/create_megger/', views.create_megger, name='create_megger'),
     path('meg_pdf/<int:pk>/', views.megger_pdf, name='meg_pdf'),
 
-    path('preoperacional/salidas/', views.SalidaListView.as_view(), name='salidas-consolidado'),
-    path("preoperacional/salidas/<int:pk>/", views.SalidaDetailView.as_view(), name="salidas-detail"),
     path('preoperacional/excel/', views.export_preoperacional_to_excel, name='export-preoperacional-excel'),
     path('preoperacional/especifico/<str:code>/', views.preoperacional_especifico_view, name='preoperacional-especifico'),
     path('preoperacional/consolidado/', views.PreoperacionalListView.as_view(), name='preoperacional-consolidado'),

@@ -1,4 +1,3 @@
-<!-- templates/got/modals/create_requirement_modal.html -->
 {% load my_tags %}
 <!-- Modal Crear Requerimiento -->
 <div class="modal fade" id="createRequirementModal" tabindex="-1" aria-hidden="true">
@@ -10,39 +9,72 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Botones para alternar entre Servicio y Artículo -->
+                    {% if requirement_form.errors %}
+                        <div class="alert alert-danger">
+                            <ul>
+                                {% for field, errors in requirement_form.errors.items %}
+                                    {% for error in errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {{ requirement_form.tipo }}
+
                     <div class="mb-3">
                         <button type="button" class="btn btn-outline-primary me-2" id="articleBtn">Artículo</button>
-
                         <button type="button" class="btn btn-outline-primary" id="serviceBtn">Servicio</button>
                     </div>
-  
-                    <!-- Campos del formulario (ocultaremos/mostraremos con JS) -->
+
                     <div id="serviceFields" style="display:none;">
                         <div class="mb-3">
-                            <label for="id_descripcion" class="form-label">Descripción del Servicio</label>
-                            {{ requirement_form.descripcion }}
+                            <input type="text" class="form-control" id="serviceSearch" placeholder="Buscar por descripción...">
                         </div>
-                        <input type="hidden" name="tipo" value="s" id="serviceTipo">
-                        <div class="mb-3">
+                        <div class="table-responsive" style="max-height:300px; overflow:auto;">
+                            <table class="table table-striped" id="serviceTable">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Servicio</th>
+                                        <th>Precio Unitario (COP)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sv in all_services %}
+                                    <tr data-desc="{{ sv.description|lower }}">
+                                        <td><input type="radio" name="service" value="{{ sv.id }}" class="service-radio"></td>
+                                        <td>{{ sv.description }}</td>
+                                        <td>{{ sv.unit_price }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Botón para crear un nuevo servicio -->
+                        <div class="mb-3 mt-3">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#createServiceModal">
+                                Crear nuevo Servicio
+                            </button>
+                        </div>
+                        <!-- <div class="mb-3">
                             <label for="id_cantidad" class="form-label">Cantidad</label>
                             {{ requirement_form.cantidad }}
-                        </div>
+                        </div> -->
                     </div>
-  
+                    
+
                     <div id="articleFields" style="display:none;">
                         <div class="mb-3">
-                            <!-- Campo de búsqueda -->
                             <input type="text" class="form-control" id="itemSearch" placeholder="Buscar por nombre o referencia...">
                         </div>
-  
-                        <!-- Tabla de artículos -->
                         <div class="table-responsive" style="max-height:300px; overflow:auto;">
                             <table class="table table-striped" id="itemTable">
                                 <thead>
                                     <tr>
                                         <th></th>
-                                        <th>Articulo</th>
+                                        <th>Artículo</th>
                                         <th>Presentación</th>
                                     </tr>
                                 </thead>
@@ -57,21 +89,24 @@
                                 </tbody>
                             </table>
                         </div>
-
-                        <!-- Tipo para artículo (solo 'herramienta/equipo' o 'material') -->
                         <div class="mb-3 mt-3">
                             <label for="articleTipo" class="form-label">Tipo</label>
-                            <select name="tipo" class="form-control" id="articleTipo">
+                            <select name="article_tipo" class="form-control" id="articleTipo">
                                 <option value="m">Material</option>
                                 <option value="h">Herramienta/Equipo</option>
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label for="id_cantidad" class="form-label">Cantidad</label>
                             {{ requirement_form.cantidad }}
-                        </div>
+                        </div> -->
                     </div>
-  
+
+                    <div class="mb-3" id="cantidadContainer" style="display:none;">
+                        <label for="id_cantidad" class="form-label">Cantidad</label>
+                        {{ requirement_form.cantidad }}
+                    </div>
+
                 </div>
                 <div class="modal-footer">
                     <input type="hidden" name="action" value="create_requirement">
@@ -82,55 +117,113 @@
         </div>
     </div>
 </div>
-  
+
+<!-- Modal Crear Servicio -->
+<div class="modal fade" id="createServiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="" id="createServiceForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Crear Servicio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Al crear el servicio se usará action = "" y action en la vista con action='create_service' -->
+                    <input type="hidden" name="action" value="create_service">
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción del Servicio</label>
+                        <input type="text" name="description" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Precio Unitario</label>
+                        <input type="number" step="0.01" name="unit_price" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const serviceBtn = document.getElementById('serviceBtn');
         const articleBtn = document.getElementById('articleBtn');
         const serviceFields = document.getElementById('serviceFields');
         const articleFields = document.getElementById('articleFields');
+        const cantidadContainer = document.getElementById('cantidadContainer');
+        const tipoField = document.getElementById('id_tipo');
+        const articleTipoSelect = document.getElementById('articleTipo');
     
-        const descripcionField = document.getElementById('id_descripcion');
-        const tipoServiceHidden = document.getElementById('serviceTipo');
-    
-        const itemSearch = document.getElementById('itemSearch');
-        const itemTable = document.getElementById('itemTable');
-    
-        // Por defecto, mostrar Artículo primero
-        showArticleMode();
-    
-        serviceBtn.addEventListener('click', showServiceMode);
-        articleBtn.addEventListener('click', showArticleMode);
-    
-        function showServiceMode() {
+        serviceBtn.addEventListener('click', function() {
             serviceFields.style.display = 'block';
             articleFields.style.display = 'none';
-            descripcionField.value = '';
-            tipoServiceHidden.value = 's';
-        }
+            cantidadContainer.style.display = 'block';
+            tipoField.value = 's';
+        });
     
-        function showArticleMode() {
+        articleBtn.addEventListener('click', function() {
             serviceFields.style.display = 'none';
             articleFields.style.display = 'block';
-            // Limpiar campos servicio
-            descripcionField.value = '';
-            tipoServiceHidden.value = ''; // no usar este en modo artículo
+            cantidadContainer.style.display = 'block';
+            if (articleTipoSelect) {
+                tipoField.value = articleTipoSelect.value;
+            }
+        });
+    
+        if (articleTipoSelect) {
+            articleTipoSelect.addEventListener('change', function() {
+                tipoField.value = this.value;
+            });
         }
     
-        // Filtrado de la tabla de artículos
-        itemSearch.addEventListener('input', function() {
-            const filterValue = this.value.toLowerCase();
-            const rows = itemTable.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                const name = row.getAttribute('data-name');
-                const ref = row.getAttribute('data-ref');
-                if (name.includes(filterValue) || ref.includes(filterValue)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+        // Filtro de artículos
+        const itemSearch = document.getElementById('itemSearch');
+        const itemTable = document.getElementById('itemTable');
+        if (itemSearch && itemTable) {
+            itemSearch.addEventListener('input', function() {
+                const filterValue = this.value.toLowerCase();
+                const rows = itemTable.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const name = row.getAttribute('data-name');
+                    const ref = row.getAttribute('data-ref');
+                    if (name.includes(filterValue) || ref.includes(filterValue)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
             });
-        });
+        }
+    
+        // Filtro de servicios
+        const serviceSearch = document.getElementById('serviceSearch');
+        const serviceTable = document.getElementById('serviceTable');
+        if (serviceSearch && serviceTable) {
+            serviceSearch.addEventListener('input', function() {
+                const filterValue = this.value.toLowerCase();
+                const rows = serviceTable.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const desc = row.getAttribute('data-desc');
+                    if (desc.includes(filterValue)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    
+        {% if requirement_form.errors %}
+        var createRequirementModal = new bootstrap.Modal(document.getElementById('createRequirementModal'));
+        createRequirementModal.show();
+        {% endif %}
     });
-</script>
+    </script>
     

@@ -1,0 +1,137 @@
+{% extends 'got/base/base_generic.html' %}
+{% load static %} 
+{% block content %}
+<h1>Presupuesto Enero 2025 - Julio 2025</h1>
+<p>Período: {{ period_start|date:"d/m/Y" }} - {{ period_end|date:"d/m/Y" }}</p>
+
+<!-- Filtro por barco -->
+<form method="get" class="mb-3" style="max-width:300px;">
+    <label for="assetSelect" class="form-label">Filtrar por Barco:</label>
+    <select name="asset_abbr" id="assetSelect" class="form-control form-control-sm">
+        <option value="">Todos</option>
+        {% for asst in assets_list %}
+        <option value="{{ asst.abbreviation }}" {% if selected_asset == asst.abbreviation %}selected{% endif %}>{{ asst.name }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm btn-primary mt-2">Filtrar</button>
+</form>
+
+<h2>Artículos</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Artículo</th>
+            <th>Presentación</th>
+            <th>Cantidad Total</th>
+            <th>Valor Unitario (COP)</th>
+            <th>Total (COP)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in item_totals %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.presentacion }}</td>
+            <td>{{ item.total_quantity }}</td>
+            <td>
+                {{ item.unit_price|floatformat:2 }} COP
+                {% if item.id %}
+                <a href="#" class="ms-2" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
+                   data-obj-type="item" data-obj-id="{{ item.id }}" data-current-price="{{ item.unit_price|floatformat:2 }}">
+                   <i class="bi bi-pencil" style="opacity:0.7;"></i>
+                </a>
+                {% endif %}
+            </td>
+            <td>{{ item.total_cost|floatformat:2 }} COP</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <td colspan="4" class="text-end"><strong>Total Artículos:</strong></td>
+            <td><strong>{{ total_articulos|floatformat:2 }} COP</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Servicios</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Servicio</th>
+            <th>Presentación</th>
+            <th>Cantidad Total</th>
+            <th>Valor Unitario (COP)</th>
+            <th>Total (COP)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for svc in service_totals %}
+        <tr>
+            <td>{{ svc.name }}</td>
+            <td>{{ svc.presentacion }}</td>
+            <td>{{ svc.total_quantity }}</td>
+            <td>
+                {{ svc.unit_price|floatformat:2 }} COP
+                {% if svc.id %}
+                <a href="#" class="ms-2" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
+                   data-obj-type="service" data-obj-id="{{ svc.id }}" data-current-price="{{ svc.unit_price|floatformat:2 }}">
+                   <i class="bi bi-pencil" style="opacity:0.7;"></i>
+                </a>
+                {% endif %}
+            </td>
+            <td>{{ svc.total_cost|floatformat:2 }} COP</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <td colspan="4" class="text-end"><strong>Total Servicios:</strong></td>
+            <td><strong>{{ total_servicios|floatformat:2 }} COP</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Modal para actualizar el precio unitario -->
+<div class="modal fade" id="updatePriceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_unit_price">
+                <input type="hidden" name="obj_type" id="objTypeField">
+                <input type="hidden" name="obj_id" id="objIdField">
+                <div class="modal-header">
+                    <h5 class="modal-title">Actualizar Precio Unitario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nuevo Precio Unitario (COP)</label>
+                        <input type="number" step="0.01" name="new_price" class="form-control" id="newPriceField">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const updatePriceModal = document.getElementById('updatePriceModal');
+    if (updatePriceModal) {
+        updatePriceModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var objType = button.getAttribute('data-obj-type');
+            var objId = button.getAttribute('data-obj-id');
+            var currentPrice = button.getAttribute('data-current-price');
+
+            document.getElementById('objTypeField').value = objType;
+            document.getElementById('objIdField').value = objId;
+            document.getElementById('newPriceField').value = currentPrice;
+        });
+    }
+});
+</script>
+
+{% endblock %}
