@@ -124,7 +124,7 @@
 								<ul>
 									{% for req in ruta.requisitos.all %}
 										<li>
-											{% if req.tipo in material_types %}
+											{% if req.tipo == 'm' or req.tipo == 'h' %}
 												{{ req.item }}
 											{% elif req.tipo == 's' %}
 												{% if req.service %}
