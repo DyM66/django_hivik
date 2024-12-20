@@ -1,30 +1,49 @@
 {% extends 'got/base/base_generic.html' %}
-{% load my_tags %}
-
+{% load static %} 
 {% block content %}
-<style>
-    body {
-        font-size: 0.9rem; /* Disminuir un poco el tamaño de la letra */
-    }
-</style>
-
 <h1>Presupuesto Enero 2025 - Julio 2025</h1>
-<p>Período: {{ period_start|date:"d/m/Y" }} - {{ period_end|date:"d/m/Y" }}</p>
+<p style="font-size:0.9rem;">Período: {{ period_start|date:"d/m/Y" }} - {{ period_end|date:"d/m/Y" }}</p>
 
-<!-- Filtro por barco -->
-<form method="get" class="mb-3" style="max-width:300px;">
-    <label for="assetSelect" class="form-label">Filtrar por Barco:</label>
-    <select name="asset_abbr" id="assetSelect" class="form-control form-control-sm">
-        <option value="">Todos</option>
+<!-- Filtro tipo "miga de pan" -->
+<div class="mb-3" style="font-size:0.9rem;">
+    <strong>Filtrar por Barco:</strong>
+    <!-- Mostrar todos los assets disponibles como enlaces -->
+    <div class="d-inline-block" style="margin-left:10px;">
+        <a href="{% url 'got:budget_view' %}" class="me-2 {% if not selected_asset %}fw-bold text-decoration-underline{% endif %}">Todos</a>
         {% for asst in assets_list %}
-        <option value="{{ asst.abbreviation }}" {% if selected_asset == asst.abbreviation %}selected{% endif %}>{{ asst.name }}</option>
+            <a href="?asset_abbr={{ asst.abbreviation }}" class="me-2 {% if selected_asset == asst.abbreviation %}fw-bold text-decoration-underline{% endif %}">{{ asst.name }}</a>
         {% endfor %}
-    </select>
-    <button type="submit" class="btn btn-sm btn-primary mt-2">Filtrar</button>
-</form>
+    </div>
+</div>
 
-<h2>Artículos</h2>
-<table class="table table-sm">
+<!-- Si se seleccionó un asset, mostrar sistemas -->
+{% if selected_asset %}
+<div class="mb-3" style="font-size:0.9rem;">
+    <strong>Sistemas del Barco:</strong>
+    <div class="d-inline-block" style="margin-left:10px;">
+        <a href="?asset_abbr={{ selected_asset }}" class="me-2 {% if not selected_system %}fw-bold text-decoration-underline{% endif %}">Todos</a>
+        {% for sys in systems_list %}
+            <a href="?asset_abbr={{ selected_asset }}&system_id={{ sys.id }}" class="me-2 {% if selected_system == sys.id|stringformat:"s" %}fw-bold text-decoration-underline{% endif %}">{{ sys.name }}</a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Si se seleccionó un sistema, mostrar equipos -->
+{% if selected_system %}
+<div class="mb-3" style="font-size:0.9rem;">
+    <strong>Equipos del Sistema:</strong>
+    <div class="d-inline-block" style="margin-left:10px;">
+        <a href="?asset_abbr={{ selected_asset }}&system_id={{ selected_system }}" class="me-2 {% if not selected_equipo %}fw-bold text-decoration-underline{% endif %}">Todos</a>
+        {% for eqp in equipos_list %}
+            <a href="?asset_abbr={{ selected_asset }}&system_id={{ selected_system }}&equipo_code={{ eqp.code }}" class="me-2 {% if selected_equipo == eqp.code %}fw-bold text-decoration-underline{% endif %}">{{ eqp.name }}</a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<h2 style="font-size:1rem;">Artículos</h2>
+<table class="table table-sm align-middle" style="font-size:0.9rem;">
     <thead>
         <tr>
             <th>Artículo</th>
@@ -41,26 +60,30 @@
             <td>{{ item.presentacion }}</td>
             <td>{{ item.total_quantity }}</td>
             <td>
-                {{ item.unit_price|currency }}
+                {{ item.unit_price|floatformat:2 }} COP
                 {% if item.id %}
-                <a href="#" class="ms-2" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
-                   data-obj-type="item" data-obj-id="{{ item.id }}" data-current-price="{{ item.unit_price }}">
+                <a href="#" class="ms-1" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
+                   data-obj-type="item" data-obj-id="{{ item.id }}" data-current-price="{{ item.unit_price|floatformat:2 }}">
                    <i class="bi bi-pencil" style="opacity:0.7;"></i>
                 </a>
                 {% endif %}
             </td>
-            <td>{{ item.total_cost|currency }}</td>
+            <td>{{ item.total_cost|floatformat:2 }} COP</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No hay artículos.</td>
         </tr>
         {% endfor %}
         <tr>
             <td colspan="4" class="text-end"><strong>Total Artículos:</strong></td>
-            <td><strong>{{ total_articulos|currency }}</strong></td>
+            <td colspan="2"><strong>{{ total_articulos|floatformat:2 }} COP</strong></td>
         </tr>
     </tbody>
 </table>
 
-<h2>Servicios</h2>
-<table class="table table-sm">
+<h2 style="font-size:1rem;">Servicios</h2>
+<table class="table table-sm align-middle" style="font-size:0.9rem;">
     <thead>
         <tr>
             <th>Servicio</th>
@@ -68,29 +91,35 @@
             <th>Cantidad Total</th>
             <th>Valor Unitario (COP)</th>
             <th>Total (COP)</th>
+            <th>N° Ejecuciones</th>
         </tr>
     </thead>
     <tbody>
         {% for svc in service_totals %}
         <tr>
-            <td>{{ svc.name }} ({{ svc.num_executions }})</td>
+            <td>{{ svc.name }}</td>
             <td>{{ svc.presentacion }}</td>
             <td>{{ svc.total_quantity }}</td>
             <td>
-                {{ svc.unit_price|currency }}
+                {{ svc.unit_price|floatformat:2 }} COP
                 {% if svc.id %}
-                <a href="#" class="ms-2" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
-                   data-obj-type="service" data-obj-id="{{ svc.id }}" data-current-price="{{ svc.unit_price }}">
+                <a href="#" class="ms-1" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
+                   data-obj-type="service" data-obj-id="{{ svc.id }}" data-current-price="{{ svc.unit_price|floatformat:2 }}">
                    <i class="bi bi-pencil" style="opacity:0.7;"></i>
                 </a>
                 {% endif %}
             </td>
-            <td>{{ svc.total_cost|currency }}</td>
+            <td>{{ svc.total_cost|floatformat:2 }} COP</td>
+            <td>{{ svc.num_executions }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No hay servicios.</td>
         </tr>
         {% endfor %}
         <tr>
             <td colspan="4" class="text-end"><strong>Total Servicios:</strong></td>
-            <td><strong>{{ total_servicios|currency }}</strong></td>
+            <td colspan="2"><strong>{{ total_servicios|floatformat:2 }} COP</strong></td>
         </tr>
     </tbody>
 </table>
@@ -108,15 +137,15 @@
                     <h5 class="modal-title">Actualizar Precio Unitario</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="font-size:0.9rem;">
                     <div class="mb-3">
                         <label class="form-label">Nuevo Precio Unitario (COP)</label>
                         <input type="number" step="0.01" name="new_price" class="form-control" id="newPriceField">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Guardar</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success btn-sm">Guardar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
                 </div>
             </form>
         </div>

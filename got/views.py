@@ -4031,26 +4031,41 @@ def calculate_executions(ruta, period_start, period_end):
     return executions
 
     
-
 class BudgetView(TemplateView):
     template_name = 'got/mantenimiento/budget_view.html'
 
     def get_assets_list(self):
         return Asset.objects.filter(area='a', show=True).order_by('name')
 
+    def get_systems_list(self, asset_abbr):
+        # Retorna los sistemas relacionados a un asset específico
+        return System.objects.filter(asset__abbreviation=asset_abbr).order_by('name')
+
+    def get_equipos_list(self, system_id):
+        # Retorna los equipos relacionados a un sistema
+        return Equipo.objects.filter(system_id=system_id).order_by('name')
+
     def get(self, request, *args, **kwargs):
         asset_abbr = request.GET.get('asset_abbr', '')
-        if asset_abbr:
-            rutas = Ruta.objects.filter(system__asset__abbreviation=asset_abbr)
-        else:
-            rutas = Ruta.objects.all()
+        system_id = request.GET.get('system_id', '')
+        equipo_code = request.GET.get('equipo_code', '')
 
         period_start = date(2025, 1, 1)
         period_end = date(2025, 7, 31)
 
+        # Obtener rutas según filtros
+        rutas = Ruta.objects.all()
+        if asset_abbr:
+            rutas = rutas.filter(system__asset__abbreviation=asset_abbr)
+        if system_id:
+            rutas = rutas.filter(system_id=system_id)
+        if equipo_code:
+            rutas = rutas.filter(equipo__code=equipo_code)
+
         item_totals = {}
         service_totals = {}
 
+        # Cálculo de num_executions y totales
         for ruta in rutas:
             num_executions = calculate_executions(ruta, period_start, period_end)
             if num_executions == 0:
@@ -4059,13 +4074,12 @@ class BudgetView(TemplateView):
             requisitos = ruta.requisitos.all()
             for req in requisitos:
                 total_quantity = req.cantidad * num_executions
-
                 if req.tipo in ['m', 'h']:
                     if req.item:
                         key = req.item.id
                         name = req.item
                         presentacion = req.item.presentacion
-                        unit_price = req.item.unit_price if hasattr(req.item, 'unit_price') and req.item.unit_price else Decimal('0.00')
+                        unit_price = req.item.unit_price if getattr(req.item, 'unit_price', None) else Decimal('0.00')
                         reference = req.item.reference if req.item.reference else ''
                     else:
                         key = ('desc', req.descripcion)
@@ -4117,23 +4131,29 @@ class BudgetView(TemplateView):
                         service_totals[key]['total_quantity'] += total_quantity
                         service_totals[key]['num_executions'] += num_executions
 
+        # Calcular costos
         for item in item_totals.values():
             item['total_cost'] = item['total_quantity'] * item['unit_price']
 
         for svc in service_totals.values():
             svc['total_cost'] = svc['total_quantity'] * svc['unit_price']
 
+        # Ordenar
         item_list = list(item_totals.values())
         item_list.sort(key=lambda x: (
-            str(x['name'].name).lower() if hasattr(x['name'], 'name') and x['name'].name is not None else str(x['name']).lower(),
+            str(x['name'].name).lower() if hasattr(x['name'], 'name') and x['name'].name else str(x['name']).lower(),
             x['reference'].lower() if x['reference'] else ''
         ))
-
         service_list = list(service_totals.values())
         service_list.sort(key=lambda x: str(x['name'] or '').lower())
 
         total_articulos = sum(i['total_cost'] for i in item_list)
         total_servicios = sum(s['total_cost'] for s in service_list)
+
+        # Obtener listas para filtros
+        assets = self.get_assets_list()
+        systems = self.get_systems_list(asset_abbr) if asset_abbr else []
+        equipos = self.get_equipos_list(system_id) if system_id else []
 
         context = {
             'item_totals': item_list,
@@ -4142,8 +4162,12 @@ class BudgetView(TemplateView):
             'period_end': period_end,
             'total_articulos': total_articulos,
             'total_servicios': total_servicios,
-            'assets_list': self.get_assets_list(),
-            'selected_asset': asset_abbr
+            'assets_list': assets,
+            'selected_asset': asset_abbr,
+            'systems_list': systems,
+            'selected_system': system_id,
+            'equipos_list': equipos,
+            'selected_equipo': equipo_code
         }
 
         return self.render_to_response(context)
@@ -4172,10 +4196,22 @@ class BudgetView(TemplateView):
             else:
                 messages.error(request, 'Tipo no reconocido.')
 
+            # Mantener filtros
             asset_abbr = request.GET.get('asset_abbr', '')
+            system_id = request.GET.get('system_id', '')
+            equipo_code = request.GET.get('equipo_code', '')
+
             redirect_url = reverse('got:budget_view')
+            query_params = []
             if asset_abbr:
-                redirect_url += f"?asset_abbr={asset_abbr}"
+                query_params.append(f"asset_abbr={asset_abbr}")
+            if system_id:
+                query_params.append(f"system_id={system_id}")
+            if equipo_code:
+                query_params.append(f"equipo_code={equipo_code}")
+            if query_params:
+                redirect_url += "?" + "&".join(query_params)
+
             return redirect(redirect_url)
         else:
             messages.error(request, 'Acción no reconocida.')
