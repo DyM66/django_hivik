@@ -1050,13 +1050,14 @@ class DarBajaForm(forms.ModelForm):
 class ItemForm(forms.ModelForm):
     class Meta:
         model = Item
-        fields = ['name', 'reference', 'presentacion', 'code', 'seccion', 'imagen']
+        fields = ['name', 'reference', 'presentacion', 'code', 'seccion', 'imagen', 'unit_price']
         labels = {
             'name': 'Articulo',
             'reference': 'Referencia',
             'presentacion': 'Presentación',
             'code': 'Codigo Zeus',
-            'seccion': 'Categoria'
+            'seccion': 'Categoria',
+            'unit_price': 'Valor unitario'
         }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -1065,6 +1066,7 @@ class ItemForm(forms.ModelForm):
             'code': forms.TextInput(attrs={'class': 'form-control'}),
             'seccion': forms.Select(attrs={'class': 'form-control'}),
             'imagen': ClearableFileInput(attrs={'class': 'form-control'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
         }
 
 

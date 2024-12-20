@@ -24,14 +24,12 @@ from django.conf import settings
 
 # Funciones auxiliares
 def get_upload_path(instance, filename):
-
     ext = filename.split('.')[-1]
     filename = f"media/{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
     return filename
 
 
 def get_upload_pdfs(instance, filename):
-
     ext = filename.split('.')[-1]
     filename = f"pdfs/{uuid.uuid4()}.{ext}"
     return filename
@@ -39,7 +37,6 @@ def get_upload_pdfs(instance, filename):
 
 # Model 1: Registro de actividades
 class ActivityLog(models.Model):
-
     user_name = models.CharField(max_length=100)
     action = models.CharField(max_length=100)
     model_name = models.CharField(max_length=100)
@@ -55,7 +52,6 @@ class ActivityLog(models.Model):
 
 # Model 2: Carasteristicas del usuario
 class UserProfile(models.Model):
-
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     cargo = models.CharField(max_length=100, null=True, blank=True)
     firma = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
