@@ -37,7 +37,7 @@
     <tbody>
         {% for item in item_totals %}
         <tr>
-            <td>{{ item.name }}</td>
+            <td>{{ item.name }} ({{ item.num_executions }})</td>
             <td>{{ item.presentacion }}</td>
             <td>{{ item.total_quantity }}</td>
             <td>
@@ -73,7 +73,7 @@
     <tbody>
         {% for svc in service_totals %}
         <tr>
-            <td>{{ svc.name }}</td>
+            <td>{{ svc.name }} ({{ svc.num_executions }})</td>
             <td>{{ svc.presentacion }}</td>
             <td>{{ svc.total_quantity }}</td>
             <td>

@@ -4087,6 +4087,7 @@ class BudgetView(TemplateView):
                         }
                     else:
                         item_totals[key]['total_quantity'] += total_quantity
+                        item_totals[key]['num_executions'] += num_executions
 
                 elif req.tipo == 's':
                     if req.service:
@@ -4114,6 +4115,7 @@ class BudgetView(TemplateView):
                         }
                     else:
                         service_totals[key]['total_quantity'] += total_quantity
+                        service_totals[key]['num_executions'] += num_executions
 
         for item in item_totals.values():
             item['total_cost'] = item['total_quantity'] * item['unit_price']
