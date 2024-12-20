@@ -1,13 +1,12 @@
 {% extends 'got/base/base_generic.html' %}
-{% load static %} 
+{% load my_tags %}
 {% block content %}
 <h1>Presupuesto Enero 2025 - Julio 2025</h1>
 <p style="font-size:0.9rem;">Período: {{ period_start|date:"d/m/Y" }} - {{ period_end|date:"d/m/Y" }}</p>
 
-<!-- Filtro tipo "miga de pan" -->
+<!-- Miga de pan para filtros -->
 <div class="mb-3" style="font-size:0.9rem;">
     <strong>Filtrar por Barco:</strong>
-    <!-- Mostrar todos los assets disponibles como enlaces -->
     <div class="d-inline-block" style="margin-left:10px;">
         <a href="{% url 'got:budget_view' %}" class="me-2 {% if not selected_asset %}fw-bold text-decoration-underline{% endif %}">Todos</a>
         {% for asst in assets_list %}
@@ -16,7 +15,6 @@
     </div>
 </div>
 
-<!-- Si se seleccionó un asset, mostrar sistemas -->
 {% if selected_asset %}
 <div class="mb-3" style="font-size:0.9rem;">
     <strong>Sistemas del Barco:</strong>
@@ -29,7 +27,6 @@
 </div>
 {% endif %}
 
-<!-- Si se seleccionó un sistema, mostrar equipos -->
 {% if selected_system %}
 <div class="mb-3" style="font-size:0.9rem;">
     <strong>Equipos del Sistema:</strong>
@@ -60,15 +57,15 @@
             <td>{{ item.presentacion }}</td>
             <td>{{ item.total_quantity }}</td>
             <td>
-                {{ item.unit_price|floatformat:2 }} COP
+                {{ item.unit_price|currency }}
                 {% if item.id %}
                 <a href="#" class="ms-1" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
-                   data-obj-type="item" data-obj-id="{{ item.id }}" data-current-price="{{ item.unit_price|floatformat:2 }}">
+                   data-obj-type="item" data-obj-id="{{ item.id }}" data-current-price="{{ item.unit_price }}">
                    <i class="bi bi-pencil" style="opacity:0.7;"></i>
                 </a>
                 {% endif %}
             </td>
-            <td>{{ item.total_cost|floatformat:2 }} COP</td>
+            <td>{{ item.total_cost|currency }}</td>
         </tr>
         {% empty %}
         <tr>
@@ -77,7 +74,7 @@
         {% endfor %}
         <tr>
             <td colspan="4" class="text-end"><strong>Total Artículos:</strong></td>
-            <td colspan="2"><strong>{{ total_articulos|floatformat:2 }} COP</strong></td>
+            <td colspan="2"><strong>{{ total_articulos|currency }}</strong></td>
         </tr>
     </tbody>
 </table>
@@ -91,26 +88,24 @@
             <th>Cantidad Total</th>
             <th>Valor Unitario (COP)</th>
             <th>Total (COP)</th>
-            <th>N° Ejecuciones</th>
         </tr>
     </thead>
     <tbody>
         {% for svc in service_totals %}
         <tr>
-            <td>{{ svc.name }}</td>
+            <td>{{ svc.name }} ({{ svc.num_executions }})</td>
             <td>{{ svc.presentacion }}</td>
             <td>{{ svc.total_quantity }}</td>
             <td>
-                {{ svc.unit_price|floatformat:2 }} COP
+                {{ svc.unit_price|currency }}
                 {% if svc.id %}
                 <a href="#" class="ms-1" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
-                   data-obj-type="service" data-obj-id="{{ svc.id }}" data-current-price="{{ svc.unit_price|floatformat:2 }}">
+                   data-obj-type="service" data-obj-id="{{ svc.id }}" data-current-price="{{ svc.unit_price }}">
                    <i class="bi bi-pencil" style="opacity:0.7;"></i>
                 </a>
                 {% endif %}
             </td>
-            <td>{{ svc.total_cost|floatformat:2 }} COP</td>
-            <td>{{ svc.num_executions }}</td>
+            <td>{{ svc.total_cost|currency }}</td>
         </tr>
         {% empty %}
         <tr>
@@ -119,7 +114,7 @@
         {% endfor %}
         <tr>
             <td colspan="4" class="text-end"><strong>Total Servicios:</strong></td>
-            <td colspan="2"><strong>{{ total_servicios|floatformat:2 }} COP</strong></td>
+            <td colspan="2"><strong>{{ total_servicios|currency }}</strong></td>
         </tr>
     </tbody>
 </table>
@@ -133,7 +128,7 @@
                 <input type="hidden" name="action" value="update_unit_price">
                 <input type="hidden" name="obj_type" id="objTypeField">
                 <input type="hidden" name="obj_id" id="objIdField">
-                <div class="modal-header">
+                <div class="modal-header" style="font-size:1rem;">
                     <h5 class="modal-title">Actualizar Precio Unitario</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
@@ -143,7 +138,7 @@
                         <input type="number" step="0.01" name="new_price" class="form-control" id="newPriceField">
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="font-size:0.9rem;">
                     <button type="submit" class="btn btn-success btn-sm">Guardar</button>
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
                 </div>

@@ -200,4 +200,4 @@ def currency(value):
     except:
         val = Decimal('0.00')
     # Formatear con separador de miles y 2 decimales
-    return f"{val:,.2f} COP"
+    return f"COP {val:,.2f}"
