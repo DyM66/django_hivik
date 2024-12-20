@@ -86,9 +86,6 @@
                     <tr>
                         <td>
                             <strong>{{ req.descripcion|default:req.item }}</strong>
-                            {% if req.tipo in material_types and req.item %}
-                                <small>({{ req.item.presentacion }})</small>
-                            {% endif %}
                         </td>
                         <td>
                             {{ req.cantidad }}
