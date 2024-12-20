@@ -1,17 +1,16 @@
-<!-- templates/got/rutinas/ruta_detail.html -->
 {% extends "got/base/base_generic.html" %}
 {% load my_tags %}
 {% block content %}
-<div class="container my-4">
+<div class="container my-4" style="font-size:0.9rem;">
 
-    <div class="ruta-info-section p-3 mb-4" style="background: linear-gradient(45deg, var(--color-primary), #0157a4);color: #fff;border-radius: 10px;">
-        <h1 class="mb-1">
+    <div class="ruta-info-section p-3 mb-4" style="background: linear-gradient(45deg, var(--color-primary), #0157a4);color: #fff;border-radius: 10px;font-size:0.95rem;">
+        <h1 class="mb-1" style="font-size:1.2rem;">
             <a href="{{ ruta.system.get_absolute_url }}" style="color: #fff;">
                 <i class="bi bi-arrow-90deg-left"></i>
             </a>
             Rutina {{ ruta.name }}
         </h1>
-        <p style="line-height: 1.5; margin-left: 40px;">
+        <p style="line-height: 1.3; margin-left: 40px;">
             {{ ruta.equipo }}/ {{ ruta.system.name }}<br>
             Frecuencia: {{ ruta.frecuency }} {{ ruta.get_control_display }}<br>
             Nivel: {{ ruta.get_nivel_display }}<br>
@@ -20,86 +19,136 @@
         </p>
     </div>
 
-    <div class="row">
+    <div class="row g-3">
         <div class="col-md-6">
-            <h2>Actividades
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 style="font-size:1rem;">Actividades</h2>
                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTaskModal">
                     <i class="bi bi-plus-circle"></i> Añadir
                 </button>
-            </h2>
-            <ul class="list-group mt-3">
-                {% for task in tasks %}
-                <li class="list-group-item">
-                    <p><strong>Responsable:</strong> {{ task.responsible.get_full_name }} ({{ task.responsible.profile.cargo }})</p>
-                    <p><strong>Descripción:</strong> {{ task.description|linebreaksbr }}</p>
-                    <p><strong>Procedimiento:</strong> {{ task.procedimiento|linebreaksbr }}</p>
-                    <p><strong>Precauciones de seguridad:</strong> {{ task.hse|linebreaksbr }}</p>
-                    <p><strong>Prioridad:</strong> {{ task.priority }}</p>
-                    <p><strong>Tiempo de ejecución:</strong> {{ task.men_time }} días</p>
-                    <!-- Botones de editar y eliminar -->
-                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editTaskModal{{ task.id }}">Editar</button>
-                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTaskModal{{ task.id }}">Eliminar</button>
-                </li>
-                {% include 'got/rutinas/task_modals.html' with task=task ruta=ruta edit_task_form=task_edit_forms|get_item:task.id %}
-                {% empty %}
-                <li class="list-group-item">No hay actividades registradas.</li>
-                {% endfor %}
-            </ul>
+            </div>
+
+            <table class="table table-striped table-sm align-middle">
+                <thead style="font-size:0.85rem;">
+                    <tr>
+                        <th>Descripción</th>
+                        <th>Responsable</th>
+                        <th>Prioridad</th>
+                        <th>Días</th>
+                        <th style="width:80px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size:0.85rem;">
+                    {% for task in tasks %}
+                    <tr>
+                        <td>
+                            <strong>{{ task.description|linebreaksbr }}</strong><br>
+                            <small>Proc: {{ task.procedimiento|linebreaksbr }}</small><br>
+                            <small>HSE: {{ task.hse|linebreaksbr }}</small>
+                        </td>
+                        <td>{{ task.responsible.get_full_name }}<br><small>({{ task.responsible.profile.cargo }})</small></td>
+                        <td>{{ task.priority }}</td>
+                        <td>{{ task.men_time }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editTaskModal{{ task.id }}" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTaskModal{{ task.id }}" title="Eliminar"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% include 'got/rutinas/task_modals.html' with task=task ruta=ruta edit_task_form=task_edit_forms|get_item:task.id %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-muted">No hay actividades registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
         <div class="col-md-6">
-            <h2>Requerimientos</h2>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 style="font-size:1rem;">Requerimientos</h2>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createRequirementModal">
+                    <i class="bi bi-plus-circle"></i> Añadir
+                </button>
+            </div>
 
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createRequirementModal">
-                <i class="bi bi-plus-circle"></i> Añadir
-            </button>
+            <h3 style="font-size:0.9rem;">Artículos</h3>
+            <table class="table table-striped table-sm align-middle mt-2">
+                <thead style="font-size:0.85rem;">
+                    <tr>
+                        <th>Artículo</th>
+                        <th>Cantidad</th>
+                        <th style="width:80px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size:0.85rem;">
+                    {% for req in requirements_art %}
+                    <tr>
+                        <td>
+                            <strong>{{ req.descripcion|default:req.item }}</strong>
+                            {% if req.tipo in material_types and req.item %}
+                                <small>({{ req.item.presentacion }})</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ req.cantidad }}
+                            {% if req.tipo in material_types and req.item %}
+                                {{ req.item.presentacion }}
+                            {% elif req.tipo == 's' %}
+                                servicios
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editRequirementModal{{ req.id }}" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteRequirementModal{{ req.id }}" title="Eliminar"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% include 'got/rutinas/requirement_modals.html' with req=req %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-muted">No hay requerimientos de artículos.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
 
-            <h3 class="mt-3">Artículos</h3>
-            <ul class="list-group mt-3">
-                {% for req in requirements_art %}
-                <li class="list-group-item">
-                    <h5>
-                        {{ req.descripcion|default:req.item }}
-                    </h5>
-                    <p><strong>Cantidad:</strong> {{ req.cantidad }}
-                        {% if req.tipo in material_types and req.item %}
-                            {{ req.item.presentacion }}
-                        {% endif %}
-                    </p>
-                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editRequirementModal{{ req.id }}">Editar</button>
-                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteRequirementModal{{ req.id }}">Eliminar</button>
-                </li>
-                {% include 'got/rutinas/requirement_modals.html' with req=req %}
-                {% empty %}
-                <li class="list-group-item">No hay requerimientos de artículos registrados.</li>
-                {% endfor %}
-            </ul>
-
-            <h3 class="mt-3">Servicios</h3>
-            <ul class="list-group mt-3">
-                {% for req in requirements_svc %}
-                <li class="list-group-item">
-                    <h5>
-                        {% if req.service %}
-                            Servicio: {{ req.service.description }}
-                        {% else %}
-                            {{ req.descripcion }}
-                        {% endif %}
-                    </h5>
-                    <p><strong>Cantidad:</strong> {{ req.cantidad }} servicios</p>
-                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editRequirementModal{{ req.id }}">Editar</button>
-                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteRequirementModal{{ req.id }}">Eliminar</button>
-                </li>
-                {% include 'got/rutinas/requirement_modals.html' with req=req %}
-                {% empty %}
-                <li class="list-group-item">No hay requerimientos de servicios registrados.</li>
-                {% endfor %}
-            </ul>
-
+            <h3 style="font-size:0.9rem;" class="mt-3">Servicios</h3>
+            <table class="table table-striped table-sm align-middle mt-2">
+                <thead style="font-size:0.85rem;">
+                    <tr>
+                        <th>Servicio</th>
+                        <th>Cantidad</th>
+                        <th style="width:80px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size:0.85rem;">
+                    {% for req in requirements_svc %}
+                    <tr>
+                        <td>
+                            {% if req.service %}
+                                <strong>{{ req.service.description }}</strong>
+                            {% else %}
+                                <strong>{{ req.descripcion }}</strong>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.cantidad }} servicios</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editRequirementModal{{ req.id }}" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteRequirementModal{{ req.id }}" title="Eliminar"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% include 'got/rutinas/requirement_modals.html' with req=req %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-muted">No hay requerimientos de servicios.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <div class="text-end mt-4">
+    <div class="text-end mt-4" style="font-size:0.8rem;">
         <small>
             Creado por: {{ ruta.modified_by.get_full_name }}<br>
             Modificado por:

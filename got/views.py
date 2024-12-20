@@ -3953,32 +3953,83 @@ class ManagerialReportView(View):
         }
 
         return render_to_pdf('got/managerial_report.html', context)
-    
+
 
 def calculate_executions(ruta, period_start, period_end):
-    if ruta.control == 'd':
-        freq_days = ruta.frecuency
-        start_date = ruta.intervention_date
-        executions = 0
-        current_date = start_date
-        while current_date <= period_end:
-            next_execution = current_date + timedelta(days=freq_days)
-            if next_execution >= period_start and next_execution <= period_end:
-                executions += 1
-            current_date = next_execution
-        return executions
+    # Obtenemos la próxima fecha de ejecución a partir de la propiedad next_date
+    initial_next_date = ruta.next_date
 
-    elif ruta.control == 'h':
-        freq_hours = ruta.frecuency
+    # Si la rutina no tiene próxima fecha calculable, retornar 0
+    if not initial_next_date:
+        return 0
+
+    # Para rutinas vencidas: si initial_next_date < period_start significa que ya debería haberse hecho,
+    # igualmente contaremos desde esa fecha (overdue).
+    current_date = initial_next_date
+
+    executions = 0
+    if ruta.control == 'd':
+        # Frecuencia en días
+        freq_days = ruta.frecuency
+        # Avanzar en intervalos de freq_days desde current_date mientras esté dentro del periodo
+        while current_date <= period_end:
+            # Chequear si cae dentro del periodo
+            if current_date >= period_start and current_date <= period_end:
+                executions += 1
+            current_date = current_date + timedelta(days=freq_days)
+
+    elif ruta.control in ['h', 'k']:
+        # Para horas o kilómetros, next_date ya calcula un ndays aproximado y retorna una fecha
+        # Supondremos que la frecuencia es en las unidades originales, pero dado que next_date
+        # devuelve una fecha final, trataremos la frecuencia como si fuera recurrente también en días.
+
+        # Nota: en el modelo next_date para horas/kilómetros calcula ndays con base en prom_hours.
+        # Entonces, asumimos que cada repetición ocurre cada 'frecuency' horas, que se traducen
+        # en un intervalo aproximado de tiempo en días. Debemos recalcular el intervalo en días
+        # similar a como se hace en next_date.
+
+        # Reutilizamos la lógica: si se quisiera ser exacto, deberíamos replicar el cálculo
+        # de días para cada iteración, pero eso puede ser demasiado complejo.
+        # Aquí haremos una suposición simplificada:
+        # - Obtenemos ndays inicial desde next_date (ya calculado).
+        # - Para las siguientes ejecuciones, asumimos el mismo patrón:
+        #   es decir, cada frecuencia en horas corresponde al mismo número de días (la razón
+        #   es que no tenemos un cálculo dinámico de horas consumidas, solo uno inicial).
+
+        # Como en next_date se calcula ndays = int(inv / prom_hours) para h/k,
+        # debemos replicar esa lógica. Obtenemos ndays inicial (diferencia entre next_date y date.today())
+        
+        ndays_iniciales = (initial_next_date - date.today()).days
+        if ndays_iniciales < 1:
+            ndays_iniciales = 1  # por si acaso, evitar division por cero u otros casos
+
+        # Cada frecuencia en horas se traduce en freq_hours / prom_hours días aproximadamente.
         equipo = ruta.equipo
         prom_hours = equipo.prom_hours if equipo.prom_hours else 2
-        delta_days = (period_end - period_start).days + 1
-        total_hours_period = delta_days * prom_hours
-        executions = total_hours_period // freq_hours
-        return int(executions)
+        # Si prom_hours es 0 se tomó 2 por defecto en next_date.
+
+        # Calc days_per_execution = freq_hours / prom_hours (en días)
+        # Si freq_hours es ruta.frecuency
+        freq_hours = ruta.frecuency
+        try:
+            days_per_execution = int(freq_hours / prom_hours)
+            if days_per_execution < 1:
+                days_per_execution = 1
+        except ZeroDivisionError:
+            days_per_execution = 1
+
+        # Ahora desde current_date sumamos days_per_execution cada vez
+        while current_date <= period_end:
+            if current_date >= period_start and current_date <= period_end:
+                executions += 1
+            current_date = current_date + timedelta(days=days_per_execution)
 
     else:
+        # Si no es d, h o k, retornar 0 por ahora
         return 0
+
+    return executions
+
     
 
 class BudgetView(TemplateView):
