@@ -333,7 +333,7 @@
                         {% for megger in megger_tests %}
                             <li class="list-group-item">
                                 Prueba Megger #{{ megger.id }} para el equipo {{ megger.equipo.name }}
-                                <a href="{% url 'got:meg-detail' megger.pk %}" class="btn btn-primary btn-sm">Ver Detalles</a>
+                                <a href="{% url 'meg:meg-detail' megger.pk %}" class="btn btn-primary btn-sm">Ver Detalles</a>
                             </li>
                         {% empty %}
                             <p>No hay pruebas de Megger asociadas con esta OT.</p>
@@ -350,7 +350,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                <form method="post" action="{% url 'got:create_megger' ot.num_ot %}">
+                                <form method="post" action="{% url 'meg:create_megger' ot.num_ot %}">
                                     {% csrf_token %}
                                     <div class="list-group">
                                         {% for equipo in electric_motors %}

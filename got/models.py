@@ -652,7 +652,6 @@ class Operation(models.Model):
 
 # Model 18: Requerimientos para proyectos
 class Requirement(models.Model):
-
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
     text = models.TextField()
     approved = models.BooleanField(default=False)
@@ -776,113 +775,6 @@ class DailyFuelConsumption(models.Model):
         return f'{self.equipo}: {self.com_estimado_motor} - {self.fecha}'
 
 
-# Model 21: Registros de pruebas megger (Pruebas de aislamiento)
-class Megger(models.Model):
-
-    ot = models.ForeignKey(Ot, on_delete=models.CASCADE)
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
-    date_report = models.DateField(auto_now_add=True, null=True, blank=True)
-
-    estator_pi_1min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-
-    def __str__(self):
-        return f"Prueba #{self.id}/{self.equipo}"
-
-
-# Model 21.1: 
-class Estator(models.Model):
-
-    megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
-    pi_1min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)#
-    pi_1min_l2_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_1min_l3_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_1min_l1_l2 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_1min_l2_l3 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_1min_l3_l1 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-
-    pi_10min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_10min_l2_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_10min_l3_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_10min_l1_l2 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_10min_l2_l3 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_10min_l3_l1 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-
-    pi_obs_l1_tierra = models.TextField(null=True, blank=True)
-    pi_obs_l2_tierra = models.TextField(null=True, blank=True)
-    pi_obs_l3_tierra = models.TextField(null=True, blank=True)
-    pi_obs_l1_l2 = models.TextField(null=True, blank=True)
-    pi_obs_l2_l3 = models.TextField(null=True, blank=True)
-    pi_obs_l3_l1 = models.TextField(null=True, blank=True)
-
-    pf_1min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_1min_l2_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_1min_l3_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_1min_l1_l2 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_1min_l2_l3 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_1min_l3_l1 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-
-    pf_10min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_10min_l2_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_10min_l3_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_10min_l1_l2 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_10min_l2_l3 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_10min_l3_l1 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-
-    pf_obs_l1_tierra = models.TextField(null=True, blank=True)
-    pf_obs_l2_tierra = models.TextField(null=True, blank=True)
-    pf_obs_l3_tierra = models.TextField(null=True, blank=True)
-    pf_obs_l1_l2 = models.TextField(null=True, blank=True)
-    pf_obs_l2_l3 = models.TextField(null=True, blank=True)
-    pf_obs_l3_l1 = models.TextField(null=True, blank=True)
-
-
-# Model 21.2
-class Excitatriz(models.Model):
-
-    megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
-    pi_1min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_10min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_obs_l_tierra = models.TextField(null=True, blank=True)
-
-    pf_1min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_10min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_obs_l_tierra = models.TextField(null=True, blank=True)
-
-
-# Model 21.3
-class RotorMain(models.Model):
-
-    megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
-    pi_1min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_10min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_obs_l_tierra = models.TextField(null=True, blank=True)
-
-    pf_1min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_10min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_obs_l_tierra = models.TextField(null=True, blank=True)
-
-
-# Model 21.4
-class RotorAux(models.Model):
-
-    megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
-    pi_1min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_10min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pi_obs_l_tierra = models.TextField(null=True, blank=True)
-
-    pf_1min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_10min_l_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    pf_obs_l_tierra = models.TextField(null=True, blank=True)
-
-
-# Model 21.5
-class RodamientosEscudos(models.Model):
-
-    megger = models.OneToOneField(Megger, on_delete=models.CASCADE)
-    rodamientoas = models.TextField(null=True, blank=True)
-    rodamientobs = models.TextField(null=True, blank=True)
-    escudoas = models.TextField(null=True, blank=True)
-    escudobs = models.TextField(null=True, blank=True)
 
 # Model 22: Imagenes
 class Image(models.Model):

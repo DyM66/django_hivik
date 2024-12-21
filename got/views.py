@@ -40,6 +40,8 @@ from .forms import *
 from datetime import datetime, time, date
 from taggit.models import Tag 
 from django.http import HttpResponseForbidden
+from megger_app.models import Megger
+
 
 
 logger = logging.getLogger(__name__)
@@ -766,9 +768,6 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
 
 @login_required
 def create_service(request):
-    # Esta vista no es necesaria si todo se maneja desde RutaDetailView.
-    # Si prefieres la lógica separada, puedes usar esta vista en lugar de la acción dentro del post.
-    # Ejemplo si quisieras una vista separada:
     if request.method == 'POST':
         form = ServiceForm(request.POST)
         if form.is_valid():
@@ -782,7 +781,6 @@ def create_service(request):
         return redirect(request.META.get('HTTP_REFERER', 'got:ruta_detail'))  # Ajustar redirect
     else:
         return redirect('got:ruta_detail', pk=1)  # Ajusta según convenga
-
 
 
 @login_required
@@ -1915,7 +1913,6 @@ class Finish_task_ot(UpdateView):
 
 
 class Reschedule_task(UpdateView):
-
     model = Task
     form_class = RescheduleTaskForm
     template_name = 'got/ots/task_reschedule.html'
@@ -2405,83 +2402,6 @@ def requirement_delete(request, pk):
         requirement.delete()
         return redirect('got:operation-list')
     return render(request, 'got/operations/requirement_confirm_delete.html', {'requirement': requirement})
-
-
-'MEGGERS VIEW'
-def megger_view(request, pk):
-    megger = get_object_or_404(Megger, pk=pk) 
-    estator = get_object_or_404(Estator, megger=megger)
-    excitatriz = get_object_or_404(Excitatriz, megger=megger)
-    rotormain = get_object_or_404(RotorMain, megger=megger)
-    rotoraux = get_object_or_404(RotorAux, megger=megger)
-    rodamientosescudos = get_object_or_404(RodamientosEscudos, megger=megger)
-
-    estator_form = EstatorForm(request.POST or None, instance=estator)
-    excitatriz_form = ExcitatrizForm(request.POST or None, instance=excitatriz)
-    rotormain_form = RotorMainForm(request.POST or None, instance=rotormain)
-    rotoraux_form = RotorAuxForm(request.POST or None, instance=rotoraux)
-    rodamientosescudos_form = RodamientosEscudosForm(request.POST or None, instance=rodamientosescudos)
-
-    if request.method == 'POST':
-        estator_form = EstatorForm(request.POST, instance=estator)
-        excitatriz_form = ExcitatrizForm(request.POST, instance=excitatriz)
-        rotormain_form = RotorMainForm(request.POST, instance=rotormain)
-        rotoraux_form = RotorAuxForm(request.POST, instance=rotoraux)
-        rodamientosescudos_form = RodamientosEscudosForm(request.POST, instance=rodamientosescudos)
-
-        if 'submit_estator' in request.POST:
-            if estator_form.is_valid():
-                estator_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-        elif 'submit_excitatriz' in request.POST:
-            if excitatriz_form.is_valid():
-                excitatriz_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-        elif 'submit_rotormain' in request.POST:
-            if rotormain_form.is_valid():
-                rotormain_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-        elif 'submit_rotoraux' in request.POST:
-            if rotoraux_form.is_valid():
-                rotoraux_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-        elif 'submit_rodamientosescudos' in request.POST:
-            if rodamientosescudos_form.is_valid():
-                rodamientosescudos_form.save()
-                return redirect('got:meg-detail', pk=megger.pk)
-
-    context = {
-        'megger': megger,
-        'estator_form': estator_form,
-        'excitatriz_form': excitatriz_form,
-        'rotormain_form': rotormain_form,
-        'rotoraux_form': rotoraux_form,
-        'rodamientosescudos_form': rodamientosescudos_form,
-    }
-    return render(request, 'got/meg/megger_form.html', context)
-
-
-def create_megger(request, ot_id):
-    if request.method == 'POST':
-        ot = get_object_or_404(Ot, num_ot=ot_id)
-        equipo_id = request.POST.get('equipo')
-        equipo = get_object_or_404(Equipo, code=equipo_id)
-
-        megger = Megger.objects.create(ot=ot, equipo=equipo)
-
-        Estator.objects.create(megger=megger)
-        Excitatriz.objects.create(megger=megger)
-        RotorMain.objects.create(megger=megger)
-        RotorAux.objects.create(megger=megger)
-        RodamientosEscudos.objects.create(megger=megger)
-
-        return redirect('got:meg-detail', pk=megger.pk)
-    
-
-def megger_pdf(request, pk):
-    registro = Megger.objects.get(pk=pk)
-    context = {'meg': registro}
-    return render_to_pdf('got/meg/meg_detail.html', context)
 
 
 'PREOPERACIONAL VIEW'

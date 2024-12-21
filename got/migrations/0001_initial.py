@@ -34,8 +34,20 @@ class Migration(migrations.Migration):
                 ('code', models.CharField(blank=True, max_length=50, null=True)),
                 ('seccion', models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas y equipos'), ('r', 'Repuestos')], default='c', max_length=1)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('unit_price', models.DecimalField(decimal_places=2, default=0.0, max_digits=15)),
             ],
             options={'ordering': ['name', 'reference']},
+        ),
+        migrations.CreateModel(
+            name='Service',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('description', models.CharField(max_length=200, unique=True)),
+                ('unit_price', models.DecimalField(decimal_places=2, default=0.0, max_digits=10)),
+            ],
+            options={
+                'ordering': ['description'],
+            },
         ),
         migrations.CreateModel(
             name='Asset',

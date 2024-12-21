@@ -61,7 +61,6 @@ class Preoperacional(models.Model):
 
     class Meta:
         db_table = 'got_preoperacional'
-        # managed = False 
         ordering = ['-fecha']
 
 
@@ -178,6 +177,5 @@ class PreoperacionalDiario(models.Model):
 
     class Meta:
         db_table = 'got_preoperacionaldiario'
-        # managed = False 
         ordering = ['-fecha']
 

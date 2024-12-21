@@ -14,7 +14,6 @@ urlpatterns = [
     path('transaction/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
 
     path('asset/<str:abbreviation>/documents/', views.AssetDocumentsView.as_view(), name='asset-documents'),
-    # path('asset/<str:abbreviation>/documents/', views.AssetDocumentsView.as_view(), name='asset-documents'),
     path('asset/<str:abbreviation>/add-document/', views.AssetDocumentsView.as_view(), name='add-document'),
     path('document/<int:pk>/edit/', views.edit_document, name='edit-document'),
     path('document/<int:pk>/delete/', views.delete_document, name='delete-document'),
@@ -85,10 +84,6 @@ urlpatterns = [
     path('operation/<int:operation_id>/requirement/add/', views.requirement_create, name='requirement-create'),
     path('requirement/<int:pk>/update/', views.requirement_update, name='requirement-update'),
     path('requirement/<int:pk>/delete/', views.requirement_delete, name='requirement-delete'),
-
-    path('meg/<int:pk>/', views.megger_view, name='meg-detail'),
-    path('ots/<int:ot_id>/create_megger/', views.create_megger, name='create_megger'),
-    path('meg_pdf/<int:pk>/', views.megger_pdf, name='meg_pdf'),
 
     path('preoperacional/excel/', views.export_preoperacional_to_excel, name='export-preoperacional-excel'),
     path('preoperacional/especifico/<str:code>/', views.preoperacional_especifico_view, name='preoperacional-especifico'),
