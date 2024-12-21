@@ -4038,11 +4038,9 @@ class BudgetView(TemplateView):
         return Asset.objects.filter(area='a', show=True).order_by('name')
 
     def get_systems_list(self, asset_abbr):
-        # Retorna los sistemas relacionados a un asset específico
         return System.objects.filter(asset__abbreviation=asset_abbr).order_by('name')
 
     def get_equipos_list(self, system_id):
-        # Retorna los equipos relacionados a un sistema
         return Equipo.objects.filter(system_id=system_id).order_by('name')
 
     def get(self, request, *args, **kwargs):
@@ -4065,11 +4063,18 @@ class BudgetView(TemplateView):
         item_totals = {}
         service_totals = {}
 
+        systems_with_reqs = set()
+
         # Cálculo de num_executions y totales
         for ruta in rutas:
             num_executions = calculate_executions(ruta, period_start, period_end)
             if num_executions == 0:
                 continue
+
+            requisitos = ruta.requisitos.all()
+            if requisitos.exists():
+                # Si esta ruta tiene requisitos, entonces este system_id tiene requerimientos
+                systems_with_reqs.add(ruta.system_id)
 
             requisitos = ruta.requisitos.all()
             for req in requisitos:
@@ -4155,6 +4160,12 @@ class BudgetView(TemplateView):
         systems = self.get_systems_list(asset_abbr) if asset_abbr else []
         equipos = self.get_equipos_list(system_id) if system_id else []
 
+        enabled_systems = set()
+        if asset_abbr:
+            for sys in systems:
+                if sys.id in systems_with_reqs:
+                    enabled_systems.add(sys.id)
+
         context = {
             'item_totals': item_list,
             'service_totals': service_list,
@@ -4167,7 +4178,8 @@ class BudgetView(TemplateView):
             'systems_list': systems,
             'selected_system': system_id,
             'equipos_list': equipos,
-            'selected_equipo': equipo_code
+            'selected_equipo': equipo_code,
+            'enabled_systems': enabled_systems
         }
 
         return self.render_to_response(context)

@@ -21,7 +21,13 @@
     <div class="d-inline-block" style="margin-left:10px;">
         <a href="?asset_abbr={{ selected_asset }}" class="me-2 {% if not selected_system %}fw-bold text-decoration-underline{% endif %}">Todos</a>
         {% for sys in systems_list %}
-            <a href="?asset_abbr={{ selected_asset }}&system_id={{ sys.id }}" class="me-2 {% if selected_system == sys.id|stringformat:"s" %}fw-bold text-decoration-underline{% endif %}">{{ sys.name }}</a>
+            {% if sys.id in enabled_systems %}
+                <!-- Sistema con requerimientos habilitado -->
+                <a href="?asset_abbr={{ selected_asset }}&system_id={{ sys.id }}" class="me-2 {% if selected_system == sys.id|stringformat:"s" %}fw-bold text-decoration-underline{% endif %}">{{ sys.name }}</a>
+            {% else %}
+                <!-- Sistema sin requerimientos: deshabilitado -->
+                <span class="me-2 text-muted" style="opacity:0.5;">{{ sys.name }}</span>
+            {% endif %}
         {% endfor %}
     </div>
 </div>

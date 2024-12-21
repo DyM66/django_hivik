@@ -16,10 +16,7 @@ from outbound.models import OutboundDelivery
 from taggit.managers import TaggableManager
 from django.core.exceptions import ValidationError
 import os
-# from pdf2image import convert_from_path
 from django.conf import settings
-# from django.core.files.base import ContentFile
-# from pdf2image import convert_from_bytes
 
 
 # Funciones auxiliares
@@ -80,6 +77,7 @@ class Item(models.Model):
         ordering = ['name', 'reference']
 
 
+# Model 4: Servicios
 class Service(models.Model):
     description = models.CharField(max_length=200, unique=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -91,7 +89,7 @@ class Service(models.Model):
         ordering = ['description']
 
 
-# Model 4: Activos (Centro de costos)
+# Model 5: Activos (Centro de costos)
 class Asset(models.Model):
 
     AREA = (
@@ -160,7 +158,7 @@ class Asset(models.Model):
         ordering = ['area', 'name']
 
 
-# Model 5: Sistemas (Grupos constructivos, Equipos especiales)
+# Model 6: Sistemas (Grupos constructivos, Equipos especiales)
 class System(models.Model):
 
     STATUS = (
@@ -187,7 +185,7 @@ class System(models.Model):
         ordering = ['asset__name', 'group']
 
 
-# Model 6: Ordenes de trabajo
+# Model 7: Ordenes de trabajo
 class Ot(models.Model):
 
     STATUS = (
@@ -224,7 +222,7 @@ class Ot(models.Model):
         ordering = ['-num_ot']
 
 
-# Model 7: Equipos
+# Model 8
 class Equipo(models.Model):
 
     TIPO = (
@@ -325,9 +323,8 @@ class Equipo(models.Model):
         return reverse('got:sys-detail-view', args=[self.system.id, self.code])
 
 
-# Model 8: Registro de transferencias de equipos
+# Model 9: Registro de transferencias de equipos
 class Transferencia(models.Model):
-
     fecha = models.DateField(auto_now_add=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     responsable = models.CharField(max_length=100)
@@ -342,11 +339,9 @@ class Transferencia(models.Model):
         return f"{self.equipo} - {self.origen} -> {self.destino}"
     
 
-# Model 9: Registro de equipos de baja
+# Model 10: Registro de equipos de baja
 class DarBaja(models.Model):
-
     MOTIVO = (('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('i', 'Inservible/depreciado'))
-
     fecha = models.DateField(auto_now_add=True)
     reporter = models.CharField(max_length=100)
     responsable = models.CharField(max_length=100)
@@ -365,9 +360,8 @@ class DarBaja(models.Model):
         return f"{self.activo}/{self.equipo} - {self.fecha}"
 
 
-# Model 10: Historial de horas de equipos/ Kilometros
+# Model 11: Historial de horas de equipos/ Kilometros
 class HistoryHour(models.Model):
-
     report_date = models.DateField()
     hour = models.DecimalField(max_digits=10, decimal_places=2)
     reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -382,7 +376,7 @@ class HistoryHour(models.Model):
         unique_together = ('component', 'report_date')
 
 
-# Model 11: Historial de cambios en equipos
+# Model 12: Historial de cambios en equipos
 class EquipmentHistory(models.Model):
 
     ASUNTO_CHOICES = (
@@ -406,7 +400,7 @@ class EquipmentHistory(models.Model):
         ordering = ['-date']
 
 
-# Model 12: Rutinas de mantenimiento
+# Model 13: Rutinas de mantenimiento
 class Ruta(models.Model):
 
     CONTROL = (
@@ -510,7 +504,7 @@ class Ruta(models.Model):
         ordering = ['frecuency']
 
 
-# Model 12+1: Requerimientos para realizar rutina de mantenimiento
+# Model 14: Requerimientos para realizar rutina de mantenimiento
 class MaintenanceRequirement(models.Model):
     TIPO_REQUISITO = (
         ('m', 'Material'),
@@ -561,9 +555,8 @@ class MaintenanceRequirement(models.Model):
         return reverse('got:ruta_detail', args=[str(self.pk)])
 
 
-# Model 14: Actividades (para OT o Rutinas de mantenimiento)
+# Model 15: Actividades (para OT o Rutinas de mantenimiento)
 class Task(models.Model):
-
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True) #En prueba
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True)
@@ -596,7 +589,7 @@ class Task(models.Model):
         ordering = ['-priority', '-start_date'] 
 
 
-# Model 15: Reportes de falla
+# Model 16: Reportes de falla
 class FailureReport(models.Model):
 
     IMPACT = (
@@ -635,7 +628,7 @@ class FailureReport(models.Model):
         return dict(self.IMPACT).get(impact_code, "Desconocido")
 
 
-# Model 16: Proyectos/operaciones para barcos
+# Model 17: Proyectos/operaciones para barcos
 class Operation(models.Model):
 
     start = models.DateField()
@@ -657,7 +650,7 @@ class Operation(models.Model):
         return f"{self.proyecto}/{self.asset} ({self.start} - {self.start})"
 
 
-# Model 17: Requerimientos para proyectos
+# Model 18: Requerimientos para proyectos
 class Requirement(models.Model):
 
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
@@ -673,7 +666,7 @@ class Requirement(models.Model):
         ]
 
 
-# Model 16: Solicitudes de compra $app
+# Model 19: Solicitudes de compra $app
 class Solicitud(models.Model):
 
     DPTO = (
@@ -727,7 +720,7 @@ class Solicitud(models.Model):
         ordering = ['-creation_date']
 
 
-# Model 18: Suministros (Inventario para barcos o bodegas, contenido de equipos o ...)
+# Model 20: Suministros (Inventario para barcos o bodegas, contenido de equipos o ...)
 class Suministro(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00')) 
@@ -739,7 +732,7 @@ class Suministro(models.Model):
         return f"{self.cantidad} {self.item.presentacion} - {self.item} "
 
 
-# Model 19: Registro de movimientos de suminsitros realizados en los barcos o bodegas locativas
+# Model 21: Registro de movimientos de suminsitros realizados en los barcos o bodegas locativas
 class Transaction(models.Model):
 
     TIPO = (
