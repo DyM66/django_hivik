@@ -3676,7 +3676,7 @@ def calculate_executions(ruta, period_start, period_end):
 
         # Ahora desde current_date sumamos days_per_execution cada vez
         while current_date <= period_end:
-            if current_date >= period_start and current_date <= period_end:
+            if current_date <= period_end:
                 executions += 1
             current_date = current_date + timedelta(days=days_per_execution)
 
