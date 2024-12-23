@@ -22,4 +22,65 @@ class Migration(migrations.Migration):
             name='suministro_transf',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.suministro'),
         ),
+        migrations.AlterField(
+            model_name='transaction',
+            name='tipo',
+            field=models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo')], default='i', max_length=1),
+        ),
+
+        migrations.AddField(
+            model_name='solicitud',
+            name='dpto',
+            field=models.CharField(choices=[('m', 'Mantenimiento'), ('o', 'Operaciones')], default='m', max_length=1),
+        ),
+        migrations.AlterField(
+            model_name='solicitud',
+            name='approved_by',
+            field=models.CharField(blank=True, max_length=100, null=True),
+        ),
+        migrations.AlterModelOptions(
+            name='solicitud',
+            options={'ordering': ['-creation_date'], 'permissions': (('can_approve', 'Aprobar solicitudes'), ('can_cancel', 'Puede cancelar'), ('can_view_all_rqs', 'Puede ver todas las solicitudes'), ('can_transfer_solicitud', 'Puede transferir solicitudes'))},
+        ),
+
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Preoperacional'),
+                migrations.DeleteModel(name='PreoperacionalDiario'),
+            ],
+        ),
+        migrations.CreateModel(
+            name='MaintenanceRequirement',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('descripcion', models.CharField(blank=True, max_length=200, null=True)),
+                ('tipo', models.CharField(choices=[('m', 'Material'), ('h', 'Herramienta/Equipo'), ('s', 'Servicio')], max_length=1)),
+                ('cantidad', models.DecimalField(decimal_places=2, default=0.0, max_digits=10)),
+                ('item', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.item')),
+                ('service', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='maintenance_requirements', to='got.service')),
+                ('ruta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requisitos', to='got.ruta')),
+            ],
+        ),
+        migrations.AlterModelOptions(
+            name='salida',
+            options={'managed': False, 'ordering': ['-fecha'], 'permissions': (('can_approve_it', 'Aprobar salidas'),)},
+        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Salida'),
+            ]
+        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.DeleteModel(name='Megger'),
+                migrations.DeleteModel(name='Estator'),
+                migrations.DeleteModel(name='Excitatriz'),
+                migrations.DeleteModel(name='RotorMain'),
+                migrations.DeleteModel(name='RotorAux'),
+                migrations.DeleteModel(name='RodamientosEscudos'),
+            ]
+        )
     ]

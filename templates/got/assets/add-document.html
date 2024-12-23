@@ -210,8 +210,7 @@
 <div class="modal fade" id="addDocumentModal" tabindex="-1" aria-labelledby="addDocumentModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content" style="font-size:0.9rem;">
-        <form method="post" enctype="multipart/form-data" action="{% url 'got:add-document' asset.abbreviation %}">
-            {% csrf_token %}
+        <form method="post" enctype="multipart/form-data" action="{% url 'got:asset-documents' asset.abbreviation %}">{% csrf_token %}
             <div class="modal-header">
                 <h5 class="modal-title" id="addDocumentModalLabel">Agregar Documento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>

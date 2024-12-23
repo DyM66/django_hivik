@@ -1,12 +1,10 @@
-{% load my_tags %}
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-
+    <title>document</title>
     <style>
         * {
             margin: 0;
@@ -66,13 +64,6 @@
         table {
             border: 0.1px solid #000; 
             page-break-inside: auto;
-            border-collapse: collapse;
-        }
-
-        tr, td, th {
-            page-break-inside: auto;
-            page-break-after: auto;
-            -pdf-keep-together: auto;
         }
 
         td, th {
@@ -102,7 +93,6 @@
 
         tbody th {
             background-color: #203066;
-            /* color: #333366; */
             color: white;
             text-align: left;
             padding: 4px 0 0 4px;
@@ -111,7 +101,6 @@
 
         .ff {
             background-color: #203066;
-            /* color: #333366; */
             color: white;
         } 
 
@@ -146,6 +135,7 @@
             </tr>
         </thead>
     </table>
+    
     {% block content %}{% endblock %}
 </body>
 </html>

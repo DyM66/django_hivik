@@ -145,31 +145,6 @@
             </tbody>
         </table>
     {% endif %}
-
-
-    <h2 class="mt-2">Equipos Críticos</h2>
-    {% if critical_equipments %}
-        <table class="table-list">
-            <thead>
-                <tr>
-                    <th>Nombre del Equipo</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for equipment in critical_equipments %}
-                    <tr>
-                        <td>{{ equipment.name }}</td>
-                        <td>
-                            <a href="{% url 'got:equipment_history' equipment.code %}">Ver Historial</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No hay equipos críticos para este activo.</p>
-    {% endif %}
 </div>
 
     <div class="info-asset">

@@ -20,6 +20,16 @@
 		</div>
 	{% endif %}
 
+	{% if form.errors %}
+		<div class="alert alert-danger my-2">
+			<ul>
+				{% for field,errors in form.errors.items %}
+				<li><strong>{{ field }}:</strong> {{ errors }}</li>
+				{% endfor %}
+			</ul>
+		</div>
+	{% endif %}
+
 
 	<!-- Contenido -->
 	{% block content %}{% endblock %}
@@ -67,8 +77,7 @@
 	  	<p>Version v2.0.2 </p>
 	</footer>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-
-	
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
 	<script>
 		// Verificar si la Badging API es soportada

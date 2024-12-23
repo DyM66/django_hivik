@@ -16,24 +16,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Ruta',
-            fields=[
-                ('code', models.AutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=50)),
-                ('frecuency', models.IntegerField()),
-                ('intervention_date', models.DateField()),
-                ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rutas', to='got.system')),
-                ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.ot')),
-                ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='equipos', to='got.equipo')),
-                ('control', models.CharField(choices=[('d', 'Días'), ('h', 'Horas'), ('k', 'Kilómetros')], max_length=1)),
-                ('dependencia', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='dependiente', to='got.ruta')),
-                ('astillero', models.CharField(blank=True, max_length=50, null=True)),
-                ('nivel', models.IntegerField(choices=[(1, 'Nivel 1 - Operadores'), (2, 'Nivel 2 - Técnico'), (3, 'Nivel 3 - Proveedor especializado'), (4, 'Nivel 4 - Fabricante')], default=1)),
-                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={'ordering': ['frecuency']},
-        ),
-        migrations.CreateModel(
             name='FailureReport',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -308,9 +290,6 @@ class Migration(migrations.Migration):
                 ('pi_1min_l_tierra', models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True)),
                 ('pi_10min_l_tierra', models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True)),
                 ('pi_obs_l_tierra', models.TextField(blank=True, null=True)),
-                ('pf_1min_l_tierra', models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True)),
-                ('pf_10min_l_tierra', models.DecimalField(blank=True, decimal_places=2, max_digits=15, null=True)),
-                ('pf_obs_l_tierra', models.TextField(blank=True, null=True)),
                 ('megger', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.megger')),
             ],
         ),

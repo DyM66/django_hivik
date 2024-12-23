@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         # si deseas asegurar orden, podrías hacer algo como:
-        ('got', '0009_remove_excitatriz_megger_remove_megger_equipo_and_more'), 
+        ('got', '0005_transaction_cant_report_transf_and_more'), 
         # para evitar problemas, pero si no, dejar vacío.
     ]
 

@@ -1,0 +1,82 @@
+{% extends "got/base/base_generic.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 style="font-size:1.2rem; font-weight:500;">Crear Nueva Rutina</h2>
+    <hr>
+    <form method="post" novalidate>{% csrf_token %}
+        <div class="row mb-2">
+            <!-- Columna nombre de rutina -->
+            <div class="col-md-6 mb-3">
+                <label for="id_name" class="form-label">Nombre de la Rutina</label>
+                {{ form.name }}
+            </div>
+
+            <!-- Columna equipo -->
+            <div class="col-md-6 mb-3">
+                <label for="id_equipo" class="form-label">Equipo</label>
+                {{ form.equipo }}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <!-- Frecuencia y Control en la misma fila -->
+                <div class="row mb-2">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_frecuency" class="form-label">Frecuencia</label>
+                        {{ form.frecuency }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="id_control" class="form-label">Control</label>
+                        {{ form.control }}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="id_nivel" class="form-label">Convención</label>
+                    {{ form.nivel }}
+                </div>
+          
+                <div class="mb-3">
+                    <label for="id_ot" class="form-label">Orden de Trabajo (OT)</label>
+                    {{ form.ot }}
+                </div>
+          
+                <div class="mb-3">
+                    <label for="id_dependencia" class="form-label">Dependencia</label>
+                    {{ form.dependencia }}
+                </div>
+            </div>
+
+            <!-- Columna derecha: calendario inline para intervention_date -->
+            <div class="col-md-6">
+                <label for="id_intervention_date" class="form-label">Fecha Última Intervención</label>
+                <!-- Este input se usará para almacenar la fecha, pero con Flatpickr lo mostramos inline -->
+                {{ form.intervention_date }}
+        
+                <!-- Contenedor para Flatpickr inline (si deseas separarlo, puedes ocultar el input y poner el calendario en un <div>) -->
+                <div id="calendarContainer" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <input type="submit" value="Generar" class="btn btn-primary" />
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Tomamos el input
+        var interventionInput = document.getElementById('id_intervention_date');
+  
+        // Configuramos Flatpickr
+        flatpickr(interventionInput, {
+            inline: true, 
+            appendTo: document.getElementById('calendarContainer'), 
+            dateFormat: "d/m/Y",
+            locale: "es",
+            });
+        });
+</script>
+{% endblock %}

@@ -25,14 +25,13 @@ import pandas as pd
 from django.contrib.admin.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
 from openpyxl.utils import get_column_letter
+from megger_app.models import Megger
 
 
 def actualizar_rutas_dependientes(ruta):
-
     '''
     Utilizada en: views/OtDetailView
     '''
-
     ruta.intervention_date = timezone.now()
     ruta.save()
     if ruta.dependencia is not None:
@@ -528,11 +527,6 @@ def calculate_executions(ruta, period_start, period_end):
 
     else:
         return 0
-
-
-
-
-
 
 
 def calcular_repeticiones(ruta, periodo='anual'):

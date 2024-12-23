@@ -376,30 +376,6 @@ class HistoryHour(models.Model):
         unique_together = ('component', 'report_date')
 
 
-# Model 12: Historial de cambios en equipos
-class EquipmentHistory(models.Model):
-
-    ASUNTO_CHOICES = (
-        ('movement', 'Movimiento'),
-        ('part_change', 'Cambio de repuesto/pieza'),
-        ('preventive_maintenance', 'Mantenimiento Preventivo'),
-        ('corrective_maintenance', 'Mantenimiento Correctivo'),
-        ('specialized_intervention', 'Intervención Especializada'),
-    )
-
-    equipment = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='histories')
-    date = models.DateField()
-    subject = models.CharField(max_length=50, choices=ASUNTO_CHOICES)
-    annotations = models.TextField(blank=True, null=True)
-    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.equipment} - {self.get_subject_display()} on {self.date}"
-
-    class Meta:
-        ordering = ['-date']
-
-
 # Model 13: Rutinas de mantenimiento
 class Ruta(models.Model):
 
@@ -427,7 +403,38 @@ class Ruta(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.SET_NULL, null=True, blank=True, related_name='equipos')
     dependencia = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependiente')
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-    astillero = models.CharField(max_length=50, null=True, blank=True)
+
+    # Diques
+    clase_date = models.DateField(null=True, blank=True, help_text="(Opcional) Fecha en que se renovó el certificado de clase, si es un dique de clase.")
+
+    @property
+    def dique_window(self):
+        # 1) sólo aplica si name = 'Dique'
+        if self.name.lower() != 'dique':
+            return None
+
+        # 2) si no hay clase_date => no calculamos nada
+        if not self.clase_date:
+            return None
+        
+        delta_days = abs((self.intervention_date - self.clase_date).days)
+        clase_threshold = 365
+        last_was_clase = (delta_days <= clase_threshold)
+
+        HALF_YEAR = timedelta(days=182)   # ~6 meses
+        TWO_HALF_YEARS = timedelta(days=913)  # ~2.5 años
+        FIVE_YEARS = timedelta(days=1826)     # ~5 años
+
+        mid_point = self.clase_date + TWO_HALF_YEARS
+        start = mid_point - HALF_YEAR
+        end = mid_point + HALF_YEAR
+        final = self.clase_date + FIVE_YEARS
+
+        if last_was_clase:
+            dique_type = 'Proximo Dique intermedio: ventana intermedia a 2.5 años ± 6 meses'
+        else: 
+            dique_type = 'Proximo Dique de clase: fecha de clase + 5 años exactos'
+        return {'start': start, 'end': end, 'final': final, 'dique_type': dique_type}
 
     @property
     def next_date(self):

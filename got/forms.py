@@ -480,7 +480,7 @@ class RutaForm(forms.ModelForm):
 
     class Meta:
         model = Ruta
-        exclude = ['system', 'astillero', 'modified_by']
+        exclude = ['system', 'astillero', 'modified_by', 'clase']
         labels = {
             'name': 'Codigo interno',
             'frecuency': 'Frecuencia',
@@ -1075,22 +1075,6 @@ class LimitedRequirementForm(forms.ModelForm):
         }
         labels = {
             'novedad': 'Novedad',
-        }
-
-
-class EquipmentHistoryForm(forms.ModelForm):
-    class Meta:
-        model = EquipmentHistory
-        fields = ['date', 'subject', 'annotations']
-        labels = {
-            'date': 'Fecha',
-            'subject': 'Asunto',
-            'annotations': 'Anotaciones'          
-        }
-        widgets = {
-            'date': XYZ_DateInput(format=['%Y-%m-%d'],),
-            'subject': forms.Select(attrs={'class': 'form-control'}),
-            'annotations': forms.Textarea(attrs={'class': 'form-control'}),
         }
 
 

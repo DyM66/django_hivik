@@ -1,47 +1,39 @@
+import base64
+import calendar
+import logging
+import uuid
+
+from collections import OrderedDict
+from datetime import timedelta, date, datetime
+from decimal import Decimal
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import permission_required, login_required, user_passes_test
-from django.contrib.auth.views import PasswordResetView
+from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin, PermissionRequiredMixin
-from django.contrib.auth.models import Group, User
-from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.models import Group
+from django.contrib.auth.views import PasswordResetView
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, CharField, DurationField, Case, When, IntegerField, BooleanField, Value
-from django.db.models.functions import Cast
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, Case, When, IntegerField, BooleanField, Value
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
-from django.template.loader import get_template, render_to_string
+from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.timezone import localdate
+from django.utils.translation import gettext as _
 from django.views import generic, View
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.db import transaction as db_transaction
-from datetime import timedelta, date, datetime
-from xhtml2pdf import pisa
-from io import BytesIO
-import logging
-import base64
-import uuid
-import pandas as pd
-import calendar
-from django.utils.translation import gettext as _
-from collections import OrderedDict
 from itertools import groupby
 from operator import attrgetter
-from decimal import Decimal, InvalidOperation
+from megger_app.models import Megger
+from taggit.models import Tag 
 from .utils import *
 from .models import *
 from .forms import *
-from datetime import datetime, time, date
-from taggit.models import Tag 
-from django.http import HttpResponseForbidden
-from megger_app.models import Megger
-
 
 
 logger = logging.getLogger(__name__)
@@ -122,7 +114,6 @@ def profile_update(request):
 
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, generic.ListView):
-
     model = Asset
     template_name = 'got/assets/asset_list.html'
 
@@ -154,7 +145,6 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
-
     model = Asset
     template_name = 'got/assets/asset_base.html'
 
@@ -162,7 +152,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
         user = self.request.user
-
         paginator = Paginator(get_full_systems(asset, user), 15)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -177,10 +166,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['consumos_grafica'] = consumos_combustible_asset(asset)
         context['horas_grafica'] = horas_total_asset(asset)
         context['sys_form'] = SysForm()
-
-        critical_equipments = Equipo.objects.filter(system__asset=asset, critico=True)
-        context['critical_equipments'] = critical_equipments
-
         return context
 
     def post(self, request, *args, **kwargs):
@@ -198,7 +183,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
 
 class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
-
     model = Asset
     template_name = 'got/assets/asset_base.html'
 
@@ -206,7 +190,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
         user = self.request.user
-
         filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, self.request.GET)
         rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
 
@@ -228,7 +211,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
     def export_rutinas_to_excel(self, request_data):
         asset = self.get_object()
         user = self.request.user
-
         filtered_rutas, _ = self.get_filtered_rutas(asset, user, request_data)
         headers = [
             'Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante',
@@ -259,7 +241,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
 
         filename = 'rutinas.xlsx'
         table_title = 'Reporte de Rutinas'
-
         return pro_export_to_excel(model=Ruta, headers=headers, data=data, filename=filename, table_title=table_title)
 
 
@@ -279,7 +260,6 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
     def post(self, request, abbreviation):
         asset = get_object_or_404(Asset, abbreviation=abbreviation)
         suministros = get_suministros(asset, self.keyword_filter)
-
         action = request.POST.get('action', '')
 
         if action == 'download_excel':
@@ -317,12 +297,7 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
                 messages.error(request, 'La fecha del reporte no puede ser mayor a la fecha actual.')
                 return redirect(request.path)
 
-            operation = Operation.objects.filter(
-                asset=asset,
-                confirmado=True,
-                start__lte=fecha_reporte,
-                end__gte=fecha_reporte
-            ).first()
+            operation = Operation.objects.filter(asset=asset, confirmado=True, start__lte=fecha_reporte, end__gte=fecha_reporte).first()
 
             if operation:
                 motivo_global = operation.proyecto
@@ -340,11 +315,7 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             if suministro_existente:
                 messages.error(request, f'El suministro para el artículo "{item.name}" ya existe en este asset.')
             else:
-                Suministro.objects.create(
-                    item=item,
-                    cantidad=Decimal('0.00'),
-                    asset=asset
-                )
+                Suministro.objects.create(item=item, cantidad=Decimal('0.00'), asset=asset)
                 messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
             return redirect(request.path)
 
@@ -353,7 +324,6 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             return redirect(request.path)
 
     def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
-        # Datos comunes para las vistas
         motonaves = Asset.objects.filter(area='a', show=True)
         available_items = Item.objects.exclude(id__in=suministros.values_list('item_id', flat=True))
         context = {
@@ -368,23 +338,13 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
         return context
 
     def get_headers_mapping(self):
-        # Para ser definido en subclases
         return {}
 
     def get_filename(self):
-        # Para ser definido en subclases
         return 'export.xlsx'
     
     def get_transacciones_historial(self, asset):
-        """
-        Obtiene el historial de transacciones para el asset dado.
-
-        :param asset: Instancia de Asset.
-        :return: QuerySet de transacciones históricas.
-        """
-        transacciones_historial = Transaction.objects.filter(
-            Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)
-        ).order_by('-fecha')
+        transacciones_historial = Transaction.objects.filter(Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)).order_by('-fecha')
         return transacciones_historial
 
 
@@ -399,7 +359,7 @@ class AssetSuministrosReportView(AssetInventoryBaseView):
         for key, group in groupby(suministros, key=attrgetter('item.presentacion')):
             grouped_suministros[key] = list(group)
         context['grouped_suministros'] = grouped_suministros
-        context['group_by'] = 'presentacion'  # Indicador para la plantilla
+        context['group_by'] = 'presentacion'
         return context
 
     def get_headers_mapping(self):
@@ -438,14 +398,12 @@ class AssetInventarioReportView(AssetInventoryBaseView):
 
     def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
         context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
-        # Agrupar suministros por sección (categoría)
         suministros = suministros.order_by('item__seccion')
         grouped_suministros = {}
         for key, group in groupby(suministros, key=attrgetter('item.seccion')):
             grouped_suministros[key] = list(group)
         context['grouped_suministros'] = grouped_suministros
-        context['group_by'] = 'seccion'  # Indicador para la plantilla
-        # Obtener el diccionario de secciones
+        context['group_by'] = 'seccion'
         secciones_dict = dict(Item.SECCION)
         context['secciones_dict'] = secciones_dict
         return context
@@ -463,7 +421,6 @@ def delete_transaction(request, transaction_id):
         else:
             return redirect(next_url)
     else:
-        # Redirigir a la página anterior si no es una solicitud POST
         return redirect(next_url)
 
 
@@ -471,21 +428,16 @@ class AssetDocumentsView(View):
     form_class = DocumentForm
     template_name = 'got/assets/add-document.html'
 
-    def get(self, request, abbreviation):
-        asset = get_object_or_404(Asset, abbreviation=abbreviation)
+    def get_context_data(self, request, asset, form=None, keyword=None):
         systems = asset.system_set.all()
         ots = Ot.objects.filter(system__in=systems)
         equipos = Equipo.objects.filter(system__in=systems)
+        all_docs = Document.objects.filter( Q(asset=asset) | Q(ot__in=ots) | Q(equipo__in=equipos)).distinct()
 
-        all_docs = Document.objects.filter(
-            models.Q(asset=asset) | models.Q(ot__in=ots) | models.Q(equipo__in=equipos)
-        ).distinct()
-
-        keyword = request.GET.get('keyword', '').strip()
         if keyword:
             all_docs = all_docs.filter(description__icontains=keyword)
 
-        paginator = Paginator(all_docs, 30)  # 30 archivos por página
+        paginator = Paginator(all_docs, 30)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
 
@@ -496,22 +448,31 @@ class AssetDocumentsView(View):
                 doc.is_expired = True
 
         existing_tags = Tag.objects.annotate(num_docs=Count('taggit_taggeditem_items')).filter(num_docs__gt=0).order_by('name')
+        if form is None:
+            form = self.form_class()
 
         context = {
             'asset': asset,
             'documents': page_obj,
-            'form': self.form_class(),
+            'form': form,
             'today': today,
             'is_paginated': page_obj.has_other_pages(),
             'page_obj': page_obj,
             'existing_tags': existing_tags,
             'request': request  
         }
+        return context
+
+    def get(self, request, abbreviation):
+        asset = get_object_or_404(Asset, abbreviation=abbreviation)
+        keyword = request.GET.get('keyword', '').strip()
+        context = self.get_context_data(request, asset, keyword=keyword)
         return render(request, self.template_name, context)
 
     def post(self, request, abbreviation):
         asset = get_object_or_404(Asset, abbreviation=abbreviation)
         form = self.form_class(request.POST, request.FILES)
+        form.instance.asset = asset
         if form.is_valid():
             document = form.save(commit=False)
             document.asset = asset
@@ -520,40 +481,10 @@ class AssetDocumentsView(View):
             form.save_m2m()
             return redirect('got:asset-documents', abbreviation=abbreviation)
         else:
-            systems = asset.systems.all()
-            ots = Ot.objects.filter(system__in=systems)
-            equipos = Equipo.objects.filter(system__in=systems)
-
-            all_docs = Document.objects.filter(
-                Q(asset=asset) | Q(ot__in=ots) | Q(equipo__in=equipos)
-            ).distinct()
-
+            # Agregar un mensaje de error para depuración
+            messages.error(request, 'Error al agregar el documento. Por favor, revisa los campos.')
             keyword = request.GET.get('keyword', '').strip()
-            if keyword:
-                all_docs = all_docs.filter(description__icontains=keyword)
-
-            paginator = Paginator(all_docs, 30)  # 30 archivos por página
-            page_number = request.GET.get('page', 1)
-            page_obj = paginator.get_page(page_number)
-
-            today = date.today()
-            for doc in page_obj:
-                doc.is_expired = False
-                if doc.date_expiry and doc.date_expiry < today:
-                    doc.is_expired = True
-
-            existing_tags = Tag.objects.annotate(num_docs=Count('taggit_taggeditem_items')).filter(num_docs__gt=0).order_by('name')
-
-            context = {
-                'asset': asset,
-                'documents': page_obj,
-                'form': form,  # Mostrar el formulario con errores
-                'today': today,
-                'is_paginated': page_obj.has_other_pages(),
-                'page_obj': page_obj,
-                'existing_tags': existing_tags,
-                'request': request
-            }
+            context = self.get_context_data(request, asset, form=form, keyword=keyword)
             return render(request, self.template_name, context)
 
 
@@ -568,23 +499,15 @@ def edit_document(request, pk):
                 abbr = doc.asset.abbreviation
             elif doc.ot:
                 abbr = doc.ot.system.asset.abbreviation
-            elif doc.equipo:
-                abbr = doc.equipo.system.asset.abbreviation
             else:
-                # Este caso nunca debería ocurrir debido a la validación del modelo
-                return redirect('got:asset-documents', abbreviation=abbr)
-
+                abbr = doc.equipo.system.asset.abbreviation
             return redirect('got:asset-documents', abbreviation=abbr)
-    # Si no es POST, redirigir a la lista de documentos
     if doc.asset:
         abbr = doc.asset.abbreviation
     elif doc.ot:
         abbr = doc.ot.system.asset.abbreviation
     elif doc.equipo:
         abbr = doc.equipo.system.asset.abbreviation
-    else:
-        abbr = 'AAA'  # Este caso no debería ocurrir
-
     return redirect('got:asset-documents', abbreviation=abbr)
 
 
@@ -592,10 +515,11 @@ def edit_document(request, pk):
 def delete_document(request, pk):
     doc = get_object_or_404(Document, pk=pk)
     if request.method == 'POST':
-        abbr = doc.asset.abbreviation if doc.asset else 'AAA'  # Este 'AAA' puede eliminarse si siempre hay un asset
+        abbr = doc.asset.abbreviation
         doc.delete()
         return redirect('got:asset-documents', abbreviation=abbr)
     return redirect('got:asset-documents', abbreviation='AAA')
+
 
 class RutaDetailView(LoginRequiredMixin, generic.DetailView):
     model = Ruta
@@ -607,66 +531,44 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
         ruta = self.get_object()
 
         all_items = Item.objects.all()
-        all_services = Service.objects.all()  # servicios existentes
+        all_services = Service.objects.all()
         context['all_items'] = all_items
         context['all_services'] = all_services
         context['tasks'] = ruta.task_set.all().order_by('-priority')
         requirements = ruta.requisitos.all()
-
-        # Separar requerimientos en artículos y servicios
         art_requirements = []
         svc_requirements = []
         material_types = ['m', 'h']
 
         for req in requirements:
             if req.tipo in material_types:
-                # Requerimiento de artículo
-                # Determinar nombre para orden
                 if req.item:
                     name = str(req.item)
                 else:
                     name = str(req.descripcion)
                 art_requirements.append((name.lower(), req))
             elif req.tipo == 's':
-                # Requerimiento de servicio
-                # Determinar nombre para orden
                 if req.service:
                     name = req.service.description.lower()
                 else:
                     name = str(req.descripcion).lower()
                 svc_requirements.append((name, req))
 
-        # Ordenar listas por nombre
         art_requirements.sort(key=lambda x: x[0])
         svc_requirements.sort(key=lambda x: x[0])
 
-        # Extraer solo los requerimientos ya ordenados
         art_requirements = [req for _, req in art_requirements]
         svc_requirements = [req for _, req in svc_requirements]
 
         context['requirements_art'] = art_requirements
         context['requirements_svc'] = svc_requirements
-
         context['task_form'] = RutActForm(asset=ruta.system.asset)
         context['requirement_form'] = MaintenanceRequirementForm()
-        context['service_form'] = ServiceForm()  # Para crear un nuevo servicio
-
-        context['activity_logs'] = ActivityLog.objects.filter(
-            model_name='Ruta',
-            object_id=str(ruta.code)
-        ).order_by('-timestamp')
-
-        context['task_edit_forms'] = {
-            task.id: RutActForm(instance=task, asset=ruta.system.asset)
-            for task in ruta.task_set.all()
-        }
-        context['requirement_edit_forms'] = {
-            req.id: MaintenanceRequirementForm(instance=req)
-            for req in requirements
-        }
-
+        context['service_form'] = ServiceForm()
+        context['activity_logs'] = ActivityLog.objects.filter(model_name='Ruta', object_id=str(ruta.code)).order_by('-timestamp')
+        context['task_edit_forms'] = {task.id: RutActForm(instance=task, asset=ruta.system.asset) for task in ruta.task_set.all()}
+        context['requirement_edit_forms'] = {req.id: MaintenanceRequirementForm(instance=req) for req in requirements}
         context['material_types'] = material_types
-
         return context
 
     def post(self, request, *args, **kwargs):
@@ -749,7 +651,6 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
             return redirect('got:ruta_detail', pk=ruta.pk)
 
         elif action == 'create_service':
-            # Crear un nuevo servicio
             service_form = ServiceForm(request.POST)
             if service_form.is_valid():
                 service_form.save()
@@ -766,83 +667,51 @@ class RutaDetailView(LoginRequiredMixin, generic.DetailView):
             return redirect('got:ruta_detail', pk=ruta.pk)
 
 
-@login_required
-def create_service(request):
-    if request.method == 'POST':
-        form = ServiceForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Servicio creado exitosamente.")
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-            messages.error(request, "Error al crear el servicio.")
-        return redirect(request.META.get('HTTP_REFERER', 'got:ruta_detail'))  # Ajustar redirect
-    else:
-        return redirect('got:ruta_detail', pk=1)  # Ajusta según convenga
+class RutaCreate(CreateView):
+    model = Ruta
+    form_class = RutaForm
+    template_name = 'got/rutinas/ruta_form.html'
+
+    def form_valid(self, form):
+        pk = self.kwargs['pk']
+        system = get_object_or_404(System, pk=pk)
+        form.instance.system = system
+        form.instance.modified_by = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        ruta = self.object
+        return reverse('got:sys-detail', args=[ruta.system.id])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['system'] = System.objects.get(pk=self.kwargs['pk'])
+        return kwargs
 
 
-@login_required
-def schedule(request, pk):
-    asset = Asset.objects.get(pk=pk)
-    systems = asset.system_set.all()
+class RutaUpdate(UpdateView):
+    model = Ruta
+    form_class = RutaForm
+    template_name = 'got/rutinas/ruta_form.html'
 
-    routines_by_system = OrderedDict()
-    for system in systems:
-        routines = system.rutas.all()
-        if routines.exists():
-            routines_by_system[system] = [
-                {
-                    'routine': routine,
-                    'repeticiones': calcular_repeticiones2(routine, 'anual')[0],
-                    'meses_ejecucion': calcular_repeticiones2(routine, 'anual')[1],
-                } 
-                for routine in routines
-            ]
+    def form_valid(self, form):
+        form.instance.modified_by = self.request.user 
+        return super().form_valid(form)
 
-    current_date = datetime.now()
-    months = []
-    months_with_year = []
-    year_months = OrderedDict()
-
-    for i in range(13):
-        month = (current_date.month + i - 1) % 12 + 1
-        year = current_date.year + (current_date.month + i - 1) // 12
-        month_name = _(calendar.month_name[month]).capitalize()
-        months.append(month_name)
-        month_name_with_year = f"{calendar.month_name[month]} {year}"
-        months_with_year.append(month_name_with_year)
-        if year not in year_months:
-            year_months[year] = []
-        year_months[year].append(month_name)
-
-    context = {
-        'asset': asset,
-        'routines_by_system': routines_by_system,
-        'months': months,
-        'months_with_year': months_with_year,
-        'year_months': year_months,
-    }
-    return render(request, 'got/schedule.html', context)
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['system'] = self.object.system
+        return kwargs
 
 
-def generate_asset_pdf(request, asset_id):
-    asset = get_object_or_404(Asset, pk=asset_id)
-    location_based_systems = System.objects.filter(location=asset.name).exclude(asset=asset).order_by('group')
+class RutaDelete(DeleteView):
+    model = Ruta
+    template_name = 'got/rutinas/ruta_confirm_delete.html'
 
-    location_based_systems = [system for system in location_based_systems if system.equipos.exists()]
-    direct_systems = asset.system_set.all().order_by('group')
-
-    direct_systems = [system for system in direct_systems if system.equipos.exists()]
-    all_systems = location_based_systems + direct_systems
-
-    context = {
-        'asset': asset,
-        'systems': all_systems,
-    }
-
-    return render_to_pdf('got/assets/asset_pdf_template.html', context)
+    def get_success_url(self):
+        sys_code = self.object.system.id
+        success_url = reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
+        return success_url
 
 
 def acta_entrega_pdf(request, pk):
@@ -852,8 +721,9 @@ def acta_entrega_pdf(request, pk):
         'equipo': equipo,
         'current_date': current_date,
     }
-
     return render_to_pdf('got/systems/acta-entrega.html', context)
+
+
 
 
 'SYSTEMS VIEW'
@@ -902,7 +772,6 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
 
 
 class SysUpdate(UpdateView):
-
     model = System
     form_class = SysForm
     template_name = 'got/systems/system_form.html'
@@ -915,7 +784,6 @@ class SysUpdate(UpdateView):
 
 
 class SysDelete(DeleteView):
-
     model = System
 
     def delete(self, request, *args, **kwargs):
@@ -956,7 +824,6 @@ def system_maintence_pdf(request, asset_id, system_id):
 
 'EQUIPMENTS VIEW'
 class EquipoCreateView(LoginRequiredMixin, CreateView):
-
     model = Equipo
     form_class = EquipoForm
     template_name = 'got/systems/equipo_form.html'
@@ -998,7 +865,6 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
     
 
 class EquipoUpdate(UpdateView):
-
     model = Equipo
     form_class = EquipoForm
     template_name = 'got/systems/equipo_form.html'
@@ -1034,7 +900,6 @@ class EquipoUpdate(UpdateView):
 
 
 class EquipoDelete(DeleteView):
-
     model = Equipo
 
     def get_success_url(self):
@@ -1097,7 +962,6 @@ def transferir_equipo(request, equipo_id):
 
 @login_required
 def reportHoursAsset(request, asset_id):
-
     asset = get_object_or_404(Asset, pk=asset_id)
     today = date.today()
     dates = [today - timedelta(days=x) for x in range(30)]
@@ -1142,7 +1006,6 @@ def reportHoursAsset(request, asset_id):
 
 'FAILURE REPORTS VIEW'
 class FailureListView(LoginRequiredMixin, generic.ListView):
-
     model = FailureReport
     paginate_by = 15
     template_name = 'got/fail/failurereport_list.html'
@@ -1281,7 +1144,6 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
 
 
 class FailureReportUpdate(LoginRequiredMixin, UpdateView):
-
     model = FailureReport
     form_class = failureForm
     template_name = 'got/fail/failurereport_form.html'
@@ -1354,7 +1216,6 @@ def asociar_ot_failure_report(request, fail_id):
 
 'OTS VIEWS'
 class OtListView(LoginRequiredMixin, generic.ListView):
-
     model = Ot
     paginate_by = 16
     template_name = 'got/ots/ot_list.html'
@@ -1451,7 +1312,6 @@ class OtListView(LoginRequiredMixin, generic.ListView):
 
 
 class OtDetailView(LoginRequiredMixin, generic.DetailView):
-
     model = Ot
     template_name = 'got/ots/ot_detail.html'
 
@@ -1562,9 +1422,9 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
 
 
 class OtCreate(CreateView):
-
     model = Ot
     http_method_names = ['get', 'post']
+    template_name = 'got/ots/ot_form.html'
 
     def get_form_class(self):
         if self.request.user.groups.filter(name='super_members').exists():
@@ -1589,9 +1449,9 @@ class OtCreate(CreateView):
 
 
 class OtUpdate(UpdateView):
-
     model = Ot
     http_method_names = ['get', 'post']
+    template_name = 'got/ots/ot_form.html'
 
     def get_form_class(self):
         if self.request.user.groups.filter(name='super_members').exists():
@@ -1613,13 +1473,12 @@ class OtUpdate(UpdateView):
 
 
 class OtDelete(DeleteView):
-
     model = Ot
     success_url = reverse_lazy('got:ot-list')
+    template_name = 'got/ots/ot_confirm_delete.html'
 
 
 def ot_pdf(request, num_ot):
-
     ot_info = get_object_or_404(Ot, num_ot=num_ot)
     rutas = Ruta.objects.filter(ot=ot_info)
     rutina = rutas.exists()
@@ -2007,54 +1866,6 @@ def RutaListView(request):
         'motores_data': motores_data,
     }
     return render(request, 'got/ruta_list.html', context)
-
-
-class RutaCreate(CreateView):
-
-    model = Ruta
-    form_class = RutaForm
-
-    def form_valid(self, form):
-        pk = self.kwargs['pk']
-        system = get_object_or_404(System, pk=pk)
-
-        form.instance.system = system
-        form.instance.modified_by = self.request.user
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        ruta = self.object
-        return reverse('got:sys-detail', args=[ruta.system.id])
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['system'] = System.objects.get(pk=self.kwargs['pk'])
-        return kwargs
-
-
-class RutaUpdate(UpdateView):
-
-    model = Ruta
-    form_class = RutaForm
-
-    def form_valid(self, form):
-        form.instance.modified_by = self.request.user 
-        return super().form_valid(form)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['system'] = self.object.system
-        return kwargs
-
-
-class RutaDelete(DeleteView):
-
-    model = Ruta
-
-    def get_success_url(self):
-        sys_code = self.object.system.id
-        success_url = reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
-        return success_url
 
 
 @login_required
@@ -3692,81 +3503,6 @@ class VehiculosMttoView(LoginRequiredMixin, TemplateView):
                 states.append(('Ok', '#86e49d'))
 
         return states, state_data
-
-
-class EquipmentHistoryView(LoginRequiredMixin, generic.ListView):
-    model = EquipmentHistory
-    template_name = 'got/equipment_history.html'
-    context_object_name = 'histories'
-    paginate_by = 20
-
-    def get_queryset(self):
-        equipment_id = self.kwargs['equipment_id']
-        return EquipmentHistory.objects.filter(equipment__code=equipment_id)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        equipment_id = self.kwargs['equipment_id']
-        equipment = get_object_or_404(Equipo, code=equipment_id)
-        context['equipment'] = equipment
-        return context
-    
-
-class EquipmentHistoryCreateView(LoginRequiredMixin, generic.CreateView):
-    model = EquipmentHistory
-    form_class = EquipmentHistoryForm
-    template_name = 'got/equipment_history_form.html'
-
-    def form_valid(self, form):
-        equipment_id = self.kwargs['equipment_id']
-        equipment = get_object_or_404(Equipo, code=equipment_id)
-        form.instance.equipment = equipment
-        form.instance.reporter = self.request.user
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse_lazy('got:equipment_history', kwargs={'equipment_id': self.kwargs['equipment_id']})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        equipment_id = self.kwargs['equipment_id']
-        equipment = get_object_or_404(Equipo, code=equipment_id)
-        context['equipment'] = equipment
-        return context
-
-
-class EquipmentHistoryUpdateView(LoginRequiredMixin, generic.UpdateView):
-    model = EquipmentHistory
-    form_class = EquipmentHistoryForm
-    template_name = 'got/equipment_history_form.html'
-    permission_required = 'got.change_equipmenthistory'
-
-    def get_success_url(self):
-        return reverse_lazy('got:equipment_history', kwargs={'equipment_code': self.object.equipment.code})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['equipment'] = self.object.equipment
-        return context
-    
-
-class EquipmentHistoryDeleteView(LoginRequiredMixin, generic.DeleteView):
-    model = EquipmentHistory
-    template_name = 'got/equipment_history_confirm_delete.html'
-    permission_required = 'got.delete_equipmenthistory'
-
-    def get_success_url(self):
-        return reverse_lazy('got:equipment_history', kwargs={'equipment_code': self.object.equipment.code})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['equipment'] = self.object.equipment
-        return context
-    
-def delete_equipment_history(request, equipment_code, pk):
-    history = get_object_or_404(EquipmentHistory, pk=pk, equipment__code=equipment_code)
-    history.delete()
-    return redirect('got:equipment_history', equipment_code=equipment_code)
 
 
 class ManagerialReportView(View):

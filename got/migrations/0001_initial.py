@@ -164,5 +164,23 @@ class Migration(migrations.Migration):
                     ),
             },
         ),
+        migrations.CreateModel(
+            name='Ruta',
+            fields=[
+                ('code', models.AutoField(primary_key=True, serialize=False)),
+                ('name', models.CharField(max_length=50)),
+                ('frecuency', models.IntegerField()),
+                ('intervention_date', models.DateField()),
+                ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rutas', to='got.system')),
+                ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.ot')),
+                ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='equipos', to='got.equipo')),
+                ('control', models.CharField(choices=[('d', 'Días'), ('h', 'Horas'), ('k', 'Kilómetros')], max_length=1)),
+                ('dependencia', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='dependiente', to='got.ruta')),
+                ('clase', models.BooleanField(default=False)),
+                ('nivel', models.IntegerField(choices=[(1, 'Nivel 1 - Operadores'), (2, 'Nivel 2 - Técnico'), (3, 'Nivel 3 - Proveedor especializado'), (4, 'Nivel 4 - Fabricante')], default=1)),
+                ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ],
+            options={'ordering': ['frecuency']},
+        ),
         
     ]
