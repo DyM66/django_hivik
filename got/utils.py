@@ -447,7 +447,6 @@ def generate_excel(transacciones_historial, headers_mapping, filename):
     return pro_export_to_excel(Transaction, headers, data, filename=filename)
 
 
-
 def copiar_rutas_de_sistema(system_id):
     sistema_origen = get_object_or_404(System, id=system_id)
     asset = sistema_origen.asset
@@ -484,86 +483,78 @@ def copiar_rutas_de_sistema(system_id):
     print(f"Rutas y tareas copiadas exitosamente a otros sistemas en el mismo activo {asset.name}.")
 
 
-
 def calculate_executions(ruta, period_start, period_end):
-    if ruta.control == 'd':
-        frecuency_days = ruta.frecuency
-        last_intervention = ruta.intervention_date
+    initial_next_date = ruta.next_date
 
-        # Primera fecha programada después de la última intervención
-        next_date = last_intervention + timedelta(days=frecuency_days)
-        execution_count = 0
-
-        while next_date <= period_end:
-            if next_date >= period_start:
-                execution_count += 1
-            next_date += timedelta(days=frecuency_days)
-
-        return execution_count
-
-    elif ruta.control == 'h':
-        average_hours_per_day = 12  # Promedio de horas operativas por día
-
-        last_intervention = ruta.intervention_date
-
-        frequency_hours = ruta.frecuency
-
-        # Intervalo entre ejecuciones en días
-        execution_interval_days = frequency_hours / average_hours_per_day
-
-        execution_count = 0
-        execution_number = 1
-
-        # Fecha de la primera ejecución
-        execution_date = last_intervention + timedelta(days=execution_interval_days * execution_number)
-
-        while execution_date <= period_end:
-            if execution_date >= period_start:
-                execution_count += 1
-            execution_number += 1
-            execution_date = last_intervention + timedelta(days=execution_interval_days * execution_number)
-
-        return execution_count
-
-    else:
+    if not initial_next_date:
         return 0
 
+    # Para rutinas vencidas: si initial_next_date < period_start significa que ya debería haberse hecho,
+    # igualmente contaremos desde esa fecha (overdue).
+    current_date = initial_next_date
 
-def calcular_repeticiones(ruta, periodo='anual'):
-    periodos = {
-        'trimestral': 90,
-        'semestral': 180,
-        'anual': 365,
-        'quinquenal': 1825,  # 5 años
-    }
-
-    dias_periodo = periodos.get(periodo, 0)
-    today = datetime.now().date()
+    executions = 0
     if ruta.control == 'd':
-        frecuencia_dias = ruta.frecuency
-        next_date = ruta.next_date
+        # Frecuencia en días
+        freq_days = ruta.frecuency
+        # Avanzar en intervalos de freq_days desde current_date mientras esté dentro del periodo
+        while current_date <= period_end:
+            # Chequear si cae dentro del periodo
+            if current_date >= period_start and current_date <= period_end:
+                executions += 1
+            current_date = current_date + timedelta(days=freq_days)
 
-        repeticiones = 0
-        if next_date and next_date <= today + timedelta(days=dias_periodo):
-            repeticiones += 1
-            # Calcular cuántas veces más ocurrirá la rutina dentro del periodo
-            remaining_days = (today + timedelta(days=dias_periodo) - next_date).days
-            repeticiones += remaining_days // frecuencia_dias
-    
-    elif ruta.get_control_display() == 'Horas':
-        diferencia_dias = (ruta.next_date - ruta.intervention_date).days
-        repeticiones = 0
+    elif ruta.control in ['h', 'k']:
+        # Para horas o kilómetros, next_date ya calcula un ndays aproximado y retorna una fecha
+        # Supondremos que la frecuencia es en las unidades originales, pero dado que next_date
+        # devuelve una fecha final, trataremos la frecuencia como si fuera recurrente también en días.
 
-        if diferencia_dias > 0:
-            # Calcular la primera repetición
-            next_date = ruta.next_date
-            if next_date and next_date <= (today + timedelta(days=dias_periodo)):
-                repeticiones += 1
-                remaining_days = (today + timedelta(days=dias_periodo) - next_date).days
-                repeticiones += remaining_days // diferencia_dias
-    
-    return repeticiones
+        # Nota: en el modelo next_date para horas/kilómetros calcula ndays con base en prom_hours.
+        # Entonces, asumimos que cada repetición ocurre cada 'frecuency' horas, que se traducen
+        # en un intervalo aproximado de tiempo en días. Debemos recalcular el intervalo en días
+        # similar a como se hace en next_date.
 
+        # Reutilizamos la lógica: si se quisiera ser exacto, deberíamos replicar el cálculo
+        # de días para cada iteración, pero eso puede ser demasiado complejo.
+        # Aquí haremos una suposición simplificada:
+        # - Obtenemos ndays inicial desde next_date (ya calculado).
+        # - Para las siguientes ejecuciones, asumimos el mismo patrón:
+        #   es decir, cada frecuencia en horas corresponde al mismo número de días (la razón
+        #   es que no tenemos un cálculo dinámico de horas consumidas, solo uno inicial).
+
+        # Como en next_date se calcula ndays = int(inv / prom_hours) para h/k,
+        # debemos replicar esa lógica. Obtenemos ndays inicial (diferencia entre next_date y date.today())
+        
+        ndays_iniciales = (initial_next_date - date.today()).days
+        if ndays_iniciales < 1:
+            ndays_iniciales = 1  # por si acaso, evitar division por cero u otros casos
+
+        # Cada frecuencia en horas se traduce en freq_hours / prom_hours días aproximadamente.
+        equipo = ruta.equipo
+        prom_hours = equipo.prom_hours if equipo.prom_hours else 2
+        # Si prom_hours es 0 se tomó 2 por defecto en next_date.
+
+        # Calc days_per_execution = freq_hours / prom_hours (en días)
+        # Si freq_hours es ruta.frecuency
+        freq_hours = ruta.frecuency
+        try:
+            days_per_execution = int(freq_hours / prom_hours)
+            if days_per_execution < 1:
+                days_per_execution = 1
+        except ZeroDivisionError:
+            days_per_execution = 1
+
+        # Ahora desde current_date sumamos days_per_execution cada vez
+        while current_date <= period_end:
+            if current_date <= period_end:
+                executions += 1
+            current_date = current_date + timedelta(days=days_per_execution)
+
+    else:
+        # Si no es d, h o k, retornar 0 por ahora
+        return 0
+
+    return executions
 
 
 def calcular_repeticiones2(ruta, periodo='anual'):

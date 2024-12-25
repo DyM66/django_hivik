@@ -4,7 +4,7 @@
 {% block header %}Consolidado preoperacional{% endblock %}
 
 {% block content %}
-<form method="get" action="{% url 'got:export-preoperacional-excel' %}">
+<form method="get" action="{% url 'preoperacionales:export-preoperacionaldiario-excel' %}">
     <div class="form-group">
         <label for="mes">Mes:</label>
         <select id="mes" name="mes" class="form-control">

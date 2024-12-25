@@ -481,7 +481,6 @@ class AssetDocumentsView(View):
             form.save_m2m()
             return redirect('got:asset-documents', abbreviation=abbreviation)
         else:
-            # Agregar un mensaje de error para depuración
             messages.error(request, 'Error al agregar el documento. Por favor, revisa los campos.')
             keyword = request.GET.get('keyword', '').strip()
             context = self.get_context_data(request, asset, form=form, keyword=keyword)
@@ -728,9 +727,8 @@ def acta_entrega_pdf(request, pk):
 
 'SYSTEMS VIEW'
 class SysDetailView(LoginRequiredMixin, generic.DetailView):
-
     model = System
-    template_name = "got/systems/system_detail.html"
+    template_name = "got/systems/system_base.html"
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -740,11 +738,7 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
         orders_list = Ot.objects.filter(system=system)
         view_type = self.kwargs.get('view_type', 'sys')
         context['view_type'] = view_type
-
-        if view_type == 'sys':
-            paginator = Paginator(orders_list, 10)
-        else:
-            paginator = Paginator(orders_list, 4)
+        paginator = Paginator(orders_list, 4)
 
         page = self.request.GET.get('page')
         try:
@@ -785,11 +779,11 @@ class SysUpdate(UpdateView):
 
 class SysDelete(DeleteView):
     model = System
+    template_name = 'got/systems/system_confirm_delete.html'
 
     def delete(self, request, *args, **kwargs):
         system = self.get_object()
         system.modified_by = request.user
-
         return super().delete(request, *args, **kwargs)
 
     def get_success_url(self):
@@ -857,7 +851,6 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
         if upload_form.is_valid():
             for file in self.request.FILES.getlist('file_field'):
                 Image.objects.create(image=file, equipo=self.object)
-
         return response
 
     def get_success_url(self):
@@ -901,6 +894,7 @@ class EquipoUpdate(UpdateView):
 
 class EquipoDelete(DeleteView):
     model = Equipo
+    template_name = 'got/systems/equipo_confirm_delete.html'
 
     def get_success_url(self):
         sys_code = self.object.system.id
@@ -917,10 +911,6 @@ def add_supply_to_equipment(request, code):
             suministro.equipo = equipo
             suministro.save()
             return redirect(reverse('got:sys-detail-view', args=[equipo.system.id, equipo.code]))
-    else:
-        form = SuministrosEquipoForm()
-        items = Item.objects.all()
-    return render(request, 'got/equipment_detail.html', {'form': form, 'equipo': equipo, 'items': items})
 
 
 @login_required
@@ -957,7 +947,7 @@ def transferir_equipo(request, equipo_id):
         'form': form,
         'equipo': equipo
     }
-    return render(request, 'got/transferencia-equipo.html', context)
+    return render(request, 'got/systems/transferencia-equipo.html', context)
 
 
 @login_required
@@ -1001,7 +991,7 @@ def reportHoursAsset(request, asset_id):
         'dates': dates
     }
 
-    return render(request, 'got/hours_asset.html', context)
+    return render(request, 'got/assets/hours_asset.html', context)
 
 
 'FAILURE REPORTS VIEW'
@@ -1524,8 +1514,6 @@ def ot_pdf(request, num_ot):
         })
 
     images_qs = Image.objects.filter(task__ot=ot_info)
-    
-    # Verificar si existen imágenes
     has_evidence = images_qs.exists()
     
     # Obtener una lista de todas las URLs de las imágenes
@@ -1599,6 +1587,7 @@ class TaskCreate(CreateView):
     model = Task
     http_method_names = ['get', 'post']
     form_class = RutActForm
+    template_name = 'got/ots/task_form.html'
 
     def form_valid(self, form):
         pk = self.kwargs['pk']
@@ -1663,15 +1652,17 @@ class TaskUpdate(UpdateView):
         else:
             return reverse('got:my-tasks')
 
+
 class TaskDelete(DeleteView):
     model = Task
     success_url = reverse_lazy('got:ot-list')
+    template_name = 'got/ots/task_confirm_delete.html'
 
 
 class TaskUpdaterut(UpdateView):
     model = Task
     form_class = RutActForm
-    template_name = 'got/task_form.html'
+    template_name = 'got/ots/task_form.html'
     http_method_names = ['get', 'post']
 
     def form_valid(self, form):
@@ -1698,13 +1689,13 @@ class TaskDeleterut(DeleteView):
 
     def get(self, request, *args, **kwargs):
         context = {'task': self.get_object()}
-        return render(request, 'got/task_confirm_delete.html', context)
+        return render(request, 'got/ots/task_confirm_delete.html', context)
 
 
 class Finish_task(UpdateView):
     model = Task
     form_class = FinishTask
-    template_name = 'got/task_finish_form.html'
+    template_name = 'got/ots/task_finish_form.html'
     second_form_class = UploadImages
     success_url = reverse_lazy('got:my-tasks')
 
@@ -1737,7 +1728,7 @@ class Finish_task(UpdateView):
 class Finish_task_ot(UpdateView):
     model = Task
     form_class = FinishTask
-    template_name = 'got/task_finish_form.html'
+    template_name = 'got/ots/task_finish_form.html'
     second_form_class = UploadImages
 
     def get_context_data(self, **kwargs):
@@ -1752,7 +1743,6 @@ class Finish_task_ot(UpdateView):
         image_form = self.second_form_class(request.POST, request.FILES)
         if form.is_valid() and image_form.is_valid():
             return self.form_valid(form, image_form)
-
         else:
             return self.form_invalid(form)
 
@@ -1865,7 +1855,7 @@ def RutaListView(request):
         'barcos': barcos,
         'motores_data': motores_data,
     }
-    return render(request, 'got/ruta_list.html', context)
+    return render(request, 'got/rutinas/ruta_list.html', context)
 
 
 @login_required
@@ -1957,7 +1947,6 @@ def crear_ot_desde_ruta(request, ruta_id):
                 copiar_tasks_y_actualizar_ot(ruta.dependencia, ot)
 
         copiar_tasks_y_actualizar_ot(ruta, nueva_ot)
-
         return redirect('got:ot-detail', pk=nueva_ot.pk)
 
 
@@ -2068,8 +2057,6 @@ def OperationListView(request):
 
     today = timezone.now().date()
     show_past = request.GET.get('show_past', 'false').lower() == 'true'
-
-    # Filtrar operaciones para la tabla
     if show_past:
         operaciones_list = Operation.objects.order_by('start').prefetch_related(
             Prefetch(
@@ -2139,13 +2126,14 @@ class OperationUpdate(UpdateView):
     template_name = 'got/operations/operation_form.html'
 
     def get_success_url(self):
-
         return reverse('got:operation-list')
 
 
 class OperationDelete(DeleteView):
     model = Operation
     success_url = reverse_lazy('got:operation-list')
+    template_name = 'got/operations/operation_confirm_delete.html'
+
 
 
 @permission_required('got.can_create_requirement', raise_exception=True)
@@ -2213,288 +2201,6 @@ def requirement_delete(request, pk):
         requirement.delete()
         return redirect('got:operation-list')
     return render(request, 'got/operations/requirement_confirm_delete.html', {'requirement': requirement})
-
-
-'PREOPERACIONAL VIEW'
-def export_preoperacional_to_excel(request):
-    # Obtener el mes y año del request
-    mes = int(request.GET.get('mes', datetime.now().month))
-    anio = int(request.GET.get('anio', datetime.now().year))
-
-    # Filtrar los registros por el mes y año seleccionados
-    preoperacionales = Preoperacional.objects.filter(fecha__month=mes, fecha__year=anio)
-
-    # Crear un archivo de Excel
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.title = f"Preoperacional {mes}-{anio}"
-
-    # Escribir el encabezado
-    headers = [
-        'Fecha', 'Vehiculo', 'Responsable', 'Kilometraje', 'Salida', 'Destino', 
-        'Autorizado', 'Horas trabajo', 'Medicamentos', 'Molestias', 'Enfermo', 
-        'Condiciones', 'Agua', 'Dormido', 'Control', 'Sueño', 'Radio Aire', 
-        'Observaciones'
-    ]
-    for col_num, header in enumerate(headers, 1):
-        sheet.cell(row=1, column=col_num).value = header
-
-    # Escribir los datos
-    for row_num, preop in enumerate(preoperacionales, 2):
-        sheet.cell(row=row_num, column=1).value = preop.fecha.strftime('%d/%m/%Y')
-        sheet.cell(row=row_num, column=2).value = str(preop.vehiculo)
-        sheet.cell(row=row_num, column=3).value = f"{preop.reporter.first_name} {preop.reporter.last_name}" if preop.reporter else preop.nombre_no_registrado
-        sheet.cell(row=row_num, column=4).value = preop.kilometraje
-        sheet.cell(row=row_num, column=5).value = preop.salida
-        sheet.cell(row=row_num, column=6).value = preop.destino
-        sheet.cell(row=row_num, column=7).value = preop.get_autorizado_display()
-        sheet.cell(row=row_num, column=8).value = 'Sí' if preop.horas_trabajo else 'No'
-        sheet.cell(row=row_num, column=9).value = 'Sí' if preop.medicamentos else 'No'
-        sheet.cell(row=row_num, column=10).value = 'Sí' if preop.molestias else 'No'
-        sheet.cell(row=row_num, column=11).value = 'Sí' if preop.enfermo else 'No'
-        sheet.cell(row=row_num, column=12).value = 'Sí' if preop.condiciones else 'No'
-        sheet.cell(row=row_num, column=13).value = 'Sí' if preop.agua else 'No'
-        sheet.cell(row=row_num, column=14).value = 'Sí' if preop.dormido else 'No'
-        sheet.cell(row=row_num, column=15).value = 'Sí' if preop.control else 'No'
-        sheet.cell(row=row_num, column=16).value = 'Sí' if preop.sueño else 'No'
-        sheet.cell(row=row_num, column=17).value = 'Sí' if preop.radio_aire else 'No'
-        sheet.cell(row=row_num, column=18).value = preop.observaciones
-
-    # Preparar el archivo para la descarga
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename=Preoperacional_{mes}-{anio}.xlsx'
-    workbook.save(response)
-    
-    return response
-
-
-def preoperacional_especifico_view(request, code):
-    
-    equipo = get_object_or_404(Equipo, code=code)
-    rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
-
-    if request.method == 'POST':
-        form = PreoperacionalEspecificoForm(request.POST, equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages(request.POST, request.FILES)
-        if form.is_valid() and image_form.is_valid():
-            preop = form.save(commit=False)
-            preop.reporter = request.user if request.user.is_authenticated else None
-            preop.vehiculo = equipo
-            nuevo_kilometraje = form.cleaned_data['nuevo_kilometraje']
-            preop.kilometraje = nuevo_kilometraje
-            preop.save()
-
-            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
-            kilometraje_reportado = nuevo_kilometraje - horometro_actual
-
-            history_hour, created = HistoryHour.objects.get_or_create(
-                component=equipo,
-                report_date=localdate(),
-                defaults={'hour': kilometraje_reportado}
-            )
-
-            if not created:
-                history_hour.hour = kilometraje_reportado
-                history_hour.save()
-
-            equipo.horometro = nuevo_kilometraje
-            equipo.save()
-
-            for file in request.FILES.getlist('file_field'):
-                Image.objects.create(preoperacional=preop, image=file)
-
-            return redirect('got:gracias', code=equipo.code)
-    else:
-        form = PreoperacionalEspecificoForm(equipo_code=equipo.code, user=request.user)
-        image_form = UploadImages()
-
-    return render(request, 'preoperacional/preoperacionalform.html', {'vehiculo': equipo, 'form': form, 'image_form': image_form, 'rutas_vencidas': rutas_vencidas})
-
-
-'PREOPERACIONAL DIARIO VIEW'
-class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
-    model = PreoperacionalDiario
-    paginate_by = 15
-    template_name = 'preoperacional/preoperacional_list.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Obtener la fecha actual
-        fecha_actual = timezone.now()
-
-        # Generar rangos de meses y años
-        meses = [(i, _(calendar.month_name[i])) for i in range(1, 13)]  # De enero a diciembre
-        anios = range(fecha_actual.year - 5, fecha_actual.year + 1)  # Últimos 5 años hasta el actual
-
-        # Pasar estos valores al contexto
-        context['fecha_actual'] = fecha_actual
-        context['meses'] = meses
-        context['anios'] = anios
-
-        return context
-
-
-def export_preoperacionaldiario_excel(request):
-    mes = request.GET.get('mes', timezone.now().month)
-    anio = request.GET.get('anio', timezone.now().year)
-
-    # Filtrar los registros por el mes y el año seleccionados
-    preoperacional_diarios = PreoperacionalDiario.objects.filter(
-        fecha__year=anio,
-        fecha__month=mes
-    )
-
-    # Crear el libro de Excel
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"Preoperacional Diario {mes}-{anio}"
-    headers = [
-        'Fecha', 'Vehículo', 'Responsable', 'Kilometraje', 'Nivel de Combustible',
-        'Nivel de Aceite', 'Nivel de Refrigerante', 'Nivel de Hidráulico', 'Nivel de Líquido de Frenos',
-        'Poleas', 'Correas', 'Mangueras', 'Acoples', 'Tanques', 'Radiador', 'Terminales', 'Bujes', 'Rótulas', 
-        'Ejes', 'Cruceta', 'Puertas', 'Chapas', 'Manijas', 'Elevavidrios', 'Lunas', 'Espejos', 
-        'Vidrio Panorámico', 'Asiento', 'Apoyacabezas', 'Cinturón', 'Aire', 'Caja de Cambios', 
-        'Dirección', 'Batería', 'Luces Altas', 'Luces Medias', 'Luces Direccionales', 'Cocuyos', 'Luz de Placa',
-        'Luz Interna', 'Pito', 'Alarma de Retroceso', 'Arranque', 'Alternador', 'Rines', 'Tuercas', 
-        'Esparragos', 'Freno de Servicio', 'Freno de Seguridad', 'Llanta de Repuesto', 'Llantas', 'Suspensión',
-        'Capó', 'Persiana', 'Bumper Delantero', 'Parabrisas', 'Guardafango', 'Stop', 'Bumper Trasero',
-        'Vidrio Panorámico Trasero', 'Placa Delantera', 'Placa Trasera', 'Aseo Externo', 'Aseo Interno', 
-        'Kit de Carreteras', 'Kit de Herramientas', 'Kit de Botiquín', 'Chaleco Reflectivo', 'Aprobado', 
-        'Observaciones'
-    ]
-    ws.append(headers)
-    for preop in preoperacional_diarios:
-        ws.append([
-            preop.fecha.strftime('%d/%m/%Y'),
-            preop.vehiculo.name,
-            f"{preop.reporter.first_name} {preop.reporter.last_name}" if preop.reporter else preop.nombre_no_registrado,
-            preop.kilometraje,
-            preop.get_combustible_level_display(),
-            preop.get_aceite_level_display(),
-            preop.get_refrigerante_level_display(),
-            preop.get_hidraulic_level_display(),
-            preop.get_liq_frenos_level_display(),
-            preop.get_poleas_display(),
-            preop.get_correas_display(),
-            preop.get_mangueras_display(),
-            preop.get_acoples_display(),
-            preop.get_tanques_display(),
-            preop.get_radiador_display(),
-            preop.get_terminales_display(),
-            preop.get_bujes_display(),
-            preop.get_rotulas_display(),
-            preop.get_ejes_display(),
-            preop.get_cruceta_display(),
-            preop.get_puertas_display(),
-            preop.get_chapas_display(),
-            preop.get_manijas_display(),
-            preop.get_elevavidrios_display(),
-            preop.get_lunas_display(),
-            preop.get_espejos_display(),
-            preop.get_vidrio_panoramico_display(),
-            preop.get_asiento_display(),
-            preop.get_apoyacabezas_display(),
-            preop.get_cinturon_display(),
-            preop.get_aire_display(),
-            preop.get_caja_cambios_display(),
-            preop.get_direccion_display(),
-            preop.get_bateria_display(),
-            preop.get_luces_altas_display(),
-            preop.get_luces_medias_display(),
-            preop.get_luces_direccionales_display(),
-            preop.get_cocuyos_display(),
-            preop.get_luz_placa_display(),
-            preop.get_luz_interna_display(),
-            preop.get_pito_display(),
-            preop.get_alarma_retroceso_display(),
-            preop.get_arranque_display(),
-            preop.get_alternador_display(),
-            preop.get_rines_display(),
-            preop.get_tuercas_display(),
-            preop.get_esparragos_display(),
-            preop.get_freno_servicio_display(),
-            preop.get_freno_seguridad_display(),
-            'Sí' if preop.is_llanta_repuesto else 'No',
-            preop.get_llantas_display(),
-            preop.get_suspencion_display(),
-            preop.get_capo_display(),
-            preop.get_persiana_display(),
-            preop.get_bumper_delantero_display(),
-            preop.get_panoramico_display(),
-            preop.get_guardafango_display(),
-            preop.get_stop_display(),
-            preop.get_bumper_trasero_display(),
-            preop.get_vidrio_panoramico_trasero_display(),
-            preop.get_placa_delantera_display(),
-            preop.get_placa_trasera_display(),
-            'Sí' if preop.aseo_externo else 'No',
-            'Sí' if preop.aseo_interno else 'No',
-            'Sí' if preop.kit_carreteras else 'No',
-            'Sí' if preop.kit_herramientas else 'No',
-            'Sí' if preop.kit_botiquin else 'No',
-            'Sí' if preop.chaleco_reflectivo else 'No',
-            'Sí' if preop.aprobado else 'No',
-            preop.observaciones
-        ])
-
-    # Preparar la respuesta HTTP
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename=PreoperacionalDiario_{mes}_{anio}.xlsx'
-    wb.save(response)
-
-    return response
-
-
-def gracias_view(request, code):
-    equipo = get_object_or_404(Equipo, code=code)
-    return render(request, 'preoperacional/gracias.html', {'equipo': equipo})
-
-
-class PreoperacionalUpdateView(LoginRequiredMixin, generic.UpdateView):
-    model = Preoperacional
-    form_class = PreoperacionalEspecificoForm
-    template_name = 'preoperacional/preoperacionalform.html'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        preoperacional = self.get_object()
-        kwargs['equipo_code'] = preoperacional.vehiculo.code
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        preoperacional = form.save(commit=False)
-        equipo = preoperacional.vehiculo
-        nuevo_kilometraje = form.cleaned_data['nuevo_kilometraje']
-        fecha_preoperacional = preoperacional.fecha
-
-        # Calcular el horómetro actual excluyendo el reporte actual
-        horometro_actual = equipo.initial_hours + (
-            equipo.hours.exclude(report_date=fecha_preoperacional).aggregate(total=Sum('hour'))['total'] or 0
-        )
-        kilometraje_reportado = nuevo_kilometraje - horometro_actual
-
-        # Actualizar o crear el registro de horas
-        history_hour, _ = HistoryHour.objects.get_or_create(
-            component=equipo,
-            report_date=fecha_preoperacional,
-            defaults={'hour': kilometraje_reportado}
-        )
-
-        history_hour.hour = kilometraje_reportado
-        history_hour.save()
-
-        # Actualizar el horómetro del equipo
-        equipo.horometro = nuevo_kilometraje
-        equipo.save()
-
-        preoperacional.save()
-
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('got:salidas-detail', kwargs={'pk': self.object.pk})
 
 
 'SOLICITUDES VIEWS'
@@ -2899,7 +2605,7 @@ def indicadores(request):
         'barcos': barcos,
         'combustible_data': combustible_data,
     }
-    return render(request, 'got/indicadores.html', context)
+    return render(request, 'got/assets/indicadores.html', context)
 
 
 'EXPERIMENTAL VIEWS'
@@ -2961,7 +2667,6 @@ def export_asset_system_equipo_excel(request):
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=Asset_System_Equipo.xlsx'
     workbook.save(response)
-
     return response
 
 
@@ -3610,82 +3315,6 @@ class ManagerialReportView(View):
 
         return render_to_pdf('got/managerial_report.html', context)
 
-
-def calculate_executions(ruta, period_start, period_end):
-    # Obtenemos la próxima fecha de ejecución a partir de la propiedad next_date
-    initial_next_date = ruta.next_date
-
-    # Si la rutina no tiene próxima fecha calculable, retornar 0
-    if not initial_next_date:
-        return 0
-
-    # Para rutinas vencidas: si initial_next_date < period_start significa que ya debería haberse hecho,
-    # igualmente contaremos desde esa fecha (overdue).
-    current_date = initial_next_date
-
-    executions = 0
-    if ruta.control == 'd':
-        # Frecuencia en días
-        freq_days = ruta.frecuency
-        # Avanzar en intervalos de freq_days desde current_date mientras esté dentro del periodo
-        while current_date <= period_end:
-            # Chequear si cae dentro del periodo
-            if current_date >= period_start and current_date <= period_end:
-                executions += 1
-            current_date = current_date + timedelta(days=freq_days)
-
-    elif ruta.control in ['h', 'k']:
-        # Para horas o kilómetros, next_date ya calcula un ndays aproximado y retorna una fecha
-        # Supondremos que la frecuencia es en las unidades originales, pero dado que next_date
-        # devuelve una fecha final, trataremos la frecuencia como si fuera recurrente también en días.
-
-        # Nota: en el modelo next_date para horas/kilómetros calcula ndays con base en prom_hours.
-        # Entonces, asumimos que cada repetición ocurre cada 'frecuency' horas, que se traducen
-        # en un intervalo aproximado de tiempo en días. Debemos recalcular el intervalo en días
-        # similar a como se hace en next_date.
-
-        # Reutilizamos la lógica: si se quisiera ser exacto, deberíamos replicar el cálculo
-        # de días para cada iteración, pero eso puede ser demasiado complejo.
-        # Aquí haremos una suposición simplificada:
-        # - Obtenemos ndays inicial desde next_date (ya calculado).
-        # - Para las siguientes ejecuciones, asumimos el mismo patrón:
-        #   es decir, cada frecuencia en horas corresponde al mismo número de días (la razón
-        #   es que no tenemos un cálculo dinámico de horas consumidas, solo uno inicial).
-
-        # Como en next_date se calcula ndays = int(inv / prom_hours) para h/k,
-        # debemos replicar esa lógica. Obtenemos ndays inicial (diferencia entre next_date y date.today())
-        
-        ndays_iniciales = (initial_next_date - date.today()).days
-        if ndays_iniciales < 1:
-            ndays_iniciales = 1  # por si acaso, evitar division por cero u otros casos
-
-        # Cada frecuencia en horas se traduce en freq_hours / prom_hours días aproximadamente.
-        equipo = ruta.equipo
-        prom_hours = equipo.prom_hours if equipo.prom_hours else 2
-        # Si prom_hours es 0 se tomó 2 por defecto en next_date.
-
-        # Calc days_per_execution = freq_hours / prom_hours (en días)
-        # Si freq_hours es ruta.frecuency
-        freq_hours = ruta.frecuency
-        try:
-            days_per_execution = int(freq_hours / prom_hours)
-            if days_per_execution < 1:
-                days_per_execution = 1
-        except ZeroDivisionError:
-            days_per_execution = 1
-
-        # Ahora desde current_date sumamos days_per_execution cada vez
-        while current_date <= period_end:
-            if current_date <= period_end:
-                executions += 1
-            current_date = current_date + timedelta(days=days_per_execution)
-
-    else:
-        # Si no es d, h o k, retornar 0 por ahora
-        return 0
-
-    return executions
-
     
 class BudgetView(TemplateView):
     template_name = 'got/mantenimiento/budget_view.html'
@@ -3884,3 +3513,133 @@ class BudgetView(TemplateView):
         else:
             messages.error(request, 'Acción no reconocida.')
             return redirect('got:budget_view')
+
+
+import json
+
+class BudgetSummaryByAssetView(TemplateView):
+    template_name = 'got/mantenimiento/budget_summary_view.html'
+
+    def get(self, request, *args, **kwargs):
+        # Fechas de interés (puedes parametrizarlas o dejarlas fijas)
+        period_start = date(2025, 1, 1)
+        period_end   = date(2025, 7, 31)
+
+        # 1. Obtener todos los barcos (assets con area='a' y show=True)
+        barcos = Asset.objects.filter(area='a', show=True).order_by('name')
+
+        # 2. Preparar la estructura de datos para la tabla y el gráfico
+        assets_data = []   # Aquí almacenamos info de cada barco, equipos y costos
+        total_global = Decimal('0.00')
+
+        for barco in barcos:
+            # Filtrar rutas ligadas a este barco
+            rutas = Ruta.objects.filter(system__asset=barco)
+
+            costo_total_barco = Decimal('0.00')
+            equipos_dict = {}
+            categories_dict = {'Aceite y Filtros': Decimal('0.00'), 'Servicios': Decimal('0.00'), 'Repuestos': Decimal('0.00')}
+
+            for ruta in rutas:
+                num_exec = calculate_executions(ruta, period_start, period_end)
+                if num_exec == 0:
+                    continue
+
+                equipo_id = ruta.equipo_id
+                if not equipo_id:
+                    equipo_id = 'otros'
+
+                for req in ruta.requisitos.all():
+                    unit_price = Decimal('0.00')
+                    if req.tipo in ['m', 'h'] and req.item:
+                        unit_price = req.item.unit_price or Decimal('0.00')
+                    elif req.tipo == 's' and req.service:
+                        unit_price = req.service.unit_price or Decimal('0.00')
+
+                    subtotal = req.cantidad * unit_price * num_exec
+
+                    # Acumular en el dict de equipo
+                    if equipo_id not in equipos_dict:
+                        equipos_dict[equipo_id] = Decimal('0.00')
+                    equipos_dict[equipo_id] += subtotal
+
+                    # Acumular en categories_dict según la lógica especificada
+                    if req.tipo in ['m', 'h'] and req.item:
+                        if req.item.name in ["Aceite", "Filtros"]:
+                            categories_dict['Aceite y Filtros'] += subtotal
+                        else:
+                            categories_dict['Repuestos'] += subtotal
+                    elif req.tipo == 's' and req.service:
+                        categories_dict['Servicios'] += subtotal
+
+            # Sumar todos los subtotales de equipos al costo_total_barco
+            for value in equipos_dict.values():
+                costo_total_barco += value
+
+            total_global += costo_total_barco
+
+            # Convertir equipos_dict a lista y convertir Decimal a float
+            equipos_list = []
+            for eq_id, cost_eq in equipos_dict.items():
+                if eq_id == 'otros':
+                    nombre_equipo = 'Otros'
+                else:
+                    eq_obj = get_object_or_404(Equipo, pk=eq_id)
+                    nombre_equipo = eq_obj.name
+                equipos_list.append({
+                    'equipo_name': nombre_equipo,
+                    'cost': float(cost_eq)  # Convertir Decimal a float
+                })
+
+            # Ordenar la lista de equipos por nombre
+            equipos_list.sort(key=lambda e: e['equipo_name'].lower())
+
+            # Preparar datos para el gráfico de equipos
+            labels_equipos = []
+            data_equipos = []
+            for eq_data in equipos_list:
+                labels_equipos.append(eq_data['equipo_name'])
+                data_equipos.append(float(eq_data['cost']))
+
+            # Preparar datos para el gráfico de categorías
+            labels_categories = ['Aceite y Filtros', 'Servicios', 'Repuestos']
+            data_categories = [
+                float(categories_dict['Aceite y Filtros']),
+                float(categories_dict['Servicios']),
+                float(categories_dict['Repuestos'])
+            ]
+
+            # Guardamos la info de este barco en assets_data
+            assets_data.append({
+                'asset_id': barco.abbreviation,              # por si hace falta
+                'asset_name': barco.name,
+                'asset_cost': float(costo_total_barco),     # Convertir Decimal a float
+                'equipos': equipos_list,                    # para la sub-tabla
+                'labels_equipos': labels_equipos,
+                'data_equipos': data_equipos,
+                'labels_categories': labels_categories,
+                'data_categories': data_categories,
+            })
+
+        # 3. Preparar datos para el diagrama circular principal
+        pie_labels = []
+        pie_data = []
+        for asset_info in assets_data:
+            pie_labels.append(asset_info['asset_name'])
+            pie_data.append(asset_info['asset_cost'])
+
+        # Convertir datos a JSON serializable
+        assets_data_json = json.dumps(assets_data)
+        pie_labels_json = json.dumps(pie_labels)
+        pie_data_json = json.dumps(pie_data)
+
+        context = {
+            'period_start': period_start,
+            'period_end': period_end,
+            'total_global': float(total_global),
+            'assets_data': assets_data,               # Lista de dict para la plantilla
+            'assets_data_json': assets_data_json,     # Cadena JSON para JavaScript
+            'pie_labels': pie_labels_json,
+            'pie_data': pie_data_json,
+        }
+        return self.render_to_response(context)

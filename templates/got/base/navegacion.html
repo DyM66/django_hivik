@@ -97,7 +97,7 @@
             
                 {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
                 <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'budget_view' %}active{% endif %}" href="{% url 'got:budget_view' %}">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'budget_summary_by_asset' %}active{% endif %}" href="{% url 'got:budget_summary_by_asset' %}">
                         Presupuesto
                     </a>
                 </li>
@@ -161,7 +161,7 @@
         </div>
         <div class="modal-body">
             <a href="{% url 'preoperacionales:preoperacional-dia' vehiculo.code %}" class="btn btn-primary">Preoperacional</a>
-            <a href="{% url 'got:preoperacional-especifico' vehiculo.code %}" class="btn btn-secondary">Salida</a>
+            <a href="{% url 'preoperacionales:preoperacional-especifico' vehiculo.code %}" class="btn btn-secondary">Salida</a>
         </div>
       </div>
     </div>

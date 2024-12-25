@@ -18,8 +18,6 @@ urlpatterns = [
     path('ruta/<int:pk>/', views.RutaDetailView.as_view(), name='ruta_detail'),
     path('asset/acta/<str:pk>/', views.acta_entrega_pdf, name='acta_entrega'),
 
-
-
     path('reporte-gerencial/', views.ManagerialReportView.as_view(), name='managerial_report'),
 
 
@@ -82,12 +80,6 @@ urlpatterns = [
     path('requirement/<int:pk>/update/', views.requirement_update, name='requirement-update'),
     path('requirement/<int:pk>/delete/', views.requirement_delete, name='requirement-delete'),
 
-    path('preoperacional/excel/', views.export_preoperacional_to_excel, name='export-preoperacional-excel'),
-    path('preoperacional/especifico/<str:code>/', views.preoperacional_especifico_view, name='preoperacional-especifico'),
-    path('preoperacional/consolidado/', views.PreoperacionalListView.as_view(), name='preoperacional-consolidado'),
-    path('preoperacionaldiario/export/excel/', views.export_preoperacionaldiario_excel, name='export-preoperacionaldiario-excel'),
-    path('gracias/<str:code>/', views.gracias_view, name='gracias'),
-
     path("solicitud/", views.SolicitudesListView.as_view(), name="rq-list"),
     path('solicitud/transfer/<int:pk>/', views.TransferSolicitudView.as_view(), name='transfer-solicitud'),
     path('detalle_pdf/<int:pk>/', views.detalle_pdf, name='solicitud_pdf'),
@@ -109,10 +101,9 @@ urlpatterns = [
     path('manifest.json', views.manifest, name='manifest'),
     path('service-worker.js', views.service_worker, name='service_worker'),
     path('api/unapproved_requests_count/', views.get_unapproved_requests_count, name='unapproved_requests_count_api'),
-    path('preoperacional/<int:pk>/edit/', views.PreoperacionalUpdateView.as_view(), name='salida-edit'),
     path('solicitud/<int:pk>/delete/', views.DeleteSolicitudView.as_view(), name='delete-solicitud'),
 
-
     path('budget/', views.BudgetView.as_view(), name='budget_view'),
+    path('budget/summary/assets/', views.BudgetSummaryByAssetView.as_view(), name='budget_summary_by_asset'),
 ]
 

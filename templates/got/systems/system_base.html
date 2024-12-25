@@ -15,7 +15,6 @@
 	<div class="nav-sys">
 
 		<ul>
-			<li class="tit"><h5><a href="{% url 'got:sys-detail-view' system.id 'history' %}">Bitacora</a></h5></li>
 			<li class="tit"><h5><a href="{% url 'got:sys-detail-view' system.id 'sys' %}">Sistemas</a></h4></li>
 			{% for subsystem in unique_subsystems %}
 				<li><a href="{% url 'got:sys-detail-view' system.id subsystem %}">{{ subsystem }}</a></li>
@@ -28,16 +27,10 @@
 			{% endfor %}
 		</ul>
 	</div>
-
-	{% if not view_type == 'history' %}	
-		{% include 'got/system_history.html' %} 
-	{% endif %}
 	
 	<div class="main-info-sys">
 
-		{% if view_type == 'history' %}	
-			{% include 'got/system_history.html' %} 
-        {% elif view_type == 'sys' %}
+		{% if view_type == 'sys' %}
             {% include 'got/systems/system_equipos.html' %}
 		{% elif equipo %}
 			{% include 'got/systems/equipment_detail.html' %}

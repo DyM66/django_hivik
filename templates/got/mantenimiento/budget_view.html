@@ -52,7 +52,13 @@
             <th>Artículo</th>
             <th>Presentación</th>
             <th>Cantidad Total</th>
-            <th>Valor Unitario (COP)</th>
+            <th>
+                Valor Unitario (COP)
+                <!-- Botón para filtrar con JS -->
+                <button type="button" class="btn btn-link p-0 ms-2" id="filterZeroBtnItems" style="font-size: 0.85rem;">
+                    <i class="bi bi-funnel"></i> Ver 0
+                </button>
+            </th>
             <th>Total (COP)</th>
         </tr>
     </thead>
@@ -63,7 +69,12 @@
             <td>{{ item.presentacion }}</td>
             <td>{{ item.total_quantity }}</td>
             <td>
-                {{ item.unit_price|currency }}
+                {% if item.unit_price == 0 %}
+                    <!-- Si el valor es cero, muéstralo en rojo. -->
+                    <span class="text-danger fw-bold">0</span>
+                {% else %}
+                    {{ item.unit_price|currency }}
+                {% endif %}
                 {% if item.id %}
                 <a href="#" class="ms-1" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
                    data-obj-type="item" data-obj-id="{{ item.id }}" data-current-price="{{ item.unit_price }}">
@@ -166,6 +177,41 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('objTypeField').value = objType;
             document.getElementById('objIdField').value = objId;
             document.getElementById('newPriceField').value = currentPrice;
+        });
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Botón para filtrar artículos con unit_price=0
+    const filterZeroBtn = document.getElementById('filterZeroBtnItems');
+    // Estado inicial del filtro: off
+    let showOnlyZero = false;
+
+    if (filterZeroBtn) {
+        filterZeroBtn.addEventListener('click', function () {
+            // Invertir el estado
+            showOnlyZero = !showOnlyZero;
+            // Cambiar el texto del botón según estado
+            if (showOnlyZero) {
+                filterZeroBtn.innerHTML = '<i class="bi bi-funnel"></i> Ver Todos';
+            } else {
+                filterZeroBtn.innerHTML = '<i class="bi bi-funnel"></i> Ver 0';
+            }
+
+            // Seleccionar todas las filas de items
+            const rows = document.querySelectorAll('.item-row');
+            rows.forEach(row => {
+                const priceString = row.getAttribute('data-unit-price') || '0';
+                const priceValue = parseFloat(priceString);
+
+                // Si showOnlyZero está activo y el priceValue != 0, ocultar
+                if (showOnlyZero && priceValue !== 0) {
+                    row.style.display = 'none';
+                } else {
+                    // Caso contrario, mostrar
+                    row.style.display = '';
+                }
+            });
         });
     }
 });
