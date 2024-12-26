@@ -57,8 +57,14 @@
                                         <td>{{ eq.cost|currency }}</td>
                                     </tr>
                                     {% endfor %}
+                                    <!-- Fila Micelanios por Equipos -->
                                     <tr>
-                                        <td class="text-end"><strong>Total:</strong></td>
+                                        <td><strong>Micelanios (10%)</strong></td>
+                                        <td><strong>{{ asset.micelanios|currency }}</strong></td>
+                                    </tr>
+                                    <!-- Fila Total con Micelanios -->
+                                    <tr>
+                                        <td><strong>Total</strong></td>
                                         <td><strong>{{ asset.asset_cost|currency }}</strong></td>
                                     </tr>
                                 </tbody>
@@ -86,14 +92,15 @@
                 <td colspan="2">No hay barcos disponibles.</td>
             </tr>
         {% endfor %}
+        <!-- Fila Total Global con Micelanios -->
         <tr>
-            <td class="text-end"><strong>Total Global:</strong></td>
+            <td class="text-end"><strong>Total Global (Incluye 10% Micelanios)</strong></td>
             <td><strong>{{ total_global|currency }}</strong></td>
         </tr>
         </tbody>
     </table>
 
-    <!-- Gráfico circular principal con % por barco, se muestra después de la tabla -->
+    <!-- Gráfico circular principal con % por barco + Micelanios, se muestra después de la tabla -->
     <h3 style="font-size:1rem;">Distribución Total</h3>
     <div style="max-width:600px;">
         <canvas id="mainPieChart"></canvas>
@@ -108,7 +115,7 @@
     // Depuración: Verificar el contenido de assets_data_json
     console.log("assets_data_json:", '{{ assets_data_json|escapejs }}');
 
-    // 1) Datos para el gráfico principal (todos los barcos)
+    // 1) Datos para el gráfico principal (todos los barcos + Micelanios)
     var mainLabels = JSON.parse('{{ pie_labels|escapejs }}');
     var mainData   = JSON.parse('{{ pie_data|escapejs }}');
 
@@ -135,7 +142,7 @@
                   'rgba(255, 159, 64, 0.7)',
                   'rgba(75, 192, 192, 0.7)',
                   'rgba(153, 102, 255, 0.7)',
-                  'rgba(201, 203, 207, 0.7)'
+                  'rgba(201, 203, 207, 0.7)'  // Micelanios
                 ],
             }]
         },
@@ -156,6 +163,7 @@
          "asset_id": ...,
          "asset_name": ...,
          "asset_cost": float,
+         "micelanios": float,  # Nuevo
          "equipos": [...],
          "labels_equipos": [...],
          "data_equipos": [...],

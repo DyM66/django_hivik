@@ -2,6 +2,7 @@ import base64
 import calendar
 import logging
 import uuid
+import json
 
 from collections import OrderedDict
 from datetime import timedelta, date, datetime
@@ -3361,7 +3362,6 @@ class BudgetView(TemplateView):
                 # Si esta ruta tiene requisitos, entonces este system_id tiene requerimientos
                 systems_with_reqs.add(ruta.system_id)
 
-            requisitos = ruta.requisitos.all()
             for req in requisitos:
                 total_quantity = req.cantidad * num_executions
                 if req.tipo in ['m', 'h']:
@@ -3440,6 +3440,17 @@ class BudgetView(TemplateView):
         total_articulos = sum(i['total_cost'] for i in item_list)
         total_servicios = sum(s['total_cost'] for s in service_list)
 
+        # Calcular micelanios (10%)
+        micelanios_articulos = total_articulos * Decimal('0.10')
+        micelanios_servicios = total_servicios * Decimal('0.10')
+
+        # Nuevos totales incluyendo micelanios
+        total_articulos_with_micelanios = total_articulos + micelanios_articulos
+        total_servicios_with_micelanios = total_servicios + micelanios_servicios
+
+        # Calcular total combinado
+        combined_total = total_articulos_with_micelanios + total_servicios_with_micelanios
+
         # Obtener listas para filtros
         assets = self.get_assets_list()
         systems = self.get_systems_list(asset_abbr) if asset_abbr else []
@@ -3457,7 +3468,12 @@ class BudgetView(TemplateView):
             'period_start': period_start,
             'period_end': period_end,
             'total_articulos': total_articulos,
+            'micelanios_articulos': micelanios_articulos,
+            'total_articulos_with_micelanios': total_articulos_with_micelanios,
             'total_servicios': total_servicios,
+            'micelanios_servicios': micelanios_servicios,
+            'total_servicios_with_micelanios': total_servicios_with_micelanios,
+            'combined_total': combined_total,
             'assets_list': assets,
             'selected_asset': asset_abbr,
             'systems_list': systems,
@@ -3515,8 +3531,6 @@ class BudgetView(TemplateView):
             return redirect('got:budget_view')
 
 
-import json
-
 class BudgetSummaryByAssetView(TemplateView):
     template_name = 'got/mantenimiento/budget_summary_view.html'
 
@@ -3531,6 +3545,7 @@ class BudgetSummaryByAssetView(TemplateView):
         # 2. Preparar la estructura de datos para la tabla y el gráfico
         assets_data = []   # Aquí almacenamos info de cada barco, equipos y costos
         total_global = Decimal('0.00')
+        micelanios_global = Decimal('0.00') 
 
         for barco in barcos:
             # Filtrar rutas ligadas a este barco
@@ -3576,7 +3591,15 @@ class BudgetSummaryByAssetView(TemplateView):
             for value in equipos_dict.values():
                 costo_total_barco += value
 
-            total_global += costo_total_barco
+            # Calcular micelanios para este barco (10%)
+            micelanios_barco = costo_total_barco * Decimal('0.10')
+            costo_total_barco_with_micelanios = costo_total_barco + micelanios_barco
+
+            # Sumar a total_global
+            total_global += costo_total_barco_with_micelanios
+
+            # Sumar micelanios_global
+            micelanios_global += micelanios_barco
 
             # Convertir equipos_dict a lista y convertir Decimal a float
             equipos_list = []
@@ -3613,7 +3636,8 @@ class BudgetSummaryByAssetView(TemplateView):
             assets_data.append({
                 'asset_id': barco.abbreviation,              # por si hace falta
                 'asset_name': barco.name,
-                'asset_cost': float(costo_total_barco),     # Convertir Decimal a float
+                'asset_cost': float(costo_total_barco_with_micelanios),     # Convertir Decimal a float
+                'micelanios': float(micelanios_barco),
                 'equipos': equipos_list,                    # para la sub-tabla
                 'labels_equipos': labels_equipos,
                 'data_equipos': data_equipos,
@@ -3628,6 +3652,11 @@ class BudgetSummaryByAssetView(TemplateView):
             pie_labels.append(asset_info['asset_name'])
             pie_data.append(asset_info['asset_cost'])
 
+
+        # Agregar Micelanios como una categoría en el gráfico
+        pie_labels.append("Micelanios")
+        pie_data.append(float(micelanios_global))
+
         # Convertir datos a JSON serializable
         assets_data_json = json.dumps(assets_data)
         pie_labels_json = json.dumps(pie_labels)
@@ -3637,6 +3666,7 @@ class BudgetSummaryByAssetView(TemplateView):
             'period_start': period_start,
             'period_end': period_end,
             'total_global': float(total_global),
+            'micelanios_global': float(micelanios_global),
             'assets_data': assets_data,               # Lista de dict para la plantilla
             'assets_data_json': assets_data_json,     # Cadena JSON para JavaScript
             'pie_labels': pie_labels_json,

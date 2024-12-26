@@ -52,9 +52,7 @@
             <th>Artículo</th>
             <th>Presentación</th>
             <th>Cantidad Total</th>
-            <th>
-                Valor Unitario (COP)
-            </th>
+            <th>Valor Unitario (COP)</th>
             <th>Total (COP)</th>
         </tr>
     </thead>
@@ -78,16 +76,29 @@
                 </a>
                 {% endif %}
             </td>
-            <td>{{ item.total_cost|currency }}</td>
+            <td>
+                {% if item.total_cost == 0 %}
+                    <!-- Si el valor es cero, muéstralo en rojo. -->
+                    <span class="text-danger fw-bold">0</span>
+                {% else %}
+                    {{ item.total_cost|currency }}
+                {% endif %}
+            </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="6">No hay artículos.</td>
+            <td colspan="5">No hay artículos.</td>
         </tr>
         {% endfor %}
+        <!-- Fila Micelanios -->
+        <tr>
+            <td colspan="4" class="text-end"><strong>Micelanios (10%):</strong></td>
+            <td><strong>{{ micelanios_articulos|currency }}</strong></td>
+        </tr>
+        <!-- Fila Total con Micelanios -->
         <tr>
             <td colspan="4" class="text-end"><strong>Total Artículos:</strong></td>
-            <td colspan="2"><strong>{{ total_articulos|currency }}</strong></td>
+            <td><strong>{{ total_articulos_with_micelanios|currency }}</strong></td>
         </tr>
     </tbody>
 </table>
@@ -110,7 +121,12 @@
             <td>{{ svc.presentacion }}</td>
             <td>{{ svc.total_quantity }}</td>
             <td>
-                {{ svc.unit_price|currency }}
+                {% if svc.unit_price == 0 %}
+                    <!-- Si el valor es cero, muéstralo en rojo. -->
+                    <span class="text-danger fw-bold">0</span>
+                {% else %}
+                    {{ svc.unit_price|currency }}
+                {% endif %}
                 {% if svc.id %}
                 <a href="#" class="ms-1" data-bs-toggle="modal" data-bs-target="#updatePriceModal"
                    data-obj-type="service" data-obj-id="{{ svc.id }}" data-current-price="{{ svc.unit_price }}">
@@ -118,19 +134,40 @@
                 </a>
                 {% endif %}
             </td>
-            <td>{{ svc.total_cost|currency }}</td>
+            <td>
+                {% if svc.total_cost == 0 %}
+                    <!-- Si el valor es cero, muéstralo en rojo. -->
+                    <span class="text-danger fw-bold">0</span>
+                {% else %}
+                    {{ svc.total_cost|currency }}
+                {% endif %}
+            </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="6">No hay servicios.</td>
+            <td colspan="5">No hay servicios.</td>
         </tr>
         {% endfor %}
+        <!-- Fila Micelanios -->
+        <tr>
+            <td colspan="4" class="text-end"><strong>Micelanios (10%):</strong></td>
+            <td><strong>{{ micelanios_servicios|currency }}</strong></td>
+        </tr>
+        <!-- Fila Total con Micelanios -->
         <tr>
             <td colspan="4" class="text-end"><strong>Total Servicios:</strong></td>
-            <td colspan="2"><strong>{{ total_servicios|currency }}</strong></td>
+            <td><strong>{{ total_servicios_with_micelanios|currency }}</strong></td>
         </tr>
     </tbody>
 </table>
+
+<!-- Total Combinado de Artículos y Servicios -->
+<div class="mt-4">
+    <h4>Total Combinado (Artículos + Servicios + Micelanios)</h4>
+    <p style="font-size:1.1rem;">
+        <strong>{{ combined_total|currency }}</strong>
+    </p>
+</div>
 
 <!-- Modal para actualizar el precio unitario -->
 <div class="modal fade" id="updatePriceModal" tabindex="-1" aria-hidden="true">
