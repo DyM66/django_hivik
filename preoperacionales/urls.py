@@ -12,7 +12,7 @@ urlpatterns = [
 
 
     path('excel/', views.export_preoperacional_to_excel, name='export-preoperacional-excel'),
-    path('got/preoperacional/<str:code>/', views.preoperacional_especifico_view, name='preoperacional-especifico'),
+    path('preoperacional/especifico/<str:code>/', views.preoperacional_especifico_view, name='preoperacional-especifico'),
     path('consolidado/', views.PreoperacionalListView.as_view(), name='preoperacional-consolidado'),
     path('preoperacionaldiario/export/excel/', views.export_salidas_to_excel, name='export-preoperacionaldiario-excel'),
     path('gracias/<str:code>/', views.gracias_view, name='gracias'),
