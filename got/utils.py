@@ -485,6 +485,7 @@ def copiar_rutas_de_sistema(system_id):
 
 def calculate_executions(ruta, period_start, period_end):
     initial_next_date = ruta.next_date
+    system = ruta.system
 
     if not initial_next_date:
         return 0
@@ -524,6 +525,8 @@ def calculate_executions(ruta, period_start, period_end):
 
         # Como en next_date se calcula ndays = int(inv / prom_hours) para h/k,
         # debemos replicar esa lógica. Obtenemos ndays inicial (diferencia entre next_date y date.today())
+        if system.state == 's':  # 's' representa 'Stand by'
+            return 1
         
         ndays_iniciales = (initial_next_date - date.today()).days
         if ndays_iniciales < 1:
@@ -531,7 +534,7 @@ def calculate_executions(ruta, period_start, period_end):
 
         # Cada frecuencia en horas se traduce en freq_hours / prom_hours días aproximadamente.
         equipo = ruta.equipo
-        prom_hours = equipo.prom_hours if equipo.prom_hours else 2
+        prom_hours = equipo.prom_hours if equipo.prom_hours else 1
         # Si prom_hours es 0 se tomó 2 por defecto en next_date.
 
         # Calc days_per_execution = freq_hours / prom_hours (en días)
