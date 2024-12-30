@@ -18,6 +18,7 @@ from django.core.exceptions import ValidationError
 import os
 from django.conf import settings
 from got.models_group.Item_model import Item
+from got.models_group.Userprofile_model import UserProfile
 
 
 # Funciones auxiliares
@@ -46,17 +47,6 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user_name} {self.action} {self.model_name} {self.field_name} at {self.timestamp}"
-
-
-# Model 2: Carasteristicas del usuario
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    cargo = models.CharField(max_length=100, null=True, blank=True)
-    firma = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
-    station = models.CharField(max_length=100, null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.user.username}'s profile"
 
 
 # Model 4: Servicios

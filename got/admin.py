@@ -1,8 +1,5 @@
 from django.contrib import admin
-from .models import (
-    Asset, System, Ot, Task, Equipo, Ruta, HistoryHour, FailureReport, Operation, Solicitud, Item,
-    Suministro, UserProfile, Document, MaintenanceRequirement
-)
+from .models import *
 
 from django.utils import timezone
 
