@@ -2,12 +2,8 @@
 {% load my_tags %}
 
 {% block content %}
-<main class="container">
+<main class="px-3">
     <h1>Listado de activos</h1>
-
-    <!-- {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
-        <a href="{% url 'got:managerial_report' %}" class="btn btn-success">Reporte gerencial</a>
-    {% endif %} -->
     <div class="assets-masonry">
         {% for area, assets in assets_by_area.items %}
             {% if assets %}
@@ -18,13 +14,16 @@
                             <tr>
                                 <th scope="col">Nombre</th>
                                 <th scope="col">Supervisor</th>
+                                <th>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for asset in assets %}
                             <tr data-href="{{ asset.get_absolute_url }}">
                                 <td data-cell="Nombre">{{ asset.abbreviation }} - {{ asset.name }}</td>
-                                <td data-cell="Supervisor" class="nowrap">{{ asset.supervisor.get_full_name }}</td>
+                                <td data-cell="Supervisor">{{ asset.supervisor.get_full_name }}</td>
+                                <td data-cell="Supervisor">{{ asset.maintenance_compliance }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

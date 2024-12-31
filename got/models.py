@@ -1,37 +1,18 @@
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta
+from decimal import Decimal
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Sum, Count
-from django.db.models.signals import pre_save, post_save
-from django.dispatch import receiver
-import uuid
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.formats import number_format
-from django.utils.translation import gettext as _
-from decimal import Decimal
+from taggit.managers import TaggableManager
+from .paths import *
+
+from got.models_group.Item_model import Item
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
 from outbound.models import OutboundDelivery
-from taggit.managers import TaggableManager
-from django.core.exceptions import ValidationError
-import os
-from django.conf import settings
-from got.models_group.Item_model import Item
 from got.models_group.Userprofile_model import UserProfile
-
-
-# Funciones auxiliares
-def get_upload_path(instance, filename):
-    ext = filename.split('.')[-1]
-    filename = f"media/{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
-    return filename
-
-
-def get_upload_pdfs(instance, filename):
-    ext = filename.split('.')[-1]
-    filename = f"pdfs/{uuid.uuid4()}.{ext}"
-    return filename
 
 
 # Model 1: Registro de actividades
@@ -63,7 +44,6 @@ class Service(models.Model):
 
 # Model 5: Activos (Centro de costos)
 class Asset(models.Model):
-
     AREA = (
         ('a', 'Motonave'),
         ('b', 'Buceo'),
@@ -108,11 +88,7 @@ class Asset(models.Model):
                 if ruta.next_date >= date.today():
                     compliant_count += 1
             elif ruta.control == 'h' or ruta.control == 'k':
-                accumulated_hours = ruta.equipo.hours.filter(
-                    report_date__gte=ruta.intervention_date,
-                    report_date__lte=date.today()
-                ).aggregate(total_hours=Sum('hour'))['total_hours'] or 0
-                
+                accumulated_hours = ruta.equipo.hours.filter(report_date__gte=ruta.intervention_date, report_date__lte=date.today()).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
                 if accumulated_hours <= ruta.frecuency:
                     compliant_count += 1
 
@@ -265,9 +241,9 @@ class Equipo(models.Model):
 
         # Tomar los últimos 30 registros de consumo de combustible
         consumos = self.fuel_consumptions.order_by('-fecha')[:30]
-        total_consumo = consumos.aggregate(Sum('com_estimado_motor'))['com_estimado_motor__sum'] or 0
+        total_consumo = consumos.aggregate(models.Sum('com_estimado_motor'))['com_estimado_motor__sum'] or 0
         fechas_consumo = consumos.values_list('fecha', flat=True)
-        total_horas = HistoryHour.objects.filter(component=self, report_date__in=fechas_consumo).aggregate(Sum('hour'))['hour__sum'] or 0
+        total_horas = HistoryHour.objects.filter(component=self, report_date__in=fechas_consumo).aggregate(models.Sum('hour'))['hour__sum'] or 0
 
         if total_horas > 0:
             consumo_promedio = total_consumo / total_horas
@@ -278,7 +254,7 @@ class Equipo(models.Model):
             return None
 
     def calculate_horometro(self):
-        total_hours = self.hours.aggregate(total=Sum('hour'))['total'] or 0
+        total_hours = self.hours.aggregate(total=models.Sum('hour'))['total'] or 0
         return total_hours + self.initial_hours
     
     def last_hour_report_date(self):
@@ -422,7 +398,7 @@ class Ruta(models.Model):
                 ndays = int(inv/12)
         
         elif self.control == 'h' or self.control == 'k':
-            period = self.equipo.hours.filter(report_date__gte=self.intervention_date, report_date__lte=date.today()).aggregate(total_hours=Sum('hour'))['total_hours'] or 0
+            period = self.equipo.hours.filter(report_date__gte=self.intervention_date, report_date__lte=date.today()).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
             inv = self.frecuency - period
             try:
                 ndays = int(inv/self.equipo.prom_hours)
@@ -438,7 +414,7 @@ class Ruta(models.Model):
         if self.control == 'd':
             return (self.next_date - date.today()).days
         else:
-            return int(self.frecuency - (self.equipo.hours.filter(report_date__gte=self.intervention_date, report_date__lte=date.today()).aggregate(total_hours=Sum('hour'))['total_hours'] or 0))
+            return int(self.frecuency - (self.equipo.hours.filter(report_date__gte=self.intervention_date, report_date__lte=date.today()).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0))
 
     @property
     def percentage_remaining(self):
@@ -450,7 +426,7 @@ class Ruta(models.Model):
             hours_period = (self.equipo.hours.filter(
                     report_date__gte=self.intervention_date,
                     report_date__lte=date.today()
-                ).aggregate(total_hours=Sum('hour'))['total_hours']) or 0
+                ).aggregate(total_hours=models.Sum('hour'))['total_hours']) or 0
             
             time_remaining = self.frecuency - hours_period
 

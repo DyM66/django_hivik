@@ -43,13 +43,13 @@ class Migration(migrations.Migration):
             options={'ordering': ['-creation_date'], 'permissions': (('can_approve', 'Aprobar solicitudes'), ('can_cancel', 'Puede cancelar'), ('can_view_all_rqs', 'Puede ver todas las solicitudes'), ('can_transfer_solicitud', 'Puede transferir solicitudes'))},
         ),
 
-        migrations.SeparateDatabaseAndState(
-            database_operations=[],
-            state_operations=[
-                migrations.DeleteModel(name='Preoperacional'),
-                migrations.DeleteModel(name='PreoperacionalDiario'),
-            ],
-        ),
+        # migrations.SeparateDatabaseAndState(
+        #     database_operations=[],
+        #     state_operations=[
+        #         migrations.DeleteModel(name='Preoperacional'),
+        #         migrations.DeleteModel(name='PreoperacionalDiario'),
+        #     ],
+        # ),
         migrations.CreateModel(
             name='MaintenanceRequirement',
             fields=[

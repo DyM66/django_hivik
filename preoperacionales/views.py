@@ -63,7 +63,7 @@ def preoperacional_diario_view(request, code):
             for file in request.FILES.getlist('file_field'):
                 Image.objects.create(preoperacional=preop, image=file)
 
-            return redirect('got:gracias', code=equipo.code) 
+            return redirect('preoperacionales:gracias', code=equipo.code) 
     else:
         form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
         image_form = UploadImages()

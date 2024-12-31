@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-                migrations.SeparateDatabaseAndState(
+            migrations.SeparateDatabaseAndState(
             database_operations=[],
             state_operations=[
                 migrations.CreateModel(

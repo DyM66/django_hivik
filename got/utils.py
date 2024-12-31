@@ -9,7 +9,6 @@ from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
 from django.utils import timezone
 import calendar
-
 from io import BytesIO
 from xhtml2pdf import pisa
 from django.http import HttpResponse

@@ -38,7 +38,6 @@ from .forms import *
 
 
 logger = logging.getLogger(__name__)
-
 @cache_control(max_age=86400)
 def manifest(request):
     manifest_data = {
@@ -109,7 +108,6 @@ def profile_update(request):
             'last_name': user.last_name,
             'email': user.email,
         })
-
     return render(request, 'profile_update.html', {'form': form})
 
 

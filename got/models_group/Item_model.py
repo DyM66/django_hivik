@@ -1,12 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from datetime import datetime
-import uuid
-
-def get_upload_path(instance, filename):
-    ext = filename.split('.')[-1]
-    filename = f"media/{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
-    return filename
+from got.paths import *
 
 
 # Model 3: Articulos

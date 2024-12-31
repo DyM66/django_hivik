@@ -1,8 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User, Group
-from .models import *
-from .utils import *
+from got.models import *
 from datetime import datetime
 
 from django.forms import modelformset_factory
@@ -10,10 +9,6 @@ from django.utils.timezone import localdate
 from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
 from django.forms.widgets import ClearableFileInput
 from taggit.forms import TagWidget
-from django.core.files.base import ContentFile
-import base64
-import uuid
-import re
 from django.forms import formset_factory
 
 # ---------------- Widgets ------------------- #
