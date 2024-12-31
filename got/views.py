@@ -16,7 +16,7 @@ from django.contrib.auth.views import PasswordResetView
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, Case, When, IntegerField, BooleanField, Value, Sum
+from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, Case, When, IntegerField, BooleanField, Value
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string

@@ -14,7 +14,7 @@ from xhtml2pdf import pisa
 from django.http import HttpResponse
 from .models import *
 from .forms import RutinaFilterForm
-
+from django.db.models import Sum
 from collections import defaultdict
 from datetime import date
 import openpyxl
