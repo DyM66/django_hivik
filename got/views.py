@@ -3625,6 +3625,7 @@ class BudgetView(TemplateView):
             messages.error(request, 'Acción no reconocida.')
             return redirect('got:budget_view')
 
+from django.db.models import Q
 
 class BudgetSummaryByAssetView(TemplateView):
     template_name = 'got/mantenimiento/budget_summary_view.html'
@@ -3633,28 +3634,35 @@ class BudgetSummaryByAssetView(TemplateView):
         period_start = date(2025, 1, 1)
         period_end   = date(2025, 12, 31)
 
-        barcos = Asset.objects.filter(area='a', show=True).order_by('name')
+        # 1. Definir las condiciones usando Q
+        condition_barcos = Q(area='a', show=True)
+        condition_otros   = Q(show=True) & ~Q(area='a') & Q(system__rutas__requisitos__isnull=False)
+
+        # 2. Filtrar los assets que cumplen alguna de las condiciones
+        all_assets = Asset.objects.filter(
+            condition_barcos | condition_otros
+        ).distinct().order_by('name')
 
         assets_data = []
         total_global = Decimal('0.00')
         micelanios_global = Decimal('0.00')
 
-        for barco in barcos:
+        for barco in all_assets:
             rutas = Ruta.objects.filter(system__asset=barco)
             costo_total_barco = Decimal('0.00')
             equipos_dict = {}
-            categories_dict = {'Aceite y Filtros': Decimal('0.00'),
-                               'Servicios': Decimal('0.00'),
-                               'Repuestos': Decimal('0.00')}
+            categories_dict = {
+                'Aceite y Filtros': Decimal('0.00'),
+                'Servicios':        Decimal('0.00'),
+                'Repuestos':        Decimal('0.00')
+            }
 
             for ruta in rutas:
                 num_exec = calculate_executions(ruta, period_start, period_end)
                 if num_exec == 0:
                     continue
 
-                equipo_id = ruta.equipo_id
-                if not equipo_id:
-                    equipo_id = 'otros'
+                equipo_id = ruta.equipo_id or 'otros'
 
                 for req in ruta.requisitos.all():
                     unit_price = Decimal('0.00')
@@ -3664,12 +3672,10 @@ class BudgetSummaryByAssetView(TemplateView):
                         unit_price = req.service.unit_price or Decimal('0.00')
 
                     subtotal = req.cantidad * unit_price * num_exec
-
-                    if equipo_id not in equipos_dict:
-                        equipos_dict[equipo_id] = Decimal('0.00')
+                    equipos_dict.setdefault(equipo_id, Decimal('0.00'))
                     equipos_dict[equipo_id] += subtotal
 
-                    # Categorización
+                    # Clasificar en categories_dict
                     if req.tipo in ['m', 'h'] and req.item:
                         if req.item.name in ["Aceite", "Filtros"]:
                             categories_dict['Aceite y Filtros'] += subtotal
@@ -3678,6 +3684,7 @@ class BudgetSummaryByAssetView(TemplateView):
                     elif req.tipo == 's' and req.service:
                         categories_dict['Servicios'] += subtotal
 
+            # 3. Calcular costos + micelanios
             for value in equipos_dict.values():
                 costo_total_barco += value
 
@@ -3687,20 +3694,24 @@ class BudgetSummaryByAssetView(TemplateView):
             total_global += costo_total_barco_with_micelanios
             micelanios_global += micelanios_barco
 
-            # Convertir a lista
+            # 4. Convertir dict equipos a lista
             equipos_list = []
             for eq_id, cost_eq in equipos_dict.items():
                 if eq_id == 'otros':
-                    nombre_equipo = 'Otros'
+                    eq_name = 'Otros'
                 else:
-                    eq_obj = get_object_or_404(Equipo, pk=eq_id)
-                    nombre_equipo = eq_obj.name
+                    try:
+                        eq_obj = Equipo.objects.get(pk=eq_id)
+                        eq_name = eq_obj.name
+                    except Equipo.DoesNotExist:
+                        eq_name = 'Desconocido'
                 equipos_list.append({
-                    'equipo_name': nombre_equipo,
+                    'equipo_name': eq_name,
                     'cost': float(cost_eq)
                 })
             equipos_list.sort(key=lambda e: e['equipo_name'].lower())
 
+            # Datos para gráficas
             labels_equipos = [eq['equipo_name'] for eq in equipos_list]
             data_equipos = [eq['cost'] for eq in equipos_list]
 
@@ -3712,38 +3723,41 @@ class BudgetSummaryByAssetView(TemplateView):
             ]
 
             assets_data.append({
-                'asset_id': barco.abbreviation,
-                'asset_name': barco.name,
-                'asset_cost': float(costo_total_barco_with_micelanios),
-                'micelanios': float(micelanios_barco),
-                'equipos': equipos_list,
-                'labels_equipos': labels_equipos,
-                'data_equipos': data_equipos,
-                'types_labels': labels_categories,
-                'types_data': data_categories,
+                'asset_id':        barco.abbreviation,
+                'asset_name':      barco.name,
+                'asset_cost':      float(costo_total_barco_with_micelanios),
+                'micelanios':      float(micelanios_barco),
+                'equipos':         equipos_list,
+                'labels_equipos':  labels_equipos,
+                'data_equipos':    data_equipos,
+                'types_labels':    labels_categories,
+                'types_data':      data_categories,
             })
 
+        # 5. Preparar datos para la gráfica principal
         pie_labels = []
-        pie_data = []
+        pie_data   = []
         for asset_info in assets_data:
             pie_labels.append(asset_info['asset_name'])
             pie_data.append(asset_info['asset_cost'])
 
+        # Opcional: agregar "Micelanios" global
         pie_labels.append("Micelanios")
         pie_data.append(float(micelanios_global))
 
+        # Convertir a JSON
         assets_data_json = json.dumps(assets_data)
-        pie_labels_json = json.dumps(pie_labels)
-        pie_data_json = json.dumps(pie_data)
+        pie_labels_json  = json.dumps(pie_labels)
+        pie_data_json    = json.dumps(pie_data)
 
         context = {
-            'period_start': period_start,
-            'period_end': period_end,
-            'total_global': float(total_global),
-            'micelanios_global': float(micelanios_global),
-            'assets_data': assets_data,
-            'assets_data_json': assets_data_json,  # Para la nueva vista de “detalles”
-            'pie_labels': pie_labels_json,         # Para el “gráfico anterior”
-            'pie_data': pie_data_json,
+            'period_start':       period_start,
+            'period_end':         period_end,
+            'total_global':       float(total_global),
+            'micelanios_global':  float(micelanios_global),
+            'assets_data':        assets_data,
+            'assets_data_json':   assets_data_json,
+            'pie_labels':         pie_labels_json,
+            'pie_data':           pie_data_json,
         }
         return self.render_to_response(context)
