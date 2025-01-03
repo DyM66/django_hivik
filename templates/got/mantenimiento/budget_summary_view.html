@@ -3,10 +3,11 @@
 
 {% block content %}
 <div class="container my-4">
-    <!-- CUADRO: Encabezado y texto explicativo -->
+
+    <!-- ENCABEZADO Y EXPLICACIÓN -->
     <div class="shadow p-4 mb-4" style="background-color: #f0f4ff; border-radius: 12px;">
         <h1 style="margin-bottom: 0.5rem; color: #191645;">Resumen de Presupuesto por Barco</h1>
-        <p style="font-size:0.9rem; color: #333;">
+        <p style="font-size: 0.9rem; color: #333;">
             Período: {{ period_start|date:"d/m/Y" }} - {{ period_end|date:"d/m/Y" }}
         </p>
         <p style="font-size: 0.9rem; color: #333;">
@@ -15,23 +16,22 @@
         </p>
     </div>
 
-    <!-- CONTENEDOR FLEX: Tabla Izquierda, Detalle Derecha -->
+    <!-- CONTENEDOR FLEX: Tabla a la izquierda, Panel a la derecha -->
     <div style="display: flex; gap: 1rem; align-items: flex-start;">
-        
-        <!-- Sección Izquierda: Tabla de Barcos -->
+
+        <!-- SECCIÓN IZQUIERDA: TABLA DE BARCOS (ancho ~40%) -->
         <div style="flex: 0 0 40%;">
-            <table class="table-list table-sm align-middle" 
-                   style="font-size: 0.9rem; border-collapse: collapse; width: 100%;">
+            <table class="table-list table-sm align-middle"
+                   style="font-size: 0.9rem; border-collapse: collapse; width:100%;">
                 <thead>
                     <tr>
-                        <th style="width: 60%; font-weight: normal;">Barco</th>
-                        <th style="width: 40%; font-weight: normal;">Presupuesto (COP)</th>
+                        <th style="width: 60%; font-weight: lighter;">Barco</th>
+                        <th style="width: 40%; font-weight: lighter;">Presupuesto (COP)</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for asset in assets_data %}
-                    <!-- Cada fila, en el onclick, llamamos a showAssetDetails con el índice -->
-                    <tr onclick="showAssetDetails({{ forloop.counter0 }})" style="cursor: pointer;">
+                    <tr class="asset-row" data-index="{{ forloop.counter0 }}">
                         <td>{{ asset.asset_name }}</td>
                         <td>{{ asset.asset_cost|currency }}</td>
                     </tr>
@@ -41,149 +41,340 @@
                     </tr>
                 {% endfor %}
                 <tr>
-                    <td class="text-end"><strong>Total Global (Incluye 10% Micelanios)</strong></td>
+                    <td class="text-end">
+                        <strong>Total Global (Incluye 10% Micelanios)</strong>
+                    </td>
                     <td><strong>{{ total_global|currency }}</strong></td>
                 </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Sección Derecha: Detalle dinámico -->
-        <div class="shadow p-3" style="background-color: #f0f4ff; border-radius: 12px; color: #191645; flex: 1;">
-            <!-- Título del barco clicado -->
-            <h1 id="detailAssetTitle" style="font-size:2rem; margin-bottom: 1rem; color: #191645;">
-                <!-- Se actualizará vía JS -->
-                Selecciona un barco...
-            </h1>
-            
-            <!-- Gráfico de Barras para Equipos -->
-            <div style="width: 100%; height: 400px; margin-bottom: 2rem;">
-                <canvas id="equiposBarChart"></canvas>
+        <!-- SECCIÓN DERECHA: Panel que muestra EITHER la barra general O un detalle -->
+        <div style="flex: 1;">
+
+            <!-- 1) Contenedor de la gráfica de barras GENERAL -->
+            <div id="generalChartContainer"
+                 class="shadow p-3"
+                 style="background-color: #f0f4ff; border-radius: 12px; color: #191645;">
+                <h2 style="font-size:1.1rem; margin-bottom: 1rem; color: #191645;">
+                    Presupuesto de Mantenimiento por Barcos
+                </h2>
+                <div style="width: 100%; min-width: 600px; height: 700px;">
+                    <canvas id="horizontalBarChart"></canvas>
+                </div>
             </div>
 
-            <!-- Gráfico Circular (Pie/Donut) para Tipos -->
-            <div style="width: 100%; max-width: 500px; margin: 0 auto;">
-                <canvas id="typesPieChart"></canvas>
+            <!-- 2) CONTENEDOR DE DETALLE (inicialmente oculto) -->
+            <div id="detailChartContainer"
+                 class="shadow p-3"
+                 style="background-color: #f0f4ff; border-radius: 12px; color: #191645; display: none;">
+                <!-- Encabezado con nombre de barco y botón volver -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 id="detailAssetName"
+                        style="font-size:1.1rem; margin-bottom:1rem; color:#191645;">
+                        <!-- Se llena por JS con el nombre del barco seleccionado -->
+                    </h2>
+                    <!-- Botón para volver a la vista general -->
+                    <button class="btn btn-sm btn-secondary" onclick="showGeneralChart()">
+                        Volver
+                    </button>
+                </div>
+
+                <!-- *** NUEVO *** -->
+                <!-- 2.1) BARRA con el desglose por equipos -->
+                <h4 style="font-size:1rem;">Desglose por Equipos (Barra)</h4>
+                <div style="width: 100%; min-width: 600px; height: 400px; margin-bottom: 2rem;">
+                    <canvas id="assetBarChart"></canvas>
+                </div>
+
+                <!-- 2.2) CÍRCULO con la distribución por tipo -->
+                <h4 style="font-size:1rem;">Distribución por Tipo (Círculo)</h4>
+                <div style="width: 100%; min-width: 600px; height: 400px;">
+                    <canvas id="assetPieChart"></canvas>
+                </div>
             </div>
         </div>
-    </div> <!-- Fin contenedor flex -->
-</div>  <!-- fin container -->
+    </div>
+</div>
 
-<!-- Chart.js 2.9 + plugin datalabels (opcional si deseas porcentajes) -->
+
+<!-- LIBRERÍAS CHART.JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.7.0"></script>
 
 <script>
-    // assetsData vendrá del servidor.
-    // Ejemplo de la estructura: 
-    // [
-    //   {
-    //     "asset_name": "Barco1",
-    //     "asset_cost": 123456,
-    //     "equipos_labels": ["Motor1", "Motor2", "Bomba X"],
-    //     "equipos_data": [50000, 40000, 33456],
-    //     "types_labels": ["Aceite y Filtros", "Servicios", "Repuestos"],
-    //     "types_data": [25000, 35000, 63456]
-    //   },
-    //   { ... },
-    //   ...
-    // ]
-    //
-    // Asumimos que en Django lo pasamos como JSON (assetsDataJson).
-    // O si prefieres, ya lo inyectas con "assets_data" y conviertes a JSON.
-</script>
+    // =====================================================================
+    // 1) DATOS PARA GRÁFICA GENERAL (horizontalBarChart)
+    // =====================================================================
+    var mainLabels = JSON.parse('{{ pie_labels|escapejs }}'); // nombres de los barcos
+    var mainData   = JSON.parse('{{ pie_data|escapejs }}');   // costos con micelanios
+    var total      = mainData.reduce((a, b) => a + b, 0);
 
-<script>
-    // 1) Tomamos la variable que Django nos pasa
-    var assetsData = JSON.parse('{{ assetsDataJson|escapejs }}'); 
-    // O si lo pasas como "assets_data", conviértelo a JSON en la vista y pégalo aquí
-
-    // 2) Instancias Chart
-    var equiposBarChart; 
-    var typesPieChart;
-
-    // 3) Al cargar la página, configuramos los 2 canvas
-    document.addEventListener('DOMContentLoaded', function() {
-        let ctxEquipos = document.getElementById('equiposBarChart').getContext('2d');
-        let ctxTypes = document.getElementById('typesPieChart').getContext('2d');
-
-        // Inicializamos con gráficos vacíos
-        equiposBarChart = new Chart(ctxEquipos, {
-            type: 'horizontalBar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: "Presupuesto Equipos",
-                    data: [],
-                    backgroundColor: "rgba(173, 216, 230, 0.6)",
-                    borderColor: "transparent"
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    yAxes: [{
-                        barPercentage: 0.8,
-                        categoryPercentage: 0.8,
-                        ticks: {},
-                        gridLines: { display: false }
-                    }],
-                    xAxes: [{
-                        ticks: {
-                            beginAtZero: true,
-                            // Podrías usar la abreviación
-                        }
-                    }]
-                },
-                legend: { display: false }
-            }
-        });
-
-        typesPieChart = new Chart(ctxTypes, {
-            type: 'pie', 
-            data: {
-                labels: [],
-                datasets: [{
-                    data: [],
-                    backgroundColor: [
-                        "rgba(255, 160, 122, 0.6)",
-                        "rgba(152, 251, 152, 0.6)",
-                        "rgba(255, 99, 71, 0.6)"
-                    ],
-                    borderColor: "transparent"
-                }]
-            },
-            options: {
-                responsive: true,
-                legend: { position: 'bottom' }
-            }
-        });
+    // Paleta pastel translúcida
+    var brandColors = [
+        "rgba(255, 182, 193, 0.6)",
+        "rgba(255, 160, 122, 0.6)",
+        "rgba(250, 235, 215, 0.6)",
+        "rgba(173, 216, 230, 0.6)",
+        "rgba(152, 251, 152, 0.6)",
+        "rgba(255, 99, 71, 0.6)",
+        "rgba(240, 128, 128, 0.6)",
+        "rgba(255, 140, 0, 0.6)",
+        "rgba(221, 160, 221, 0.6)",
+        "rgba(250, 128, 114, 0.6)",
+        "rgba(255, 192, 203, 0.6)",
+        "rgba(245, 222, 179, 0.6)"
+    ];
+    var backgroundColors = mainData.map(function(_, idx){
+      return brandColors[idx % brandColors.length];
     });
 
-    // 4) Función que se llama al hacer clic en la tabla (fila)
-    function showAssetDetails(index) {
-        let asset = assetsData[index];
-        if(!asset) return;
+    // Registramos plugin en Chart.js 2.x
+    Chart.plugins.register(ChartDataLabels);
 
-        // Actualiza el título
-        let titleEl = document.getElementById("detailAssetTitle");
-        titleEl.textContent = asset.asset_name; // Nombre del barco en grande
-
-        // Actualiza el bar chart de equipos
-        //  - cambiamos las labels y data
-        equiposBarChart.data.labels = asset.equipos_labels;
-        equiposBarChart.data.datasets[0].data = asset.equipos_data;
-        
-        // Podrías poner color distinto por cada equipo si gustas
-        //   p.ej. generar un array de colores brandColors, mapear por idx...
-        //   Por simplicidad, dejamos un solo color translúcido.
-
-        equiposBarChart.update();
-
-        // Actualiza el pie chart de tipos
-        typesPieChart.data.labels = asset.types_labels;
-        typesPieChart.data.datasets[0].data = asset.types_data;
-        typesPieChart.update();
+    // Abreviar números
+    function abbreviateNumber(value) {
+      if (value < 1000)      return value.toFixed(0);
+      else if (value < 1e6)  return (value / 1000).toFixed(1) + 'K';
+      else                   return (value / 1e6).toFixed(1) + 'M';
     }
+
+    // GRÁFICA BARRA HORIZONTAL GENERAL
+    var ctxBar = document.getElementById('horizontalBarChart').getContext('2d');
+    var horizontalBarChart = new Chart(ctxBar, {
+      type: 'horizontalBar',
+      data: {
+        labels: mainLabels,
+        datasets: [{
+          label: "Presupuesto",
+          data: mainData,
+          backgroundColor: backgroundColors,
+          borderColor: 'transparent',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          yAxes: [{
+            barPercentage: 1.0,
+            categoryPercentage: 1.0,
+            ticks: {},
+            gridLines: { display: false }
+          }],
+          xAxes: [{
+            ticks: {
+              beginAtZero: true,
+              callback: function(value) {
+                return abbreviateNumber(value);
+              }
+            }
+          }]
+        },
+        legend: { display: false },
+        plugins: {
+          datalabels: {
+            anchor: 'end',
+            align: 'right',
+            clamp: true,
+            color: '#333',
+            formatter: function(value) {
+              if (total === 0) return "0.0%";
+              var pct = (value / total * 100).toFixed(1) + '%';
+              return pct;
+            },
+            font: { size: 12 }
+          }
+        },
+        tooltips: {
+          callbacks: {
+            label: function(tooltipItem, data) {
+              var val = tooltipItem.xLabel;
+              var pct = (total === 0) ? '0.0%' : ((val / total)*100).toFixed(1) + '%';
+              var label = data.labels[tooltipItem.index] || '';
+              return label + ': ' + abbreviateNumber(val) + " (" + pct + ")";
+            }
+          }
+        }
+      }
+    });
+
+    // =====================================================================
+    // 2) DATOS PARA LA VISTA DE DETALLE
+    // =====================================================================
+    var assetsData = JSON.parse('{{ assets_data_json|escapejs }}');
+    // Cada item de assetsData es un dict con:
+    // {
+    //   "asset_id": ...,
+    //   "asset_name": ...,
+    //   "asset_cost": float,
+    //   "micelanios": float,
+    //   "equipos": [...],            // [{equipo_name, cost}, ...]
+    //   "labels_equipos": [...],     // nombres de cada equipo
+    //   "data_equipos": [...],       // valor numérico para cada equipo
+    //   "types_labels": [...],       // ["Aceite y Filtros", "Servicios", "Repuestos"]
+    //   "types_data": [...],         // [float, float, float]
+    // }
+
+    var generalChartContainer = document.getElementById('generalChartContainer');
+    var detailChartContainer  = document.getElementById('detailChartContainer');
+    var detailAssetName       = document.getElementById('detailAssetName');
+
+    // Canvas para gráficas de detalle
+    var assetBarCtx  = document.getElementById('assetBarChart').getContext('2d');
+    var assetPieCtx  = document.getElementById('assetPieChart').getContext('2d');
+
+    var assetBarChart;
+    var assetPieChart;
+
+    // Función para volver al panel general
+    function showGeneralChart() {
+      detailChartContainer.style.display   = 'none';
+      generalChartContainer.style.display  = '';
+    }
+
+    // Función para mostrar panel de detalle y crear las 2 gráficas
+    function showAssetDetail(index) {
+      var asset = assetsData[index];
+      if (!asset) {
+        console.error("No se encontró info para index:", index);
+        return;
+      }
+
+      // 1) Ocultar barra general
+      generalChartContainer.style.display = 'none';
+      // 2) Mostrar panel de detalle
+      detailChartContainer.style.display  = '';
+
+      // 3) Título
+      detailAssetName.textContent = asset.asset_name;
+
+      // 4) Destruir gráficas anteriores (si existen)
+      if (assetBarChart)  assetBarChart.destroy();
+      if (assetPieChart)  assetPieChart.destroy();
+
+      // 5) Crear BARRA para “labels_equipos”, “data_equipos”
+      var eqTotal = asset.data_equipos.reduce((a, b) => a + b, 0);
+      // Por si deseas colores
+      var eqColors = asset.labels_equipos.map(function(_, i){
+        return brandColors[i % brandColors.length];
+      });
+
+      assetBarChart = new Chart(assetBarCtx, {
+        type: 'horizontalBar',
+        data: {
+          labels: asset.labels_equipos,
+          datasets: [{
+            label: 'Presupuesto Equipos',
+            data: asset.data_equipos,
+            backgroundColor: eqColors,
+            borderColor: 'transparent',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            yAxes: [{
+              barPercentage: 0.7,
+              categoryPercentage: 0.7,
+              gridLines: { display: false }
+            }],
+            xAxes: [{
+              ticks: {
+                beginAtZero: true,
+                callback: function(value) { return abbreviateNumber(value); }
+              }
+            }]
+          },
+          legend: { display: false },
+          plugins: {
+            datalabels: {
+              anchor: 'end',
+              align: 'right',
+              color: '#333',
+              formatter: function(value) {
+                if (eqTotal === 0) return "0.0%";
+                var pct = (value / eqTotal * 100).toFixed(1) + '%';
+                return pct;
+              },
+              font: { size: 12 }
+            }
+          },
+          tooltips: {
+            callbacks: {
+              label: function(tooltipItem, data) {
+                var val = tooltipItem.xLabel;
+                var pct = (eqTotal === 0) ? '0.0%' : ((val / eqTotal)*100).toFixed(1) + '%';
+                var label = data.labels[tooltipItem.index] || '';
+                return label + ': ' + abbreviateNumber(val) + " (" + pct + ")";
+              }
+            }
+          }
+        }
+      });
+
+      // 6) Crear CÍRCULO para “types_labels”, “types_data”
+      var typeTotal = asset.types_data.reduce((a, b) => a + b, 0);
+      var typeColors = [
+        'rgba(255, 206, 86, 0.6)',  // Aceite y Filtros
+        'rgba(75, 192, 192, 0.6)',  // Servicios
+        "rgba(255, 182, 193, 0.6)",  // Repuestos
+      ];
+      assetPieChart = new Chart(assetPieCtx, {
+        type: 'pie',
+        data: {
+          labels: asset.types_labels,
+          datasets: [{
+            data: asset.types_data,
+            backgroundColor: typeColors
+          }]
+        },
+        options: {
+          responsive: true,
+          legend: { position: 'bottom' },
+          plugins: {
+            datalabels: {
+              anchor: 'center',
+              align: 'center',
+              color: '#333',
+              formatter: function(value, ctx) {
+                if (typeTotal === 0) return '0.0%';
+                var pct = (value / typeTotal * 100).toFixed(1) + '%';
+                return pct;
+              },
+              font: { size: 14 }
+            }
+          },
+          tooltips: {
+            callbacks: {
+              label: function(tooltipItem, data) {
+                var ds = data.datasets[tooltipItem.datasetIndex].data;
+                var val = ds[tooltipItem.index];
+                var sum = ds.reduce((a,b)=>a+b,0);
+                var label = data.labels[tooltipItem.index];
+                var pct = (sum===0) ? '0.0%' : (val/sum*100).toFixed(1)+'%';
+                return label + ': ' + val.toLocaleString() + ' (' + pct + ')';
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Exponemos la función para poder usarla en inline onclick
+    window.showGeneralChart = showGeneralChart;
+
+    // Escucha de clics en filas de la tabla
+    document.addEventListener('DOMContentLoaded', function() {
+      let rows = document.querySelectorAll('.asset-row');
+      rows.forEach((row) => {
+        row.addEventListener('click', function() {
+          let idx = parseInt(row.getAttribute('data-index'));
+          showAssetDetail(idx);
+        });
+      });
+    });
 </script>
 {% endblock %}

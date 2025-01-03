@@ -3625,25 +3625,22 @@ class BudgetSummaryByAssetView(TemplateView):
     template_name = 'got/mantenimiento/budget_summary_view.html'
 
     def get(self, request, *args, **kwargs):
-        # Fechas de interés (puedes parametrizarlas o dejarlas fijas)
         period_start = date(2025, 1, 1)
         period_end   = date(2025, 7, 31)
 
-        # 1. Obtener todos los barcos (assets con area='a' y show=True)
         barcos = Asset.objects.filter(area='a', show=True).order_by('name')
 
-        # 2. Preparar la estructura de datos para la tabla y el gráfico
-        assets_data = []   # Aquí almacenamos info de cada barco, equipos y costos
+        assets_data = []
         total_global = Decimal('0.00')
-        micelanios_global = Decimal('0.00') 
+        micelanios_global = Decimal('0.00')
 
         for barco in barcos:
-            # Filtrar rutas ligadas a este barco
             rutas = Ruta.objects.filter(system__asset=barco)
-
             costo_total_barco = Decimal('0.00')
             equipos_dict = {}
-            categories_dict = {'Aceite y Filtros': Decimal('0.00'), 'Servicios': Decimal('0.00'), 'Repuestos': Decimal('0.00')}
+            categories_dict = {'Aceite y Filtros': Decimal('0.00'),
+                               'Servicios': Decimal('0.00'),
+                               'Repuestos': Decimal('0.00')}
 
             for ruta in rutas:
                 num_exec = calculate_executions(ruta, period_start, period_end)
@@ -3663,12 +3660,11 @@ class BudgetSummaryByAssetView(TemplateView):
 
                     subtotal = req.cantidad * unit_price * num_exec
 
-                    # Acumular en el dict de equipo
                     if equipo_id not in equipos_dict:
                         equipos_dict[equipo_id] = Decimal('0.00')
                     equipos_dict[equipo_id] += subtotal
 
-                    # Acumular en categories_dict según la lógica especificada
+                    # Categorización
                     if req.tipo in ['m', 'h'] and req.item:
                         if req.item.name in ["Aceite", "Filtros"]:
                             categories_dict['Aceite y Filtros'] += subtotal
@@ -3677,21 +3673,16 @@ class BudgetSummaryByAssetView(TemplateView):
                     elif req.tipo == 's' and req.service:
                         categories_dict['Servicios'] += subtotal
 
-            # Sumar todos los subtotales de equipos al costo_total_barco
             for value in equipos_dict.values():
                 costo_total_barco += value
 
-            # Calcular micelanios para este barco (10%)
             micelanios_barco = costo_total_barco * Decimal('0.10')
             costo_total_barco_with_micelanios = costo_total_barco + micelanios_barco
 
-            # Sumar a total_global
             total_global += costo_total_barco_with_micelanios
-
-            # Sumar micelanios_global
             micelanios_global += micelanios_barco
 
-            # Convertir equipos_dict a lista y convertir Decimal a float
+            # Convertir a lista
             equipos_list = []
             for eq_id, cost_eq in equipos_dict.items():
                 if eq_id == 'otros':
@@ -3701,20 +3692,13 @@ class BudgetSummaryByAssetView(TemplateView):
                     nombre_equipo = eq_obj.name
                 equipos_list.append({
                     'equipo_name': nombre_equipo,
-                    'cost': float(cost_eq)  # Convertir Decimal a float
+                    'cost': float(cost_eq)
                 })
-
-            # Ordenar la lista de equipos por nombre
             equipos_list.sort(key=lambda e: e['equipo_name'].lower())
 
-            # Preparar datos para el gráfico de equipos
-            labels_equipos = []
-            data_equipos = []
-            for eq_data in equipos_list:
-                labels_equipos.append(eq_data['equipo_name'])
-                data_equipos.append(float(eq_data['cost']))
+            labels_equipos = [eq['equipo_name'] for eq in equipos_list]
+            data_equipos = [eq['cost'] for eq in equipos_list]
 
-            # Preparar datos para el gráfico de categorías
             labels_categories = ['Aceite y Filtros', 'Servicios', 'Repuestos']
             data_categories = [
                 float(categories_dict['Aceite y Filtros']),
@@ -3722,32 +3706,27 @@ class BudgetSummaryByAssetView(TemplateView):
                 float(categories_dict['Repuestos'])
             ]
 
-            # Guardamos la info de este barco en assets_data
             assets_data.append({
-                'asset_id': barco.abbreviation,              # por si hace falta
+                'asset_id': barco.abbreviation,
                 'asset_name': barco.name,
-                'asset_cost': float(costo_total_barco_with_micelanios),     # Convertir Decimal a float
+                'asset_cost': float(costo_total_barco_with_micelanios),
                 'micelanios': float(micelanios_barco),
-                'equipos': equipos_list,                    # para la sub-tabla
+                'equipos': equipos_list,
                 'labels_equipos': labels_equipos,
                 'data_equipos': data_equipos,
-                'labels_categories': labels_categories,
-                'data_categories': data_categories,
+                'types_labels': labels_categories,
+                'types_data': data_categories,
             })
 
-        # 3. Preparar datos para el diagrama circular principal
         pie_labels = []
         pie_data = []
         for asset_info in assets_data:
             pie_labels.append(asset_info['asset_name'])
             pie_data.append(asset_info['asset_cost'])
 
-
-        # Agregar Micelanios como una categoría en el gráfico
         pie_labels.append("Micelanios")
         pie_data.append(float(micelanios_global))
 
-        # Convertir datos a JSON serializable
         assets_data_json = json.dumps(assets_data)
         pie_labels_json = json.dumps(pie_labels)
         pie_data_json = json.dumps(pie_data)
@@ -3757,9 +3736,9 @@ class BudgetSummaryByAssetView(TemplateView):
             'period_end': period_end,
             'total_global': float(total_global),
             'micelanios_global': float(micelanios_global),
-            'assets_data': assets_data,               # Lista de dict para la plantilla
-            'assets_data_json': assets_data_json,     # Cadena JSON para JavaScript
-            'pie_labels': pie_labels_json,
+            'assets_data': assets_data,
+            'assets_data_json': assets_data_json,  # Para la nueva vista de “detalles”
+            'pie_labels': pie_labels_json,         # Para el “gráfico anterior”
             'pie_data': pie_data_json,
         }
         return self.render_to_response(context)

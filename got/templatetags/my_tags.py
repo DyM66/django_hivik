@@ -214,3 +214,7 @@ def index(sequence, position):
         return sequence[pos]
     except:
         return None
+    
+@register.filter
+def enumerate(value):
+    return list(enumerate(value))
