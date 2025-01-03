@@ -154,7 +154,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         paginator = Paginator(get_full_systems(asset, user), 15)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
-        rotativos = Equipo.objects.filter(system__in=get_full_systems(asset, user), tipo='r').exists()
+        rotativos = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
         
         context['rotativos'] = rotativos
         context['view_type'] = 'detail'
