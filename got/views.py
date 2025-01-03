@@ -513,7 +513,12 @@ def edit_document(request, pk):
 def delete_document(request, pk):
     doc = get_object_or_404(Document, pk=pk)
     if request.method == 'POST':
-        abbr = doc.asset.abbreviation
+        if doc.asset:
+            abbr = doc.asset.abbreviation
+        elif doc.ot:
+            abbr = doc.ot.system.asset.abbreviation
+        elif doc.equipo:
+            abbr = doc.equipo.system.asset.abbreviation
         doc.delete()
         return redirect('got:asset-documents', abbreviation=abbr)
     return redirect('got:asset-documents', abbreviation='AAA')
@@ -3425,7 +3430,7 @@ class BudgetView(TemplateView):
         equipo_code = request.GET.get('equipo_code', '')
 
         period_start = date(2025, 1, 1)
-        period_end = date(2025, 7, 31)
+        period_end = date(2025, 12, 31)
 
         # Obtener rutas según filtros
         rutas = Ruta.objects.all()
@@ -3626,7 +3631,7 @@ class BudgetSummaryByAssetView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         period_start = date(2025, 1, 1)
-        period_end   = date(2025, 7, 31)
+        period_end   = date(2025, 12, 31)
 
         barcos = Asset.objects.filter(area='a', show=True).order_by('name')
 
