@@ -3030,7 +3030,7 @@ class BuceoMttoView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         location_filter = self.request.GET.get('location', None)
-        buceo_assets = Asset.objects.filter(area='b')
+        buceo_assets = Asset.objects.filter(area='b', show=True)
 
         all_rutinas = Ruta.objects.filter(system__asset__in=buceo_assets).exclude(system__state__in=['x', 's'])
         if location_filter:
