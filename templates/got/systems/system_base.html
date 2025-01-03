@@ -1,7 +1,5 @@
 {% extends "got/base/base_detail.html" %}
-
 {% block content %}
-
 
 <main class="sys">
 	<div class="title-sys">
@@ -13,7 +11,6 @@
 	</div>
 	
 	<div class="nav-sys">
-
 		<ul>
 			<li class="tit"><h5><a href="{% url 'got:sys-detail-view' system.id 'sys' %}">Sistemas</a></h4></li>
 			{% for subsystem in unique_subsystems %}

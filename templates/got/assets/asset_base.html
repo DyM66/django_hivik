@@ -26,7 +26,7 @@
         <ul class="nav d-flex flex-wrap w-100" style="font-size: 0.9rem">
             {% if rotativos %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'got:horas-asset' asset.abbreviation %}">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'horas-asset' %}active{% endif %}" href="{% url 'got:horas-asset' asset.abbreviation %}">
                         {% if asset.area == 'v' %} Reporte de kilometraje {% else %} Reporte de horas {% endif %}
                     </a>
                 </li>
@@ -68,10 +68,8 @@
 
     <br>
     <main>
-        {% if view_type == 'detail' %}	
-            {% include 'got/assets/asset_detail.html' %}
-        {% else %}
-            {% include 'got/assets/asset_maintenance_plan.html' %}
-        {% endif %}
+        {% block asset %}
+
+        {% endblock %}
     </main>
 {% endblock %}

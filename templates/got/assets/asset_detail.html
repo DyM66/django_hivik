@@ -1,3 +1,5 @@
+{% extends "got/assets/asset_base.html" %}
+{% block asset %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="main-asset">
 
@@ -218,3 +220,5 @@
 {% if rotativos %} 
     {% include 'got/assets/graps.html' %}
 {% endif %}
+
+{% endblock %}

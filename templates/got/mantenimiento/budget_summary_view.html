@@ -1,49 +1,47 @@
-{# got/templates/got/mantenimiento/budget_summary_view.html #}
 {% extends "got/base/base_generic.html" %}
 {% load my_tags %}
 
 {% block content %}
 <div class="container my-4">
-    <h1>Resumen de Presupuesto por Barco</h1>
-    <p style="font-size:0.9rem;">
-        Período: {{ period_start|date:"d/m/Y" }} - {{ period_end|date:"d/m/Y" }}
-    </p>
 
-    {# Enlace (o botón) para ver la vista detallada: budget_view #}
-    <p>
-        Este reporte consolida el costo total estimado de los requerimientos para cada barco.
-        <a class="btn btn-primary" href="{% url 'got:budget_view' %}">Ver detalle completo</a>
-    </p>
+    <!-- PRIMER CUADRO: Encabezado y texto explicativo -->
+    <div class="shadow p-4 mb-4" style="background-color: #f0f4ff; border-radius: 12px;">
+        <h1 style="margin-bottom: 0.5rem; color: #191645;">Resumen de Presupuesto por Barco</h1>
+        <p style="font-size: 0.9rem; color: #333;">
+            Período: {{ period_start|date:"d/m/Y" }} - {{ period_end|date:"d/m/Y" }}
+        </p>
+        <p style="font-size: 0.9rem; color: #333;">
+            Este reporte consolida el costo total estimado de los requerimientos para cada barco.
+            <a class="btn btn-primary" href="{% url 'got:budget_view' %}">Ver detalle completo</a>
+        </p>
+    </div>
 
-    <!-- Tabla de Barcos (se muestra primero) -->
-    <h2 style="font-size:1rem;" class="mt-4">Barcos</h2>
-    <table class="table table-sm align-middle" style="font-size:0.9rem;">
-        <thead>
-            <tr>
-                <th style="width:60%;">Barco</th>
-                <th style="width:40%;">Presupuesto (COP)</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for asset in assets_data %}
-            <tr class="asset-row" data-asset-id="{{ forloop.counter }}"> 
-                <!-- Al hacer click se mostrará/ocultará la subfila -->
-                <td>
-                    <i class="bi bi-caret-right-fill me-1 toggle-icon"></i>
-                    {{ asset.asset_name }}
-                </td>
-                <td>
-                    {{ asset.asset_cost|currency }}
-                </td>
-            </tr>
-            <!-- Sub-fila oculta con la tabla de equipos y las gráficas -->
-            <tr class="equipos-row" id="equipos-row-{{ forloop.counter }}" style="display:none;">
-                <td colspan="2">
-                    <div class="row">
-                        <!-- Primera columna: Tabla de Equipos -->
-                        <div class="col-md-4">
-                            <h5 style="font-size:0.95rem;">Desglose por Equipos</h5>
-                            <table class="table table-sm align-middle table-bordered" style="font-size:0.85rem;">
+    <!-- CONTENEDOR FLEX: Tabla a la izquierda, Barra horizontal a la derecha -->
+    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+        
+        <!-- Sección izquierda: Tabla de Barcos con ancho fijo (40%) -->
+        <div style="flex: 0 0 40%;">
+            <table class="table-list table-sm align-middle" style="font-size: 0.9rem; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="width: 60%; font-weight: lighter;">Barco</th>
+                        <th style="width: 40%; font-weight: lighter;">Presupuesto (COP)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for asset in assets_data %}
+                    <tr class="asset-row" data-asset-id="{{ forloop.counter }}">
+                        <td>
+                            <i class="bi bi-caret-right-fill me-1 toggle-icon"></i>
+                            {{ asset.asset_name }}
+                        </td>
+                        <td>{{ asset.asset_cost|currency }}</td>
+                    </tr>
+                    <!-- Sub-fila oculta con la tabla de equipos (sin gráficos) -->
+                    <tr class="equipos-row" id="equipos-row-{{ forloop.counter }}" style="display:none;">
+                        <td colspan="2" style="padding: 0;">
+                            <table class="table table-sm align-middle table-bordered" 
+                                   style="font-size: 0.85rem; width: 100%; margin: 0;">
                                 <thead>
                                     <tr>
                                         <th>Equipo</th>
@@ -57,131 +55,158 @@
                                         <td>{{ eq.cost|currency }}</td>
                                     </tr>
                                     {% endfor %}
-                                    <!-- Fila Micelanios por Equipos -->
                                     <tr>
                                         <td><strong>Micelanios (10%)</strong></td>
                                         <td><strong>{{ asset.micelanios|currency }}</strong></td>
                                     </tr>
-                                    <!-- Fila Total con Micelanios -->
                                     <tr>
                                         <td><strong>Total</strong></td>
                                         <td><strong>{{ asset.asset_cost|currency }}</strong></td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-                        <!-- Segunda columna: Gráfica 1 - Distribución por Equipos -->
-                        <div class="col-md-4">
-                            <h5 style="font-size:0.95rem;">Distribución por Equipos</h5>
-                            <div style="max-width:500px; margin-bottom:2rem;">
-                                <canvas id="equiposPieChart{{ forloop.counter }}"></canvas>
-                            </div>
-                        </div>
-                        <!-- Tercera columna: Gráfica 2 - Distribución por Tipo -->
-                        <div class="col-md-4">
-                            <h5 style="font-size:0.95rem;">Distribución por Tipo</h5>
-                            <div style="max-width:500px;">
-                                <canvas id="categoriesPieChart{{ forloop.counter }}"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        {% empty %}
-            <tr>
-                <td colspan="2">No hay barcos disponibles.</td>
-            </tr>
-        {% endfor %}
-        <!-- Fila Total Global con Micelanios -->
-        <tr>
-            <td class="text-end"><strong>Total Global (Incluye 10% Micelanios)</strong></td>
-            <td><strong>{{ total_global|currency }}</strong></td>
-        </tr>
-        </tbody>
-    </table>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="2">No hay barcos disponibles.</td>
+                    </tr>
+                {% endfor %}
+                <tr>
+                    <td class="text-end"><strong>Total Global (Incluye 10% Micelanios)</strong></td>
+                    <td><strong>{{ total_global|currency }}</strong></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
-    <!-- Gráfico circular principal con % por barco + Micelanios, se muestra después de la tabla -->
-    <h3 style="font-size:1rem;">Distribución Total</h3>
-    <div style="max-width:600px;">
-        <canvas id="mainPieChart"></canvas>
-    </div>
+        <!-- Sección derecha: Card con la barra horizontal que ocupa todo el espacio restante (flex:1) -->
+        <div class="shadow p-3"
+             style="background-color: #f0f4ff; border-radius: 12px; color: #191645; flex: 1;">
+            <h2 style="font-size:1.1rem; margin-bottom: 1rem; color: #191645;">
+                Presupuesto de Mantenimiento por Barcos
+            </h2>
 
-</div>
+            <!-- Contenedor grande (700px de alto, 600px min width) -->
+            <div style="width: 100%; min-width: 600px; height: 700px;">
+                <canvas id="horizontalBarChart"></canvas>
+            </div>
+        </div>
+    </div> <!-- Fin del contenedor flex -->
 
-<!-- Librería Chart.js -->
+</div>  <!-- fin container -->
+
+<!-- Chart.js 2.9 + plugin datalabels (para mostrar porcentaje) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.7.0"></script>
 
 <script>
-    // Depuración: Verificar el contenido de assets_data_json
     console.log("assets_data_json:", '{{ assets_data_json|escapejs }}');
 
-    // 1) Datos para el gráfico principal (todos los barcos + Micelanios)
+    // 1) mainLabels -> nombres de barcos (EJE Y)
+    // 2) mainData   -> valores totales (EJE X)
     var mainLabels = JSON.parse('{{ pie_labels|escapejs }}');
     var mainData   = JSON.parse('{{ pie_data|escapejs }}');
+    var total = mainData.reduce((a, b) => a + b, 0);
 
-    // 2) Configuración para tooltips en % (Chart.js 2.x)
-    function tooltipPercentage(tooltipItem, data) {
-      var dataset = data.datasets[tooltipItem.datasetIndex];
-      var currentValue = dataset.data[tooltipItem.index];
-      var total = dataset.data.reduce((a, b) => a + b, 0);
-      var percentage = ((currentValue / total) * 100).toFixed(1) + '%';
-      return data.labels[tooltipItem.index] + ': ' + percentage;
-    }
+    // 2) Paleta pastel translúcida (evitando grises, blancos, etc.)
+    var brandColors = [
+      "rgba(255, 182, 193, 0.6)",   // LightPink
+      "rgba(255, 160, 122, 0.6)",   // LightSalmon
+      "rgba(250, 235, 215, 0.6)",   // AntiqueWhite
+      "rgba(173, 216, 230, 0.6)",   // LightBlue
+      "rgba(152, 251, 152, 0.6)",   // PaleGreen
+      "rgba(255, 99, 71, 0.6)",     // Tomato
+      "rgba(240, 128, 128, 0.6)",   // LightCoral
+      "rgba(255, 140, 0, 0.6)",     // DarkOrange
+      "rgba(221, 160, 221, 0.6)",   // Plum
+      "rgba(250, 128, 114, 0.6)",   // Salmon
+      "rgba(255, 192, 203, 0.6)",   // Pink
+      "rgba(245, 222, 179, 0.6)",   // Wheat
+    ];
 
-    // 3) Crear el gráfico principal DESPUÉS de la tabla
-    var ctxMain = document.getElementById('mainPieChart').getContext('2d');
-    var mainPieChart = new Chart(ctxMain, {
-        type: 'pie',
-        data: {
-            labels: mainLabels,
-            datasets: [{
-                data: mainData,
-                backgroundColor: [
-                'rgba(54, 162, 235, 0.7)',    // Azul
-                'rgba(255, 99, 132, 0.7)',    // Rojo
-                'rgba(255, 159, 64, 0.7)',    // Naranja
-                'rgba(75, 192, 192, 0.7)',    // Verde
-                'rgba(153, 102, 255, 0.7)',   // Morado
-                'rgba(201, 203, 207, 0.7)',   // Gris
-                'rgba(255, 205, 86, 0.7)',    // Amarillo
-                'rgba(255, 99, 71, 0.7)',     // Tomate
-                'rgba(60, 179, 113, 0.7)',    // Verde Mar
-                'rgba(123, 104, 238, 0.7)',   // Azul Violeta
-                'rgba(240, 128, 128, 0.7)',   // Rosa Claro
-                'rgba(100, 149, 237, 0.7)'    // Azul Cielo
-                ],
-            }]
-        },
-        options: {
-            responsive: true,
-            legend: { position: 'bottom' },
-            tooltips: {
-                callbacks: { label: tooltipPercentage }
-            }
-        }
+    var backgroundColors = mainData.map(function(_, idx){
+      return brandColors[idx % brandColors.length];
     });
 
-    // 4) Datos para gráficos de equipos y categorías (cada barco):
-    var assetsData = JSON.parse('{{ assets_data_json|escapejs }}');
-    /* 
-       assetsData es una lista de dict, cada dict:
-       {
-         "asset_id": ...,
-         "asset_name": ...,
-         "asset_cost": float,
-         "micelanios": float,  # Nuevo
-         "equipos": [...],
-         "labels_equipos": [...],
-         "data_equipos": [...],
-         "labels_categories": [...],
-         "data_categories": [...],
-       }
-    */
+    // Registramos plugin en Chart.js 2.x
+    Chart.plugins.register(ChartDataLabels);
 
-    console.log("assetsData:", assetsData); // Depuración: Verificar la estructura de assetsData
-</script>
+    // 3) Función para abreviar números en K, M
+    function abbreviateNumber(value) {
+      if (value < 1000) {
+        return value.toFixed(0);
+      } else if (value < 1_000_000) {
+        return (value / 1000).toFixed(1) + 'K';
+      } else {
+        return (value / 1_000_000).toFixed(1) + 'M';
+      }
+    }
 
-<script>
+    // 4) Crear la barra horizontal
+    var ctxBar = document.getElementById('horizontalBarChart').getContext('2d');
+    var horizontalBarChart = new Chart(ctxBar, {
+      type: 'horizontalBar',
+      data: {
+        labels: mainLabels,
+        datasets: [{
+          label: "Presupuesto",
+          data: mainData,
+          backgroundColor: backgroundColors,
+          borderColor: 'transparent',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        // BARRAS GRUESAS
+        scales: {
+          yAxes: [{
+            barPercentage: 1.0,       // gruesas
+            categoryPercentage: 1.0,  // casi pegadas
+            ticks: {},
+            gridLines: { display: false }
+          }],
+          xAxes: [{
+            ticks: {
+              beginAtZero: true,
+              callback: function(value) {
+                return abbreviateNumber(value);
+              }
+            }
+          }]
+        },
+        legend: { display: false },
+        plugins: {
+          datalabels: {
+            anchor: 'end',
+            align: 'right',
+            clamp: true,
+            color: '#333',
+            formatter: function(value) {
+              if (total === 0) return "0.0%";
+              var pct = (value / total * 100).toFixed(1) + '%';
+              return pct;
+            },
+            font: {
+              size: 12
+            }
+          }
+        },
+        tooltips: {
+          callbacks: {
+            label: function(tooltipItem, data) {
+              var val = tooltipItem.xLabel;
+              var pct = (total === 0) ? '0.0%' : ((val / total)*100).toFixed(1) + '%';
+              var label = data.labels[tooltipItem.index] || '';
+              return label + ': ' + abbreviateNumber(val) + " (" + pct + ")";
+            }
+          }
+        }
+      }
+    });
+
+    // 5) Expandir/ocultar sub-fila de cada asset (solo tabla)
     document.addEventListener('DOMContentLoaded', function() {
         let rows = document.querySelectorAll('.asset-row');
         rows.forEach((row) => {
@@ -189,7 +214,6 @@
                 let assetId = row.getAttribute('data-asset-id');
                 let subRow  = document.getElementById('equipos-row-' + assetId);
 
-                // Toggle sub-fila
                 if (subRow.style.display === 'none') {
                     subRow.style.display = '';
                     let icon = row.querySelector('.toggle-icon');
@@ -197,9 +221,6 @@
                         icon.classList.remove('bi-caret-right-fill');
                         icon.classList.add('bi-caret-down-fill');
                     }
-                    // Crear los charts si no existen
-                    createEquiposChart(assetId);
-                    createCategoriesChart(assetId);
                 } else {
                     subRow.style.display = 'none';
                     let icon = row.querySelector('.toggle-icon');
@@ -211,99 +232,5 @@
             });
         });
     });
-
-    function createEquiposChart(assetId) {
-        let canvasId = "equiposPieChart" + assetId;
-        let ctx = document.getElementById(canvasId);
-        if (!ctx) {
-            console.error("Canvas not found for equiposPieChart:", canvasId);
-            return;
-        }
-
-        let i = parseInt(assetId) - 1;
-        let thisAsset = assetsData[i];
-
-        if (!thisAsset) {
-            console.error("No data found for assetId:", assetId, "Index:", i);
-            return;
-        }
-
-        console.log("Creating Equipos Chart for assetId:", assetId, "Index:", i, "Data:", thisAsset);
-
-        let config = {
-          type: 'pie',
-          data: {
-            labels: thisAsset.labels_equipos,
-            datasets: [{
-              data: thisAsset.data_equipos,
-              backgroundColor: [
-                'rgba(255, 99, 132, 0.7)',     // Rojo
-                'rgba(54, 162, 235, 0.7)',     // Azul
-                'rgba(255, 206, 86, 0.7)',     // Amarillo
-                'rgba(75, 192, 192, 0.7)',     // Verde
-                'rgba(153, 102, 255, 0.7)',    // Morado
-                'rgba(201, 203, 207, 0.7)',    // Gris
-                'rgba(255, 159, 64, 0.7)',     // Naranja
-                'rgba(255, 99, 71, 0.7)',      // Tomate
-                'rgba(60, 179, 113, 0.7)',     // Verde Mar
-                'rgba(123, 104, 238, 0.7)',    // Azul Violeta
-                'rgba(240, 128, 128, 0.7)',    // Rosa Claro
-                'rgba(100, 149, 237, 0.7)'     // Azul Cielo
-                ]
-            }]
-          },
-          options: {
-            responsive: true,
-            legend: { position: 'bottom' },
-            tooltips: {
-              callbacks: { label: tooltipPercentage }
-            }
-          }
-        };
-        new Chart(ctx, config);
-    }
-
-    function createCategoriesChart(assetId) {
-        let canvasId = "categoriesPieChart" + assetId;
-        let ctx = document.getElementById(canvasId);
-        if (!ctx) {
-            console.error("Canvas not found for categoriesPieChart:", canvasId);
-            return;
-        }
-
-        let i = parseInt(assetId) - 1;
-        let thisAsset = assetsData[i];
-
-        if (!thisAsset) {
-            console.error("No data found for assetId:", assetId, "Index:", i);
-            return;
-        }
-
-        console.log("Creating Categories Chart for assetId:", assetId, "Index:", i, "Data:", thisAsset);
-
-        let config = {
-          type: 'pie',
-          data: {
-            labels: thisAsset.labels_categories,
-            datasets: [{
-              data: thisAsset.data_categories,
-              backgroundColor: [
-                'rgba(255, 206, 86, 0.7)',    // Aceite y Filtros
-                'rgba(75, 192, 192, 0.7)',    // Servicios
-                'rgba(201, 203, 207, 0.7)'     // Repuestos
-              ]
-            }]
-          },
-          options: {
-            responsive: true,
-            legend: { position: 'bottom' },
-            tooltips: {
-              callbacks: { label: tooltipPercentage }
-            }
-          }
-        };
-        new Chart(ctx, config);
-    }
 </script>
-
 {% endblock %}

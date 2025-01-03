@@ -145,7 +145,7 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
     model = Asset
-    template_name = 'got/assets/asset_base.html'
+    template_name = 'got/assets/asset_detail.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -154,7 +154,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         paginator = Paginator(get_full_systems(asset, user), 15)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
-        rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
+        rotativos = Equipo.objects.filter(system__in=get_full_systems(asset, user), tipo='r').exists()
         
         context['rotativos'] = rotativos
         context['view_type'] = 'detail'
@@ -183,14 +183,14 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
 class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
     model = Asset
-    template_name = 'got/assets/asset_base.html'
+    template_name = 'got/assets/asset_maintenance_plan.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
         user = self.request.user
         filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, self.request.GET)
-        rotativos = Equipo.objects.filter(system__asset=asset, tipo='r').exists()
+        rotativos = Equipo.objects.filter(system__in=get_full_systems(asset, user), tipo='r').exists()
 
         context['rotativos'] = rotativos
         context['view_type'] = 'rutas'
@@ -519,6 +519,144 @@ def delete_document(request, pk):
     return redirect('got:asset-documents', abbreviation='AAA')
 
 
+@login_required
+def reportHoursAsset(request, asset_id):
+    asset = get_object_or_404(Asset, pk=asset_id)
+    today = date.today()
+    dates = [today - timedelta(days=x) for x in range(30)]
+    systems = get_full_systems_ids(asset, request.user)
+    equipos_rotativos = Equipo.objects.filter(system__in=systems, tipo='r')
+    rotativos = equipos_rotativos.exists()
+
+    # --------------------------------------------------------------------------------------
+    # 1. Verificar si es un POST del "modal" o el "formulario tradicional"
+    # --------------------------------------------------------------------------------------
+    if request.method == 'POST':
+        # Si en el POST vienen "equipo_id" y "report_date" y "hour",
+        # asumimos que es el envío desde el modal de actualización.
+        if "equipo_id" in request.POST and "report_date" in request.POST and "hour" in request.POST:
+            equipo_id = request.POST.get('equipo_id')
+            report_date = request.POST.get('report_date')
+            hour = request.POST.get('hour')
+            hist_id = request.POST.get('hist_id')
+
+            try:
+                hour_value = float(hour)
+                fecha = datetime.strptime(report_date, "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                messages.error(request, "Datos inválidos para actualizar horas (formato de fecha u horas).")
+                return redirect(reverse('got:horas-asset', args=[asset_id]))
+
+            # Validar rangos de hora
+            if hour_value < 0 or hour_value > 24:
+                messages.error(request, "El valor de horas debe estar entre 0 y 24.")
+                return redirect(request.META.get(
+                    'HTTP_REFERER',
+                    reverse('got:horas-asset', args=[asset_id])
+                ))
+            
+            # Buscar o crear HistoryHour
+            equipo = get_object_or_404(Equipo, pk=equipo_id)
+            # Verificamos si hist_id es un entero válido
+            try:
+                hist_id_int = int(hist_id)  # si hist_id es None, "" o "None", lanzará ValueError
+                history_hour = get_object_or_404(HistoryHour, pk=hist_id_int)
+            except (TypeError, ValueError):
+                # hist_id no es un entero válido => creamos un nuevo registro
+                history_hour = HistoryHour(component=equipo)
+
+            history_hour.hour = hour_value
+            history_hour.report_date = fecha
+            history_hour.reporter = request.user
+            history_hour.modified_by = request.user
+            history_hour.save()
+
+            messages.success(request, "Horas actualizadas correctamente.")
+            return redirect(reverse('got:horas-asset', args=[asset_id]))
+
+        else:
+            # =============== LÓGICA DEL FORMULARIO TRADICIONAL ===============
+            form = ReportHoursAsset(request.POST, equipos=equipos_rotativos, asset=asset)
+            if form.is_valid():
+                instance = form.save(commit=False)
+                instance.reporter = request.user
+                instance.modified_by = request.user
+                instance.save()
+                messages.success(request, "Formulario enviado correctamente.")
+                return redirect(reverse('got:horas-asset', args=[asset_id]))
+            else:
+                # El form no es válido, se re-renderiza con errores
+                messages.error(request, "Error en el formulario tradicional.")
+
+    else:
+        # GET: Simplemente creamos la instancia vacía del formulario tradicional
+        form = ReportHoursAsset(equipos=equipos_rotativos, asset=asset)
+
+    # --------------------------------------------------------------------------
+    # 2. Construir la información (equipos_data y transposed_data) para la tabla
+    # --------------------------------------------------------------------------
+    hours = HistoryHour.objects.filter(component__system__asset=asset)[:30]
+
+    equipos_data = []
+    for equipo in equipos_rotativos:
+        # Diccionario con fecha -> {hour, reporter, hist_id}
+        horas_reportadas = {}
+        for d in dates:
+            horas_reportadas[d] = {
+                'hour': 0,
+                'reporter': None,
+                'hist_id': None
+            }
+
+        # Consulta de HistoryHour existentes
+        registros = HistoryHour.objects.filter(
+            component=equipo,
+            report_date__range=(dates[-1], today)
+        ).select_related('reporter')
+
+        for reg in registros:
+            if reg.report_date in horas_reportadas:
+                horas_reportadas[reg.report_date]['hour'] = reg.hour
+                horas_reportadas[reg.report_date]['reporter'] = (
+                    reg.reporter.username if reg.reporter else None
+                )
+                horas_reportadas[reg.report_date]['hist_id'] = reg.id
+
+        # Crear lista en el mismo orden que `dates`
+        lista_horas = [horas_reportadas[d] for d in dates]
+
+        equipos_data.append({
+            'equipo': equipo,
+            'horas': lista_horas,
+        })
+
+    # Transponer la data (filas=fechas, columnas=equipos)
+    transposed_data = []
+    for i, d in enumerate(dates):
+        fila = {
+            'date': d,
+            'valores': []
+        }
+        for data in equipos_data:
+            fila['valores'].append(data['horas'][i])
+        transposed_data.append(fila)
+
+    # --------------------------------------------------------------------------
+    # 3. Renderizar la plantilla
+    # --------------------------------------------------------------------------
+    context = {
+        'form': form,  # el formulario tradicional, sea vacío o con errores
+        'horas': hours,
+        'asset': asset,
+        'equipos_data': equipos_data,
+        'equipos_rotativos': equipos_rotativos,
+        'dates': dates,
+        'transposed_data': transposed_data,
+        'rotativos': rotativos
+    }
+    return render(request, 'got/assets/hours_asset.html', context)
+
+
 class RutaDetailView(LoginRequiredMixin, generic.DetailView):
     model = Ruta
     template_name = 'got/rutinas/ruta_detail.html'
@@ -720,8 +858,6 @@ def acta_entrega_pdf(request, pk):
         'current_date': current_date,
     }
     return render_to_pdf('got/systems/acta-entrega.html', context)
-
-
 
 
 'SYSTEMS VIEW'
@@ -947,50 +1083,6 @@ def transferir_equipo(request, equipo_id):
         'equipo': equipo
     }
     return render(request, 'got/systems/transferencia-equipo.html', context)
-
-
-@login_required
-def reportHoursAsset(request, asset_id):
-    asset = get_object_or_404(Asset, pk=asset_id)
-    today = date.today()
-    dates = [today - timedelta(days=x) for x in range(30)]
-    equipos_rotativos = Equipo.objects.filter(system__asset=asset, tipo='r')
-
-    if request.method == 'POST':
-        form = ReportHoursAsset(request.POST, asset=asset)
-        if form.is_valid():
-            instance = form.save(commit=False)
-            instance.reporter = request.user
-            instance.modified_by = request.user
-            instance.save()
-            return redirect(request.path)
-    else:
-        form = ReportHoursAsset(asset=asset)
-
-    hours = HistoryHour.objects.filter(component__system__asset=asset)[:30]
-
-    equipos_data = []
-    for equipo in equipos_rotativos:
-        horas_reportadas = {date: 0 for date in dates}
-        for hour in equipo.hours.filter(report_date__range=(dates[-1], today)):
-            if hour.report_date in horas_reportadas:
-                horas_reportadas[hour.report_date] += hour.hour
-
-        equipos_data.append({
-            'equipo': equipo,
-            'horas': [horas_reportadas[date] for date in dates]
-        })
-
-    context = { 
-        'form': form,
-        'horas': hours,
-        'asset': asset,
-        'equipos_data': equipos_data,
-        'equipos_rotativos': equipos_rotativos,
-        'dates': dates
-    }
-
-    return render(request, 'got/assets/hours_asset.html', context)
 
 
 'FAILURE REPORTS VIEW'
@@ -2640,7 +2732,7 @@ def edit_item(request, item_id):
     else:
         form = ItemForm(instance=item)
 
-    return render(request, 'got/edit_item.html', {'form': form, 'item': item})
+    return render(request, 'got/solicitud/edit_item.html', {'form': form, 'item': item})
 
 
 def export_asset_system_equipo_excel(request):

@@ -201,3 +201,16 @@ def currency(value):
         val = Decimal('0.00')
     # Formatear con separador de miles y 2 decimales
     return f"COP {val:,.2f}"
+
+@register.filter
+def index(sequence, position):
+    """
+    Retorna sequence[position].
+    sequence puede ser una lista o tupla
+    position se convierte a int (o lanza error si no es convertible).
+    """
+    try:
+        pos = int(position)
+        return sequence[pos]
+    except:
+        return None

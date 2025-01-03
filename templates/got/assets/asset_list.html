@@ -14,16 +14,16 @@
                             <tr>
                                 <th scope="col">Nombre</th>
                                 <th scope="col">Supervisor</th>
-                                <th>
-                                </th>
+                                <!-- <th></th> -->
                             </tr>
                         </thead>
                         <tbody>
                             {% for asset in assets %}
                             <tr data-href="{{ asset.get_absolute_url }}">
                                 <td data-cell="Nombre">{{ asset.abbreviation }} - {{ asset.name }}</td>
-                                <td data-cell="Supervisor">{{ asset.supervisor.get_full_name }}</td>
-                                <td data-cell="Supervisor">{{ asset.maintenance_compliance }}</td>
+                                <td data-cell="Supervisor">
+                                    {{ asset.supervisor.get_full_name }}{% if asset.capitan %}/{{ asset.capitan.get_full_name }}{% endif %} ({{ asset.maintenance_compliance|default_if_none:"0" }}%)
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

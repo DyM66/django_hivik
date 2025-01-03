@@ -20,8 +20,14 @@ from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from got.views import CustomPasswordResetView
-
 from django.contrib.auth import views as auth_views
+
+from rest_framework import routers
+from iot import views
+
+router = routers.DefaultRouter()
+router.register(r'users', views.UserViewSet)
+router.register(r'groups', views.GroupViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,7 +36,10 @@ urlpatterns = [
     path('got/preoperacional/', include('preoperacionales.urls')),
     path('outbound/', include('outbound.urls')),
     path('megger/', include('megger_app.urls')),
-    path('', RedirectView.as_view(url='got/', permanent=True)),
+    # path('', RedirectView.as_view(url='got/', permanent=True)),
+    
+    path('', include(router.urls)),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')), # probando api restframework django
 
     path('accounts/password_reset/', CustomPasswordResetView.as_view(), name='password_reset'),
     path('accounts/password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),

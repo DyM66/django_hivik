@@ -1,94 +1,191 @@
-{% extends "got/base_generic.html" %}
+{% extends "got/assets/asset_base.html" %}
+{% load my_tags %}
+{% block asset %}
 
-{% block headtag %}
-<style>
-    .scrollable {
-        overflow-x: auto;
-        width: 100%; /* Ajusta según necesidad */
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-		
-    }
-    th, td {
-        padding: 8px; /* Ajusta según necesidad */
-        text-align: left;
-		border: 1px solid #000;	
-    }
-    thead th {
-        position: sticky;
-        top: 0;
-        background-color: #fff; /* Asegura que el fondo no sea transparente */
-    }
-    th:first-child, td:first-child {
-        position: sticky;
-        left: 0;
-        background-color: #fff;
-        z-index: 2; /* Asegura que la columna se mantenga sobre el contenido desplazable */
-    }
-    th:nth-child(2), td:nth-child(2) {
-        position: sticky;
-        left: 150px; /* Ajusta según el ancho de la primera columna. Asegúrate de que este ancho sea correcto. */
-        background-color: #fff;
-        z-index: 1; /* Asegura que la segunda columna también se mantenga fija, pero debajo de la primera en términos de stacking si se solapan */
-    }
-
-</style>
-{% endblock %}
-
-
-{% block header %}
-	<a href="{% url 'got:asset-detail' asset.abbreviation %}"><i class="bi bi-arrow-90deg-left"></i></a>
-  	reporte de horas {{ asset.name }}
-{% endblock %}
-
-{% block content %}
-
-    <form method="post">
-        {% csrf_token %}
+<main class="px-3" style="font-size: 0.9rem;">
+    <form method="post" class="filter-form">{% csrf_token %}
         {{ form.as_p }}
         <button class="btn btn-primary" type="submit">Guardar</button>
     </form>
-{% if not asset.area == 'v' %}
+    {% if not asset.area == 'v' %}
+        <h3 class="mt-4 d-inline-block">Horometro actual</h3>
+    {% else %}
+        <h3 class="mt-4 d-inline-block">Kilometraje actual</h3>
+    {% endif %}
+    
+    <!-- Botón / icono para cambiar la vista de la tabla, al lado del título -->
+    <i class="fas fa-retweet"
+       id="toggleTableBtn"
+       style="cursor: pointer; font-size: 1.3rem; margin-left: 15px;"
+       title="Cambiar vista">
+    </i>
+    
+    <!-- TABLA NUEVA (Fechas en filas, equipos en columnas) -->
+    <div class="table-transposed table-responsive" id="tableNewWrapper" style="margin-top: 1rem;">
+      <div class="table-list" style="overflow-x: auto; max-height: 600px;">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              {% for data in equipos_data %}
+                <th style="text-align: center; font-size: 0.8rem;">{{ data.equipo.name }}</th>
+              {% endfor %}
+            </tr>
+            <tr>
+              <th style="text-align: center;">Total</th>
+              {% for data in equipos_data %}
+                <th style="text-align: center;">{{ data.equipo.horometro }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in transposed_data %}
+              <tr>
+                <th>{{ row.date|date:"d/m/Y" }}</th>
+                {% for valor in row.valores %}
+                  {% with idx=forloop.counter0 %}
+                    {% with eq=equipos_data|index:idx %}
+                      <td style="text-align: center; cursor: pointer;"
+                          data-bs-toggle="tooltip"
+                          title="{% if valor.reporter %}Reportado por {{ valor.reporter }}{% else %}Sin reportar{% endif %}">
+                        {{ valor.hour }}
+                        <i class="fa-solid fa-pencil edit-hour"
+                           data-equipo-id="{{ eq.equipo.code }}"
+                           data-equipo-name="{{ eq.equipo.name }}"
+                           data-date="{{ row.date|date:'Y-m-d' }}"
+                           data-hist-id="{{ valor.hist_id }}"
+                           data-hour="{{ valor.hour }}">
+                        </i>
+                      </td>
+                    {% endwith %}
+                  {% endwith %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- TABLA ORIGINAL (equipos en filas, fechas en columnas), oculta por defecto -->
+    <div class="table-original d-none" id="tableOldWrapper" style="margin-top: 1rem;">
+      <div class="table-list" style="overflow-x: auto; max-height: 600px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Total</th>
+              {% for date in dates %}
+                <th>{{ date|date:"d/m/Y" }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for data in equipos_data %}
+              <tr>
+                <td style="white-space: nowrap;">{{ data.equipo.name }}</td>
+                <td>{{ data.equipo.horometro }}</td>
+                {% for hour in data.horas %}
+                  <td>{{ hour.hour }}</td>
+                {% endfor %}
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5">No hay equipos rotativos.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+</main>
 
-{% endif %}
+<!-- Modal EditHour -->
+<div class="modal fade" id="editHourModal" tabindex="-1" aria-labelledby="editHourLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editHourLabel">Editar horas</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editHourForm" method="post">{% csrf_token %}
+        <div class="modal-body">
+          <input type="hidden" name="hist_id" id="histIdInput"/>
+          <input type="hidden" name="equipo_id" id="equipoIdInput"/>
+          <input type="hidden" name="report_date" id="reportDateInput"/>
 
+          <div class="mb-3">
+            <label for="equipoLabel" class="form-label">Equipo</label>
+            <input type="text" class="form-control" id="equipoLabel" disabled/>
+          </div>
 
-{% if not asset.area == 'v' %}
-<h3 class="mt-4">Horometro actual</h3>
-{% else %}
-<h3 class="mt-4">Kilometraje actual</h3>
-{% endif %}
+          <div class="mb-3">
+            <label for="dateLabel" class="form-label">Fecha</label>
+            <input type="text" class="form-control" id="dateLabel" disabled/>
+          </div>
 
-
-<div class="scrollable">
-	<table>
-		<thead>
-			<tr>
-				<th>Componente</th>
-				<th>Total</th>
-				{% for date in dates %}
-					<th>{{ date|date:"d/m/Y" }}</th>
-				{% endfor %}
-			</tr>
-		</thead>
-		<tbody>
-			{% for data in equipos_data %}
-				<tr>
-					<td style="white-space: nowrap;">{{ data.equipo.name }}</td>
-					<td>{{ data.equipo.horometro }}</td>
-					{% for hour in data.horas %}
-						<td>{{ hour }}</td>
-					{% endfor %}
-				</tr>
-			{% empty %}
-			<tr>
-				<td colspan="5">No hay equipos rotativos.</td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+          <div class="mb-3">
+            <label for="hourInput" class="form-label">Horas</label>
+            <input type="number" class="form-control" name="hour" id="hourInput" step="0.1" min="0" max="24" required/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
+<script>
+  // Inicializa tooltips (Bootstrap 5)
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  });
+
+  // Manejo del modal
+  const editIcons = document.querySelectorAll('.edit-hour');
+  const editModal = new bootstrap.Modal(document.getElementById('editHourModal'));
+  const histIdInput = document.getElementById('histIdInput');
+  const equipoIdInput = document.getElementById('equipoIdInput');
+  const reportDateInput = document.getElementById('reportDateInput');
+  const hourInput = document.getElementById('hourInput');
+  const equipoLabel = document.getElementById('equipoLabel');
+  const dateLabel = document.getElementById('dateLabel');
+
+  editIcons.forEach(icon => {
+    icon.addEventListener('click', (e) => {
+      const equipoId = icon.getAttribute('data-equipo-id');
+      const equipoName = icon.getAttribute('data-equipo-name');
+      const histId = icon.getAttribute('data-hist-id');
+      const reportDate = icon.getAttribute('data-date');
+      const hour = icon.getAttribute('data-hour');
+
+      // Rellenamos campos
+      histIdInput.value = histId ? histId : '';
+      equipoIdInput.value = equipoId;
+      reportDateInput.value = reportDate;
+      hourInput.value = hour;
+
+      equipoLabel.value = equipoName;
+      dateLabel.value = reportDate;
+
+      // Mostramos el modal
+      editModal.show();
+    });
+  });
+
+  // Toggle de tablas
+  const toggleTableBtn = document.getElementById('toggleTableBtn');
+  const tableNewWrapper = document.getElementById('tableNewWrapper');
+  const tableOldWrapper = document.getElementById('tableOldWrapper');
+
+  toggleTableBtn.addEventListener('click', () => {
+    // Alterna la clase d-none en cada contenedor
+    tableNewWrapper.classList.toggle('d-none');
+    tableOldWrapper.classList.toggle('d-none');
+  });
+</script>
 {% endblock %}

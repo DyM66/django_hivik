@@ -216,3 +216,11 @@ LOGGING = {
 
 MY_SITE_DOMAIN = 'got.serport.co'
 MY_SITE_NAME = 'Got Serport'
+
+# * PAGINATION 
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
+}
+

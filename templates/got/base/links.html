@@ -14,6 +14,7 @@
 
 <!-- Bootstrap -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
 
 <!-- Google Fonts Poppins -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,22 +48,17 @@
         --color-aux: #0157a4;
         --color-secondary: #43C6AC;
 
-        --color-approved: #86e49d;
-        --color-closed: #d893a3;
-        --color-pending: #ebc474;
-        --color-shipped: #6fcaea;
-        --color-exe: #6f79ea;
-
         --bs-btn-active-color: #fff;
         --bs-btn-active-bg: #191645;
         --bs-btn-active-border-color: #191645;
 
         --color-no-aprobado: #d78147; /* Orange */
-        --color-aprobado: #f5da81; /* Yellow */
-        --color-cancelado: #d893a3; /* Red */
-        --color-tramitado: #6fcaea; /* Blue */
+        --color-pending: #f5da81; /* Yellow */
+        --color-closed: #d893a3; /* Red */
+        --color-shipped: #6fcaea; /* Blue */
         --color-parcialmente: #8a2be2; /* Violet */
-        --color-recibido: #86e49d; /* Green */
+        --color-exe: #6f79ea;
+        --color-finalizado: #86e49d; /* Green */
     }
 
     body {
@@ -72,64 +68,53 @@
         color: var(--color-primary);
     }
 
-    .ind {
-        background-color: #c3eae4; 
-        padding: 0 10px;
-        color: var(--color-primary);
-    }
-
-    .card-alineada {
-        max-width: 100%;
-        width: 100%;
-    }
-
-    @media (min-width: 992px) {
-        .card-alineada {
-            max-width: 960px; /* Ajusta este valor al ancho de tu tabla si es diferente */
-            margin-left: auto;
-            margin-right: auto;
-        }
-    }
-
-    @media (min-width: 992px) {
-        .tabla-alineada {
-            max-width: 960px; /* Debe ser el mismo valor que usaste para el cuadro */
-            margin-left: auto;
-            margin-right: auto;
-        }
-    }
-
-    /* Add classes for the new statuses */
-    .no-aprobado {
-        background-color: var(--color-no-aprobado);
-    }
-
-    .aprobado {
-        background-color: var(--color-aprobado);
-    }
-
-    .cancelado {
-        background-color: var(--color-cancelado);
-    }
-
-    .tramitado {
-        background-color: var(--color-tramitado);
-    }
-
-    .parcialmente {
-        background-color: var(--color-parcialmente);
-    }
-
-    .recibido {
-        background-color: var(--color-recibido);
-    }
-
     h1 {
         margin-top: 15px;
     }
 
     h4 {
         font-weight: bold;
+    }
+
+    /* Add classes for the new statuses */
+    .no-aprobado {background-color: var(--color-no-aprobado);}
+    .aprobado {background-color: var(--color-pending);}
+    .cancelado {background-color: var(--color-closed);}
+    .tramitado {background-color: var(--color-shipped);}
+    .parcialmente {background-color: var(--color-parcialmente);}
+    .recibido {background-color: var(--color-finalizado);}
+
+    .status {
+        padding: 0.3rem;
+        border-radius: 3rem;
+        text-align: center;
+        color: #191645;
+        font-size: 0.7rem;
+    }
+
+    .red-strong {
+        color: red;
+        font-weight: bold;
+    }
+
+    .finished {
+        background-color: var(--color-finalizado);
+    }
+
+    .exe {
+        background-color: var(--color-exe);
+    }
+
+    .close {
+        background-color: var(--color-closed);
+    }
+
+    .pending {
+        background-color: var(--color-pending);
+    }
+
+    .shipped {
+        background-color: var(--color-shipped);
     }
 
     .btn-add-table {
@@ -142,23 +127,22 @@
         color: #43c6ac;
     }
 
-    .image-container {
-        height: 500px;
-        overflow: hidden;
-        position: relative;
-        background-color: #f8f9fa;
-        border: 2px solid #000;
-        border-radius: 10px;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+    button.loading {
+        background-color: #ccc;
+        cursor: not-allowed;
     }
 
-    .image-container img {
-        height: 100%;
-        width: auto;
-        object-fit: contain;
+    .signature-pad {
+        border: 1px solid #000;
+        border-radius: 4px;
+        touch-action: none;
+    }
+
+    .indicador {
+        /* background-color: var(--color-finalizado);  */
+        background: linear-gradient(45deg, var(--color-primary), #0157a4);
+        padding: 0 10px;
+        color: #fff;
     }
 
     /* Estilos de Navegación */
@@ -171,7 +155,6 @@
     .nav button {
         color: #fff;
     }
-
 
     .navbar-nav .nav-link.active,
     .navbar-nav .nav-link.show,
@@ -241,16 +224,6 @@
         opacity: 0.6;
     }
 
-    @media (max-width: 768px) {
-        .nav {
-            flex-direction: column;
-        }
-
-        .nav-item {
-            width: 100%;
-        }
-    }
-
     .page-link {
         color: var(--color-primary);
     }
@@ -269,29 +242,16 @@
         margin-bottom: 1rem;
     }
 
-    .assets-masonry {
-        column-gap: 3rem;
+    /* 
+    Estilos de la sección detalle de Activos:
+    asset_base, asset_detail, asset_maintenance_plan, graps
+    */
+    #asset {
+        width: 350px;
+        height: 300px;
+        object-fit: cover;
     }
 
-    @media (min-width: 1200px) {
-        .assets-masonry {
-            column-count: 3;
-        }
-    }
-
-    @media (min-width: 768px) and (max-width: 1199px) {
-        .assets-masonry {
-            column-count: 2;
-        }
-    }
-
-    @media (max-width: 767px) {
-        .assets-masonry {
-            column-count: 1;
-        }
-    }
-
-    /* Estilos de la Sección detalle de Activos */
     .main-asset {
         display: grid;
         grid-template-columns: 2.2fr 0.8fr;
@@ -325,283 +285,31 @@
         grid-area: g-hor;  
     }
 
-    .filter-form {
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background-color: #f9f9f9;
-        width: 100%;
-    }
-
-    /* Estilos de la Sección detalle de Reportes de falla */
-    .carousel-indicators [data-bs-target] {
-        width: 60px;
-        height: 60px;
-        border-radius: 5px;
-        overflow: hidden;
-        border: none;
-        margin: 5px;
-    }
-    
-    .carousel-indicators [data-bs-target] img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    
-    .carousel-indicators .active {
-        border: 2px solid #0d6efd; 
-    }
-
-    /* Contenedor flex para las gráficas */
+    /* graps */
     .grafica-container {
         display: flex;
-        justify-content: space-between; /* Distribuye el espacio entre las gráficas */
-        flex-wrap: wrap; /* Permite que las gráficas se ajusten en pantallas pequeñas */
-        gap: 20px; /* Espacio entre las gráficas */
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
         margin-bottom: 20px;
     }
 
-    /* Gráficas individuales */
     .grafica-consumos, .grafica-horas {
-        flex: 1 1 45%; /* Ocupa el 45% del ancho del contenedor, permitiendo espacio entre ellas */
-        min-width: 300px; /* Asegura que no sean demasiado pequeñas en pantallas pequeñas */
+        flex: 1 1 45%;
+        min-width: 300px;
     }
 
-    /* En pantallas pequeñas, apila las gráficas una debajo de la otra */
-    @media (max-width: 768px) {
-        .grafica-container {
-            flex-direction: column; /* Cambia la dirección a columna */
-            align-items: center; /* Centra las gráficas horizontalmente */
-        }
-
-        .grafica-consumos, .grafica-horas {
-            width: 100%; /* Cada gráfica ocupa el 100% del ancho disponible en pantallas pequeñas */
-        }
-    }
-
-
-    /* Otros */
-    .status {
-        padding: 0.3rem;
-        border-radius: 3rem;
-        text-align: center;
-        color: #191645;
-        font-size: 0.7rem;
-    }
-
-    button.loading {
-        background-color: #ccc;
-        cursor: not-allowed;
-    }
-
-    .signature-pad {
-        border: 1px solid #000;
-        border-radius: 4px;
-        touch-action: none;
-    }
-
-    .red-strong {
-        color: red;
-        font-weight: bold;
-    }
-
-    .finished {
-        background-color: var(--color-approved);
-    }
-
-    .exe {
-        background-color: var(--color-exe);
-    }
-
-    .close {
-        background-color: var(--color-closed);
-    }
-
-    .pending {
-        background-color: var(--color-pending);
-    }
-
-    .shipped {
-        background-color: var(--color-shipped);
-    }
-
-    .table-list {
-        border-collapse: collapse;
-        margin: 0;
-        font-size: 0.85em;
-        overflow: visible;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-    }
-
-    .table-list thead tr:first-child th {
-        background-color: var(--color-primary);
-        padding: 10px;
-    }
-
-    .sys .table-list {
-        margin: 0;
-    }
-
-    .main-asset .table-list thead tr:first-child th,
-    .main-info-sys .table-list thead tr:first-child th {
-        text-align: center;
-        font-weight: bold;
-        font-size: 1.2em;
-    }
-
-    .table-list thead .add:hover {
-        color: #43C6AC;
-    }
-
-    .table-list thead tr th {
-        background-color: var(--color-aux);
+    /* asset_maintenance_plan */
+    .filter-form {
+        padding: 20px;
         color: #fff;
-    }
-
-    .table-list th,
-    .table-list td,
-    .deta th,
-    .deta td {
-        padding: 8px;
-    }
-
-    .table-list td {
-        vertical-align: top;
-    }
-
-    .table-list tbody tr {
-        border-bottom: 1px solid #ddd;
-    }
-
-
-    .table-list tbody tr:hover td,
-    .table-list tbody tr:hover td strong {
-        color: var(--color-secondary);
-    }
-
-    .main-info-sys .table-list tbody tr:hover td {
-        color: var(--color-primary);
-    }
-
-    .table-list tbody tr:nth-of-type(even) {
-        background-color: #E8E8EC;
-    }
-
-    .table-list tbody tr:last-of-type {
-        border-bottom: 2px solid var(--color-secondary);
-    }
-
-    .table-list tbody tr:hover .status {
-        box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.34);
-    }
-
-    .nowrap {
-        white-space: nowrap;
-    }
-
-    caption {
-        color: white;
-        text-align: center;
-        background-color: hsl(0 0% 0%);
-        text-transform: uppercase;
-        font-weight: 700;
-    }
-
-    .btn-primary {
-        background-color: var(--color-secondary);
-        border-color: var(--color-secondary);
-        color: var(--color-primary);
-    }
-
-    .btn-primary:hover,
-    .btn-primary:focus,
-    .btn-primary:active {
+        border: 1px solid #ddd;
+        border-radius: 16px;
         background-color: var(--color-primary);
-        border-color: var(--color-primary);
-        color: #FFF;
+        margin-right: 15px;
     }
 
-    .btn-group {
-        margin-top: 5px;
-    }
-
-    .input-group {
-        min-width: 360px;
-    }
-
-    .dropdown-item:hover {
-        background-color: var(--color-secondary);
-        color: var(--color-primary);
-    }
-
-    td .dropdown-menu {
-        min-width: 0;
-        font-size: 0.8rem;
-    }
-
-    td .dropdown-item {
-        padding: 4px 6px;
-    }
-
-    .detail {
-        margin: 10px;
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-        grid-template-areas:
-            "title title title"
-            "ot-detail tasks tasks"
-            "add-info tasks tasks"
-            ". tasks tasks";
-    }
-
-    .detail .title {
-        grid-area: title;
-    }
-
-    .detail .ot-detail {
-        grid-area: ot-detail;
-    }
-
-    .detail .add-info {
-        grid-area: add-info;
-    }
-
-    .detail .tasks {
-        grid-area: tasks;
-    }
-
-    .table-detail {
-        width: 100%;
-    }
-
-    .add-more {
-        background-color: transparent;
-        color: var(--color-primary);
-        border: none;
-        margin-left: 15px;
-    }
-
-    .add-more:hover {
-        color: #43c6ac;
-    }
-
-    #asset {
-        width: 350px;
-        height: 300px;
-        object-fit: cover;
-    }
-
-    .info-special {
-        text-align: center;
-        background-color: #191645;
-        color: #fff;
-        font-weight: bold;
-        font-size: 1.2em;
-        padding: 10px;
-    }
-
+    /* Estilos Detalle de sistemas */
     .sys {
         margin: 15px;
         display: grid;
@@ -624,27 +332,10 @@
         border: 1px solid #191645;
         border-radius: 10px;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-
     }
 
     .main-info-sys {
         grid-area: main-info-sys;
-    }
-
-    .timeline {
-        /* margin: 20px; */
-        padding: 0;
-    }
-
-    .list-group-item {
-        margin-bottom: 5px;
-        border-left: 3px solid #007BFF;
-        /* Cambia el color según el estado o preferencia */
-    }
-
-    .list-group-item-action:hover {
-        background-color: #f8f9fa;
-        border-left: 3px solid #0056b3;
     }
 
     .nav-sys ul {
@@ -652,16 +343,8 @@
         padding-left: 0;
     }
 
-    h5 {
-        margin: 0;
-    }
-
     .nav-sys li:first-child {
         border-radius: 10px 10px 0 0;
-    }
-
-    .sys .tit {
-        background-color: #ddd;
     }
 
     .nav-sys li {
@@ -669,30 +352,81 @@
         padding-top: 6px;
         padding-bottom: 6px;
         border-bottom: 1px solid #bbb;
+    }
 
-        /* margin-bottom: 5px; */
+    .sys .tit {
+        background-color: #ddd;
     }
 
     .sys li {
         list-style: none;
     }
 
-    .terminar {
-        background: none;
-        border: 0;
-        color: white;
-        padding: 8px;
-        /* font-weight: 500; */
-        /* font-size: 0.8rem; */
-        /* letter-spacing: 0.5px; */
-        /* text-transform: uppercase; */
+    /* Estilos de la sección detalle de OT */
+    .ot-detail {
+        margin: 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        grid-template-areas:
+            "title title title"
+            "ot-detail tasks tasks"
+            "add-info tasks tasks"
+            ". tasks tasks";
     }
 
-    .terminar:hover {
-        color: var(--color-secondary);
-        background-color: none;
+    .ot-detail .title {
+        grid-area: title;
     }
 
+    .ot-detail .ot-deta {
+        grid-area: ot-detail;
+    }
+
+    .ot-detail .add-info {
+        grid-area: add-info;
+    }
+
+    .ot-detail .tasks {
+        grid-area: tasks;
+    }
+
+    /* Estilos de la Sección detalle reportes de falla */
+    .image-container {
+        height: 500px;
+        overflow: hidden;
+        /* position: relative; */
+        background-color: var(--color-secondary);
+        border: 1px solid #000;
+        border-radius: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .carousel-indicators [data-bs-target] {
+        width: 60px;
+        height: 60px;
+        border-radius: 5px;
+        overflow: hidden;
+        border: none;
+        margin: 5px;
+    }
+    
+    .carousel-indicators [data-bs-target] img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .carousel-indicators .active {
+        border: 2px solid #0d6efd; 
+    }
+
+    /* 
+    Estilos detalle de equipos:
+    system_subsystems, equipment_detail, tanques
+    */
     .detail-item {
         display: flex;
         justify-content: space-between;
@@ -703,117 +437,106 @@
         flex: 1;
         text-align: left;
         font-weight: bold;
-        /* Hace que la clave sea negrita */
     }
 
     .detail-value {
         flex: 2;
         text-align: left;
-        /* Alinea los valores a la izquierda */
     }
 
-    .detail-item {
-        margin-bottom: 10px;
-    }
-
-    ul.card-text {
-        padding: 0;
-        list-style: none;
-        /* Elimina los marcadores de lista */
-    }
-
-    .card h4 {
-        margin-bottom: 0;
-    }
-
-    .details-container {
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .details-column {
-        flex: 1;
-    }
-
-    .card {
+    /* Tablas */
+    .table-list {
+        border-collapse: collapse;
+        margin: 0;
+        font-size: 0.85em;
+        overflow: visible;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-
     }
 
-    .card-text {
-        font-size: 0.9rem;
-        /* Disminuye el tamaño de la letra */
-    }
-
-    /* Estilos para las miniaturas de vista previa */
-    .preview-container {
-        height: 480px;
-        /* Igual a la altura de la imagen principal */
-        overflow-y: auto;
-        /* Añade desplazamiento vertical si se supera la altura */
-    }
-
-    .preview-thumbnail img {
-        cursor: pointer;
+    .table-detail {
         width: 100%;
-        border: 0.2px solid #ccc;
-        border-radius: 5px;
     }
 
-    /* Ocultar las barras de desplazamiento en algunos navegadores */
-    .preview-container::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .preview-container::-webkit-scrollbar-thumb {
-        background-color: #888;
-        border-radius: 10px;
-    }
-
-    .preview-container::-webkit-scrollbar-thumb:hover {
-        background-color: #555;
-    }
-
-
-
-    .deta th {
+    .table-list thead tr:first-child th {
         background-color: var(--color-primary);
         padding: 10px;
-        color: white;
+
         text-align: center;
         font-weight: bold;
+        font-size: 1.2em;
     }
 
-    .deta tbody tr:nth-child(4n+1),
-    .deta tbody tr:nth-child(4n+2) {
-        background-color: #f2f2f2;
+    .table-list thead tr th {
+        background-color: var(--color-aux);
+        color: #fff;
     }
 
-    .deta tbody tr:nth-child(4n+3),
-    .deta tbody tr:nth-child(4n+4) {
-        background-color: #ddd;
+    .table-list tbody tr {
+        border-bottom: 1px solid #ddd;
     }
 
-    .deta tbody tr {
-        border-bottom: none;
+    .table-list th,
+    .table-list td {
+        padding: 8px;
     }
 
-    .status-gradient {
-        background-image: linear-gradient(to right, red, yellow, green);
+    .table-list tbody tr:nth-of-type(even) {
+        background-color: #E8E8EC;
+    }
+
+    .table-list tbody tr:last-of-type {
+        border-bottom: 2px solid var(--color-secondary);
+    }
+
+    .table-list tbody tr:hover td,
+    .table-list tbody tr:hover td strong {
+        color: var(--color-aux);
+    }
+
+    .table-list tbody tr:hover .status {
+        box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.34);
+    }
+
+    caption {
         color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 5px;
-        transition: background-color 0.3s ease-in-out;
-    }
-
-    .status-gradient span {
-        display: block;
         text-align: center;
+        background-color: hsl(0 0% 0%);
+        text-transform: uppercase;
+        font-weight: 700;
     }
 
+    .nowrap {
+        white-space: nowrap;
+    }
 
-    @media (max-width: 780px) {
+    @media (min-width: 1200px) {
+        /* Estilos de la Sección listado de Activos */
+        .assets-masonry {
+            column-count: 3;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 1199px) {
+        /* Estilos de la Sección listado de Activos */
+        .assets-masonry {
+            column-count: 2;
+        }
+    }
+
+    @media (max-width: 767px) {
+        /* Base */
+        .nav {
+            flex-direction: column;
+        }
+
+        .nav-item {
+            width: 100%;
+        }
+
+        /* Estilos de la Sección listado de Activos */
+        .assets-masonry {
+            column-count: 1;
+        }
 
         .main-asset {
             margin: 10px;
@@ -838,9 +561,6 @@
                 "main-info-sys main-info-sys"
                 "nav-sys .";
         }
-    }
-
-    @media (max-width: 650px) {
 
         .detail {
             grid-template-columns: 90vw;
@@ -902,6 +622,131 @@
         .table-list td:last-child {
             padding-bottom: 2rem;
         }
+
+        .table-list td.full-width-cell {
+            display: block;
+            grid-template-columns: none; /* Elimina las columnas de grid */
+            padding: 0.5rem 1rem;
+        }
+
+        .table-list td.full-width-cell::before {
+            content: attr(data-cell);
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .table-list td.full-width-cell > * {
+            width: 100%;
+        }
+
+        .table-list td.full-width-cell h6 {
+            margin-top: 0;
+        }
+
+        /* Estilos para evitar el desbordamiento de la celda "Solicitud" */
+        .table-list td.ot-cell {
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+            max-width: 300px; /* Puedes ajustar este valor según tus necesidades */
+        }
+    }
+
+    .btn-primary {
+        background-color: var(--color-secondary);
+        border-color: var(--color-secondary);
+        color: var(--color-primary);
+    }
+
+    .btn-primary:hover,
+    .btn-primary:focus,
+    .btn-primary:active {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
+        color: #FFF;
+    }
+
+    .btn-group {
+        margin-top: 5px;
+    }
+
+    .input-group {
+        min-width: 360px;
+    }
+
+    .dropdown-item:hover {
+        background-color: var(--color-secondary);
+        color: var(--color-primary);
+    }
+
+    td .dropdown-menu {
+        min-width: 0;
+        font-size: 0.8rem;
+    }
+
+    td .dropdown-item {
+        padding: 4px 6px;
+    }
+
+    .add-more {
+        background-color: transparent;
+        color: var(--color-primary);
+        border: none;
+        margin-left: 15px;
+    }
+
+    .add-more:hover {
+        color: #43c6ac;
+    }
+
+    .list-group-item {
+        margin-bottom: 5px;
+        border-left: 3px solid var(--color-aux);
+    }
+
+    .list-group-item:hover {
+        background-color: #e6e7e7;
+        border-left: 3px solid var(--color-primary);
+    }
+
+
+
+    ul.card-text {
+        padding: 0;
+        list-style: none;
+        /* Elimina los marcadores de lista */
+    }
+
+    .card-text {
+        font-size: 0.9rem;
+        /* Disminuye el tamaño de la letra */
+    }
+
+    .preview-container {
+        height: 480px;
+        overflow-y: auto;
+    }
+
+    .preview-thumbnail img {
+        cursor: pointer;
+        width: 100%;
+        border: 0.2px solid #ccc;
+        border-radius: 5px;
+    }
+
+    /* Ocultar las barras de desplazamiento en algunos navegadores */
+    .preview-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .preview-container::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 10px;
+    }
+
+    .preview-container::-webkit-scrollbar-thumb:hover {
+        background-color: #555;
     }
 
     .bottom-line {
@@ -910,9 +755,7 @@
 
     a {
         text-decoration: none;
-        /* Elimina la línea de abajo */
         color: #191645;
-        /* Color del texto */
     }
 
     a:hover {
@@ -975,59 +818,10 @@
         font-size: 16px;
     }
 
-
-    @media (width> 650px) {
-
-        .adap {
-            width: 50%;
-            border: 0.4px #666 solid;
-            border-radius: 10px;
-            padding: 2rem;
-            margin: auto;
-        }
-    }
-
-    @media (max-width: 650px) {
-    /* ... estilos existentes ... */
-
-    .table-list td.full-width-cell {
-        display: block;
-        grid-template-columns: none; /* Elimina las columnas de grid */
-        padding: 0.5rem 1rem;
-    }
-
-    .table-list td.full-width-cell::before {
-        content: attr(data-cell);
-        font-weight: 700;
-        display: block;
-        margin-bottom: 0.5rem;
-    }
-
-    .table-list td.full-width-cell > * {
-        width: 100%;
-    }
-
-    .table-list td.full-width-cell h6 {
-        margin-top: 0;
-    }
-
-    /* Estilos para evitar el desbordamiento de la celda "Solicitud" */
-    .table-list td.ot-cell {
+    .table-list td.solicitud-cell {
         word-wrap: break-word;
         word-break: break-word;
-        white-space: normal;
+        white-space: normal;    
         max-width: 300px; /* Puedes ajustar este valor según tus necesidades */
     }
-}
-
-/* Estilos para evitar el desbordamiento de la celda "Solicitud" */
-.table-list td.solicitud-cell {
-    word-wrap: break-word;
-    word-break: break-word;
-    white-space: normal;    
-    max-width: 300px; /* Puedes ajustar este valor según tus necesidades */
-}
-
-
-
 </style>

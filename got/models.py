@@ -13,21 +13,7 @@ from got.models_group.Item_model import Item
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
 from outbound.models import OutboundDelivery
 from got.models_group.Userprofile_model import UserProfile
-
-
-# Model 1: Registro de actividades
-class ActivityLog(models.Model):
-    user_name = models.CharField(max_length=100)
-    action = models.CharField(max_length=100)
-    model_name = models.CharField(max_length=100)
-    object_id = models.CharField(max_length=100, null=True, blank=True)
-    field_name = models.CharField(max_length=100, null=True, blank=True)
-    old_value = models.TextField(null=True, blank=True)
-    new_value = models.TextField(null=True, blank=True)
-    timestamp = models.DateTimeField(default=timezone.now)
-
-    def __str__(self):
-        return f"{self.user_name} {self.action} {self.model_name} {self.field_name} at {self.timestamp}"
+from got.models_group.ActivityLog_model import ActivityLog
 
 
 # Model 4: Servicios
@@ -79,7 +65,7 @@ class Asset(models.Model):
         total_rutas = all_rutas.count()
         
         if total_rutas == 0:
-            return '---'
+            return None
 
         compliant_count = 0
 
@@ -733,7 +719,6 @@ class DailyFuelConsumption(models.Model):
 
 # Model 22: Imagenes
 class Image(models.Model):
-
     image = models.ImageField(upload_to=get_upload_path)
     failure = models.ForeignKey(FailureReport, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, related_name='images', on_delete=models.CASCADE, null=True, blank=True)

@@ -504,7 +504,28 @@ class RutaForm(forms.ModelForm):
 
 
 # ---------------- Hours ------------------- #
+class CustomEquipoChoiceField(forms.ModelChoiceField):
+    def __init__(self, *args, asset=None, **kwargs):
+        self.asset = asset
+        super().__init__(*args, **kwargs)
+
+    def label_from_instance(self, obj):
+        """
+        Si el equipo no pertenece al asset “dueño” de la vista,
+        mostramos "sistema - nombre_equipo". De lo contrario, solo "nombre_equipo".
+        """
+        if obj.system.asset != self.asset:
+            return f"{obj.system.name} - {obj.name}"
+        return obj.name
+
 class ReportHoursAsset(forms.ModelForm):
+    component = CustomEquipoChoiceField(
+        queryset=Equipo.objects.none(),
+        asset=None,
+        required=True,
+        label="Componente",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = HistoryHour
@@ -512,19 +533,28 @@ class ReportHoursAsset(forms.ModelForm):
         labels = {
             'hour': 'Horas',
             'report_date': 'Fecha',
-            'component': 'Componente',
         }
         widgets = {
-            'report_date': XYZ_DateInput(format=['%Y-%m-%d'],),
-            'component': forms.Select(attrs={'class': 'form-control'}),
+            'report_date': XYZ_DateInput(format=['%Y-%m-%d'], attrs={'class': 'form-control'}),
+            'hour': forms.NumberInput(attrs={'class': 'form-control'}),
             }
-
 
     def __init__(self, *args, **kwargs):
         asset = kwargs.pop('asset', None)
+        equipos = kwargs.pop('equipos', None)
         super(ReportHoursAsset, self).__init__(*args, **kwargs)
-        if asset:
-            self.fields['component'].queryset = Equipo.objects.filter(system__asset=asset, tipo='r')
+        if equipos is not None:
+            self.fields['component'].queryset = equipos
+        self.fields['component'].asset = asset
+
+    def clean_report_date(self):
+        """
+        Restringimos que no se permita reportar fechas mayores a hoy.
+        """
+        report_date = self.cleaned_data.get('report_date')
+        if report_date and report_date > date.today():
+            raise ValidationError("No se puede reportar horas con fecha mayor a la fecha actual.")
+        return report_date
 
     def clean(self):
         cleaned_data = super().clean()

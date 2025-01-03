@@ -21,6 +21,11 @@ urlpatterns = [
     path('reporte-gerencial/', views.ManagerialReportView.as_view(), name='managerial_report'),
 
 
+    path("reportehorasasset/<str:asset_id>/",views.reportHoursAsset,name='horas-asset'),
+    path("reportehoraasset/<str:asset_id>/",views.reportHoursAsset,name='report-hours-update'),
+
+
+
     path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
     path('buceo/', views.BuceoMttoView.as_view(), name='buceomtto'),
     path('vehiculos/', views.VehiculosMttoView.as_view(), name='vehiculosmtto'),
@@ -38,7 +43,6 @@ urlpatterns = [
     path('equipo/<str:pk>/delete/', views.EquipoDelete.as_view(), name='equipo-delete'),
     path('equipment/<str:code>/add_supply/', views.add_supply_to_equipment, name='supply'),
     path('transferir-equipo/<str:equipo_id>/', views.transferir_equipo, name='transferir_equipo'),
-    path("reportehorasasset/<str:asset_id>/",views.reportHoursAsset,name='horas-asset'),
 
     path("report-failure/", views.FailureListView.as_view(), name="failure-report-list"),
     path("report-failure/<str:pk>/", views.FailureDetailView.as_view(), name="failure-report-detail"),

@@ -641,7 +641,6 @@ def calculate_status_code(t):
         return 1
     elif earliest_start_date > today:
         return 2
-
     return None
 
 
@@ -797,7 +796,6 @@ def get_full_systems_ids(asset, user):
             all_systems_ids = System.objects.filter(id__in=all_systems_ids, location__iexact=station).values_list('id', flat=True)
         else:
             all_systems_ids = System.objects.none().values_list('id', flat=True)
-
     return all_systems_ids
 
 
