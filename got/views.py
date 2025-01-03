@@ -190,7 +190,7 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         asset = self.get_object()
         user = self.request.user
         filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, self.request.GET)
-        rotativos = Equipo.objects.filter(system__in=get_full_systems(asset, user), tipo='r').exists()
+        rotativos = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
 
         context['rotativos'] = rotativos
         context['view_type'] = 'rutas'
