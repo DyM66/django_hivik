@@ -38,13 +38,16 @@ def actualizar_rutas_dependientes(ruta):
 
 
 def render_to_pdf(template_src, context_dict={}):
+    """
+    Función para renderizar un template HTML a PDF.
+    """
     template = get_template(template_src)
     html = template.render(context_dict)
     result = BytesIO()
     pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
     if not pdf.err:
         return HttpResponse(result.getvalue(), content_type='application/pdf')
-    return None
+    return HttpResponse('Error al generar el PDF', status=400)
 
 
 def get_filtered_rutas(asset, user, request_data=None):

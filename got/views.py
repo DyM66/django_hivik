@@ -138,8 +138,11 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
             'v': 'Vehiculos',
             'x': 'Apoyo'
         }
+        var1 = 'emmanuel'
         assets = Asset.objects.filter(show=True)
         context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in areas.items()}
+        context['clave'] = var1
+        print(context)
         return context
 
 
@@ -933,14 +936,21 @@ class SysDelete(DeleteView):
         return str(success_url)
     
 
-def system_maintence_pdf(request, asset_id, system_id):
+def asset_maintenance_pdf(request, asset_id):
+    """
+    Vista para generar un PDF con la información de todos los sistemas de un activo.
+    """
     asset = get_object_or_404(Asset, pk=asset_id)
-    system = get_object_or_404(System, pk=system_id, asset=asset)
+    systems = System.objects.filter(asset=asset).prefetch_related(
+        'equipos',
+        'rutas__requisitos',
+        'ot_set'
+    )
     start_date = timezone.now()
 
     sections = [
         {'title': 'Resumen', 'id': 'summary'},
-        {'title': 'Información del Sistema', 'id': 'system-info'},
+        {'title': 'Información de los Sistemas', 'id': 'systems-info'},
         {'title': 'Equipos Asociados', 'id': 'associated-equipment'},
         {'title': 'Rutinas de Mantenimiento', 'id': 'maintenance-routines'},
         {'title': 'Bitácora de Mantenimientos', 'id': 'maintenance-log'},
@@ -948,12 +958,12 @@ def system_maintence_pdf(request, asset_id, system_id):
 
     context = {
         'asset': asset,
-        'system': system,
+        'systems': systems,
         'sections': sections,
         'current_date': start_date,
     }
 
-    return render_to_pdf('got/systems/system_pdf_template.html', context)
+    return render_to_pdf('got/systems/asset_pdf_template.html', context)
 
 
 'EQUIPMENTS VIEW'

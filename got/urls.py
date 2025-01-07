@@ -36,7 +36,7 @@ urlpatterns = [
     path('systems/<int:pk>/<str:view_type>/', views.SysDetailView.as_view(), name='sys-detail-view'),
     path('system/<int:pk>/update/', views.SysUpdate.as_view(), name='sys-update'),
     path('system/<int:pk>/delete/', views.SysDelete.as_view(), name='sys-delete'),
-    path('systems/<str:asset_id>/<int:system_id>/pdf/', views.system_maintence_pdf, name='generate-system-pdf'),
+    path('got/budget/summary/assets/<str:asset_id>/pdf/', views.asset_maintenance_pdf, name='asset_maintenance_pdf'),
 
     path('system/<int:pk>/new_equipo/', views.EquipoCreateView.as_view(), name='equipo-create'),
     path('equipo/<str:pk>/update/', views.EquipoUpdate.as_view(), name='equipo-update'),

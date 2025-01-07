@@ -3,104 +3,72 @@
 {% block asset %}
 
 <main class="px-3" style="font-size: 0.9rem;">
-    <form method="post" class="filter-form">{% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn btn-primary" type="submit">Guardar</button>
-    </form>
+
+    <!-- Encabezado para la tabla de horas -->
     {% if not asset.area == 'v' %}
-        <h3 class="mt-4 d-inline-block">Horometro actual</h3>
+        <h3 class="d-inline-block">Horómetro actual</h3>
     {% else %}
-        <h3 class="mt-4 d-inline-block">Kilometraje actual</h3>
+        <h3 class="d-inline-block">Kilometraje actual</h3>
     {% endif %}
-    
-    <!-- Botón / icono para cambiar la vista de la tabla, al lado del título -->
-    <i class="fas fa-retweet"
-       id="toggleTableBtn"
-       style="cursor: pointer; font-size: 1.3rem; margin-left: 15px;"
-       title="Cambiar vista">
-    </i>
-    
-    <!-- TABLA NUEVA (Fechas en filas, equipos en columnas) -->
-    <div class="table-transposed table-responsive" id="tableNewWrapper" style="margin-top: 1rem;">
-      <div class="table-list" style="overflow-x: auto; max-height: 600px;">
-        <table>
-          <thead>
-            <tr>
-              <th></th>
-              {% for data in equipos_data %}
-                <th style="text-align: center; font-size: 0.8rem;">{{ data.equipo.name }}</th>
-              {% endfor %}
-            </tr>
-            <tr>
-              <th style="text-align: center;">Total</th>
-              {% for data in equipos_data %}
-                <th style="text-align: center;">{{ data.equipo.horometro }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in transposed_data %}
+
+    <!-- Tabla horizontal (equipos en filas, fechas en columnas) -->
+    <div class="table-list" style="overflow-x: auto; max-height: 600px; margin-top: 1rem;">
+      <table id="tableHours" class="table-sm align-middle" style="font-size:0.9rem;">
+        <thead>
+          <tr>
+            <th>Componente</th>
+            <th>Total</th>
+            {% for date in dates %}
+              <th style="text-align:center; font-size: 0.9rem; font-weight: normal;">{{ date|date:"d/m/Y" }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% if equipos_data %}
+            {% for data in equipos_data %}
               <tr>
-                <th>{{ row.date|date:"d/m/Y" }}</th>
-                {% for valor in row.valores %}
-                  {% with idx=forloop.counter0 %}
-                    {% with eq=equipos_data|index:idx %}
-                      <td style="text-align: center; cursor: pointer;"
-                          data-bs-toggle="tooltip"
-                          title="{% if valor.reporter %}Reportado por {{ valor.reporter }}{% else %}Sin reportar{% endif %}">
-                        {{ valor.hour }}
-                        <i class="fa-solid fa-pencil edit-hour"
-                           data-equipo-id="{{ eq.equipo.code }}"
-                           data-equipo-name="{{ eq.equipo.name }}"
-                           data-date="{{ row.date|date:'Y-m-d' }}"
-                           data-hist-id="{{ valor.hist_id }}"
-                           data-hour="{{ valor.hour }}">
-                        </i>
-                      </td>
-                    {% endwith %}
+                <!-- Nombre del equipo y horómetro actual -->
+                <td style="white-space: nowrap;">{{ data.equipo.name }}</td>
+                <td>{{ data.equipo.horometro }}</td>
+
+                <!-- Celdas de horas por fecha -->
+                {% for hourDict in data.horas %}
+                  {% with fecha=dates|index:forloop.counter0 %}
+                    <td style="text-align: center; cursor: pointer;"
+                        data-bs-toggle="tooltip"
+                        title="{% if hourDict.reporter %}Reportado por {{ hourDict.reporter }}{% else %}Sin reportar{% endif %}">
+                      
+                      {{ hourDict.hour }}
+                      <!-- Ícono de edición -->
+                      <i class="fa-solid fa-pencil edit-hour"
+                         data-equipo-id="{{ data.equipo.code }}"
+                         data-equipo-name="{{ data.equipo.name }}"
+                         data-date="{{ fecha|date:'Y-m-d' }}"
+                         data-hist-id="{{ hourDict.hist_id }}"
+                         data-hour="{{ hourDict.hour }}">
+                      </i>
+                    </td>
                   {% endwith %}
                 {% endfor %}
               </tr>
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    
-    <!-- TABLA ORIGINAL (equipos en filas, fechas en columnas), oculta por defecto -->
-    <div class="table-original d-none" id="tableOldWrapper" style="margin-top: 1rem;">
-      <div class="table-list" style="overflow-x: auto; max-height: 600px;">
-        <table>
-          <thead>
+          {% else %}
             <tr>
-              <th>Componente</th>
-              <th>Total</th>
-              {% for date in dates %}
-                <th>{{ date|date:"d/m/Y" }}</th>
-              {% endfor %}
+              <td colspan="{{ 2|add:dates|length }}">No hay equipos rotativos.</td>
             </tr>
-          </thead>
-          <tbody>
-            {% for data in equipos_data %}
-              <tr>
-                <td style="white-space: nowrap;">{{ data.equipo.name }}</td>
-                <td>{{ data.equipo.horometro }}</td>
-                {% for hour in data.horas %}
-                  <td>{{ hour.hour }}</td>
-                {% endfor %}
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5">No hay equipos rotativos.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+          {% endif %}
+        </tbody>
+      </table>
     </div>
+
+	<!-- Formulario tradicional (opcional) -->
+    <!-- <form method="post" class="filter-form mt-4">{% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary" type="submit">Guardar</button>
+    </form> -->
 </main>
 
-<!-- Modal EditHour -->
+<!-- Modal para Editar Horas -->
 <div class="modal fade" id="editHourModal" tabindex="-1" aria-labelledby="editHourLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -138,14 +106,15 @@
   </div>
 </div>
 
+
 <script>
-  // Inicializa tooltips (Bootstrap 5)
+  // Inicializar tooltips de Bootstrap (para la info "Reportado por X")
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
   var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl)
   });
 
-  // Manejo del modal
+  // Manejo del modal de edición
   const editIcons = document.querySelectorAll('.edit-hour');
   const editModal = new bootstrap.Modal(document.getElementById('editHourModal'));
   const histIdInput = document.getElementById('histIdInput');
@@ -156,14 +125,14 @@
   const dateLabel = document.getElementById('dateLabel');
 
   editIcons.forEach(icon => {
-    icon.addEventListener('click', (e) => {
+    icon.addEventListener('click', () => {
       const equipoId = icon.getAttribute('data-equipo-id');
       const equipoName = icon.getAttribute('data-equipo-name');
       const histId = icon.getAttribute('data-hist-id');
       const reportDate = icon.getAttribute('data-date');
       const hour = icon.getAttribute('data-hour');
 
-      // Rellenamos campos
+      // Rellenar campos ocultos y labels
       histIdInput.value = histId ? histId : '';
       equipoIdInput.value = equipoId;
       reportDateInput.value = reportDate;
@@ -172,20 +141,10 @@
       equipoLabel.value = equipoName;
       dateLabel.value = reportDate;
 
-      // Mostramos el modal
+      // Mostrar modal
       editModal.show();
     });
   });
-
-  // Toggle de tablas
-  const toggleTableBtn = document.getElementById('toggleTableBtn');
-  const tableNewWrapper = document.getElementById('tableNewWrapper');
-  const tableOldWrapper = document.getElementById('tableOldWrapper');
-
-  toggleTableBtn.addEventListener('click', () => {
-    // Alterna la clase d-none en cada contenedor
-    tableNewWrapper.classList.toggle('d-none');
-    tableOldWrapper.classList.toggle('d-none');
-  });
 </script>
+
 {% endblock %}
