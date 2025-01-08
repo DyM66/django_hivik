@@ -36,9 +36,9 @@ urlpatterns = [
     path('got/preoperacional/', include('preoperacionales.urls')),
     path('outbound/', include('outbound.urls')),
     path('megger/', include('megger_app.urls')),
-    # path('', RedirectView.as_view(url='got/', permanent=True)),
+    path('', RedirectView.as_view(url='got/', permanent=True)),
     
-    path('', include(router.urls)),
+    # path('', include(router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')), # probando api restframework django
 
     path('accounts/password_reset/', CustomPasswordResetView.as_view(), name='password_reset'),
