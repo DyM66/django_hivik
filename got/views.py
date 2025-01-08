@@ -531,7 +531,7 @@ def delete_document(request, pk):
 def reportHoursAsset(request, asset_id):
     asset = get_object_or_404(Asset, pk=asset_id)
     today = date.today()
-    dates = [today - timedelta(days=x) for x in range(30)]
+    dates = [today - timedelta(days=x) for x in range(90)]
     systems = get_full_systems_ids(asset, request.user)
     equipos_rotativos = Equipo.objects.filter(system__in=systems, tipo='r')
     rotativos = equipos_rotativos.exists()
@@ -603,7 +603,7 @@ def reportHoursAsset(request, asset_id):
     # --------------------------------------------------------------------------
     # 2. Construir la información (equipos_data y transposed_data) para la tabla
     # --------------------------------------------------------------------------
-    hours = HistoryHour.objects.filter(component__system__asset=asset)[:30]
+    hours = HistoryHour.objects.filter(component__system__asset=asset)[:90]
 
     equipos_data = []
     for equipo in equipos_rotativos:
