@@ -213,7 +213,7 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
     def export_rutinas_to_excel(self, request_data):
         asset = self.get_object()
         user = self.request.user
-        filtered_rutas, _ = self.get_filtered_rutas(asset, user, request_data)
+        filtered_rutas, _ = get_filtered_rutas(asset, user, request_data)
         headers = [
             'Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante',
             'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo', 'Actividad', 'Responsable'
