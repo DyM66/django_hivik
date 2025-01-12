@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'preoperacionales.apps.PreoperacionalesConfig',
     'outbound.apps.OutboundConfig',
     'megger_app.apps.MeggerAppConfig',
+    'inventory_management.apps.InventoryManagementConfig', 
     'taggit',
 ]
 

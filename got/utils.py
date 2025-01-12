@@ -27,6 +27,7 @@ from openpyxl.utils import get_column_letter
 from megger_app.models import Megger
 
 
+
 def actualizar_rutas_dependientes(ruta):
     '''
     Utilizada en: views/OtDetailView
@@ -654,7 +655,7 @@ def update_equipo_code(old_code):
     asset_abbreviation = system.asset.abbreviation
     group_number = system.group
     tipo = equipo.tipo.upper()
-
+ 
     similar_equipments = Equipo.objects.filter(
         code__startswith=f"{asset_abbreviation}-{group_number}-{tipo}"
     )

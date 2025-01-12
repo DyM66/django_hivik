@@ -78,28 +78,24 @@
                         {% elif equipo.tipo == 'r' %}
                             <li>
                                 <div class="detail-item">
-                                    <div class="detail-key">Consumo promedio por hora:</div>
-                                    <div class="detail-value">{{ equipo.consumo_promedio_por_hora|floatformat:2 }}</div>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="detail-item">
                                     <div class="detail-key">Horómetro:</div>
                                     <div class="detail-value">{{ equipo.horometro }} horas</div>
                                 </div>
                             </li>
                             <li>
                                 <div class="detail-item">
-                                    <div class="detail-key">Promedio Horas/Día:</div>
+                                    <div class="detail-key">Prom. Horas/Día:</div>
                                     <div class="detail-value">{{ equipo.prom_hours }}</div>
                                 </div>
                             </li>
+                            {% if equipo.volumen %}
                             <li>
                                 <div class="detail-item">
                                     <div class="detail-key">Capacidad</div>
                                     <div class="detail-value">{{ equipo.volumen }} Gls</div>
                                 </div>
                             </li>
+                            {% endif %}
                         {% endif %}
                         <li>
                             <div class="detail-item">

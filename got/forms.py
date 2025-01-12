@@ -299,7 +299,6 @@ class FinishOtForm(forms.Form):
 
 # ---------------- Actividades ------------------- #
 class RescheduleTaskForm(forms.ModelForm):
-
     news = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 4}),
         required=False,
@@ -329,7 +328,6 @@ class RescheduleTaskForm(forms.ModelForm):
 
 
 class FinishTask(forms.ModelForm):
-
     finished = forms.ChoiceField(
         choices=[(True, 'Sí'), (False, 'No')],
         widget=forms.RadioSelect,
@@ -355,7 +353,6 @@ class FinishTask(forms.ModelForm):
 
 
 class ActForm(forms.ModelForm):
-
     delete_images = forms.BooleanField(required=False, label='Eliminar imágenes')
     responsible = UserChoiceField(queryset=User.objects.all(), label='Responsable', widget=forms.Select(attrs={'class': 'form-control'}),)
 

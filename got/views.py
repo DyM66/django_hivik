@@ -1004,7 +1004,15 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
         return response
 
     def get_success_url(self):
-        return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
+        """
+        Redirige a la URL 'next' si está presente.
+        Sino fallback => sys-detail
+        """
+        next_url = self.request.GET.get('next')
+        if next_url:
+            return next_url
+        else:
+            return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
     
 
 class EquipoUpdate(UpdateView):
@@ -1013,6 +1021,22 @@ class EquipoUpdate(UpdateView):
     template_name = 'got/systems/equipo_form.html'
     http_method_names = ['get', 'post']
 
+    def dispatch(self, request, *args, **kwargs):
+        # Guardar la URL previa en self.next_url, si la hay
+        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_object(self, queryset=None):
+        """
+        Sobrescribimos get_object para almacenar el tipo y code ANTES de que el form 
+        actualice la instancia.
+        """
+        obj = super().get_object(queryset)
+        # Guardar en atributos de la vista (self) los valores "viejos"
+        self.old_tipo = obj.tipo  
+        self.old_code = obj.code
+        return obj
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
@@ -1020,18 +1044,43 @@ class EquipoUpdate(UpdateView):
         else:
             context['upload_form'] = UploadImages()
         context['image_formset'] = modelformset_factory(Image, fields=('image',), extra=0)(queryset=self.object.images.all())
+        context['next_url'] = self.next_url
         return context
     
     def form_valid(self, form):
+
         form.instance.modified_by = self.request.user
         response = super().form_valid(form)
-        upload_form = self.get_context_data()['upload_form']
 
+        new_tipo = self.object.tipo  # el "tipo" que el usuario seleccionó 
+        new_code = self.object.code 
+
+        if new_tipo != self.old_tipo:
+            # Llamar a la función update_equipo_code con el code viejo
+            update_equipo_code(self.old_code)
+            messages.info(
+                self.request, 
+                f"El tipo cambió de '{self.old_tipo}' a '{new_tipo}'. Se actualizó el código del equipo."
+            )
+        
+        upload_form = self.get_context_data()['upload_form']
         if upload_form.is_valid():
             for file in self.request.FILES.getlist('file_field'):
                 Image.objects.create(image=file, equipo=self.object)
                 print(file)
         return response
+    
+    def get_success_url(self):
+        """
+        Si existe la self.next_url, redirige allí.
+        De lo contrario, comportarse como antes (por ejemplo, al System detail).
+        """
+        if self.next_url:
+            return self.next_url
+        else:
+            # fallback
+            sys_code = self.object.system.id
+            return reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -1046,10 +1095,18 @@ class EquipoDelete(DeleteView):
     model = Equipo
     template_name = 'got/systems/equipo_confirm_delete.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Capturar la next_url
+        self.next_url = request.GET.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_success_url(self):
+        # Redirigir a next si existe
+        if self.next_url:
+            return self.next_url
+        # fallback
         sys_code = self.object.system.id
-        success_url = reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
-        return success_url
+        return reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
 
 
 def add_supply_to_equipment(request, code):
