@@ -3,11 +3,16 @@
 {% block content %}
 
 <div class="container mt-4" style="font-size:0.9rem;">
-
-  <!-- Título principal: Activo seleccionado -->
-    <h2 class="mb-3">
-        Equipos asociados al Activo <strong>{{ activo.name }}</strong>
-    </h2>
+    <!-- ENCABEZADO PRINCIPAL -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">
+            Equipos asociados al Activo <strong>{{ activo.name }}</strong>
+        </h2>
+        <!-- Botón para Identificar con la cámara (opción “Identificar/escaneo QR”) -->
+        <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#scanQRModal">
+            <i class="fa-solid fa-camera"></i> Identificar
+        </button>
+    </div>
 
     <!-- 1. Sección con scroll horizontal de Activos y buscador -->
     <div class="mb-3">
@@ -17,65 +22,71 @@
         <input type="text" id="searchActivoInput" class="form-control form-control-sm" placeholder="Escribe para filtrar...">
     </div>
 
-    <div id="activosScrollContainer" class="d-flex flex-row" style="overflow-x: auto; white-space: nowrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #ccc;">
+    <div id="activosScrollContainer" class="d-flex flex-row"
+         style="overflow-x: auto; white-space: nowrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #ccc;">
         {% for a in all_activos %}
             {% if a.abbreviation == activo.abbreviation %}
-                <div class="activo-card" style="display: inline-block; cursor: pointer; width: 100%; outline:2px solid #0d6efd;" onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' a.abbreviation %}'">
+                <div class="activo-card"
+                     style="display: inline-block; cursor: pointer; width: 100%; outline:2px solid #0d6efd;"
+                     onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' a.abbreviation %}'">
             {% else %}
-                <div class="activo-card" style="display: inline-block; cursor: pointer; width: 100%;" onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' a.abbreviation %}'">
+                <div class="activo-card"
+                     style="display: inline-block; cursor: pointer; width: 100%;"
+                     onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' a.abbreviation %}'">
             {% endif %}
-                <div class="card h-100" style="border:1px solid #ccc; min-width: 220px;">
-                    <div class="card-header bg-light">
-                        <h5 class="card-title mb-0" style="font-size:1.0rem; font-weight:600;">
-                            {{ a.name }}
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        {% if a.supervisor %}
-                            <p class="card-text mb-1">
-                                <strong>Supervisor:</strong><br>
-                                {{ a.supervisor.first_name }} {{ a.supervisor.last_name }}
-                            </p>
-                        {% else %}
-                            <p class="card-text mb-1 text-muted">
-                                <strong>Supervisor:</strong><br>
-                                No asignado
-                            </p>
-                        {% endif %}
-                        {% if a.area == 'a' %}
-                            {% if a.capitan %}
+                    <div class="card h-100" style="border:1px solid #ccc; min-width: 220px;">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0" style="font-size:1.0rem; font-weight:600;">
+                                {{ a.name }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if a.supervisor %}
                                 <p class="card-text mb-1">
-                                    <strong>Capitán:</strong><br>
-                                    {{ a.capitan.first_name }} {{ a.capitan.last_name }}
+                                    <strong>Supervisor:</strong><br>
+                                    {{ a.supervisor.first_name }} {{ a.supervisor.last_name }}
                                 </p>
                             {% else %}
                                 <p class="card-text mb-1 text-muted">
-                                    <strong>Capitán:</strong><br>
+                                    <strong>Supervisor:</strong><br>
                                     No asignado
                                 </p>
                             {% endif %}
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+
+                            {% if a.area == 'a' %}
+                                {% if a.capitan %}
+                                    <p class="card-text mb-1">
+                                        <strong>Capitán:</strong><br>
+                                        {{ a.capitan.first_name }} {{ a.capitan.last_name }}
+                                    </p>
+                                {% else %}
+                                    <p class="card-text mb-1 text-muted">
+                                        <strong>Capitán:</strong><br>
+                                        No asignado
+                                    </p>
+                                {% endif %}
+                            {% endif %}
+                        </div><!-- card-body -->
+                    </div><!-- card -->
+                </div><!-- activo-card -->
         {% endfor %}
     </div>
     <hr>
 
-    <!-- Encabezado + botón para crear un nuevo equipo -->
+    <!-- BUSCADOR + BOTÓN NUEVO EQUIPO -->
     <div class="d-flex justify-content-between align-items-center mb-2">
         <label for="searchEquiposInput" class="form-label mb-0" style="font-weight:500;">
             Buscar un equipo por nombre:
         </label>
-        <!-- Botón que abre un modal con la lista de sistemas -->
         <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#selectSystemModal">
             <i class="fa-solid fa-plus"></i> Nuevo Equipo
         </button>
     </div>
 
-    <input type="text" id="searchEquiposInput" class="form-control form-control-sm mb-3" placeholder="Filtrar por nombre de equipo...">
+    <input type="text" id="searchEquiposInput" class="form-control form-control-sm mb-3"
+           placeholder="Filtrar por nombre de equipo...">
 
-    <!-- 3. Tabla de equipos -->
+    <!-- 3. TABLA DE EQUIPOS -->
     <div class="table-responsive">
         <table class="table table-sm align-middle" style="font-size:0.85rem;" id="equiposTable">
             <thead>
@@ -88,297 +99,199 @@
             </thead>
             <tbody>
                 {% for eq in equipos %}
-                    <tr>
-                        <td class="equipo-name" style="white-space: nowrap;">{{ eq.name }}</td>
-                        <td>{{ eq.get_tipo_display }}</td>
-                        <td>{{ eq.ubicacion|default_if_none:"--" }}</td>
-                        <td class="text-end">
-                            <!-- Íconos de acción: Modificar, Dar de Baja, Ver Detalle, etc. -->
-              
-                            <!-- Modificar => equipo-update (pasar ?next=...)
-                                Observa que eq.code es la PK => str -->
-                            <a href="{% url 'got:equipo-update' eq.code %}?next={{ request.path }}" class="me-1 text-secondary" title="Modificar">
-                                <i class="fa-solid fa-pen"></i>
-                            </a>
+                <tr>
+                    <td class="equipo-name" style="white-space: nowrap;">{{ eq.name }}</td>
+                    <td>{{ eq.get_tipo_display }}</td>
+                    <td>{{ eq.ubicacion|default_if_none:"--" }}</td>
+                    <td class="text-end">
+                        <!-- Editar/Modificar -->
+                        <a href="{% url 'got:equipo-update' eq.code %}?next={{ request.path }}"
+                           class="me-1 text-secondary"
+                           title="Modificar">
+                            <i class="fa-solid fa-pen"></i>
+                        </a>
+                        <!-- Dar de Baja -->
+                        <a href="{% url 'got:dar_baja' eq.code %}"
+                           class="me-1 text-danger"
+                           title="Dar de Baja">
+                            <i class="fa-solid fa-trash"></i>
+                        </a>
+                        <!-- Transferir -->
+                        <a href="{% url 'got:transferir_equipo' eq.code %}"
+                           class="me-1 text-warning"
+                           title="Transferir">
+                            <i class="fa-solid fa-right-left"></i>
+                        </a>
+                        <!-- Ver Detalle (modal) -->
+                        <a href="#"
+                           class="me-1 text-primary"
+                           title="Ver Detalle"
+                           data-bs-toggle="modal"
+                           data-bs-target="#equipoDetailModal{{ eq.pk }}">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                        <!-- Mostrar QR en nueva ventana -->
+						<!-- Fragmento de la columna de acciones de cada equipo -->
+						<a href="#"
+						class="ms-1 text-secondary"
+						title="Mostrar QR"
+						onclick="openQRInNewWindow('data:image/png;base64,{{ eq.qr_code_b64 }}'); return false;">
+							<i class="fa-solid fa-qrcode"></i>
+						</a>
 
-                            <!-- Dar de Baja -->
-                            <a href="{% url 'got:dar_baja' eq.code %}" class="me-1 text-danger" title="Dar de Baja">
-                                <i class="fa-solid fa-trash"></i>
-                            </a>
+                    </td>
+                </tr>
 
-                            <!-- Transferir -->
-                            <a href="{% url 'got:transferir_equipo' eq.code %}" class="me-1 text-warning" title="Transferir">
-                                <i class="fa-solid fa-right-left"></i>
-                            </a>
-              
-                            <!-- Dar de Eliminar -->
-                            <!-- <a href="{% url 'got:equipo-delete' eq.code %}?next={{ request.path }}" class="me-1 text-danger" title="Dar de Baja">
-                                <i class="fa-solid fa-trash"></i>
-                            </a> -->
-              
-                            <!-- Ver Detalle (abre modal grande) -->
-                            <a href="#" class="me-1 text-primary"
-                                title="Ver Detalle"
-                                data-bs-toggle="modal"
-                                data-bs-target="#equipoDetailModal{{ eq.pk }}">
-                                <i class="fa-solid fa-eye"></i>
-                            </a>
-                        </td>
-                    </tr>
-
-                    <!-- Modal grande con detalles del equipo (similar a equipment_detail) -->
-                    <div class="modal fade" id="equipoDetailModal{{ eq.pk }}" tabindex="-1" aria-labelledby="equipoDetailModalLabel{{ eq.pk }}" aria-hidden="true">
-                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                            <div class="modal-content">
-                                <div class="modal-header">
+                <!-- Modal Detalle del equipo -->
+                <div class="modal fade" id="equipoDetailModal{{ eq.pk }}" tabindex="-1"
+                     aria-labelledby="equipoDetailModalLabel{{ eq.pk }}" aria-hidden="true">
+                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
                                 <h5 class="modal-title" id="equipoDetailModalLabel{{ eq.pk }}">
-                    Detalle del Equipo: {{ eq.name }}
-                  </h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                  <!-- Contenido adaptado del snippet 'equipment_detail' -->
-                  <div class="row">
-                    <div class="col-md-5">
-                      <h4>{{ eq.name }}</h4>
-                      <ul class="mb-0 list-unstyled">
-                        <li><strong>Código Interno:</strong> {{ eq.code }}</li>
-                        <li><strong>Modelo:</strong> {{ eq.model|default_if_none:"---" }}</li>
-                        <li><strong>Marca:</strong> {{ eq.marca|default_if_none:"---" }}</li>
-                        <li><strong>Serial:</strong> {{ eq.serial|default_if_none:"---" }}</li>
-                        <li><strong>Fabricante:</strong> {{ eq.fabricante|default_if_none:"---" }}</li>
-                        <li><strong>Ubicación:</strong> {{ eq.ubicacion|default_if_none:eq.system.location }}</li>
-                        {% if eq.system.asset.area == 'v' %}
-                          <li><strong>Kilometraje:</strong> {{ eq.horometro }} km</li>
-                        {% elif eq.tipo == 'r' %}
-                          <li><strong>Horómetro:</strong> {{ eq.horometro }} horas</li>
-                          <li><strong>Prom. Horas/Día:</strong> {{ eq.prom_hours|default_if_none:"---" }}</li>
-                          {% if eq.volumen %}
-                          <li><strong>Capacidad:</strong> {{ eq.volumen }} Gls</li>
-                          {% endif %}
-                        {% endif %}
-                        <li><strong>Tipo:</strong> {{ eq.get_tipo_display }}</li>
-                        {% if eq.manual_pdf %}
-                          <li>
-                            <strong>Manual:</strong>
-                            <a href="{{ eq.manual_pdf.url }}" target="_blank">Descargar PDF</a>
-                          </li>
-                        {% endif %}
-                        <li><strong>Especificaciones:</strong><br>{{ eq.feature|linebreaks }}</li>
-                        <li><strong>Recomendaciones:</strong><br>{{ eq.recomendaciones|linebreaks }}</li>
-                      </ul>
-                    </div>
-                    <div class="col-md-7">
-                      <!-- Simulación de un carrusel de imágenes, y thumbnails -->
-                      {% if eq.images.all %}
-                        <div id="equipoCarousel{{ eq.pk }}" class="carousel slide" data-bs-ride="carousel">
-                          <div class="carousel-inner">
-                            {% for img in eq.images.all %}
-                              <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                                <img src="{{ img.image.url }}"
-                                     class="d-block w-100"
-                                     alt="Imagen del equipo">
-                              </div>
-                            {% endfor %}
-                          </div>
-                          <button class="carousel-control-prev" type="button"
-                                  data-bs-target="#equipoCarousel{{ eq.pk }}" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Previous</span>
-                          </button>
-                          <button class="carousel-control-next" type="button"
-                                  data-bs-target="#equipoCarousel{{ eq.pk }}" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Next</span>
-                          </button>
-                        </div>
-                        <!-- Thumbnails (pequeña galería) -->
-                        <div class="row mt-2">
-                          {% for img in eq.images.all %}
-                            <div class="col-3 mb-2">
-                              <img src="{{ img.image.url }}"
-                                   class="img-thumbnail thumb-{{ eq.pk }}"
-                                   data-index="{{ forloop.counter0 }}"
-                                   alt="Miniatura">
+                                    Detalle del Equipo: {{ eq.name }}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Cerrar"></button>
                             </div>
-                          {% endfor %}
+                            <div class="modal-body">
+                                <!-- Adaptado de equipment_detail -->
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <h4>{{ eq.name }}</h4>
+                                        <ul class="mb-0 list-unstyled">
+                                            <li><strong>Código Interno:</strong> {{ eq.code }}</li>
+                                            <li><strong>Modelo:</strong> {{ eq.model|default_if_none:"---" }}</li>
+                                            <li><strong>Marca:</strong> {{ eq.marca|default_if_none:"---" }}</li>
+                                            <li><strong>Serial:</strong> {{ eq.serial|default_if_none:"---" }}</li>
+                                            <li><strong>Fabricante:</strong> {{ eq.fabricante|default_if_none:"---" }}</li>
+                                            <li><strong>Ubicación:</strong> {{ eq.ubicacion|default_if_none:eq.system.location }}</li>
+                                            {% if eq.system.asset.area == 'v' %}
+                                              <li><strong>Kilometraje:</strong> {{ eq.horometro }} km</li>
+                                            {% elif eq.tipo == 'r' %}
+                                              <li><strong>Horómetro:</strong> {{ eq.horometro }} horas</li>
+                                              <li><strong>Prom. Horas/Día:</strong> {{ eq.prom_hours|default_if_none:"---" }}</li>
+                                              {% if eq.volumen %}
+                                              <li><strong>Capacidad:</strong> {{ eq.volumen }} Gls</li>
+                                              {% endif %}
+                                            {% endif %}
+                                            <li><strong>Tipo:</strong> {{ eq.get_tipo_display }}</li>
+                                            {% if eq.manual_pdf %}
+                                              <li>
+                                                <strong>Manual:</strong>
+                                                <a href="{{ eq.manual_pdf.url }}" target="_blank">Descargar PDF</a>
+                                              </li>
+                                            {% endif %}
+                                            <li><strong>Especificaciones:</strong><br>{{ eq.feature|linebreaks }}</li>
+                                            <li><strong>Recomendaciones:</strong><br>{{ eq.recomendaciones|linebreaks }}</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-7">
+                                        {% if eq.images.all %}
+                                          <div id="equipoCarousel{{ eq.pk }}"
+                                               class="carousel slide"
+                                               data-bs-ride="carousel">
+                                            <div class="carousel-inner">
+                                                {% for img in eq.images.all %}
+                                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                                    <img src="{{ img.image.url }}"
+                                                         class="d-block w-100"
+                                                         alt="Imagen del equipo">
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            <button class="carousel-control-prev" type="button"
+                                                    data-bs-target="#equipoCarousel{{ eq.pk }}"
+                                                    data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon"
+                                                      aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button"
+                                                    data-bs-target="#equipoCarousel{{ eq.pk }}"
+                                                    data-bs-slide="next">
+                                                <span class="carousel-control-next-icon"
+                                                      aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                            </button>
+                                          </div>
+                                          <!-- Thumbnails -->
+                                          <div class="row mt-2">
+                                            {% for img in eq.images.all %}
+                                              <div class="col-3 mb-2">
+                                                <img src="{{ img.image.url }}"
+                                                     class="img-thumbnail thumb-{{ eq.pk }}"
+                                                     data-index="{{ forloop.counter0 }}"
+                                                     alt="Miniatura">
+                                              </div>
+                                            {% endfor %}
+                                          </div>
+                                        {% else %}
+                                          <p class="text-muted">
+                                            No hay imágenes disponibles para este equipo.
+                                          </p>
+                                        {% endif %}
+                                    </div>
+                                </div><!-- row -->
+                            </div><!-- modal-body -->
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                  Cerrar
+                                </button>
+                            </div>
                         </div>
-                      {% else %}
-                        <p class="text-muted">No hay imágenes disponibles para este equipo.</p>
-                      {% endif %}
                     </div>
-                  </div>
-                  <!-- Aquí podrías incluir si quieres la tabla de Rutinas, Actividades, etc. -->
-                </div><!-- modal-body -->
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                    Cerrar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div> <!-- Fin modal -->
-        {% empty %}
-          <tr>
-            <td colspan="4">No hay equipos registrados para este Activo.</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+                </div><!-- fin modal equipoDetailModal -->
+                {% endfor %}
+            </tbody>
+        </table>
+    </div><!-- table-responsive -->
 
-  <hr>
+    <hr>
 
-  <!-- 4. Tabla de Suministros para el Activo seleccionado -->
-  <h4 style="font-size:1rem; margin-top:1.5rem;">
-    Suministros del Activo {{ activo.name }}
-  </h4>
-  <div class="table-responsive">
-    <table class="table table-sm align-middle" style="font-size:0.85rem;">
-      <thead>
-        <tr>
-          <th>Artículo</th>
-          <th>Presentación</th>
-          <th>Cantidad</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if suministros %}
-          {% for s in suministros %}
-            <tr>
-              <td>
-                {% if s.item %}
-                  {{ s.item.name }} ({{ s.item.reference|default_if_none:"-" }})
+    <!-- 4. Tabla de Suministros para el Activo seleccionado -->
+    <h4 style="font-size:1rem; margin-top:1.5rem;">
+        Suministros del Activo {{ activo.name }}
+    </h4>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle" style="font-size:0.85rem;">
+            <thead>
+                <tr>
+                    <th>Artículo</th>
+                    <th>Presentación</th>
+                    <th>Cantidad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if suministros %}
+                  {% for s in suministros %}
+                    <tr>
+                        <td>
+                          {% if s.item %}
+                            {{ s.item.name }} ({{ s.item.reference|default_if_none:"-" }})
+                          {% else %}
+                            -
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if s.item %}
+                            {{ s.item.presentacion }}
+                          {% else %}
+                            -
+                          {% endif %}
+                        </td>
+                        <td>{{ s.cantidad }}</td>
+                    </tr>
+                  {% endfor %}
                 {% else %}
-                  -
+                    <tr>
+                        <td colspan="3">No hay suministros asociados a este Activo.</td>
+                    </tr>
                 {% endif %}
-              </td>
-              <td>
-                {% if s.item %}
-                  {{ s.item.presentacion }}
-                {% else %}
-                  -
-                {% endif %}
-              </td>
-              <td>{{ s.cantidad }}</td>
-            </tr>
-          {% endfor %}
-        {% else %}
-          <tr>
-            <td colspan="3">No hay suministros asociados a este Activo.</td>
-          </tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-
-
-
-
-  <!-- Tabla adicional mostrando los QR -->
-  <hr>
-  <h4>Vista de Códigos QR Generados</h4>
-  <table class="table table-bordered" style="font-size:0.85rem;">
-    <thead>
-      <tr>
-        <th>Equipo</th>
-        <th>Tipo</th>
-        <th>Ubicación</th>
-        <th>QR</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for eqdict in equipos_qr %}
-      <tr>
-        <td>{{ eqdict.obj.name }}</td>
-        <td>{{ eqdict.obj.get_tipo_display }}</td>
-        <td>{{ eqdict.obj.ubicacion|default_if_none:"--" }}</td>
-        <td>
-          <!-- Botón "Ver QR" que abre un pop-up con la imagen en grande -->
-          <button class="btn btn-sm btn-outline-secondary"
-                  onclick="openQRInNewWindow('{{ eqdict.qr_code }}')">
-            Abrir QR
-          </button>
-          <!-- O mostrarlo en miniatura de una vez -->
-          <img src="{{ eqdict.qr_code }}"
-               alt="QR"
-               style="width:50px; height:auto; margin-left:8px;">
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-
-<!-- Un botón que abre un modal: Escanear -->
-<button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#scanQRModal">
-	Identificar
-  </button>
-  
-  <!-- El Modal para escaneo -->
-  <div class="modal fade" id="scanQRModal" tabindex="-1" aria-labelledby="scanQRModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-dialog-centered">
-	  <div class="modal-content" style="max-width:600px;">
-		<div class="modal-header">
-		  <h5 class="modal-title" id="scanQRModalLabel">Escanear Código QR</h5>
-		  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-		</div>
-		<div class="modal-body">
-		  <div id="qrReader" style="width: 100%;"></div>
-		</div>
-	  </div>
-	</div>
-  </div>
-  
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <script>
-  document.addEventListener('DOMContentLoaded', function() {
-	let scanModal = document.getElementById('scanQRModal');
-	let html5QrCode; // definiremos la instancia
-  
-	// Cuando se abra el modal, inicializamos la cámara
-	scanModal.addEventListener('show.bs.modal', function() {
-	  html5QrCode = new Html5Qrcode("qrReader");
-	  const config = { fps: 10, qrbox: 250 };
-  
-	  html5QrCode.start(
-		{ facingMode: "environment" }, // o user
-		config,
-		qrCodeMessage => {
-		  console.log("QR code detectado: " + qrCodeMessage);
-  
-		  // Redireccionamos al usuario a la URL del QR
-		  window.location.href = qrCodeMessage;
-  
-		  // Opcional: Detener la cámara y cerrar modal
-		  html5QrCode.stop().then(ignore => {
-			let modal = bootstrap.Modal.getInstance(scanModal);
-			modal.hide();
-		  });
-		},
-		errorMessage => {
-		  // Mensajes de debug
-		}
-	  ).catch(err => {
-		console.error("No se pudo iniciar la cámara: ", err);
-	  });
-	});
-  
-	// Cuando se cierra el modal, parar la cámara
-	scanModal.addEventListener('hide.bs.modal', function() {
-	  if (html5QrCode) {
-		html5QrCode.stop().then(ignore => {
-		  console.log("Cámara detenida.");
-		});
-	  }
-	});
-  });
-  </script>
-  
-
+            </tbody>
+        </table>
+    </div><!-- table-responsive -->
 </div><!-- container -->
-
-
 
 <!-- Modal: Seleccionar Sistema para crear nuevo equipo -->
 <div class="modal fade" id="selectSystemModal" tabindex="-1"
@@ -387,7 +300,8 @@
     <div class="modal-content" style="font-size:0.9rem;">
       <div class="modal-header">
         <h5 class="modal-title" id="selectSystemModalLabel">Crear nuevo equipo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
         <p>Seleccione el sistema en el que desea crear el nuevo equipo:</p>
@@ -397,7 +311,7 @@
               <li class="list-group-item d-flex justify-content-between align-items-center"
                   style="cursor:pointer;"
                   onclick="crearNuevoEquipo({{ sys.id }})">
-                {{ sys.name }} 
+                {{ sys.name }}
                 <i class="fa-solid fa-chevron-right"></i>
               </li>
             {% endfor %}
@@ -407,112 +321,162 @@
         {% endif %}
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+          Cerrar
+        </button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Modal para escanear QR (“Identificar”) -->
+<div class="modal fade" id="scanQRModal" tabindex="-1"
+     aria-labelledby="scanQRModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="max-width:600px;">
+      <div class="modal-header">
+        <h5 class="modal-title" id="scanQRModalLabel">Escanear Código QR</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="qrReader" style="width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
-	function crearNuevoEquipo(systemId){
-	  const nextUrl = encodeURIComponent(window.location.pathname);
-	  // url base
-	  const baseUrl = "{% url 'got:equipo-create' 999999999 %}";
-	  const finalUrl = baseUrl.replace("999999999", systemId);
-	  window.location.href = finalUrl + "?next=" + nextUrl;
-	}
-	
-	// Abre el QR en un pop-up
-	function openQRInNewWindow(qrData){
-	  const w = window.open("", "_blank", "width=400,height=400");
-	  w.document.write("<html><head><title>QR para imprimir</title></head><body>");
-	  w.document.write("<img src='"+qrData+"' alt='QR' style='width:100%; height:auto;'/>");
-	  w.document.write("<br><button onclick='window.print()'>Imprimir</button>");
-	  w.document.write("</body></html>");
-	  w.document.close();
-	}
-	
-	// Resto de scripts (búsquedas, sorting, miniaturas, etc.)
-	document.addEventListener('DOMContentLoaded', function() {
-	  // 1) Filtrar activos
-	  const searchActivoInput = document.getElementById('searchActivoInput');
-	  const activoCards = document.querySelectorAll('.activo-card');
-	  searchActivoInput.addEventListener('input', function() {
-		const filterText = searchActivoInput.value.toLowerCase();
-		activoCards.forEach(card => {
-		  const cardText = card.innerText.toLowerCase();
-		  card.style.display = cardText.includes(filterText) ? 'inline-block' : 'none';
-		});
-	  });
-	
-	  // 2) Filtrar equipos
-	  const searchEquiposInput = document.getElementById('searchEquiposInput');
-	  const equiposTable = document.getElementById('equiposTable');
-	  const equiposRows = equiposTable.getElementsByTagName('tr');
-	  searchEquiposInput.addEventListener('input', function() {
-		const filterText = searchEquiposInput.value.toLowerCase();
-		for(let i=1; i < equiposRows.length; i++){
-		  const row = equiposRows[i];
-		  const nameCell = row.querySelector('.equipo-name');
-		  if(!nameCell) continue;
-		  const eqName = nameCell.textContent.toLowerCase();
-		  row.style.display = eqName.includes(filterText) ? '' : 'none';
-		}
-	  });
-	
-	  // 3) Sorting
-	  (function(){
-		let sortEquipoAsc = true;
-		let sortTipoAsc = true;
-		let sortUbicAsc = true;
-		let tbody = equiposTable.querySelector('tbody');
-	
-		function sortTable(columnKey, asc) {
-		  let rowsArray = Array.from(tbody.querySelectorAll('tr'));
-		  rowsArray.sort((rowA, rowB) => {
-			let tdA = "", tdB = "";
-			if (columnKey === 'equipo') {
-			  tdA = rowA.querySelector('.equipo-name')?.textContent.trim() || '';
-			  tdB = rowB.querySelector('.equipo-name')?.textContent.trim() || '';
-			} else if (columnKey === 'tipo') {
-			  tdA = rowA.cells[1]?.textContent.trim() || '';
-			  tdB = rowB.cells[1]?.textContent.trim() || '';
-			} else if (columnKey === 'ubic') {
-			  tdA = rowA.cells[2]?.textContent.trim() || '';
-			  tdB = rowB.cells[2]?.textContent.trim() || '';
-			}
-			if (tdA < tdB) return asc ? -1 : 1;
-			if (tdA > tdB) return asc ? 1 : -1;
-			return 0;
-		  });
-		  rowsArray.forEach(row => tbody.appendChild(row));
-		}
-	
-		document.getElementById('sortByEquipo').addEventListener('click', function(){
-		  sortTable('equipo', sortEquipoAsc);
-		  sortEquipoAsc = !sortEquipoAsc;
-		});
-		document.getElementById('sortByTipo').addEventListener('click', function(){
-		  sortTable('tipo', sortTipoAsc);
-		  sortTipoAsc = !sortTipoAsc;
-		});
-		document.getElementById('sortByUbicacion').addEventListener('click', function(){
-		  sortTable('ubic', sortUbicAsc);
-		  sortUbicAsc = !sortUbicAsc;
-		});
-	  })();
-	
-	  // 4) Carrusel de imágenes
-	  document.querySelectorAll('[id^="equipoCarousel"]').forEach(carouselEl => {
-		const eqId = carouselEl.id.replace('equipoCarousel','');
-		const thumbs = document.querySelectorAll('.thumb-' + eqId);
-		const carousel = new bootstrap.Carousel(carouselEl);
-		thumbs.forEach((thumb, idx) => {
-		  thumb.addEventListener('click', () => carousel.to(idx));
-		});
-	  });
-	});
-	</script>    
+function crearNuevoEquipo(systemId){
+  const nextUrl = encodeURIComponent(window.location.pathname);
+  const baseUrl = "{% url 'got:equipo-create' 999999999 %}";
+  const finalUrl = baseUrl.replace("999999999", systemId);
+  window.location.href = finalUrl + "?next=" + nextUrl;
+}
+
+function openQRInNewWindow(qrData){
+  const w = window.open("", "_blank", "width=400,height=400");
+  w.document.write("<html><head><title>QR para imprimir</title></head><body>");
+  w.document.write("<img src='"+qrData+"' alt='QR' style='width:100%; height:auto;'/>");
+  w.document.write("<br><button onclick='window.print()'>Imprimir</button>");
+  w.document.write("</body></html>");
+  w.document.close();
+}
+
+// Filtrados y ordenamientos
+document.addEventListener('DOMContentLoaded', function() {
+  // 1) Filtrar activos
+  const searchActivoInput = document.getElementById('searchActivoInput');
+  const activoCards = document.querySelectorAll('.activo-card');
+  searchActivoInput.addEventListener('input', function() {
+    const filterText = searchActivoInput.value.toLowerCase();
+    activoCards.forEach(card => {
+      const cardText = card.innerText.toLowerCase();
+      card.style.display = cardText.includes(filterText) ? 'inline-block' : 'none';
+    });
+  });
+
+  // 2) Filtrar equipos
+  const searchEquiposInput = document.getElementById('searchEquiposInput');
+  const equiposTable = document.getElementById('equiposTable');
+  const equiposRows = equiposTable.getElementsByTagName('tr');
+
+  searchEquiposInput.addEventListener('input', function() {
+    const filterText = searchEquiposInput.value.toLowerCase();
+    for(let i=1; i < equiposRows.length; i++){
+      const row = equiposRows[i];
+      const nameCell = row.querySelector('.equipo-name');
+      if(!nameCell) continue;
+      const eqName = nameCell.textContent.toLowerCase();
+      row.style.display = eqName.includes(filterText) ? '' : 'none';
+    }
+  });
+
+  // 3) Sorting
+  (function(){
+    let sortEquipoAsc = true;
+    let sortTipoAsc = true;
+    let sortUbicAsc = true;
+    let tbody = equiposTable.querySelector('tbody');
+
+    function sortTable(columnKey, asc) {
+      let rowsArray = Array.from(tbody.querySelectorAll('tr'));
+      rowsArray.sort((rowA, rowB) => {
+        let tdA = "", tdB = "";
+        if (columnKey === 'equipo') {
+          tdA = rowA.querySelector('.equipo-name')?.textContent.trim() || '';
+          tdB = rowB.querySelector('.equipo-name')?.textContent.trim() || '';
+        } else if (columnKey === 'tipo') {
+          tdA = rowA.cells[1]?.textContent.trim() || '';
+          tdB = rowB.cells[1]?.textContent.trim() || '';
+        } else if (columnKey === 'ubic') {
+          tdA = rowA.cells[2]?.textContent.trim() || '';
+          tdB = rowB.cells[2]?.textContent.trim() || '';
+        }
+        if (tdA < tdB) return asc ? -1 : 1;
+        if (tdA > tdB) return asc ? 1 : -1;
+        return 0;
+      });
+      rowsArray.forEach(row => tbody.appendChild(row));
+    }
+
+    document.getElementById('sortByEquipo').addEventListener('click', function(){
+      sortTable('equipo', sortEquipoAsc);
+      sortEquipoAsc = !sortEquipoAsc;
+    });
+    document.getElementById('sortByTipo').addEventListener('click', function(){
+      sortTable('tipo', sortTipoAsc);
+      sortTipoAsc = !sortTipoAsc;
+    });
+    document.getElementById('sortByUbicacion').addEventListener('click', function(){
+      sortTable('ubic', sortUbicAsc);
+      sortUbicAsc = !sortUbicAsc;
+    });
+  })();
+});
+
+// Lógica para escaneo HTML5-QRCODE
+document.addEventListener('DOMContentLoaded', function() {
+  let scanModal = document.getElementById('scanQRModal');
+  let html5QrCode;
+
+  // Cuando se abra el modal => iniciar cámara
+  scanModal.addEventListener('show.bs.modal', function() {
+    html5QrCode = new Html5Qrcode("qrReader");
+    const config = { fps: 10, qrbox: 250 };
+
+    html5QrCode.start(
+      { facingMode: "environment" }, // o "user"
+      config,
+      qrCodeMessage => {
+        console.log("QR detectado: " + qrCodeMessage);
+        window.location.href = qrCodeMessage;
+
+        // Detener y cerrar modal
+        html5QrCode.stop().then(ignore => {
+          let modal = bootstrap.Modal.getInstance(scanModal);
+          modal.hide();
+        });
+      },
+      errorMessage => {
+        // debug
+      }
+    ).catch(err => {
+      console.error("No se pudo iniciar la cámara: ", err);
+    });
+  });
+
+  // Cuando se cierra => detener
+  scanModal.addEventListener('hide.bs.modal', function() {
+    if (html5QrCode) {
+      html5QrCode.stop().then(ignore => {
+        console.log("Cámara detenida.");
+      });
+    }
+  });
+});
+</script>
+  
+
 {% endblock %}

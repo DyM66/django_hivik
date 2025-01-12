@@ -1,0 +1,31 @@
+<!-- inventory_management/templates/inventory_management/public_equipo_detail.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Equipo {{ equipo.name }}</title>
+  <style>
+    body { font-family: sans-serif; margin: 1rem; }
+    .images img { max-width: 200px; margin: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>Detalle Público: {{ equipo.name }}</h1>
+  <p><strong>Código:</strong> {{ equipo.code }}</p>
+  <p><strong>Tipo:</strong> {{ equipo.get_tipo_display }}</p>
+  <p><strong>Ubicación:</strong> {{ equipo.ubicacion|default_if_none:equipo.system.location }}</p>
+  <p><strong>Descripción:</strong> {{ equipo.feature|linebreaks }}</p>
+  {# ... lo que quieras mostrar #}
+
+  <!-- Imágenes si hay -->
+  <div class="images">
+    {% for img in images %}
+      <img src="{{ img.image.url }}" alt="Foto del equipo">
+    {% empty %}
+      <p><em>Sin imágenes</em></p>
+    {% endfor %}
+  </div>
+
+</body>
+</html>

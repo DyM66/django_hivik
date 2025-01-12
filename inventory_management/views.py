@@ -62,40 +62,53 @@ class ActivoEquipmentListView(View):
 
 
         # 6) Generar un QR para cada equipo en base64
-        equipos_con_qr = []
+        domain = "https://localhost:8000"
+        # equipos_con_qr = []
         for eq in equipos:
-            # Construir la URL final para la vista:
-            # /systems/<pk>/?view_type=<eq.code>
-            # pk = eq.system.pk  (asumiendo eq.system no es None)
-            detail_url = f"/got/systems/{eq.system.pk}/{eq.code}/"
+            public_url = f"{domain}/got/public/equipo/{eq.code}/"
+
+            # detail_url = f"/got/systems/{eq.system.pk}/{eq.code}/"
 
             # Crear el QRCode
-            qr = qrcode.QRCode(version=1, box_size=4, border=2)
-            qr.add_data(detail_url)
-            qr.make(fit=True)
+            # qr = qrcode.QRCode(version=1, box_size=4, border=2)
+            # qr.add_data(detail_url)
+            # qr.make(fit=True)
 
-            # Generar imagen en PNG
+            qr = qrcode.QRCode(version=1, box_size=4, border=2)
+            qr.add_data(public_url)
+            qr.make(fit=True)
             img = qr.make_image(fill_color="black", back_color="white")
 
-            # Convertir a binario
+            # Convertir la imagen a base64
             qr_io = BytesIO()
             img.save(qr_io, format='PNG')
-
-            # IMPORTANTE: usar base64 para generar data:image/png;base64, ...
-            encoded = base64.b64encode(qr_io.getvalue()).decode('utf-8')
-            qr_base64 = "data:image/png;base64," + encoded
-
-            equipos_con_qr.append({
-                'obj': eq,          # El objeto Equipo
-                'qr_code': qr_base64,  # El string base64
-            })
+            eq.qr_code_b64 = base64.b64encode(qr_io.getvalue()).decode('utf-8')
 
         context = {
             'activo': activo,
             'all_activos': all_activos,   # Para el scroll horizontal
             'equipos': equipos,           # Para la tabla de equipos
-            'equipos_qr': equipos_con_qr,
+            # 'equipos_qr': equipos_con_qr,
             'suministros': suministros,   # Para la tabla de suministros
         }
 
         return render(request, self.template_name, context)
+    
+
+
+def public_equipo_detail(request, eq_code):
+    """
+    Vista pública (sin login) con la info completa de un equipo.
+    No muestra la barra de navegación, etc.
+    """
+    equipo = get_object_or_404(Equipo, code=eq_code)
+    # Podrías traer imágenes, rutinas, etc.:
+    images = equipo.images.all()
+    # O si quieres más datos:
+    # rutinas = Ruta.objects.filter(equipo=equipo) ...
+    # ...
+    return render(request, 'inventory_management/public_equipo_detail.html', {
+        'equipo': equipo,
+        'images': images,
+        # 'rutinas': rutinas, etc.
+    })
