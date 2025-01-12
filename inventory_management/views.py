@@ -62,7 +62,7 @@ class ActivoEquipmentListView(View):
 
 
         # 6) Generar un QR para cada equipo en base64
-        domain = "https://localhost:8000"
+        domain = "https://got.serport.co"
         # equipos_con_qr = []
         for eq in equipos:
             public_url = f"{domain}/got/public/equipo/{eq.code}/"
