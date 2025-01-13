@@ -1,0 +1,296 @@
+{% extends "got/base/base_generic.html" %}
+
+{% block content %}
+<div class="container mt-4" style="font-size:0.9rem;">
+
+    <!-- TÍTULO -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Listado Global de Equipos y Suministros</h2>
+        <button class="btn btn-sm btn-success" onclick="window.location.href='{% url "inventory_management:export_equipment_supplies" "ALL" %}'">
+            <i class="fa-solid fa-file-excel"></i> Exportar Excel
+        </button>
+    </div>
+
+    <!-- Sección (Opcional) con scroll horizontal de TODOS los activos -->
+    <div class="mb-3">
+        <label for="searchActivoInput" class="form-label" style="font-weight:500;">
+            Filtrar Activos:
+        </label>
+        <input type="text" id="searchActivoInput" class="form-control form-control-sm" placeholder="Escribe para filtrar...">
+    </div>
+
+    <div id="activosScrollContainer" class="d-flex flex-row" style="overflow-x: auto; white-space: nowrap; gap: 1rem; padding-bottom: 1rem; border-bottom:1px solid #ccc;">
+        {% for a in all_activos %}
+            {% if a.area == 'a' or a.area == 'c' or a.area == 'l'  %}
+            <div class="activo-card" style="display:inline-block; cursor:pointer; width:100%;" onclick="window.location.href='{% url "inventory_management:asset_equipment_list" a.abbreviation %}'">
+                <div class="card h-100" style="border:1px solid #ccc; min-width:220px;">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0" style="font-size:1.0rem; font-weight:600;">
+                            {{ a.name }}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text mb-1">
+                            <strong>Supervisor:</strong><br>
+                            {% if a.supervisor %}
+                                {{ a.supervisor.first_name }} {{ a.supervisor.last_name }}
+                            {% else %}
+                                <span class="text-muted">No asignado</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <hr>
+    <!-- TABLA DE EQUIPOS -->
+    <h4>Equipos</h4>
+
+    <!-- Buscador para la tabla de Equipos -->
+    <div class="mb-2">
+        <label for="searchEquiposAll" class="form-label mb-0" style="font-weight:500;">
+            Buscar Equipo:
+        </label>
+        <input type="text" id="searchEquiposAll" class="form-control form-control-sm" placeholder="Filtrar por nombre de Equipo...">
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle" style="font-size:0.85rem;" id="equiposTableAll">
+            <thead>
+                <tr>
+                    <th>Activo</th>
+                    <th class="equip-name-col">Equipo</th>
+                    <th>Tipo</th>
+                    <th>Ubicación</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eq in equipos %}
+                <tr>
+                    <td>{{ eq.system.asset.name }}</td>
+                    <td class="equipo-name" style="white-space:nowrap;">{{ eq.name }}</td>
+                    <td>{{ eq.get_tipo_display }}</td>
+                    <td>{{ eq.ubicacion|default_if_none:"--" }}</td>
+                    <td class="text-end">
+                        <!-- Ver Detalle (modal), QR, etc. -->
+                        <a href="#" class="text-primary me-2" data-bs-toggle="modal" data-bs-target="#equipoDetailModal{{ eq.pk }}">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+
+                        <!-- QR -->
+                        <a href="#" class="text-secondary" onclick="openQRInNewWindow('data:image/png;base64,{{ eq.qr_code_b64 }}'); return false;" title="Ver QR">
+                            <i class="fa-solid fa-qrcode"></i>
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- Modal Detalle del equipo (similar a lo ya mostrado) -->
+                <div class="modal fade" id="equipoDetailModal{{ eq.pk }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Detalle: {{ eq.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Info del equipo -->
+                                <ul>
+                                    <li><strong>Código:</strong> {{ eq.code }}</li>
+                                    <li><strong>Activo:</strong> {{ eq.system.asset.name }}</li>
+                                    <li><strong>Sistema:</strong> {{ eq.system.name }}</li>
+                                    <li><strong>Tipo:</strong> {{ eq.get_tipo_display }}</li>
+                                </ul>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <hr>
+    <!-- TABLA DE SUMINISTROS -->
+    <h4>Suministros</h4>
+
+    <!-- Buscador para la tabla de Suministros -->
+    <div class="mb-2">
+        <label for="searchSuministrosAll" class="form-label mb-0" style="font-weight:500;">
+        Buscar Suministro (Artículo):
+        </label>
+        <input type="text" id="searchSuministrosAll" class="form-control form-control-sm" placeholder="Filtrar por nombre de Artículo...">
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle" style="font-size:0.85rem;" id="suministrosTableAll">
+            <thead>
+                <tr>
+                    <th>Activo</th>
+                    <th class="articulo-name-col">Artículo</th>
+                    <th>Tipo</th>
+                    <th>Presentación</th>
+                    <th>Cantidad</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for s in suministros %}
+                <tr>
+                    <td>{{ s.asset.name }}</td>
+                    <td>
+                        {% if s.item %}
+                        {{ s.item.name }} ({{ s.item.reference|default_if_none:"-" }})
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.item %}
+                        {{ s.item.get_seccion_display }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.item %}
+                        {{ s.item.presentacion }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>{{ s.cantidad }}</td>
+                    <td class="text-end">
+                        <!-- Opciones: ver detalle del artículo, 
+                            dirigir a la vista "asset_suministros" o "asset_inventario_report"? -->
+                        {% if s.item %}
+                            <a href="#" class="text-primary me-2" title="Detalle Artículo" data-bs-toggle="modal" data-bs-target="#itemDetailModal{{ s.item.id }}">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            {% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
+                                <a href="{% url 'got:asset-suministros' s.asset.abbreviation %}" class="text-info" title="Reporte Suministros">
+                                    <i class="fa-solid fa-list"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'got:asset_inventario_report' s.asset.abbreviation %}" class="text-success" title="Reporte Inventario">
+                                <i class="fa-solid fa-clipboard-list"></i>
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <!-- Modal detalle de Item si lo deseas -->
+                {% if s.item %}
+                <div class="modal fade" id="itemDetailModal{{ s.item.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content" style="font-size:0.9rem;">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Detalle: {{ s.item.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- info de item -->
+                                <p><strong>Referencia:</strong> {{ s.item.reference }}</p>
+                                <p><strong>Presentación:</strong> {{ s.item.presentacion }}</p>
+                                {% if s.item.image %}
+                                <img src="{{ s.item.imagen.url }}" class="img-fluid" alt="Imagen de artículo">
+                                {% else %}
+                                <p class="text-muted">Sin imagen disponible.</p>
+                                {% endif %}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div><!-- container -->
+
+<!-- Script para filtrar “ActivosScrollContainer” -->
+<script>
+
+    // 1) Filtro de Activos (scroll horizontal)
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchActivoInput = document.getElementById('searchActivoInput');
+        const activoCards = document.querySelectorAll('.activo-card');
+
+        if (searchActivoInput && activoCards.length > 0) {
+            searchActivoInput.addEventListener('input', function() {
+                const filterVal = this.value.toLowerCase();
+                activoCards.forEach(card => {
+                    const text = card.innerText.toLowerCase();
+                    card.style.display = text.includes(filterVal) ? 'inline-block' : 'none';
+                });
+            });
+        }
+    });
+
+
+    // 2) Filtro de Equipos
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchEquiposAll = document.getElementById('searchEquiposAll');
+        const equiposTableAll = document.getElementById('equiposTableAll');
+        if (searchEquiposAll && equiposTableAll) {
+            const rows = equiposTableAll.querySelectorAll('tbody tr');
+            searchEquiposAll.addEventListener('input', function() {
+            const filterVal = this.value.toLowerCase();
+                rows.forEach(row => {
+                    const nameCell = row.querySelector('.equipo-name');
+                    if (!nameCell) {
+                    // Podría ser la fila de "No hay datos"
+                    return;
+                    }
+                    const eqNameText = nameCell.textContent.toLowerCase();
+                    row.style.display = eqNameText.includes(filterVal) ? '' : 'none';
+                });
+            });
+        }
+    });
+
+    // 3) Filtro de Suministros
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchSuministrosAll = document.getElementById('searchSuministrosAll');
+        const suministrosTableAll = document.getElementById('suministrosTableAll');
+        if (searchSuministrosAll && suministrosTableAll) {
+            const rows = suministrosTableAll.querySelectorAll('tbody tr');
+            searchSuministrosAll.addEventListener('input', function() {
+            const filterVal = this.value.toLowerCase();
+                rows.forEach(row => {
+                    const artCell = row.querySelector('.articulo-name');
+                    if (!artCell) {
+                    return;
+                    }
+                    const artNameText = artCell.textContent.toLowerCase();
+                    row.style.display = artNameText.includes(filterVal) ? '' : 'none';
+                });
+            });
+        }
+    });
+
+    // Reutiliza la misma lógica de openQRInNewWindow, sorting, etc. si deseas:
+    function openQRInNewWindow(qrData){
+        const w = window.open("", "_blank", "width=400,height=400");
+        w.document.write("<html><head><title>QR</title></head><body>");
+        w.document.write("<img src='"+qrData+"' alt='QR' style='width:100%; height:auto;'/>");
+        w.document.write("<br><button onclick='window.print()'>Imprimir</button>");
+        w.document.write("</body></html>");
+        w.document.close();
+    }
+</script>
+{% endblock %}

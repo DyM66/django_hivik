@@ -1,297 +1,535 @@
 {% extends "got/base/base_generic.html" %}
 
 {% block content %}
-
 <div class="container mt-4" style="font-size:0.9rem;">
-    <!-- ENCABEZADO PRINCIPAL -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">
-            Equipos asociados al Activo <strong>{{ activo.name }}</strong>
-        </h2>
-        <!-- Botón para Identificar con la cámara (opción “Identificar/escaneo QR”) -->
-        <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#scanQRModal">
-            <i class="fa-solid fa-camera"></i> Identificar
-        </button>
-    </div>
 
-    <!-- 1. Sección con scroll horizontal de Activos y buscador -->
-    <div class="mb-3">
-        <label for="searchActivoInput" class="form-label" style="font-weight:500;">
-            Buscar otro Activo:
-        </label>
-        <input type="text" id="searchActivoInput" class="form-control form-control-sm" placeholder="Escribe para filtrar...">
+  <!-- ENCABEZADO PRINCIPAL -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">
+      Equipos asociados al Activo <strong>{{ activo.name }}</strong>
+    </h2>
+    <div class="d-flex align-items-center">
+      <!-- Botón “Identificar” que abre modal de QR -->
+      <button class="btn btn-sm btn-secondary me-2"
+              data-bs-toggle="modal"
+              data-bs-target="#scanQRModal">
+        <i class="fa-solid fa-camera"></i> Identificar
+      </button>
+      <!-- Botón para Exportar Excel -->
+      <button class="btn btn-sm btn-success"
+              onclick="window.location.href='{% url 'inventory_management:export_equipment_supplies' activo.abbreviation %}'">
+        <i class="fa-solid fa-file-excel"></i> Exportar Excel
+      </button>
     </div>
+  </div>
 
-    <div id="activosScrollContainer" class="d-flex flex-row"
-         style="overflow-x: auto; white-space: nowrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #ccc;">
-        {% for a in all_activos %}
-            {% if a.abbreviation == activo.abbreviation %}
-                <div class="activo-card"
-                     style="display: inline-block; cursor: pointer; width: 100%; outline:2px solid #0d6efd;"
-                     onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' a.abbreviation %}'">
-            {% else %}
-                <div class="activo-card"
-                     style="display: inline-block; cursor: pointer; width: 100%;"
-                     onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' a.abbreviation %}'">
-            {% endif %}
-                    <div class="card h-100" style="border:1px solid #ccc; min-width: 220px;">
-                        <div class="card-header bg-light">
-                            <h5 class="card-title mb-0" style="font-size:1.0rem; font-weight:600;">
-                                {{ a.name }}
-                            </h5>
+  <!-- 1. Sección con scroll horizontal de Activos y buscador -->
+  <div class="mb-3">
+    <label for="searchActivoInput"
+           class="form-label"
+           style="font-weight:500;">
+      Buscar otro Activo:
+    </label>
+    <input type="text" id="searchActivoInput"
+           class="form-control form-control-sm"
+           placeholder="Escribe para filtrar...">
+  </div>
+
+  <div id="activosScrollContainer" class="d-flex flex-row"
+       style="overflow-x: auto; white-space: nowrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #ccc;">
+    {% for a in all_activos %}
+      {% if a.abbreviation == activo.abbreviation %}
+        <div class="activo-card"
+             style="display: inline-block; cursor: pointer; width: 100%; outline:2px solid #0d6efd;"
+             onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' a.abbreviation %}'">
+      {% else %}
+        <div class="activo-card"
+             style="display: inline-block; cursor: pointer; width: 100%;"
+             onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' a.abbreviation %}'">
+      {% endif %}
+          <div class="card h-100"
+               style="border:1px solid #ccc; min-width: 220px;">
+            <div class="card-header bg-light">
+              <h5 class="card-title mb-0"
+                  style="font-size:1.0rem; font-weight:600;">
+                {{ a.name }}
+              </h5>
+            </div>
+            <div class="card-body">
+              {% if a.supervisor %}
+                <p class="card-text mb-1">
+                  <strong>Supervisor:</strong><br>
+                  {{ a.supervisor.first_name }} {{ a.supervisor.last_name }}
+                </p>
+              {% else %}
+                <p class="card-text mb-1 text-muted">
+                  <strong>Supervisor:</strong><br>
+                  No asignado
+                </p>
+              {% endif %}
+
+              {% if a.area == 'a' %}
+                {% if a.capitan %}
+                  <p class="card-text mb-1">
+                    <strong>Capitán:</strong><br>
+                    {{ a.capitan.first_name }} {{ a.capitan.last_name }}
+                  </p>
+                {% else %}
+                  <p class="card-text mb-1 text-muted">
+                    <strong>Capitán:</strong><br>
+                    No asignado
+                  </p>
+                {% endif %}
+              {% endif %}
+            </div><!-- card-body -->
+          </div><!-- card -->
+        </div><!-- activo-card -->
+    {% endfor %}
+  </div>
+  <hr>
+
+  <!-- 2. Buscador + Botón Nuevo Equipo -->
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <label for="searchEquiposInput"
+           class="form-label mb-0"
+           style="font-weight:500;">
+      Buscar un equipo por nombre:
+    </label>
+    <button type="button"
+            class="btn btn-sm btn-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#selectSystemModal">
+      <i class="fa-solid fa-plus"></i> Nuevo Equipo
+    </button>
+  </div>
+  <input type="text" id="searchEquiposInput"
+         class="form-control form-control-sm mb-3"
+         placeholder="Filtrar por nombre de equipo...">
+
+  <!-- 3. Tabla de Equipos -->
+  <div class="table-responsive">
+    <table class="table table-sm align-middle"
+           style="font-size:0.85rem;"
+           id="equiposTable">
+      <thead>
+        <tr>
+          <th id="sortByEquipo">
+            Equipo <i class="fa-solid fa-sort"></i>
+          </th>
+          <th id="sortByTipo">
+            Tipo <i class="fa-solid fa-sort"></i>
+          </th>
+          <th id="sortByUbicacion">
+            Ubicación <i class="fa-solid fa-sort"></i>
+          </th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for eq in equipos %}
+        <tr>
+          <td class="equipo-name" style="white-space: nowrap;">{{ eq.name }}</td>
+          <td>{{ eq.get_tipo_display }}</td>
+          <td>{{ eq.ubicacion|default_if_none:"--" }}</td>
+          <td class="text-end">
+            <!-- Editar/Modificar -->
+            <a href="{% url 'got:equipo-update' eq.code %}?next={{ request.path }}"
+               class="me-1 text-secondary"
+               title="Modificar">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+            <!-- Dar de Baja -->
+            <a href="{% url 'inv:dar_baja' eq.code %}" class="me-1 text-danger" title="Dar de Baja">
+            	<i class="fa-solid fa-trash"></i>
+            </a>
+            <!-- Transferir -->
+            <a href="{% url 'got:transferir_equipo' eq.code %}"
+               class="me-1 text-warning"
+               title="Transferir">
+              <i class="fa-solid fa-right-left"></i>
+            </a>
+            <!-- Ver Detalle (modal) -->
+            <a href="#"
+               class="me-1 text-primary"
+               title="Ver Detalle"
+               data-bs-toggle="modal"
+               data-bs-target="#equipoDetailModal{{ eq.pk }}">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            <!-- Mostrar QR en nueva ventana -->
+            <a href="#"
+               class="ms-1 text-secondary"
+               title="Mostrar QR"
+               onclick="openQRInNewWindow('data:image/png;base64,{{ eq.qr_code_b64 }}'); return false;">
+              <i class="fa-solid fa-qrcode"></i>
+            </a>
+          </td>
+        </tr>
+
+        <!-- Modal Detalle del equipo -->
+        <div class="modal fade"
+             id="equipoDetailModal{{ eq.pk }}"
+             tabindex="-1"
+             aria-labelledby="equipoDetailModalLabel{{ eq.pk }}"
+             aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title"
+                    id="equipoDetailModalLabel{{ eq.pk }}">
+                  Detalle del Equipo: {{ eq.name }}
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                <!-- Adaptado de equipment_detail -->
+                <div class="row">
+                  <div class="col-md-5">
+                    <h4>{{ eq.name }}</h4>
+                    <ul class="mb-0 list-unstyled">
+                      <li><strong>Código Interno:</strong> {{ eq.code }}</li>
+                      <li><strong>Modelo:</strong> {{ eq.model|default_if_none:"---" }}</li>
+                      <li><strong>Marca:</strong> {{ eq.marca|default_if_none:"---" }}</li>
+                      <li><strong>Serial:</strong> {{ eq.serial|default_if_none:"---" }}</li>
+                      <li><strong>Fabricante:</strong> {{ eq.fabricante|default_if_none:"---" }}</li>
+                      <li><strong>Ubicación:</strong> {{ eq.ubicacion|default_if_none:eq.system.location }}</li>
+
+                      {% if eq.system.asset.area == 'v' %}
+                        <li><strong>Kilometraje:</strong> {{ eq.horometro }} km</li>
+                      {% elif eq.tipo == 'r' %}
+                        <li><strong>Horómetro:</strong> {{ eq.horometro }} horas</li>
+                        <li><strong>Prom. Horas/Día:</strong> {{ eq.prom_hours|default_if_none:"---" }}</li>
+                        {% if eq.volumen %}
+                          <li><strong>Capacidad:</strong> {{ eq.volumen }} Gls</li>
+                        {% endif %}
+                      {% endif %}
+
+                      <li><strong>Tipo:</strong> {{ eq.get_tipo_display }}</li>
+                      {% if eq.manual_pdf %}
+                        <li>
+                          <strong>Manual:</strong>
+                          <a href="{{ eq.manual_pdf.url }}" target="_blank">Descargar PDF</a>
+                        </li>
+                      {% endif %}
+                      <li><strong>Especificaciones:</strong><br>{{ eq.feature|linebreaks }}</li>
+                      <li><strong>Recomendaciones:</strong><br>{{ eq.recomendaciones|linebreaks }}</li>
+                    </ul>
+                  </div>
+                  <div class="col-md-7">
+                    {% if eq.images.all %}
+                      <div id="equipoCarousel{{ eq.pk }}"
+                           class="carousel slide"
+                           data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                          {% for img in eq.images.all %}
+                            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                              <img src="{{ img.image.url }}"
+                                   class="d-block w-100"
+                                   alt="Imagen del equipo">
+                            </div>
+                          {% endfor %}
                         </div>
-                        <div class="card-body">
-                            {% if a.supervisor %}
-                                <p class="card-text mb-1">
-                                    <strong>Supervisor:</strong><br>
-                                    {{ a.supervisor.first_name }} {{ a.supervisor.last_name }}
-                                </p>
-                            {% else %}
-                                <p class="card-text mb-1 text-muted">
-                                    <strong>Supervisor:</strong><br>
-                                    No asignado
-                                </p>
-                            {% endif %}
-
-                            {% if a.area == 'a' %}
-                                {% if a.capitan %}
-                                    <p class="card-text mb-1">
-                                        <strong>Capitán:</strong><br>
-                                        {{ a.capitan.first_name }} {{ a.capitan.last_name }}
-                                    </p>
-                                {% else %}
-                                    <p class="card-text mb-1 text-muted">
-                                        <strong>Capitán:</strong><br>
-                                        No asignado
-                                    </p>
-                                {% endif %}
-                            {% endif %}
-                        </div><!-- card-body -->
-                    </div><!-- card -->
-                </div><!-- activo-card -->
+                        <button class="carousel-control-prev" type="button"
+                                data-bs-target="#equipoCarousel{{ eq.pk }}"
+                                data-bs-slide="prev">
+                          <span class="carousel-control-prev-icon"
+                                aria-hidden="true"></span>
+                          <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button"
+                                data-bs-target="#equipoCarousel{{ eq.pk }}"
+                                data-bs-slide="next">
+                          <span class="carousel-control-next-icon"
+                                aria-hidden="true"></span>
+                          <span class="visually-hidden">Next</span>
+                        </button>
+                      </div>
+                      <!-- Thumbnails -->
+                      <div class="row mt-2">
+                        {% for img in eq.images.all %}
+                          <div class="col-3 mb-2">
+                            <img src="{{ img.image.url }}"
+                                 class="img-thumbnail thumb-{{ eq.pk }}"
+                                 data-index="{{ forloop.counter0 }}"
+                                 alt="Miniatura">
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <p class="text-muted">
+                        No hay imágenes disponibles para este equipo.
+                      </p>
+                    {% endif %}
+                  </div>
+                </div><!-- row -->
+              </div><!-- modal-body -->
+              <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-secondary btn-sm"
+                        data-bs-dismiss="modal">
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div><!-- fin modal equipoDetailModal -->
         {% endfor %}
-    </div>
-    <hr>
+      </tbody>
+    </table>
+  </div><!-- table-responsive -->
 
-    <!-- BUSCADOR + BOTÓN NUEVO EQUIPO -->
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <label for="searchEquiposInput" class="form-label mb-0" style="font-weight:500;">
-            Buscar un equipo por nombre:
-        </label>
-        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#selectSystemModal">
-            <i class="fa-solid fa-plus"></i> Nuevo Equipo
-        </button>
-    </div>
+  <hr>
 
-    <input type="text" id="searchEquiposInput" class="form-control form-control-sm mb-3"
-           placeholder="Filtrar por nombre de equipo...">
-
-    <!-- 3. TABLA DE EQUIPOS -->
-    <div class="table-responsive">
-        <table class="table table-sm align-middle" style="font-size:0.85rem;" id="equiposTable">
-            <thead>
-                <tr>
-                    <th id="sortByEquipo">Equipo <i class="fa-solid fa-sort"></i></th>
-                    <th id="sortByTipo">Tipo <i class="fa-solid fa-sort"></i></th>
-                    <th id="sortByUbicacion">Ubicación <i class="fa-solid fa-sort"></i></th>
-                    <th class="text-end">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for eq in equipos %}
-                <tr>
-                    <td class="equipo-name" style="white-space: nowrap;">{{ eq.name }}</td>
-                    <td>{{ eq.get_tipo_display }}</td>
-                    <td>{{ eq.ubicacion|default_if_none:"--" }}</td>
-                    <td class="text-end">
-                        <!-- Editar/Modificar -->
-                        <a href="{% url 'got:equipo-update' eq.code %}?next={{ request.path }}"
-                           class="me-1 text-secondary"
-                           title="Modificar">
-                            <i class="fa-solid fa-pen"></i>
-                        </a>
-                        <!-- Dar de Baja -->
-                        <a href="{% url 'got:dar_baja' eq.code %}"
-                           class="me-1 text-danger"
-                           title="Dar de Baja">
-                            <i class="fa-solid fa-trash"></i>
-                        </a>
-                        <!-- Transferir -->
-                        <a href="{% url 'got:transferir_equipo' eq.code %}"
-                           class="me-1 text-warning"
-                           title="Transferir">
-                            <i class="fa-solid fa-right-left"></i>
-                        </a>
-                        <!-- Ver Detalle (modal) -->
-                        <a href="#"
-                           class="me-1 text-primary"
-                           title="Ver Detalle"
-                           data-bs-toggle="modal"
-                           data-bs-target="#equipoDetailModal{{ eq.pk }}">
-                            <i class="fa-solid fa-eye"></i>
-                        </a>
-                        <!-- Mostrar QR en nueva ventana -->
-						<!-- Fragmento de la columna de acciones de cada equipo -->
-						<a href="#"
-						class="ms-1 text-secondary"
-						title="Mostrar QR"
-						onclick="openQRInNewWindow('data:image/png;base64,{{ eq.qr_code_b64 }}'); return false;">
-							<i class="fa-solid fa-qrcode"></i>
-						</a>
-
-                    </td>
-                </tr>
-
-                <!-- Modal Detalle del equipo -->
-                <div class="modal fade" id="equipoDetailModal{{ eq.pk }}" tabindex="-1"
-                     aria-labelledby="equipoDetailModalLabel{{ eq.pk }}" aria-hidden="true">
-                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="equipoDetailModalLabel{{ eq.pk }}">
-                                    Detalle del Equipo: {{ eq.name }}
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                        aria-label="Cerrar"></button>
-                            </div>
-                            <div class="modal-body">
-                                <!-- Adaptado de equipment_detail -->
-                                <div class="row">
-                                    <div class="col-md-5">
-                                        <h4>{{ eq.name }}</h4>
-                                        <ul class="mb-0 list-unstyled">
-                                            <li><strong>Código Interno:</strong> {{ eq.code }}</li>
-                                            <li><strong>Modelo:</strong> {{ eq.model|default_if_none:"---" }}</li>
-                                            <li><strong>Marca:</strong> {{ eq.marca|default_if_none:"---" }}</li>
-                                            <li><strong>Serial:</strong> {{ eq.serial|default_if_none:"---" }}</li>
-                                            <li><strong>Fabricante:</strong> {{ eq.fabricante|default_if_none:"---" }}</li>
-                                            <li><strong>Ubicación:</strong> {{ eq.ubicacion|default_if_none:eq.system.location }}</li>
-                                            {% if eq.system.asset.area == 'v' %}
-                                              <li><strong>Kilometraje:</strong> {{ eq.horometro }} km</li>
-                                            {% elif eq.tipo == 'r' %}
-                                              <li><strong>Horómetro:</strong> {{ eq.horometro }} horas</li>
-                                              <li><strong>Prom. Horas/Día:</strong> {{ eq.prom_hours|default_if_none:"---" }}</li>
-                                              {% if eq.volumen %}
-                                              <li><strong>Capacidad:</strong> {{ eq.volumen }} Gls</li>
-                                              {% endif %}
-                                            {% endif %}
-                                            <li><strong>Tipo:</strong> {{ eq.get_tipo_display }}</li>
-                                            {% if eq.manual_pdf %}
-                                              <li>
-                                                <strong>Manual:</strong>
-                                                <a href="{{ eq.manual_pdf.url }}" target="_blank">Descargar PDF</a>
-                                              </li>
-                                            {% endif %}
-                                            <li><strong>Especificaciones:</strong><br>{{ eq.feature|linebreaks }}</li>
-                                            <li><strong>Recomendaciones:</strong><br>{{ eq.recomendaciones|linebreaks }}</li>
-                                        </ul>
-                                    </div>
-                                    <div class="col-md-7">
-                                        {% if eq.images.all %}
-                                          <div id="equipoCarousel{{ eq.pk }}"
-                                               class="carousel slide"
-                                               data-bs-ride="carousel">
-                                            <div class="carousel-inner">
-                                                {% for img in eq.images.all %}
-                                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                                                    <img src="{{ img.image.url }}"
-                                                         class="d-block w-100"
-                                                         alt="Imagen del equipo">
-                                                </div>
-                                                {% endfor %}
-                                            </div>
-                                            <button class="carousel-control-prev" type="button"
-                                                    data-bs-target="#equipoCarousel{{ eq.pk }}"
-                                                    data-bs-slide="prev">
-                                                <span class="carousel-control-prev-icon"
-                                                      aria-hidden="true"></span>
-                                                <span class="visually-hidden">Previous</span>
-                                            </button>
-                                            <button class="carousel-control-next" type="button"
-                                                    data-bs-target="#equipoCarousel{{ eq.pk }}"
-                                                    data-bs-slide="next">
-                                                <span class="carousel-control-next-icon"
-                                                      aria-hidden="true"></span>
-                                                <span class="visually-hidden">Next</span>
-                                            </button>
-                                          </div>
-                                          <!-- Thumbnails -->
-                                          <div class="row mt-2">
-                                            {% for img in eq.images.all %}
-                                              <div class="col-3 mb-2">
-                                                <img src="{{ img.image.url }}"
-                                                     class="img-thumbnail thumb-{{ eq.pk }}"
-                                                     data-index="{{ forloop.counter0 }}"
-                                                     alt="Miniatura">
-                                              </div>
-                                            {% endfor %}
-                                          </div>
-                                        {% else %}
-                                          <p class="text-muted">
-                                            No hay imágenes disponibles para este equipo.
-                                          </p>
-                                        {% endif %}
-                                    </div>
-                                </div><!-- row -->
-                            </div><!-- modal-body -->
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                                  Cerrar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div><!-- fin modal equipoDetailModal -->
-                {% endfor %}
-            </tbody>
-        </table>
-    </div><!-- table-responsive -->
-
-    <hr>
-
-    <!-- 4. Tabla de Suministros para el Activo seleccionado -->
-    <h4 style="font-size:1rem; margin-top:1.5rem;">
-        Suministros del Activo {{ activo.name }}
+  <!-- 4. Sección de Suministros -->
+  <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+    <h4 style="font-size:1rem;" class="mb-0">
+      Suministros del Activo {{ activo.name }}
     </h4>
-    <div class="table-responsive">
-        <table class="table table-sm align-middle" style="font-size:0.85rem;">
-            <thead>
-                <tr>
+    <!-- Botón que abre un modal “Crear Suministro” -->
+    <button type="button"
+            class="btn btn-sm btn-outline-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#createSupplyModal">
+      <i class="fa-solid fa-plus"></i> Nuevo Suministro
+    </button>
+  </div>
+
+  <!-- Modal "Crear Nuevo Suministro" -->
+  <div class="modal fade" id="createSupplyModal"
+       tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content" style="font-size:0.9rem;">
+        <form method="post"
+              action="{% url 'inventory_management:create_supply' activo.abbreviation %}">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Crear Nuevo Suministro</h5>
+            <button type="button" class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Buscador (similar al snippet) -->
+            <div class="mb-3">
+              <label for="supplyItemSearch"
+                     class="form-label"
+                     style="font-weight:500;">
+                Buscar artículo:
+              </label>
+              <input type="text" class="form-control form-control-sm"
+                     id="supplyItemSearch"
+                     placeholder="Buscar por nombre o referencia...">
+            </div>
+            <!-- Tabla listando items. Filtrable. -->
+            <div class="table-responsive" style="max-height:300px; overflow:auto;">
+              <table class="table table-sm align-middle" id="supplyItemTable">
+                <thead>
+                  <tr>
+                    <th></th>
                     <th>Artículo</th>
+                    <th>Referencia</th>
+                    <th>Tipo</th>
                     <th>Presentación</th>
-                    <th>Cantidad</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if suministros %}
-                  {% for s in suministros %}
-                    <tr>
-                        <td>
-                          {% if s.item %}
-                            {{ s.item.name }} ({{ s.item.reference|default_if_none:"-" }})
-                          {% else %}
-                            -
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if s.item %}
-                            {{ s.item.presentacion }}
-                          {% else %}
-                            -
-                          {% endif %}
-                        </td>
-                        <td>{{ s.cantidad }}</td>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for it in all_items %}
+                    <tr data-name="{{ it.name|lower }}"
+                        data-ref="{{ it.reference|lower }}">
+                      <td>
+                        <input type="radio" name="item_id" value="{{ it.id }}">
+                      </td>
+                      <td>{{ it.name }}</td>
+                      <td>{{ it.reference|default_if_none:"-" }}</td>
+                      <td>{{ it.get_seccion_display }}</td>
+                      <td>{{ it.presentacion }}</td>
                     </tr>
                   {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <!-- Campo para Cantidad -->
+            <div class="mt-3">
+              <label for="newSupplyCantidad" class="form-label">
+                Cantidad
+              </label>
+              <input type="number"
+                     step="0.1"
+                     min="0"
+                     class="form-control form-control-sm"
+                     name="cantidad"
+                     id="newSupplyCantidad"
+                     required>
+            </div>
+          </div><!-- modal-body -->
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary btn-sm">
+              Guardar
+            </button>
+            <button type="button"
+                    class="btn btn-secondary btn-sm"
+                    data-bs-dismiss="modal">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div><!-- Fin Modal -->
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Filtrar items en “Crear Suministro”
+      const supplyItemSearch = document.getElementById('supplyItemSearch');
+      const supplyItemTable = document.getElementById('supplyItemTable');
+
+      if (supplyItemSearch && supplyItemTable) {
+        supplyItemSearch.addEventListener('input', function() {
+          const filterVal = this.value.toLowerCase();
+          const rows = supplyItemTable.querySelectorAll('tbody tr');
+          rows.forEach(row => {
+            const nameVal = row.getAttribute('data-name') || "";
+            const refVal = row.getAttribute('data-ref') || "";
+            if (nameVal.includes(filterVal) || refVal.includes(filterVal)) {
+              row.style.display = "";
+            } else {
+              row.style.display = "none";
+            }
+          });
+        });
+      }
+    });
+  </script>
+
+  <!-- NUEVA TABLA DE SUMINISTROS: QUITAMOS los modales de ingreso/consumo/transferencia,
+       y añadimos solo un link al reporte correspondiente. -->
+  <div class="table-responsive">
+    <table class="table table-sm align-middle" style="font-size:0.85rem;">
+      <thead>
+        <tr>
+          <th>Artículo</th>
+          <th>Tipo</th>
+          <th>Presentación</th>
+          <th>Cantidad</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if suministros %}
+          {% for s in suministros %}
+            <tr>
+              <td>
+                {% if s.item %}
+                  {{ s.item.name }}
+                  ({{ s.item.reference|default_if_none:"-" }})
                 {% else %}
-                    <tr>
-                        <td colspan="3">No hay suministros asociados a este Activo.</td>
-                    </tr>
+                  -
                 {% endif %}
-            </tbody>
-        </table>
-    </div><!-- table-responsive -->
+              </td>
+              <td>
+                {% if s.item %}
+                  {{ s.item.get_seccion_display }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>
+                {% if s.item %}
+                  {{ s.item.presentacion }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ s.cantidad }}</td>
+              <td class="text-end">
+                {% if s.item %}
+                  <!-- Ver detalle del artículo (modal) -->
+                  <a href="#"
+                     class="text-primary me-2"
+                     data-bs-toggle="modal"
+                     data-bs-target="#itemDetailModal{{ s.item.id }}"
+                     title="Ver Detalle del Artículo">
+                    <i class="fa-solid fa-eye"></i>
+                  </a>
+
+                  <!-- Decidir a qué vista se dirige el usuario:
+                       si el nombre del ítem contiene “Combustible”/“Aceite”/“Filtro” => asset_suministros
+                       de lo contrario => asset_inventario_report
+                  -->
+                  {% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
+                    <!-- Link a AssetSuministrosReportView -->
+                    <a href="{% url 'got:asset-suministros' activo.abbreviation %}"
+                       class="text-info"
+                       title="Ver Reporte Suministros">
+                      <i class="fa-solid fa-list"></i>
+                    </a>
+                  {% else %}
+                    <!-- Link a AssetInventarioReportView -->
+                    <a href="{% url 'got:asset_inventario_report' activo.abbreviation %}"
+                       class="text-success"
+                       title="Ver Reporte Inventario">
+                      <i class="fa-solid fa-clipboard-list"></i>
+                    </a>
+					{% endif %}
+				{% endif %}
+
+              </td>
+            </tr>
+
+            <!-- Modal para detalle del artículo -->
+            {% if s.item %}
+              <div class="modal fade" id="itemDetailModal{{ s.item.id }}"
+                   tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content" style="font-size:0.9rem;">
+                    <div class="modal-header">
+                      <h5 class="modal-title">
+                        Detalle: {{ s.item.name }}
+                      </h5>
+                      <button type="button"
+                              class="btn-close"
+                              data-bs-dismiss="modal"
+                              aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <p><strong>Referencia:</strong> {{ s.item.reference }}</p>
+                      <p><strong>Presentación:</strong> {{ s.item.presentacion }}</p>
+                      {% if s.item.image %}
+                        <img src="{{ s.item.imagen.url }}"
+                             alt="{{ s.item.name }}"
+                             class="img-fluid">
+                      {% else %}
+                        <p class="text-muted">Sin imagen disponible.</p>
+                      {% endif %}
+                      <p><strong>Descripción:</strong></p>
+                      <p>{{ s.item.descripcion|default_if_none:"No hay descripción." }}</p>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button"
+                              class="btn btn-secondary btn-sm"
+                              data-bs-dismiss="modal">
+                        Cerrar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5">No hay suministros asociados a este Activo.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div><!-- table-responsive -->
 </div><!-- container -->
+
 
 <!-- Modal: Seleccionar Sistema para crear nuevo equipo -->
 <div class="modal fade" id="selectSystemModal" tabindex="-1"
@@ -321,7 +559,9 @@
         {% endif %}
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+        <button type="button"
+                class="btn btn-secondary btn-sm"
+                data-bs-dismiss="modal">
           Cerrar
         </button>
       </div>
@@ -393,7 +633,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // 3) Sorting
+  // 3) Sorting de la tabla de equipos
   (function(){
     let sortEquipoAsc = true;
     let sortTipoAsc = true;
@@ -452,7 +692,6 @@ document.addEventListener('DOMContentLoaded', function() {
       qrCodeMessage => {
         console.log("QR detectado: " + qrCodeMessage);
         window.location.href = qrCodeMessage;
-
         // Detener y cerrar modal
         html5QrCode.stop().then(ignore => {
           let modal = bootstrap.Modal.getInstance(scanModal);
@@ -477,6 +716,4 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
-  
-
 {% endblock %}

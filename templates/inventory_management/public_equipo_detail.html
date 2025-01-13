@@ -1,31 +1,266 @@
 <!-- inventory_management/templates/inventory_management/public_equipo_detail.html -->
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <title>Equipo {{ equipo.name }}</title>
+  <meta charset="UTF-8">
+  <title>Detalle Público de {{ equipo.name }}</title>
   <style>
-    body { font-family: sans-serif; margin: 1rem; }
-    .images img { max-width: 200px; margin: 5px; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", sans-serif;
+      color: #191645;  /* tu color principal */
+      background-color: #f9f9f9;
+    }
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+    }
+    h1, h2, h3, h4 {
+      margin-top: 0;
+      color: #333366;
+    }
+    header {
+      background: #191645; 
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+      margin: -1.5rem -1.5rem 1.5rem -1.5rem; /* Para tomar el ancho de container */
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: 0.5px;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .col {
+      flex: 1;
+      min-width: 200px; /* Evitar que se comprima demasiado */
+    }
+    .detail-block {
+      margin-bottom: 1rem;
+    }
+    .detail-block h4 {
+      font-size: 1.1rem;
+      margin-bottom: 0.4rem;
+      color: #333366;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 4px;
+    }
+    .detail-item {
+      display: flex;
+      margin-bottom: 0.5rem;
+    }
+    .detail-key {
+      width: 130px;
+      font-weight: 600;
+      color: #444;
+    }
+    .detail-value {
+      flex: 1;
+      color: #666;
+    }
+    .images-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .images-container img {
+      max-width: 160px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.85rem;
+      text-align: center;
+      color: #666;
+    }
+    /* Responsivo */
+    @media (max-width: 600px) {
+      .detail-key {
+        width: 100px;
+      }
+    }
   </style>
 </head>
 <body>
 
-  <h1>Detalle Público: {{ equipo.name }}</h1>
-  <p><strong>Código:</strong> {{ equipo.code }}</p>
-  <p><strong>Tipo:</strong> {{ equipo.get_tipo_display }}</p>
-  <p><strong>Ubicación:</strong> {{ equipo.ubicacion|default_if_none:equipo.system.location }}</p>
-  <p><strong>Descripción:</strong> {{ equipo.feature|linebreaks }}</p>
-  {# ... lo que quieras mostrar #}
+<div class="container">
 
-  <!-- Imágenes si hay -->
-  <div class="images">
-    {% for img in images %}
-      <img src="{{ img.image.url }}" alt="Foto del equipo">
-    {% empty %}
-      <p><em>Sin imágenes</em></p>
-    {% endfor %}
+  <header>
+    <h1 style="color: #fff;">Detalle Público de {{ equipo.name }}</h1>
+    <p style="margin:0; font-size:0.85rem;">
+      
+    </p>
+  </header>
+
+  {% if user.is_authenticated %}
+  <div style="text-align:right;">
+    <a href="https://got.serport.co/got/systems/{{ system.pk }}/{{ equipo.code }}/"
+       style="color: #fff; background:#191645; padding: 0.5rem 1rem; border-radius:5px; text-decoration:none;">
+      Ver en GOT
+    </a>
   </div>
+{% endif %}
+
+  <!-- Sección Superior: Activo y Sistema al que pertenece -->
+  <div class="detail-block">
+    <h4>Ubicación</h4>
+    <div class="detail-item">
+      <div class="detail-key">Activo:</div>
+      <div class="detail-value">
+        {{ asset.name }} 
+        ({{ asset.abbreviation }})
+      </div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Sistema:</div>
+      <div class="detail-value">
+        {{ system.name }} 
+        (Grupo {{ system.group }})
+      </div>
+    </div>
+  </div>
+
+  <!-- Datos principales del equipo -->
+  <div class="detail-block">
+    <h4>Información del Equipo</h4>
+    <div class="detail-item">
+      <div class="detail-key">Código:</div>
+      <div class="detail-value">{{ equipo.code }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Tipo:</div>
+      <div class="detail-value">{{ equipo.get_tipo_display }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Modelo:</div>
+      <div class="detail-value">{{ equipo.model|default_if_none:"---" }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Marca:</div>
+      <div class="detail-value">{{ equipo.marca|default_if_none:"---" }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Serial:</div>
+      <div class="detail-value">{{ equipo.serial|default_if_none:"---" }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Fabricante:</div>
+      <div class="detail-value">{{ equipo.fabricante|default_if_none:"---" }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Ubicación:</div>
+      <div class="detail-value">
+        {{ equipo.ubicacion|default_if_none:equipo.system.location }}
+      </div>
+    </div>
+    {% if equipo.system.asset.area == 'v' %}
+      <div class="detail-item">
+        <div class="detail-key">Kilometraje:</div>
+        <div class="detail-value">{{ equipo.horometro }} km</div>
+      </div>
+    {% elif equipo.tipo == 'r' %}
+      <div class="detail-item">
+        <div class="detail-key">Horómetro:</div>
+        <div class="detail-value">{{ equipo.horometro }} horas</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">Prom. Horas/Día:</div>
+        <div class="detail-value">{{ equipo.prom_hours|default_if_none:"---" }}</div>
+      </div>
+      {% if equipo.volumen %}
+        <div class="detail-item">
+          <div class="detail-key">Capacidad:</div>
+          <div class="detail-value">{{ equipo.volumen }} Gls</div>
+        </div>
+      {% endif %}
+    {% endif %}
+    <div class="detail-item">
+      <div class="detail-key">Potencia:</div>
+      <div class="detail-value">
+        {% if equipo.potencia %}
+          {{ equipo.potencia }} HP
+        {% else %}
+          ---
+        {% endif %}
+      </div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Tipo Almac.:</div>
+      <div class="detail-value">
+        {% if equipo.tipo_almacenamiento %}
+          {{ equipo.tipo_almacenamiento }}
+        {% else %}
+          ---
+        {% endif %}
+      </div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Crítico:</div>
+      <div class="detail-value">
+        {% if equipo.critico %}Sí{% else %}No{% endif %}
+      </div>
+    </div>
+    <div class="detail-item">
+      <div class="detail-key">Fecha Ingreso:</div>
+      <div class="detail-value">
+        {{ equipo.date_inv|date:"d/m/Y" }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección con Especificaciones, Recomendaciones, etc. -->
+  <div class="detail-block">
+    <h4>Especificaciones</h4>
+    <p style="white-space:pre-wrap; margin-top:0;">
+      {{ equipo.feature|default_if_none:"Sin especificaciones" }}
+    </p>
+    <h4>Recomendaciones</h4>
+    <p style="white-space:pre-wrap; margin-top:0;">
+      {{ equipo.recomendaciones|default_if_none:"Sin recomendaciones" }}
+    </p>
+    {% if equipo.manual_pdf %}
+      <div style="margin-top:1rem;">
+        <strong>Manual PDF:</strong>
+        <a href="{{ equipo.manual_pdf.url }}" target="_blank"
+           style="color: #0157a4; text-decoration: underline;">
+          Descargar
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Sección de Imágenes -->
+  <div class="detail-block">
+    <h4>Imágenes</h4>
+    {% if images %}
+      <div class="images-container">
+        {% for img in images %}
+          <img src="{{ img.image.url }}" alt="Foto del equipo">
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="color: #999;">No hay imágenes disponibles para este equipo.</p>
+    {% endif %}
+  </div>
+
+  <footer>
+    <p>SERPORT - Detalle público del equipo</p>
+  </footer>
+</div><!-- .container -->
 
 </body>
 </html>

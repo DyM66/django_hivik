@@ -5,8 +5,17 @@
 <div class="container mt-4" style="font-size:0.9rem;">
     <h2 class="mb-3">Inventario de Activos</h2>
 
+    <div style="text-align: right; margin-bottom: 1rem;">
+        <a href="{% url 'inventory_management:all_equipment_list' %}"
+           class="btn btn-sm btn-outline-dark">
+          Ver todos los Activos
+        </a>
+      </div>
+
     {# row-cols-xl-4 => max 4 columnas en pantallas grandes #}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3">
+
+        
         {% for asset in assets %}
             <div class="col">
                 <!-- Card estilo Bootstrap -->

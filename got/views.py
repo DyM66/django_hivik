@@ -245,7 +245,7 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         table_title = 'Reporte de Rutinas'
         return pro_export_to_excel(model=Ruta, headers=headers, data=data, filename=filename, table_title=table_title)
 
-
+import re
 class AssetInventoryBaseView(LoginRequiredMixin, View):
     template_name = 'got/assets/asset_inventory_report.html'
     keyword_filter = None
@@ -273,6 +273,18 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
         elif action == 'transfer_suministro':
             suministro_id = request.POST.get('transfer_suministro_id')
             suministro = get_object_or_404(Suministro, id=suministro_id, asset=asset)
+            transfer_fecha_str = request.POST.get('transfer_fecha', '')
+
+            if not re.match(r'^\d{4}-\d{2}-\d{2}$', transfer_fecha_str):
+                messages.error(request, "Fecha inválida de transferencia: usa el formato YYYY-MM-DD.")
+                return self.redirect_with_next(request)
+            
+            try:
+                transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, "Fecha inválida: no se pudo interpretar el valor ingresado.")
+                return self.redirect_with_next(request)
+            
             result = handle_transfer(
                 request,
                 asset,
@@ -280,24 +292,33 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
                 request.POST.get('transfer_cantidad', '0') or '0',
                 request.POST.get('destination_asset_id'),
                 request.POST.get('transfer_motivo', ''),
-                request.POST.get('transfer_fecha', '')
+                transfer_fecha_str 
             )
             if isinstance(result, HttpResponse):
                 return result
             else:
-                return redirect(request.path)
+                return self.redirect_with_next(request)
 
         elif action == 'update_inventory':
             motivo_global = ''
             fecha_reporte_str = request.POST.get('fecha_reporte', timezone.now().date().strftime('%Y-%m-%d'))
+
+            print(fecha_reporte_str)
+            # 1) Verificar si coincide con el patrón YYYY-MM-DD
+            if not re.match(r'^\d{4}-\d{2}-\d{2}$', fecha_reporte_str):
+                messages.error(request, "Fecha inválida: usa el formato YYYY-MM-DD.")
+                return self.redirect_with_next(request)
+            
             try:
                 fecha_reporte = datetime.strptime(fecha_reporte_str, '%Y-%m-%d').date()
             except ValueError:
-                fecha_reporte = timezone.now().date()
+                messages.error(request, "Fecha inválida: no se pudo interpretar el valor ingresado.")
+                return self.redirect_with_next(request)
 
+            # 3) Comparar con la fecha actual
             if fecha_reporte > timezone.now().date():
                 messages.error(request, 'La fecha del reporte no puede ser mayor a la fecha actual.')
-                return redirect(request.path)
+                return self.redirect_with_next(request)
 
             operation = Operation.objects.filter(asset=asset, confirmado=True, start__lte=fecha_reporte, end__gte=fecha_reporte).first()
 
@@ -308,7 +329,7 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             if isinstance(result, HttpResponse):
                 return result
             else:
-                return redirect(request.path)
+                return self.redirect_with_next(request)
 
         elif action == 'add_suministro' and request.user.has_perm('got.can_add_supply'):
             item_id = request.POST.get('item_id')
@@ -319,11 +340,11 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             else:
                 Suministro.objects.create(item=item, cantidad=Decimal('0.00'), asset=asset)
                 messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
-            return redirect(request.path)
+            return self.redirect_with_next(request)
 
         else:
             messages.error(request, 'Acción no reconocida.')
-            return redirect(request.path)
+            return self.redirect_with_next(request)
 
     def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
         motonaves = Asset.objects.filter(area='a', show=True)
@@ -348,6 +369,12 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
     def get_transacciones_historial(self, asset):
         transacciones_historial = Transaction.objects.filter(Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)).order_by('-fecha')
         return transacciones_historial
+    
+    def redirect_with_next(self, request):
+        next_url = request.GET.get('next', '')
+        if next_url:
+            return redirect(next_url)
+        return redirect(request.path)
 
 
 class AssetSuministrosReportView(AssetInventoryBaseView):
@@ -2832,101 +2859,6 @@ def export_asset_system_equipo_excel(request):
     workbook.save(response)
     return response
 
-
-class DarBajaCreateView(LoginRequiredMixin, CreateView):
-    model = DarBaja
-    form_class = DarBajaForm
-    template_name = 'got/systems/dar_baja_form.html'
-
-    def get_equipo(self):
-        equipo_code = self.kwargs.get('equipo_code')
-        equipo = get_object_or_404(Equipo, code=equipo_code)
-        return equipo
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        equipo = self.get_equipo()
-        context['equipo'] = equipo
-        return context
-
-    def form_valid(self, form):
-        equipo = self.get_equipo()
-        user = self.request.user
-        # Establecer los campos automáticos
-        form.instance.equipo = equipo
-        form.instance.reporter = user.get_full_name() if user.get_full_name() else user.username
-        form.instance.activo = f"{equipo.system.asset.name} - {equipo.system.name}"
-
-        response = super().form_valid(form)
-
-        # Manejar las firmas
-        firma_responsable_data = self.request.POST.get('firma_responsable_data')
-        firma_autorizado_data = self.request.POST.get('firma_autorizado_data')
-
-        print('Firma Responsable Data:', self.request.POST.get('firma_responsable_data'))
-        print('Firma Autorizado Data:', self.request.POST.get('firma_autorizado_data'))
-
-        if firma_responsable_data:
-            format, imgstr = firma_responsable_data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr))
-            self.object.firma_responsable.save(f'firma_responsable_{self.object.pk}.{ext}', data, save=True)
-
-        if firma_autorizado_data:
-            format, imgstr = firma_autorizado_data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr))
-            self.object.firma_autorizado.save(f'firma_autorizado_{self.object.pk}.{ext}', data, save=True)
-
-        # Eliminar rutinas asociadas al equipo
-        routines = equipo.equipos.all()
-        if routines.exists():
-            routines.delete()
-            messages.warning(self.request, 'Las rutinas asociadas al equipo han sido eliminadas.')
-
-        # Eliminar registros de horas (HistoryHour)
-        history_hours = equipo.hours.all()
-        if history_hours.exists():
-            history_hours.delete()
-            messages.warning(self.request, 'Los registros de horas asociados al equipo han sido eliminados.')
-
-        # Eliminar registros de consumo diario de combustible (DailyFuelConsumption)
-        daily_fuel_consumption = equipo.fuel_consumptions.all()
-        if daily_fuel_consumption.exists():
-            daily_fuel_consumption.delete()
-            messages.warning(self.request, 'Los registros de consumo diario de combustible han sido eliminados.')
-
-        # Eliminar registros de Megger
-        megger_records = equipo.megger_set.all()
-        if megger_records.exists():
-            megger_records.delete()
-            messages.warning(self.request, 'Los registros de Megger asociados al equipo han sido eliminados.')
-
-        # Eliminar registros preoperacionales
-        preoperational_records = equipo.preoperacional_set.all()
-        if preoperational_records.exists():
-            preoperational_records.delete()
-            messages.warning(self.request, 'Los registros preoperacionales asociados al equipo han sido eliminados.')
-
-        # Eliminar suministros (Suministro)
-        supplies = equipo.suministros.all()
-        if supplies.exists():
-            supplies.delete()
-            messages.warning(self.request, 'Los suministros asociados al equipo han sido eliminados.')
-
-        # Mover el equipo al sistema con id 445
-        new_system = System.objects.get(id=445)
-        old_system = equipo.system
-        equipo.system = new_system
-        equipo.save()
-        messages.success(self.request, f'El equipo ha sido trasladado al sistema {new_system.name}.')
-
-        # Redirigir al usuario a la vista del sistema original
-        return response
-    
-    def get_success_url(self):
-        old_system = self.get_equipo().system
-        return reverse('got:sys-detail', kwargs={'pk': old_system.id})
 
 
 class CustomPasswordResetView(PasswordResetView):
