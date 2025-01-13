@@ -649,16 +649,13 @@ def calculate_status_code(t):
 
 
 def update_equipo_code(old_code):
-
     equipo = Equipo.objects.get(code=old_code)
     system = equipo.system
     asset_abbreviation = system.asset.abbreviation
     group_number = system.group
     tipo = equipo.tipo.upper()
  
-    similar_equipments = Equipo.objects.filter(
-        code__startswith=f"{asset_abbreviation}-{group_number}-{tipo}"
-    )
+    similar_equipments = Equipo.objects.filter(code__startswith=f"{asset_abbreviation}-{group_number}-{tipo}")
     sequence_number = similar_equipments.count() + 1
     sequence_str = str(sequence_number).zfill(3) 
     generated_code = f"{asset_abbreviation}-{group_number}-{tipo}-{sequence_str}"
@@ -722,6 +719,8 @@ def update_equipo_code(old_code):
             # Document
             updated_documents = Document.objects.filter(equipo__code=old_code).update(equipo=equipo)
             print(f"Document actualizado: {updated_documents} registros")
+
+            Equipo.objects.filter(code=old_code).exclude(pk=equipo.pk).delete()
 
             print(f"El código del equipo '{old_code}' ha sido actualizado a '{generated_code}' en todas las tablas relacionadas.")
     
