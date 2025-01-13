@@ -784,7 +784,10 @@ def get_full_systems(asset, user):
         else:
             return System.objects.none()
     other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
-    return (systems.union(other_asset_systems)).order_by('group')
+
+    combined = systems.union(other_asset_systems).order_by('group')
+    return combined
+    # return (systems.union(other_asset_systems)).order_by('group')
 
 
 def get_full_systems_ids(asset, user):

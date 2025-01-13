@@ -14,6 +14,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView
+from got.utils import get_full_systems_ids
 
 
 class AssetListView(ListView):
@@ -53,10 +54,8 @@ class ActivoEquipmentListView(View):
         activo = get_object_or_404(Asset, abbreviation=abbreviation)
 
         # 3) Tomar todos los sistemas del Activo
-        sistemas = activo.system_set.all()
-
-        # 4) Listar equipos de dichos sistemas
-        equipos = Equipo.objects.filter(system__in=sistemas).order_by('name')
+        sistemas_ids = get_full_systems_ids(activo, request.user)
+        equipos = Equipo.objects.filter(system__in=sistemas_ids)
 
         # 5) Suministros ligados a este Activo
         suministros = Suministro.objects.filter(asset=activo).select_related('item')
@@ -90,13 +89,10 @@ class ActivoEquipmentListView(View):
             'activo': activo,
             'all_activos': all_activos,   # Para el scroll horizontal
             'equipos': equipos,           # Para la tabla de equipos
-            # 'equipos_qr': equipos_con_qr,
+            'fecha_actual': timezone.now().date(),
             'suministros': suministros,   # Para la tabla de suministros
             'all_items': all_items,
         }
-
-        context['fecha_actual'] = timezone.now().date()
-
         return render(request, self.template_name, context)
     
     

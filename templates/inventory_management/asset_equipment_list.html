@@ -106,31 +106,31 @@
          class="form-control form-control-sm mb-3"
          placeholder="Filtrar por nombre de equipo...">
 
-  <!-- 3. Tabla de Equipos -->
-  <div class="table-responsive">
-    <table class="table table-sm align-middle"
-           style="font-size:0.85rem;"
-           id="equiposTable">
-      <thead>
-        <tr>
-          <th id="sortByEquipo">
-            Equipo <i class="fa-solid fa-sort"></i>
-          </th>
-          <th id="sortByTipo">
-            Tipo <i class="fa-solid fa-sort"></i>
-          </th>
-          <th id="sortByUbicacion">
-            Ubicación <i class="fa-solid fa-sort"></i>
-          </th>
-          <th class="text-end">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for eq in equipos %}
-        <tr>
-          <td class="equipo-name" style="white-space: nowrap;">{{ eq.name }}</td>
-          <td>{{ eq.get_tipo_display }}</td>
-          <td>{{ eq.ubicacion|default_if_none:"--" }}</td>
+<!-- 3. Tabla de Equipos -->
+<div class="table-responsive">
+	<table class="table table-sm align-middle" style="font-size:0.85rem;" id="equiposTable">
+      	<thead>
+        	<tr>
+				<th id="sortByEquipo">
+					Equipo <i class="fa-solid fa-sort"></i>
+				</th>
+				<th>Sistema</th>
+				<th id="sortByTipo">
+					Tipo <i class="fa-solid fa-sort"></i>
+				</th>
+				<th id="sortByUbicacion">
+					Ubicación <i class="fa-solid fa-sort"></i>
+				</th>
+          		<th class="text-end">Acciones</th>
+        	</tr>
+      	</thead>
+      	<tbody>
+        	{% for eq in equipos %}
+        	<tr>
+				<td class="equipo-name" style="white-space: nowrap;">{{ eq.name }}</td>
+				<td>{{ eq.system }}</td>
+				<td>{{ eq.get_tipo_display }}</td>
+				<td>{{ eq.ubicacion|default_if_none:"--" }}</td>
           <td class="text-end">
             <!-- Editar/Modificar -->
             <a href="{% url 'got:equipo-update' eq.code %}?next={{ request.path }}"
