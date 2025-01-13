@@ -44,28 +44,28 @@ def megger_view(request, pk):
         if 'submit_estator_i_1' in request.POST:
             if form_estator_i_1.is_valid():
                 form_estator_i_1.save()
-                return redirect('meg:megger_detail', pk=megger.pk)
+                return redirect('meg:meg-detail', pk=megger.pk)
         if 'submit_estator_i_2' in request.POST:
             if form_estator_i_2.is_valid():
                 form_estator_i_2.save()
-                return redirect('meg:megger_detail', pk=megger.pk)
+                return redirect('meg:meg-detail', pk=megger.pk)
         if 'submit_estator_f_1' in request.POST:
             if form_estator_f_1.is_valid():
                 form_estator_f_1.save()
-                return redirect('meg:megger_detail', pk=megger.pk)
+                return redirect('meg:meg-detail', pk=megger.pk)
         if 'submit_estator_f_2' in request.POST:
             if form_estator_f_2.is_valid():
                 form_estator_f_2.save()
-                return redirect('meg:megger_detail', pk=megger.pk)
+                return redirect('meg:meg-detail', pk=megger.pk)
             
         if 'submit_excitatriz_i' in request.POST:
             if form_excitatriz_i.is_valid():
                 form_excitatriz_i.save()
-                return redirect('meg:megger_detail', pk=megger.pk)
+                return redirect('meg:meg-detail', pk=megger.pk)
         if 'submit_excitatriz_f' in request.POST:
             if form_excitatriz_f.is_valid():
                 form_excitatriz_f.save()
-                return redirect('meg:megger_detail', pk=megger.pk)
+                return redirect('meg:meg-detail', pk=megger.pk)
             
 
         elif 'submit_rotormain' in request.POST:
@@ -124,10 +124,78 @@ def create_megger(request, ot_id):
         RotorAux.objects.create(megger=megger, test_type='i')
         RodamientosEscudos.objects.create(megger=megger, test_type='i')
 
-        return redirect('meg:megger_detail', pk=megger.pk)
+        return redirect('meg:meg-detail', pk=megger.pk)
     
 
+
 def megger_pdf(request, pk):
-    registro = Megger.objects.get(pk=pk)
-    context = {'meg': registro}
+    # 1) Obtener el registro principal Megger
+    registro = get_object_or_404(Megger, pk=pk)
+
+    # 2) Obtener subregistros de Estator:
+    #    a) Prueba Inicial (i) => con time_type='1' y time_type='2'
+    #       -> i_1 y i_2
+    #    b) Prueba Final (f)   => f_1 y f_2
+    estator_i_1 = get_object_or_404(
+        Estator, 
+        megger=registro, 
+        test_type='i',  # inicial
+        time_type='1'   # 1 min
+    )
+    estator_i_2 = get_object_or_404(
+        Estator, 
+        megger=registro, 
+        test_type='i',
+        time_type='2'   # 10 min (o como lo manejes)
+    )
+    estator_f_1 = get_object_or_404(
+        Estator, 
+        megger=registro, 
+        test_type='f',  
+        time_type='1'
+    )
+    estator_f_2 = get_object_or_404(
+        Estator, 
+        megger=registro, 
+        test_type='f',
+        time_type='2'
+    )
+
+    # 3) Obtener subregistros de Excitatriz (inicial y final)
+    excitatriz_i = get_object_or_404(
+        Excitatriz,
+        megger=registro,
+        test_type='i'
+    )
+    excitatriz_f = get_object_or_404(
+        Excitatriz,
+        megger=registro,
+        test_type='f'
+    )
+
+    # 4) Obtener RotorMain, RotorAux, RodamientosEscudos
+    #    Dependiendo de cómo lo manejas, si solo existe 1 por Megger, 
+    #    se haría un simple get_object_or_404. 
+    rotormain   = get_object_or_404(RotorMain,   megger=registro)
+    rotoraux    = get_object_or_404(RotorAux,    megger=registro)
+    rodamientos = get_object_or_404(RodamientosEscudos, megger=registro)
+
+    # 5) Construir el contexto para la plantilla
+    context = {
+        'meg': registro,       # El Megger en sí
+        # Cuatro instancias de Estator:
+        'estator_i_1': estator_i_1,
+        'estator_i_2': estator_i_2,
+        'estator_f_1': estator_f_1,
+        'estator_f_2': estator_f_2,
+        # Dos de Excitatriz:
+        'excitatriz_i': excitatriz_i,
+        'excitatriz_f': excitatriz_f,
+        # Rotor & Rodamientos:
+        'rotormain':   rotormain,
+        'rotoraux':    rotoraux,
+        'rodamientosescudos': rodamientos,
+    }
+
+    # 6) Renderizar a PDF (o un HttpResponse con PDF)
     return render_to_pdf('meg/meg_detail.html', context)
