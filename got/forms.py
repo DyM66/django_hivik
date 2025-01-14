@@ -836,13 +836,6 @@ class TransferenciaForm(forms.ModelForm):
         self.fields['destino'].label_from_instance = lambda obj: f"{obj.asset.name} - {obj.name}"
 
 
-class DarBajaForm(forms.ModelForm):
-
-    class Meta:
-        model = DarBaja
-        fields = ['motivo', 'observaciones', 'disposicion', 'firma_responsable', 'firma_autorizado']
-
-
 class ItemForm(forms.ModelForm):
     class Meta:
         model = Item
@@ -872,24 +865,6 @@ class ActivityForm(forms.Form):
 
 class CustomSignatureForm(forms.Form):
     signature = forms.CharField(widget=forms.HiddenInput())
-
-
-class DarBajaForm(forms.ModelForm):
-    class Meta:
-        model = DarBaja
-        fields = ['motivo', 'observaciones', 'disposicion', 'responsable']
-        widgets = {
-            'motivo': forms.Select(attrs={'class': 'form-control'}),
-            'observaciones': forms.Textarea(attrs={'class': 'form-control'}),
-            'disposicion': forms.Textarea(attrs={'class': 'form-control'}),
-            'responsable': forms.TextInput(attrs={'class': 'form-control'}),
-        }
-        labels = {
-            'motivo': 'Motivo de la baja',
-            'observaciones': 'Observaciones',
-            'disposicion': 'Disposición final del equipo',
-            'responsable': 'Responsable del equipo',
-        }
 
 
 class RequirementForm(forms.ModelForm):

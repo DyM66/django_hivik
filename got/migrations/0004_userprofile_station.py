@@ -12,12 +12,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='station',
-            field=models.CharField(blank=True, max_length=100, null=True),
-        ),
-
-        migrations.AddField(
             model_name='transaction',
             name='cant_report_transf',
             field=models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True),
@@ -73,23 +67,18 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[],
             state_operations=[
-                migrations.DeleteModel(name='Megger'),
-                migrations.DeleteModel(name='Estator'),
-                migrations.DeleteModel(name='Excitatriz'),
-                migrations.DeleteModel(name='RotorMain'),
-                migrations.DeleteModel(name='RotorAux'),
-                migrations.DeleteModel(name='RodamientosEscudos'),
+                migrations.DeleteModel(name='DarBaja'),
             ]
         ),
-
-        migrations.RemoveField(
-            model_name='ruta',
-            name='clase',
-        ),
-        migrations.AddField(
-            model_name='ruta',
-            name='clase_date',
-            field=models.DateField(blank=True, help_text='(Opcional) Fecha en que se renovó el certificado de clase, si es un dique de clase.', null=True),
-        ),
-    
+        # migrations.SeparateDatabaseAndState(
+        #     database_operations=[],
+        #     state_operations=[
+        #         migrations.DeleteModel(name='Megger'),
+        #         migrations.DeleteModel(name='Estator'),
+        #         migrations.DeleteModel(name='Excitatriz'),
+        #         migrations.DeleteModel(name='RotorMain'),
+        #         migrations.DeleteModel(name='RotorAux'),
+        #         migrations.DeleteModel(name='RodamientosEscudos'),
+        #     ]
+        # ),
     ]

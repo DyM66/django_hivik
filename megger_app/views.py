@@ -127,7 +127,6 @@ def create_megger(request, ot_id):
         return redirect('meg:meg-detail', pk=megger.pk)
     
 
-
 def megger_pdf(request, pk):
     # 1) Obtener el registro principal Megger
     registro = get_object_or_404(Megger, pk=pk)
@@ -196,6 +195,4 @@ def megger_pdf(request, pk):
         'rotoraux':    rotoraux,
         'rodamientosescudos': rodamientos,
     }
-
-    # 6) Renderizar a PDF (o un HttpResponse con PDF)
     return render_to_pdf('meg/meg_detail.html', context)

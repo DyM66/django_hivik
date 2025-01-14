@@ -31,7 +31,7 @@ class Estator(models.Model):
     megger = models.ForeignKey(Megger, on_delete=models.CASCADE)
     test_type = models.CharField(max_length=1, choices=TEST_TYPE_CHOICES, default='i')
     time_type = models.CharField(max_length=1, choices=TIME_TYPE_CHOICES, default='1')
-    pi_1min_l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    l1_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     pi_1min_l2_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     pi_1min_l3_tierra = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     pi_1min_l1_l2 = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)

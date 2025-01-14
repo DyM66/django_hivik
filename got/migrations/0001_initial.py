@@ -21,6 +21,7 @@ class Migration(migrations.Migration):
                 ('cargo', models.CharField(blank=True, max_length=100, null=True)),
                 ('firma', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
+                ('station', models.CharField(blank=True, max_length=100, null=True)),
             ],
         ),
         migrations.CreateModel(
@@ -176,9 +177,9 @@ class Migration(migrations.Migration):
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='equipos', to='got.equipo')),
                 ('control', models.CharField(choices=[('d', 'Días'), ('h', 'Horas'), ('k', 'Kilómetros')], max_length=1)),
                 ('dependencia', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='dependiente', to='got.ruta')),
-                ('clase', models.BooleanField(default=False)),
                 ('nivel', models.IntegerField(choices=[(1, 'Nivel 1 - Operadores'), (2, 'Nivel 2 - Técnico'), (3, 'Nivel 3 - Proveedor especializado'), (4, 'Nivel 4 - Fabricante')], default=1)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('clase_date', models.DateField(blank=True, help_text='(Opcional) Fecha en que se renovó el certificado de clase, si es un dique de clase.', null=True)),
             ],
             options={'ordering': ['frecuency']},
         ),
