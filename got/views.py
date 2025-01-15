@@ -2236,7 +2236,7 @@ def rutina_form_view(request, ruta_id):
                 tasks_dependencia = Task.objects.filter(ruta=dependencia)
                 formset_data += [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages(), 'dependencia': dependencia.name} for task in tasks_dependencia]
 
-    return render(request, 'got/ruta_ot_form.html', 
+    return render(request, 'got/rutinas/ruta_ot_form.html', 
                   {'formset_data': formset_data, 'ruta': ruta, 'dependencias': dependencias, 'fecha_seleccionada': fecha_seleccionada}
                   )
 

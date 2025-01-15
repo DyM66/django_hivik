@@ -70,12 +70,15 @@
         // Tomamos el input
         var interventionInput = document.getElementById('id_intervention_date');
   
-        // Configuramos Flatpickr
-        flatpickr(interventionInput, {
-            inline: true, 
-            appendTo: document.getElementById('calendarContainer'), 
-            dateFormat: "d/m/Y",
-            locale: "es",
+            // Configuramos Flatpickr
+            flatpickr(interventionInput, {
+                inline: true, 
+                appendTo: document.getElementById('calendarContainer'), 
+                dateFormat: "Y-m-d",
+                altInput: true, 
+                altFormat: "d/m/Y", 
+                defaultDate: interventionInput.value,
+                locale: "es",
             });
         });
 </script>
