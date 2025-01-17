@@ -47,28 +47,62 @@ class Asset(models.Model):
     arqueo_bruto = models.IntegerField(default=0, null=True, blank=True)
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
 
+    # @property
+    # def maintenance_compliance(self):
+    #     systems = self.system_set.all()
+    #     all_rutas = Ruta.objects.filter(system__in=systems)
+    #     total_rutas = all_rutas.count()
+        
+    #     if total_rutas == 0:
+    #         return None
+
+    #     compliant_count = 0
+
+    #     for ruta in all_rutas:
+    #         if ruta.control == 'd':
+    #             if ruta.next_date >= date.today():
+    #                 compliant_count += 1
+    #         elif ruta.control == 'h' or ruta.control == 'k':
+    #             accumulated_hours = ruta.equipo.hours.filter(report_date__gte=ruta.intervention_date, report_date__lte=date.today()).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
+    #             if accumulated_hours <= ruta.frecuency:
+    #                 compliant_count += 1
+
+    #     compliance_percentage = (compliant_count / total_rutas) * 100
+    #     return round(compliance_percentage, 2)
+
+
     @property
     def maintenance_compliance(self):
         systems = self.system_set.all()
         all_rutas = Ruta.objects.filter(system__in=systems)
-        total_rutas = all_rutas.count()
-        
-        if total_rutas == 0:
+
+        # Suma total de niveles (en vez de sólo contar cuántas rutinas hay)
+        total_niveles = sum(ruta.nivel for ruta in all_rutas)
+        if total_niveles == 0:
             return None
 
-        compliant_count = 0
-
+        compliant_weight = 0
+        
         for ruta in all_rutas:
+            # Verificamos si la rutina está al día según su tipo de control
             if ruta.control == 'd':
+                # Al día si next_date >= hoy
                 if ruta.next_date >= date.today():
-                    compliant_count += 1
-            elif ruta.control == 'h' or ruta.control == 'k':
-                accumulated_hours = ruta.equipo.hours.filter(report_date__gte=ruta.intervention_date, report_date__lte=date.today()).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
-                if accumulated_hours <= ruta.frecuency:
-                    compliant_count += 1
+                    compliant_weight += ruta.nivel
 
-        compliance_percentage = (compliant_count / total_rutas) * 100
+            elif ruta.control in ['h', 'k']:
+                # Para control por horas o km
+                accumulated_hours = ruta.equipo.hours.filter(
+                    report_date__gte=ruta.intervention_date,
+                    report_date__lte=date.today()
+                ).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
+
+                if accumulated_hours <= ruta.frecuency:
+                    compliant_weight += ruta.nivel
+
+        compliance_percentage = (compliant_weight / total_niveles) * 100
         return round(compliance_percentage, 2)
+
 
     def __str__(self):
         return self.name
