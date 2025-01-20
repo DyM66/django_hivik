@@ -14,4 +14,5 @@ urlpatterns = [
     path('all/equipos/', AllAssetsEquipmentListView.as_view(), name='all_equipment_list'),
     path('equipo/<str:equipo_code>/dar_baja/', DarBajaCreateView.as_view(), name='dar_baja'),
 
+    # path('create-supply/<str:abbreviation>/', create_supply_view, name='create_supply'),
 ]

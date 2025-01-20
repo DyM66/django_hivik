@@ -11,22 +11,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='transaction',
-            name='cant_report_transf',
-            field=models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True),
-        ),
-        migrations.AddField(
-            model_name='transaction',
-            name='suministro_transf',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.suministro'),
-        ),
         migrations.AlterField(
             model_name='transaction',
             name='tipo',
             field=models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo')], default='i', max_length=1),
         ),
-
         migrations.AddField(
             model_name='solicitud',
             name='dpto',
@@ -70,15 +59,4 @@ class Migration(migrations.Migration):
                 migrations.DeleteModel(name='DarBaja'),
             ]
         ),
-        # migrations.SeparateDatabaseAndState(
-        #     database_operations=[],
-        #     state_operations=[
-        #         migrations.DeleteModel(name='Megger'),
-        #         migrations.DeleteModel(name='Estator'),
-        #         migrations.DeleteModel(name='Excitatriz'),
-        #         migrations.DeleteModel(name='RotorMain'),
-        #         migrations.DeleteModel(name='RotorAux'),
-        #         migrations.DeleteModel(name='RodamientosEscudos'),
-        #     ]
-        # ),
     ]

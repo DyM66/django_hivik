@@ -10,7 +10,7 @@ from taggit.managers import TaggableManager
 from .paths import *
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
 from outbound.models import OutboundDelivery
-from inventory_management.models import DarBaja
+from inv.models import DarBaja
 from got.models_group.Item_model import Item
 from got.models_group.Service_model import Service
 from got.models_group.Userprofile_model import UserProfile
@@ -47,42 +47,18 @@ class Asset(models.Model):
     arqueo_bruto = models.IntegerField(default=0, null=True, blank=True)
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
 
-    # @property
-    # def maintenance_compliance(self):
-    #     systems = self.system_set.all()
-    #     all_rutas = Ruta.objects.filter(system__in=systems)
-    #     total_rutas = all_rutas.count()
-        
-    #     if total_rutas == 0:
-    #         return None
-
-    #     compliant_count = 0
-
-    #     for ruta in all_rutas:
-    #         if ruta.control == 'd':
-    #             if ruta.next_date >= date.today():
-    #                 compliant_count += 1
-    #         elif ruta.control == 'h' or ruta.control == 'k':
-    #             accumulated_hours = ruta.equipo.hours.filter(report_date__gte=ruta.intervention_date, report_date__lte=date.today()).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
-    #             if accumulated_hours <= ruta.frecuency:
-    #                 compliant_count += 1
-
-    #     compliance_percentage = (compliant_count / total_rutas) * 100
-    #     return round(compliance_percentage, 2)
-
-
     @property
     def maintenance_compliance(self):
         systems = self.system_set.all()
         all_rutas = Ruta.objects.filter(system__in=systems)
 
-        # Suma total de niveles (en vez de sólo contar cuántas rutinas hay)
+        # total_rutas = all_rutas.count()
         total_niveles = sum(ruta.nivel for ruta in all_rutas)
+
         if total_niveles == 0:
             return None
 
         compliant_weight = 0
-        
         for ruta in all_rutas:
             # Verificamos si la rutina está al día según su tipo de control
             if ruta.control == 'd':
@@ -707,7 +683,7 @@ class Image(models.Model):
     salida= models.ForeignKey('outbound.outbounddelivery', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacional = models.ForeignKey('preoperacionales.preoperacional', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacionaldiario = models.ForeignKey('preoperacionales.preoperacionaldiario', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    darbaja = models.ForeignKey(DarBaja, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    darbaja = models.ForeignKey('inv.DarBaja', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     requirements = models.ForeignKey(Requirement, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
 

@@ -36,7 +36,7 @@ urlpatterns = [
     path('got/preoperacional/', include('preoperacionales.urls')),
     path('outbound/', include('outbound.urls')),
     path('megger/', include('megger_app.urls')),
-    path('inv/', include('inventory_management.urls', namespace='inventory_management')),
+    path('inv/', include('inv.urls')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
     
     # path('', include(router.urls)),

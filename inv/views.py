@@ -16,6 +16,16 @@ from django.views import View
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView
 from got.utils import get_full_systems_ids
+from django.views.decorators.csrf import csrf_exempt
+import openpyxl
+from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
+from got.utils import pro_export_to_excel 
+import io
+from django.http import HttpResponse
+from openpyxl import Workbook
+from django.shortcuts import redirect
+from django.contrib import messages
 
 
 class AssetListView(ListView):
@@ -62,9 +72,6 @@ class ActivoEquipmentListView(View):
         }
         return render(request, self.template_name, context)
     
-    
-
-from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
 def public_equipo_detail(request, eq_code):
@@ -93,11 +100,6 @@ def public_equipo_detail(request, eq_code):
     }
     return render(request, 'inventory_management/public_equipo_detail.html', context)
 
-
-import openpyxl
-from openpyxl.styles import Font, Alignment
-from openpyxl.utils import get_column_letter
-from got.utils import pro_export_to_excel 
 
 def export_equipment_supplies(request, abbreviation):
     """
@@ -178,19 +180,6 @@ def export_equipment_supplies(request, abbreviation):
                 str(s.cantidad)
             ])
 
-    # 4. Crear un Workbook con 2 hojas:
-    #    Notaremos que tu pro_export_to_excel, tal como está, genera un HttpResponse con 1 sheet.
-    #    Para hacer 2 sheets, hay 2 vías:
-    #      A) Llamar 2 veces => no se puede, pues retorna la response
-    #      B) Reescribir algo interno
-    #      C) “Hack” => generar 2 Excel independientes no es lo que quieres...
-    #    Lo más adecuado: te muestro un EJEMPLO de la lógica interna “similar” a pro_export_to_excel
-    #    pero adaptada a 2 sheets. Te muestro cómo:
-    
-    import io
-    from django.http import HttpResponse
-    from openpyxl import Workbook
-
     wb = Workbook()
     ws_equips = wb.active
     ws_equips.title = "Equipos"
@@ -253,48 +242,46 @@ def export_equipment_supplies(request, abbreviation):
     response["Content-Disposition"] = f'attachment; filename={filename}'
     return response
 
-from django.shortcuts import redirect
-from django.contrib import messages
 
-def create_supply_view(request, abbreviation):
-    """
-    Crea un nuevo Suministro asociado a un Activo, según
-    el item seleccionado en el modal y la cantidad ingresada.
-    """
-    asset = get_object_or_404(Asset, abbreviation=abbreviation)
+# def create_supply_view(request, abbreviation):
+#     """
+#     Crea un nuevo Suministro asociado a un Activo, según
+#     el item seleccionado en el modal y la cantidad ingresada.
+#     """
+#     asset = get_object_or_404(Asset, abbreviation=abbreviation)
 
-    if request.method == 'POST':
-        item_id = request.POST.get('item_id')
-        cantidad_str = request.POST.get('cantidad')
+#     if request.method == 'POST':
+#         item_id = request.POST.get('item_id')
+#         cantidad_str = request.POST.get('cantidad')
 
-        if not item_id or not cantidad_str:
-            messages.error(request, "Debe seleccionar un artículo y especificar la cantidad.")
-            return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
+#         if not item_id or not cantidad_str:
+#             messages.error(request, "Debe seleccionar un artículo y especificar la cantidad.")
+#             return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
 
-        try:
-            cantidad = float(cantidad_str)
-        except ValueError:
-            messages.error(request, "Cantidad inválida.")
-            return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
+#         try:
+#             cantidad = float(cantidad_str)
+#         except ValueError:
+#             messages.error(request, "Cantidad inválida.")
+#             return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
 
-        # Verificar que el item exista
-        try:
-            item = Item.objects.get(id=item_id)
-        except Item.DoesNotExist:
-            messages.error(request, "No se encontró el artículo seleccionado.")
-            return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
+#         # Verificar que el item exista
+#         try:
+#             item = Item.objects.get(id=item_id)
+#         except Item.DoesNotExist:
+#             messages.error(request, "No se encontró el artículo seleccionado.")
+#             return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
 
-        # Crear el nuevo Suministro
-        Suministro.objects.create(
-            item=item,
-            cantidad=cantidad,
-            asset=asset  # Asignado al Activo
-        )
-        messages.success(request, f"Se ha creado un nuevo suministro para {asset.name}.")
-        return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
+#         # Crear el nuevo Suministro
+#         Suministro.objects.create(
+#             item=item,
+#             cantidad=cantidad,
+#             asset=asset  # Asignado al Activo
+#         )
+#         messages.success(request, f"Se ha creado un nuevo suministro para {asset.name}.")
+#         return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
 
-    # Si no es POST => redirigir sin hacer nada
-    return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
+#     # Si no es POST => redirigir sin hacer nada
+#     return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
 
 
 class AllAssetsEquipmentListView(View):
@@ -438,3 +425,79 @@ class DarBajaCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         old_system = self.get_equipo().system
         return reverse('got:sys-detail', kwargs={'pk': old_system.id})
+
+
+from got.forms import ItemForm  # asumiendo que tu ItemForm está en got/forms.py
+
+def create_supply_view(request, abbreviation):
+    """
+    Crea un nuevo Suministro asociado a un Activo.
+    Opcionalmente crea un nuevo Item si el usuario marcó "is_new_item == 1".
+    """
+    asset = get_object_or_404(Asset, abbreviation=abbreviation)
+
+    if request.method == 'POST':
+        is_new_item = request.POST.get('is_new_item', '0')
+        cantidad_str = request.POST.get('cantidad')
+
+        # Validar cantidad
+        if not cantidad_str:
+            messages.error(request, "Debe especificar la cantidad.")
+            return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
+
+        try:
+            cantidad = float(cantidad_str)
+        except ValueError:
+            messages.error(request, "Cantidad inválida.")
+            return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
+
+        # Caso A: Crear artículo nuevo
+        if is_new_item == '1':
+            form_data = {
+                'name': request.POST.get('new_item_name'),
+                'reference': request.POST.get('new_item_reference'),
+                'presentacion': request.POST.get('new_item_presentacion'),
+                'code': request.POST.get('new_item_code'),
+                'seccion': request.POST.get('new_item_seccion'),
+                'unit_price': request.POST.get('new_item_unit_price') or 0.00,
+            }
+            files_data = {}
+            if 'new_item_imagen' in request.FILES:
+                files_data['imagen'] = request.FILES['new_item_imagen']
+
+            item_form = ItemForm(form_data, files_data)
+            if item_form.is_valid():
+                new_item = item_form.save(commit=False)
+                if request.user.is_authenticated:
+                    new_item.modified_by = request.user
+                new_item.save()
+                item = new_item
+                messages.success(request, f"Artículo '{item.name}' creado correctamente.")
+            else:
+                messages.error(request, f"Error al crear el artículo: {item_form.errors}")
+                return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
+
+        # Caso B: Se usa un artículo existente
+        else:
+            item_id = request.POST.get('item_id')
+            if not item_id:
+                messages.error(request, "Debe seleccionar un artículo existente o crear uno nuevo.")
+                return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
+
+            try:
+                item = Item.objects.get(id=item_id)
+            except Item.DoesNotExist:
+                messages.error(request, "El artículo seleccionado no existe.")
+                return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
+
+        # Crear el Suministro
+        Suministro.objects.create(
+            item=item,
+            cantidad=cantidad,
+            asset=asset
+        )
+        messages.success(request, f"Se ha creado un nuevo suministro de '{item.name}' para {asset.name}.")
+        return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
+
+    # Si no es POST => redirigir sin hacer nada
+    return redirect('inv:asset_equipment_list', abbreviation=abbreviation)

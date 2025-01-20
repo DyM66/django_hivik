@@ -6,7 +6,7 @@
     <h2 class="mb-3">Inventario de Activos</h2>
 
     <div style="text-align: right; margin-bottom: 1rem;">
-        <a href="{% url 'inventory_management:all_equipment_list' %}"
+        <a href="{% url 'inv:all_equipment_list' %}"
            class="btn btn-sm btn-outline-dark">
           Ver todos los Activos
         </a>
@@ -20,7 +20,7 @@
             <div class="col">
                 <!-- Card estilo Bootstrap -->
                 <div class="card h-100" style="border:1px solid #ccc; cursor: pointer;"
-                     onclick="window.location.href='{% url 'inventory_management:asset_equipment_list' asset.abbreviation %}'"
+                     onclick="window.location.href='{% url 'inv:asset_equipment_list' asset.abbreviation %}'"
                      >
                     <div class="card-header bg-light">
                         {# Título un poco más grande, por ejemplo h5 #}

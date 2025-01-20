@@ -6,7 +6,7 @@
     <!-- TÍTULO -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Listado Global de Equipos y Suministros</h2>
-        <button class="btn btn-sm btn-success" onclick="window.location.href='{% url "inventory_management:export_equipment_supplies" "ALL" %}'">
+        <button class="btn btn-sm btn-success" onclick="window.location.href='{% url "inv:export_equipment_supplies" "ALL" %}'">
             <i class="fa-solid fa-file-excel"></i> Exportar Excel
         </button>
     </div>
@@ -22,7 +22,7 @@
     <div id="activosScrollContainer" class="d-flex flex-row" style="overflow-x: auto; white-space: nowrap; gap: 1rem; padding-bottom: 1rem; border-bottom:1px solid #ccc;">
         {% for a in all_activos %}
             {% if a.area == 'a' or a.area == 'c' or a.area == 'l'  %}
-            <div class="activo-card" style="display:inline-block; cursor:pointer; width:100%;" onclick="window.location.href='{% url "inventory_management:asset_equipment_list" a.abbreviation %}'">
+            <div class="activo-card" style="display:inline-block; cursor:pointer; width:100%;" onclick="window.location.href='{% url "inv:asset_equipment_list" a.abbreviation %}'">
                 <div class="card h-100" style="border:1px solid #ccc; min-width:220px;">
                     <div class="card-header bg-light">
                         <h5 class="card-title mb-0" style="font-size:1.0rem; font-weight:600;">

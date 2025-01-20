@@ -22,7 +22,7 @@ class DarBaja(models.Model):
 
     class Meta:
         db_table = "got_darbaja"   # la misma tabla
-        managed = False            # para que Django no intente crear/borrar la tabla
+        # managed = False            # para que Django no intente crear/borrar la tabla
         ordering = ["-fecha"]
 
     def __str__(self):
