@@ -777,12 +777,12 @@ def horas_total_asset(asset):
 
 def get_full_systems(asset, user):
     systems = asset.system_set.all()
-    if user.groups.filter(name='buzos_members').exists():
-        station = user.profile.station
-        if station:
-            return systems.filter(location__iexact=station)
-        else:
-            return System.objects.none()
+    # if user.groups.filter(name='buzos_members').exists():
+    #     station = user.profile.station
+    #     if station:
+    #         return systems.filter(location__iexact=station)
+    #     else:
+    #         return System.objects.none()
     other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
 
     combined = systems.union(other_asset_systems).order_by('group')
