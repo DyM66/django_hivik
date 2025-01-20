@@ -103,7 +103,7 @@
                 </li>
                 {% endif %}
 
-                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                {% if perms.got.view_equipo %}
                 <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'asset_list' %}active{% endif %}" href="{% url 'inv:asset_list' %}">
                         Inventario

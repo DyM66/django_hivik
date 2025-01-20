@@ -35,7 +35,7 @@ class AssetListView(ListView):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        qs = qs.filter(show=True).exclude(area__in=['b','o','x'])
+        qs = qs.filter(show=True)
         return qs.select_related('supervisor','capitan')
 
 
@@ -43,7 +43,7 @@ class ActivoEquipmentListView(View):
     template_name = 'inventory_management/asset_equipment_list.html'
 
     def get(self, request, abbreviation):
-        all_activos = (Asset.objects.filter(show=True).exclude(area__in=['b', 'o', 'x']).select_related('supervisor', 'capitan').order_by('name'))
+        all_activos = (Asset.objects.filter(show=True).select_related('supervisor', 'capitan').order_by('name'))
         activo = get_object_or_404(Asset, abbreviation=abbreviation)
         sistemas_ids = get_full_systems_ids(activo, request.user)
         equipos = Equipo.objects.filter(system__in=sistemas_ids)
@@ -241,47 +241,6 @@ def export_equipment_supplies(request, abbreviation):
     )
     response["Content-Disposition"] = f'attachment; filename={filename}'
     return response
-
-
-# def create_supply_view(request, abbreviation):
-#     """
-#     Crea un nuevo Suministro asociado a un Activo, según
-#     el item seleccionado en el modal y la cantidad ingresada.
-#     """
-#     asset = get_object_or_404(Asset, abbreviation=abbreviation)
-
-#     if request.method == 'POST':
-#         item_id = request.POST.get('item_id')
-#         cantidad_str = request.POST.get('cantidad')
-
-#         if not item_id or not cantidad_str:
-#             messages.error(request, "Debe seleccionar un artículo y especificar la cantidad.")
-#             return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
-
-#         try:
-#             cantidad = float(cantidad_str)
-#         except ValueError:
-#             messages.error(request, "Cantidad inválida.")
-#             return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
-
-#         # Verificar que el item exista
-#         try:
-#             item = Item.objects.get(id=item_id)
-#         except Item.DoesNotExist:
-#             messages.error(request, "No se encontró el artículo seleccionado.")
-#             return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
-
-#         # Crear el nuevo Suministro
-#         Suministro.objects.create(
-#             item=item,
-#             cantidad=cantidad,
-#             asset=asset  # Asignado al Activo
-#         )
-#         messages.success(request, f"Se ha creado un nuevo suministro para {asset.name}.")
-#         return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
-
-#     # Si no es POST => redirigir sin hacer nada
-#     return redirect('inventory_management:asset_equipment_list', abbreviation=abbreviation)
 
 
 class AllAssetsEquipmentListView(View):
