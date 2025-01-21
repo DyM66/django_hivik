@@ -179,7 +179,7 @@ class Equipo(models.Model):
 
     code = models.CharField(primary_key=True, max_length=50)
     name = models.CharField(max_length=100)
-    date_inv = models.DateField(auto_now_add=True)
+    date_inv = models.DateField(auto_now_add=True, null=True, blank=True)
     model = models.CharField(max_length=50, null=True, blank=True)
     serial = models.CharField(max_length=50, null=True, blank=True)
     marca = models.CharField(max_length=50, null=True, blank=True)
