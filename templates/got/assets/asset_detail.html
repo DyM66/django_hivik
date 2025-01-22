@@ -14,6 +14,11 @@
                                 <i class="bi bi-plus-circle btn-add-table"></i>
                             </button>
 					    {% endif %}
+                        {% if perms.got.add_system %}
+                            <a class="btn-add-table" href="{% url 'got:managerial_asset_report' asset.abbreviation %}">
+                                <i class="fa-light fa-download"></i>
+                            </a>
+                        {% endif %}
 				    </th>
 			    </tr>
 			    <tr>

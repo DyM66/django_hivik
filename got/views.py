@@ -992,7 +992,7 @@ def asset_maintenance_pdf(request, asset_id):
 
     return render_to_pdf('got/systems/asset_pdf_template.html', context)
 
-
+from django.db import transaction, IntegrityError
 'EQUIPMENTS VIEW'
 class EquipoCreateView(LoginRequiredMixin, CreateView):
     model = Equipo
@@ -1014,20 +1014,28 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
         group_number = system.group
         tipo = form.cleaned_data['tipo'].upper()
 
-        similar_equipments = Equipo.objects.filter(
-            code__startswith=f"{asset_abbreviation}-{group_number}-{tipo}"
-        )
-        sequence_number = similar_equipments.count() + 1
-        sequence_str = str(sequence_number).zfill(3) 
-        generated_code = f"{asset_abbreviation}-{group_number}-{tipo}-{sequence_str}"
-        form.instance.code = generated_code
-        form.instance.modified_by = self.request.user
-        response = super().form_valid(form)
+        # 1) Creamos la lógica de asignar code con bucle de reintento
+        while True:
+            # Generamos un code basado en lo que hay
+            generated_code = generate_equipo_code(asset_abbreviation, group_number, tipo)
+            form.instance.code = generated_code
+            form.instance.modified_by = self.request.user
 
+            try:
+                with transaction.atomic():
+                    response = super().form_valid(form)
+                    # Si llegó hasta aquí, guardó sin colisión => salimos del while
+                    break
+            except IntegrityError:
+                # Significa que code ya existía (condición de carrera).
+                # Reintentamos con el siguiente number
+                continue
+        # Manejar carga de imágenes
         upload_form = self.get_context_data()['upload_form']
         if upload_form.is_valid():
             for file in self.request.FILES.getlist('file_field'):
                 Image.objects.create(image=file, equipo=self.object)
+
         return response
 
     def get_success_url(self):
@@ -1192,7 +1200,7 @@ class FailureListView(LoginRequiredMixin, generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['assets'] = Asset.objects.filter(area='a')
+        context['assets'] = Asset.objects.filter(show=True)
         context['count_proceso'] = self.get_queryset().filter(closed=False, related_ot__isnull=False).count()
         context['count_abierto'] = self.get_queryset().filter(closed=False).count()
         return context
@@ -1416,11 +1424,11 @@ class OtListView(LoginRequiredMixin, generic.ListView):
         user_groups = user.groups.values_list('name', flat=True)
 
         if 'buzos_members' in user_groups:
-            info_filter = Asset.objects.filter(area='b')
+            info_filter = Asset.objects.filter(area='b', show=True)
         elif 'maq_members' in user_groups:
             info_filter = Asset.objects.none() 
         else:
-            info_filter = Asset.objects.all()
+            info_filter = Asset.objects.filter(show=True)
         context['asset'] = info_filter
 
         super_group = Group.objects.get(name='super_members')
@@ -3760,3 +3768,60 @@ class BudgetSummaryByAssetView(TemplateView):
             'pie_data':           pie_data_json,
         }
         return self.render_to_response(context)
+
+
+
+def managerial_asset_report_pdf(request, abbreviation):
+    """
+    Genera un PDF con el detalle de los sistemas de un Asset, mostrando
+    equipos, OTs, fallas y sus imágenes.
+    """
+    asset = get_object_or_404(Asset, abbreviation=abbreviation)
+    systems = asset.system_set.all()
+
+    systems_data = []
+    for sys in systems:
+        # Equipos relacionados al sistema
+        equipos = sys.equipos.all()
+
+        # OTs asociadas directamente a este system
+        ots = sys.ot_set.all()
+
+        # Fallas asociadas (filtrar según los equipos de este system)
+        # *También podrías filtrar fallas que tengan self.system = sys, si existiera un campo, pero 
+        #   en este caso sólo fallas vinculadas a sus equipos.
+        equipos_ids = equipos.values_list('pk', flat=True)
+        failures = FailureReport.objects.filter(equipo__in=equipos_ids)
+
+        # Imágenes relacionadas (pueden estar ligadas al system, al equipo, a las tasks, etc.)
+        # 1) Imágenes directas en un equipo (equipo.images).
+        # 2) Imágenes relacionadas con las OTs (en tasks de la OT).
+        # 3) O con FailureReport, etc. 
+        # Para simplificar, buscaremos cualquier Image que apunte a un equipo de este system 
+        # o a un OT de este system o a un FailureReport de esos equipos.
+        images_equipo = Image.objects.filter(equipo__in=equipos_ids)
+        images_failure = Image.objects.filter(failure__in=failures)
+        images_ot = Image.objects.filter(solicitud__isnull=True, 
+                                         equipo__isnull=True, 
+                                         failure__isnull=True,
+                                         task__ot__in=ots)  # si quieres las de tasks. 
+
+        # Unir los QS (sin duplicar)
+        all_images = images_equipo.union(images_failure, images_ot)
+
+        systems_data.append({
+            'system':   sys,
+            'equipments': equipos,
+            'ots':      ots,
+            'failures': failures,
+            'images':   all_images,
+        })
+
+    context = {
+        'asset': asset,
+        'systems_data': systems_data,
+        'today': timezone.now().date(),
+    }
+
+    # Renderizamos el PDF usando la plantilla 
+    return render_to_pdf('got/systems/managerial_asset_report.html', context)

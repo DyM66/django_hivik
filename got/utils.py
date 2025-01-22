@@ -51,6 +51,36 @@ def render_to_pdf(template_src, context_dict={}):
     return HttpResponse('Error al generar el PDF', status=400)
 
 
+
+def generate_equipo_code(asset_abbr, group_number, tipo):
+    """
+    Retorna el siguiente código único con el formato:
+        <asset_abbr>-<group_number>-<tipo>-<seq>
+    donde <seq> es un número incremental con 3 dígitos.
+    """
+    prefix = f"{asset_abbr}-{group_number}-{tipo}"
+    
+    # Buscar todos los equipos que comiencen con prefix
+    # y extraer la parte final numérica para encontrar el mayor.
+    highest_number = 0
+    equipos_similares = Equipo.objects.filter(code__startswith=prefix)
+    
+    for eq in equipos_similares:
+        parts = eq.code.split('-')
+        if len(parts) == 4:
+            # parts[3] es el seq
+            try:
+                seq_int = int(parts[3])
+                if seq_int > highest_number:
+                    highest_number = seq_int
+            except ValueError:
+                pass
+    
+    new_seq = highest_number + 1
+    seq_str = str(new_seq).zfill(3)
+    return f"{prefix}-{seq_str}"
+
+
 def get_filtered_rutas(asset, user, request_data=None):
     
     '''
