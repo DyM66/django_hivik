@@ -166,6 +166,7 @@ class Equipo(models.Model):
         ('n', 'Navegación'),
         ('o', 'Maniobras'),
         ('p', 'Habitabilidad'),
+        ('q', 'Informatica y vigilacia'),
         ('nr', 'No rotativo'),
         ('r', 'Motor a combustión'),    
         ('t', 'Transmisión'),

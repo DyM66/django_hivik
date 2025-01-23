@@ -98,6 +98,7 @@ class Migration(migrations.Migration):
                 ('recibido_por', models.TextField(blank=True, null=True)),
                 ('satisfaccion', models.BooleanField(default=False)),
                 ('requested_by', models.CharField(blank=True, max_length=100, null=True)),
+                ('dpto', models.CharField(choices=[('m', 'Mantenimiento'), ('o', 'Operaciones')], default='m', max_length=1)),
             ],
             options={
                 'ordering': ['-creation_date'],

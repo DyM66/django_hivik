@@ -1,0 +1,101 @@
+{% extends "got/base/pdf_template.html" %}
+{% load static %}
+{% block title %}
+  Historial de Transacciones - {{ asset.name }}
+{% endblock %}
+
+{% block doc_info %}
+  <td>
+    <!-- Aquí puedes poner algún detalle -->
+    <p style="font-size:0.8rem;margin:0;">Fecha: {{ fecha_hoy|date:"d/m/Y" }}</p>
+  </td>
+{% endblock %}
+
+{% block content %}
+  <div style="padding:10px; font-size:0.85rem;">
+    <h2 style="text-align:center; margin-bottom:10px;">
+      Historial de Transacciones
+    </h2>
+
+    {% if fecha_inicio or fecha_fin %}
+      <p style="text-align:center;">
+        Rango de fechas: 
+        {% if fecha_inicio %} {{ fecha_inicio|date:"d/m/Y" }} {% endif %}
+         - 
+        {% if fecha_fin %} {{ fecha_fin|date:"d/m/Y" }} {% endif %}
+      </p>
+    {% endif %}
+
+    <table width="100%" style="border-collapse: collapse; font-size:0.85rem;">
+      <thead>
+        <tr style="background-color:#f0f0f0;">
+          <th style="border:1px solid #000; padding:5px;">Fecha</th>
+          <th style="border:1px solid #000; padding:5px;">Reportado por</th>
+          <th style="border:1px solid #000; padding:5px;">Artículo</th>
+          <th style="border:1px solid #000; padding:5px;">Presentación</th>
+          <th style="border:1px solid #000; padding:5px;">Cantidad</th>
+          <th style="border:1px solid #000; padding:5px;">Movimiento</th>
+          <th style="border:1px solid #000; padding:5px;">Total Reportado</th>
+          <th style="border:1px solid #000; padding:5px;">Descripción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for transaccion in transacciones %}
+          <tr>
+            <td style="border:1px solid #ccc; padding:5px;">
+              {{ transaccion.fecha|date:"d/m/Y" }}
+            </td>
+            <td style="border:1px solid #ccc; padding:5px;">
+              {{ transaccion.user }}
+            </td>
+            <td style="border:1px solid #ccc; padding:5px;">
+              {% if transaccion.suministro.item %}
+                {{ transaccion.suministro.item.name }} 
+                {% if transaccion.suministro.item.reference %}
+                   ({{ transaccion.suministro.item.reference }})
+                {% endif %}
+              {% else %}
+                ---
+              {% endif %}
+            </td>
+            <td style="border:1px solid #ccc; padding:5px;">
+              {% if transaccion.suministro.item %}
+                {{ transaccion.suministro.item.presentacion }}
+              {% else %}
+                ---
+              {% endif %}
+            </td>
+            <td style="border:1px solid #ccc; padding:5px;">
+              {{ transaccion.cant }}
+            </td>
+            <td style="border:1px solid #ccc; padding:5px;">
+              {{ transaccion.get_tipo_display }}
+            </td>
+            <td style="border:1px solid #ccc; padding:5px;">
+              {% if transaccion.tipo == 't' %}
+                {% if transaccion.suministro.asset == asset %}
+                  {{ transaccion.cant_report|default:"---" }}
+                {% elif transaccion.suministro_transf.asset == asset %}
+                  {{ transaccion.cant_report_transf|default:"---" }}
+                {% else %}
+                  ---
+                {% endif %}
+              {% else %}
+                {{ transaccion.cant_report|default:"---" }}
+              {% endif %}
+            </td>
+            <td style="border:1px solid #ccc; padding:5px;">
+              {{ transaccion.motivo }}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" style="text-align:center; border:1px solid #ccc;">
+              No hay transacciones en este rango.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

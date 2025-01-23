@@ -3,7 +3,7 @@ import calendar
 import logging
 import uuid
 import json
-
+import re
 from collections import OrderedDict
 from datetime import timedelta, date, datetime
 from decimal import Decimal
@@ -28,8 +28,6 @@ from django.views import generic, View
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from itertools import groupby
-from operator import attrgetter
 from megger_app.models import Megger
 from taggit.models import Tag 
 from .utils import *
@@ -112,20 +110,25 @@ def profile_update(request):
 
 
 'ASSETS VIEWS'
-class AssetsListView(LoginRequiredMixin, generic.ListView):
-    model = Asset
+class AssetsListView(LoginRequiredMixin, TemplateView):
     template_name = 'got/assets/asset_list.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.groups.filter(name='maq_members').exists():
+        """
+        Conservar la lógica original que redirige a:
+          - El primer asset supervisado (maq_members).
+          - Las tareas si es serport_members.
+          - Caso contrario => mostrar la lista normal.
+        """
+        user = request.user
+        if user.groups.filter(name='maq_members').exists():
             asset = Asset.objects.filter(models.Q(supervisor=request.user) | models.Q(capitan=request.user)).first()
 
             if asset:
                 return redirect('got:asset-detail', pk=asset.abbreviation)
-        elif request.user.groups.filter(name='serport_members').exists():
+        elif user.groups.filter(name='serport_members').exists():
             return redirect('got:my-tasks')
-        else:
-            return super().dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -138,10 +141,8 @@ class AssetsListView(LoginRequiredMixin, generic.ListView):
             'v': 'Vehiculos',
             'x': 'Apoyo'
         }
-        var1 = 'emmanuel'
         assets = Asset.objects.filter(show=True)
         context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in areas.items()}
-        context['clave'] = var1
         print(context)
         return context
 
@@ -244,213 +245,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         filename = 'rutinas.xlsx'
         table_title = 'Reporte de Rutinas'
         return pro_export_to_excel(model=Ruta, headers=headers, data=data, filename=filename, table_title=table_title)
-
-import re
-class AssetInventoryBaseView(LoginRequiredMixin, View):
-    template_name = 'got/assets/asset_inventory_report.html'
-    keyword_filter = None
-
-    def get(self, request, abbreviation):
-        asset = get_object_or_404(Asset, abbreviation=abbreviation)
-        suministros = get_suministros(asset, self.keyword_filter)
-
-        transacciones_historial = self.get_transacciones_historial(asset)
-        ultima_fecha_transaccion = transacciones_historial.aggregate(Max('fecha'))['fecha__max'] or "---"
-        context = self.get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
-        return render(request, self.template_name, context)
-
-    def post(self, request, abbreviation):
-        asset = get_object_or_404(Asset, abbreviation=abbreviation)
-        suministros = get_suministros(asset, self.keyword_filter)
-        action = request.POST.get('action', '')
-
-        if action == 'download_excel':
-            headers_mapping = self.get_headers_mapping()
-            filename = self.get_filename()
-            transacciones_historial = self.get_transacciones_historial(asset)
-            return generate_excel(transacciones_historial, headers_mapping, filename)
-
-        elif action == 'transfer_suministro':
-            suministro_id = request.POST.get('transfer_suministro_id')
-            suministro = get_object_or_404(Suministro, id=suministro_id, asset=asset)
-            transfer_fecha_str = request.POST.get('transfer_fecha', '')
-
-            if not re.match(r'^\d{4}-\d{2}-\d{2}$', transfer_fecha_str):
-                messages.error(request, "Fecha inválida de transferencia: usa el formato YYYY-MM-DD.")
-                return self.redirect_with_next(request)
-            
-            try:
-                transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
-            except ValueError:
-                messages.error(request, "Fecha inválida: no se pudo interpretar el valor ingresado.")
-                return self.redirect_with_next(request)
-            
-            result = handle_transfer(
-                request,
-                asset,
-                suministro,
-                request.POST.get('transfer_cantidad', '0') or '0',
-                request.POST.get('destination_asset_id'),
-                request.POST.get('transfer_motivo', ''),
-                transfer_fecha_str 
-            )
-            if isinstance(result, HttpResponse):
-                return result
-            else:
-                return self.redirect_with_next(request)
-
-        elif action == 'update_inventory':
-            motivo_global = ''
-            fecha_reporte_str = request.POST.get('fecha_reporte', timezone.now().date().strftime('%Y-%m-%d'))
-
-            print(fecha_reporte_str)
-            # 1) Verificar si coincide con el patrón YYYY-MM-DD
-            if not re.match(r'^\d{4}-\d{2}-\d{2}$', fecha_reporte_str):
-                messages.error(request, "Fecha inválida: usa el formato YYYY-MM-DD.")
-                return self.redirect_with_next(request)
-            
-            try:
-                fecha_reporte = datetime.strptime(fecha_reporte_str, '%Y-%m-%d').date()
-            except ValueError:
-                messages.error(request, "Fecha inválida: no se pudo interpretar el valor ingresado.")
-                return self.redirect_with_next(request)
-
-            # 3) Comparar con la fecha actual
-            if fecha_reporte > timezone.now().date():
-                messages.error(request, 'La fecha del reporte no puede ser mayor a la fecha actual.')
-                return self.redirect_with_next(request)
-
-            operation = Operation.objects.filter(asset=asset, confirmado=True, start__lte=fecha_reporte, end__gte=fecha_reporte).first()
-
-            if operation:
-                motivo_global = operation.proyecto
-
-            result = handle_inventory_update(request, asset, suministros, motivo_global)
-            if isinstance(result, HttpResponse):
-                return result
-            else:
-                return self.redirect_with_next(request)
-
-        elif action == 'add_suministro' and request.user.has_perm('got.can_add_supply'):
-            item_id = request.POST.get('item_id')
-            item = get_object_or_404(Item, id=item_id)
-            suministro_existente = Suministro.objects.filter(asset=asset, item=item).exists()
-            if suministro_existente:
-                messages.error(request, f'El suministro para el artículo "{item.name}" ya existe en este asset.')
-            else:
-                Suministro.objects.create(item=item, cantidad=Decimal('0.00'), asset=asset)
-                messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
-            return self.redirect_with_next(request)
-
-        else:
-            messages.error(request, 'Acción no reconocida.')
-            return self.redirect_with_next(request)
-
-    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
-        motonaves = Asset.objects.filter(area='a', show=True)
-        available_items = Item.objects.exclude(id__in=suministros.values_list('item_id', flat=True))
-        context = {
-            'asset': asset,
-            'suministros': suministros,
-            'ultima_fecha_transaccion': ultima_fecha_transaccion,
-            'transacciones_historial': transacciones_historial,
-            'fecha_actual': timezone.now().date(),
-            'motonaves': motonaves,
-            'available_items': available_items,
-        }
-        return context
-
-    def get_headers_mapping(self):
-        return {}
-
-    def get_filename(self):
-        return 'export.xlsx'
-    
-    def get_transacciones_historial(self, asset):
-        transacciones_historial = Transaction.objects.filter(Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)).order_by('-fecha')
-        return transacciones_historial
-    
-    def redirect_with_next(self, request):
-        next_url = request.GET.get('next', '')
-        if next_url:
-            return redirect(next_url)
-        return redirect(request.path)
-
-
-class AssetSuministrosReportView(AssetInventoryBaseView):
-    keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
-
-    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
-        context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
-        # Agrupar suministros por presentación
-        suministros = suministros.order_by('item__presentacion')
-        grouped_suministros = {}
-        for key, group in groupby(suministros, key=attrgetter('item.presentacion')):
-            grouped_suministros[key] = list(group)
-        context['grouped_suministros'] = grouped_suministros
-        context['group_by'] = 'presentacion'
-        return context
-
-    def get_headers_mapping(self):
-        return {
-            'fecha': 'Fecha',
-            'suministro__item__presentacion': 'Presentación',
-            'suministro__item__name': 'Artículo',
-            'cant': 'Cantidad',
-            'tipo': 'Tipo',
-            'user': 'Usuario',
-            'motivo': 'Motivo',
-            'cant_report': 'Cantidad Reportada',
-        }
-
-    def get_filename(self):
-        return 'historial_suministros.xlsx'
-
-
-class AssetInventarioReportView(AssetInventoryBaseView):
-    keyword_filter = ~(Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro'))
-
-    def get_headers_mapping(self):
-        return {
-            'fecha': 'Fecha',
-            'suministro__item__seccion': 'Categoría',
-            'suministro__item__name': 'Artículo',
-            'cant': 'Cantidad',
-            'tipo': 'Tipo',
-            'user': 'Usuario',
-            'motivo': 'Motivo',
-            'cant_report': 'Cantidad Reportada',
-        }
-
-    def get_filename(self):
-        return 'historial_inventario.xlsx'
-
-    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
-        context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
-        suministros = suministros.order_by('item__seccion')
-        grouped_suministros = {}
-        for key, group in groupby(suministros, key=attrgetter('item.seccion')):
-            grouped_suministros[key] = list(group)
-        context['grouped_suministros'] = grouped_suministros
-        context['group_by'] = 'seccion'
-        secciones_dict = dict(Item.SECCION)
-        context['secciones_dict'] = secciones_dict
-        return context
-    
-
-@permission_required('got.delete_transaction', raise_exception=True)
-def delete_transaction(request, transaction_id):
-    transaccion = get_object_or_404(Transaction, id=transaction_id)
-    next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/'))
-
-    if request.method == 'POST':
-        result = handle_delete_transaction(request, transaccion)
-        if isinstance(result, HttpResponse):
-            return result
-        else:
-            return redirect(next_url)
-    else:
-        return redirect(next_url)
 
 
 class AssetDocumentsView(View):
@@ -3770,51 +3564,58 @@ class BudgetSummaryByAssetView(TemplateView):
         return self.render_to_response(context)
 
 
-
 def managerial_asset_report_pdf(request, abbreviation):
-    """
-    Genera un PDF con el detalle de los sistemas de un Asset, mostrando
-    equipos, OTs, fallas y sus imágenes.
-    """
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
     systems = asset.system_set.all()
 
     systems_data = []
     for sys in systems:
-        # Equipos relacionados al sistema
-        equipos = sys.equipos.all()
+        # Equipos y sus imágenes
+        equipos_qs = sys.equipos.all()
+        equipos_data = []
+        for eq in equipos_qs:
+            # Filtramos imágenes asociadas al equipo
+            eq_images = eq.images.all().order_by('id')
+            # Omitir los campos None => lo haremos en la plantilla
 
-        # OTs asociadas directamente a este system
-        ots = sys.ot_set.all()
+            equipos_data.append({
+                'name': eq.name,
+                'ubicacion': eq.ubicacion,
+                'code': eq.code,
+                'model': eq.model,
+                'marca': eq.marca,
+                'serial': eq.serial,
+                'fabricante': eq.fabricante,
+                'tipo_display': eq.get_tipo_display(),
+                'feature': eq.feature,
+                'all_images': eq_images,
+            })
 
-        # Fallas asociadas (filtrar según los equipos de este system)
-        # *También podrías filtrar fallas que tengan self.system = sys, si existiera un campo, pero 
-        #   en este caso sólo fallas vinculadas a sus equipos.
-        equipos_ids = equipos.values_list('pk', flat=True)
-        failures = FailureReport.objects.filter(equipo__in=equipos_ids)
+        # OTs en ejecución
+        ots_en_x = sys.ot_set.filter(state='x')
+        ots_en_ejecucion_data = []
+        for ot in ots_en_x:
+            open_tasks = ot.task_set.filter(finished=False)
+            ots_en_ejecucion_data.append({
+                'num_ot': ot.num_ot,
+                'description': ot.description,
+                'open_tasks': open_tasks,
+            })
 
-        # Imágenes relacionadas (pueden estar ligadas al system, al equipo, a las tasks, etc.)
-        # 1) Imágenes directas en un equipo (equipo.images).
-        # 2) Imágenes relacionadas con las OTs (en tasks de la OT).
-        # 3) O con FailureReport, etc. 
-        # Para simplificar, buscaremos cualquier Image que apunte a un equipo de este system 
-        # o a un OT de este system o a un FailureReport de esos equipos.
-        images_equipo = Image.objects.filter(equipo__in=equipos_ids)
-        images_failure = Image.objects.filter(failure__in=failures)
-        images_ot = Image.objects.filter(solicitud__isnull=True, 
-                                         equipo__isnull=True, 
-                                         failure__isnull=True,
-                                         task__ot__in=ots)  # si quieres las de tasks. 
-
-        # Unir los QS (sin duplicar)
-        all_images = images_equipo.union(images_failure, images_ot)
+        # Fallas abiertas sin OT
+        # => Recolectamos todos los equipos IDs
+        eq_ids = equipos_qs.values_list('pk', flat=True)
+        failures_abiertas = FailureReport.objects.filter(
+            equipo_id__in=eq_ids,
+            closed=False,
+            related_ot__isnull=True
+        )
 
         systems_data.append({
-            'system':   sys,
-            'equipments': equipos,
-            'ots':      ots,
-            'failures': failures,
-            'images':   all_images,
+            'system': sys,
+            'equipments': equipos_data,
+            'ots_en_ejecucion': ots_en_ejecucion_data,
+            'failures_abiertas': failures_abiertas,
         })
 
     context = {
@@ -3823,5 +3624,4 @@ def managerial_asset_report_pdf(request, abbreviation):
         'today': timezone.now().date(),
     }
 
-    # Renderizamos el PDF usando la plantilla 
     return render_to_pdf('got/systems/managerial_asset_report.html', context)

@@ -447,20 +447,16 @@
                     <i class="fa-solid fa-eye"></i>
                   </a>
 
-                  <!-- Decidir a qué vista se dirige el usuario:
-                       si el nombre del ítem contiene “Combustible”/“Aceite”/“Filtro” => asset_suministros
-                       de lo contrario => asset_inventario_report
-                  -->
                   {% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
                     <!-- Link a AssetSuministrosReportView -->
-                    <a href="{% url 'got:asset-suministros' activo.abbreviation %}"
+                    <a href="{% url 'inv:asset-suministros' activo.abbreviation %}"
                        class="text-info"
                        title="Ver Reporte Suministros">
                       <i class="fa-solid fa-list"></i>
                     </a>
                   {% else %}
                     <!-- Link a AssetInventarioReportView -->
-                    <a href="{% url 'got:asset_inventario_report' activo.abbreviation %}"
+                    <a href="{% url 'inv:asset_inventario_report' activo.abbreviation %}"
                        class="text-success"
                        title="Ver Reporte Inventario">
                       <i class="fa-solid fa-clipboard-list"></i>

@@ -14,5 +14,9 @@ urlpatterns = [
     path('all/equipos/', AllAssetsEquipmentListView.as_view(), name='all_equipment_list'),
     path('equipo/<str:equipo_code>/dar_baja/', DarBajaCreateView.as_view(), name='dar_baja'),
 
-    # path('create-supply/<str:abbreviation>/', create_supply_view, name='create_supply'),
+    path('asset/<str:abbreviation>/suministros/', AssetSuministrosReportView.as_view(), name='asset-suministros'),
+    path('asset/<str:abbreviation>/inventario/', AssetInventarioReportView.as_view(), name='asset_inventario_report'),
+    path('transaction/<int:transaction_id>/delete/', delete_transaction, name='delete_transaction'),
+
+    path('asset/<str:abbreviation>/historial/pdf/', export_historial_pdf, name='export_historial_pdf'),
 ]

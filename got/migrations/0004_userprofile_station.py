@@ -12,16 +12,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterField(
-            model_name='transaction',
-            name='tipo',
-            field=models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo')], default='i', max_length=1),
-        ),
-        migrations.AddField(
-            model_name='solicitud',
-            name='dpto',
-            field=models.CharField(choices=[('m', 'Mantenimiento'), ('o', 'Operaciones')], default='m', max_length=1),
-        ),
-        migrations.AlterField(
             model_name='solicitud',
             name='approved_by',
             field=models.CharField(blank=True, max_length=100, null=True),
@@ -58,5 +48,10 @@ class Migration(migrations.Migration):
             state_operations=[
                 migrations.DeleteModel(name='DarBaja'),
             ]
+        ),
+        migrations.AlterField(
+            model_name='equipo',
+            name='date_inv',
+            field=models.DateField(auto_now_add=True, null=True),
         ),
     ]

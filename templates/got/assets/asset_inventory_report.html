@@ -21,7 +21,7 @@
         <div class="modal fade" id="addSuministroModal" tabindex="-1" aria-labelledby="addSuministroModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">{% csrf_token %}
+                    <form method="post" action="{% url 'inv:asset_inventario_report' asset.abbreviation %}">{% csrf_token %}
                         <div class="modal-header">
                             <h5 class="modal-title" id="addSuministroModalLabel">Añadir Suministro</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -122,7 +122,7 @@
             <div class="modal fade" id="transferModal{{ suministro.id }}" tabindex="-1" aria-labelledby="transferModalLabel{{ suministro.id }}" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
-                        <form method="post" action="{% url 'got:asset_inventario_report' asset.abbreviation %}">
+                        <form method="post" action="{% url 'inv:asset_inventario_report' asset.abbreviation %}">
                             <input type="hidden" name="action" value="transfer_suministro">
                             {% csrf_token %}
                             <div class="modal-header">
@@ -206,6 +206,72 @@
                 <input type="hidden" name="action" value="download_excel">
                 <button type="submit" name="download_excel" class="btn btn-info">Descargar Excel</button>
             </form>
+
+
+            <!-- NUEVO: Botón para generar PDF -->
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#exportPdfModal">
+                Generar PDF
+            </button>
+
+
+<!-- NUEVO: Modal para filtrar Fechas y Artículos antes de generar PDF -->
+<div class="modal fade" id="exportPdfModal" tabindex="-1" aria-labelledby="exportPdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content" style="font-size:0.9rem;">
+        <form method="post" action="{% url 'inv:export_historial_pdf' asset.abbreviation %}" target="_blank">
+          <!-- El target _blank permite abrir el PDF en una nueva pestaña/ventana -->
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="exportPdfModalLabel">Generar PDF del Historial</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+              <input type="hidden" name="action" value="pdf_historial">
+  
+              <!-- Rango de fechas -->
+              <div class="mb-3">
+                <label for="pdf_fecha_inicio" class="form-label">Fecha Inicio:</label>
+                <input type="date" class="form-control" id="pdf_fecha_inicio" name="fecha_inicio">
+              </div>
+              <div class="mb-3">
+                <label for="pdf_fecha_fin" class="form-label">Fecha Fin:</label>
+                <input type="date" class="form-control" id="pdf_fecha_fin" name="fecha_fin">
+              </div>
+  
+              <!-- Lista de artículos únicos en el historial -->
+              <!-- Generaremos un checkbox por cada artículo único que aparece en la tabla -->
+              <div class="mb-3">
+                <label class="form-label" style="font-weight:500;">Seleccionar Artículos:</label>
+                <div style="max-height: 200px; overflow-y:auto; border:1px solid #ddd; padding:5px;">
+                  {% comment %}
+                    Suponiendo que en tu contexto envías 'articulos_unicos' = conjunto
+                    o lista de Items que aparecen en la tabla:
+                  {% endcomment %}
+                  {% for it in articulos_unicos %}
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" 
+                             name="items_seleccionados" 
+                             value="{{ it.id }}" 
+                             id="itemCheck{{ it.id }}" 
+                             checked>
+                      <label class="form-check-label" for="itemCheck{{ it.id }}">
+                        {{ it.name }}{% if it.reference %} ({{ it.reference }}){% endif %}
+                      </label>
+                    </div>
+                  {% endfor %}
+                </div>
+                <small class="text-muted">Por defecto, todos los artículos están seleccionados.</small>
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">
+              Generar PDF
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
         </div>
 
         <table id="tabla_historial" class="table-list table-detail">
@@ -278,7 +344,7 @@
                     <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1" aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                                <form method="post" action="{% url 'got:delete_transaction' transaccion.id %}">
+                                <form method="post" action="{% url 'inv:delete_transaction' transaccion.id %}">
                                     {% csrf_token %}
                                     <!-- Include the 'next' parameter -->
                                     <input type="hidden" name="next" value="{{ request.path }}">
@@ -337,7 +403,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-danger">Sí, sobrescribir</button>
-                    <a href="{% url 'got:asset_inventario_report' asset.abbreviation %}" class="btn btn-secondary">Cancelar</a>
+                    <a href="{% url 'inv:asset_inventario_report' asset.abbreviation %}" class="btn btn-secondary">Cancelar</a>
                 </div>
             </form>
         </div>

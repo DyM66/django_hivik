@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
                 ('fecha', models.DateField()),
                 ('user', models.CharField(max_length=100)),
                 ('motivo', models.TextField(blank=True, null=True)),
-                ('tipo', models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia')], default='i', max_length=1)),
+                ('tipo', models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo')], default='i', max_length=1)),
                 ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
                 ('cant_report', models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True)),
                 ('cant_report_transf', models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True)),

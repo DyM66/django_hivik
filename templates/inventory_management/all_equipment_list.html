@@ -168,18 +168,16 @@
                     </td>
                     <td>{{ s.cantidad }}</td>
                     <td class="text-end">
-                        <!-- Opciones: ver detalle del artículo, 
-                            dirigir a la vista "asset_suministros" o "asset_inventario_report"? -->
                         {% if s.item %}
                             <a href="#" class="text-primary me-2" title="Detalle Artículo" data-bs-toggle="modal" data-bs-target="#itemDetailModal{{ s.item.id }}">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
                             {% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
-                                <a href="{% url 'got:asset-suministros' s.asset.abbreviation %}" class="text-info" title="Reporte Suministros">
+                                <a href="{% url 'inv:asset-suministros' s.asset.abbreviation %}" class="text-info" title="Reporte Suministros">
                                     <i class="fa-solid fa-list"></i>
                                 </a>
                             {% else %}
-                                <a href="{% url 'got:asset_inventario_report' s.asset.abbreviation %}" class="text-success" title="Reporte Inventario">
+                                <a href="{% url 'inv:asset_inventario_report' s.asset.abbreviation %}" class="text-success" title="Reporte Inventario">
                                 <i class="fa-solid fa-clipboard-list"></i>
                                 </a>
                             {% endif %}

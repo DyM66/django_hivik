@@ -1,7 +1,11 @@
 # inventory_management/views.py
 import base64
 import qrcode
+import re
 import qrcode.image.svg
+from itertools import groupby
+from operator import attrgetter
+from django.contrib.auth.decorators import permission_required
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -9,6 +13,8 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.http import HttpResponseRedirect
 from got.models import Asset, System, Equipo, Suministro, Item
+from got.forms import ItemForm
+from got.utils import *
 from .models import DarBaja
 from .forms import DarBajaForm
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -20,12 +26,13 @@ from django.views.decorators.csrf import csrf_exempt
 import openpyxl
 from openpyxl.styles import Font, Alignment
 from openpyxl.utils import get_column_letter
-from got.utils import pro_export_to_excel 
 import io
 from django.http import HttpResponse
 from openpyxl import Workbook
 from django.shortcuts import redirect
 from django.contrib import messages
+from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, Case, When, IntegerField, BooleanField, Value
+
 
 
 class AssetListView(ListView):
@@ -386,8 +393,6 @@ class DarBajaCreateView(LoginRequiredMixin, CreateView):
         return reverse('got:sys-detail', kwargs={'pk': old_system.id})
 
 
-from got.forms import ItemForm  # asumiendo que tu ItemForm está en got/forms.py
-
 def create_supply_view(request, abbreviation):
     """
     Crea un nuevo Suministro asociado a un Activo.
@@ -460,3 +465,315 @@ def create_supply_view(request, abbreviation):
 
     # Si no es POST => redirigir sin hacer nada
     return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
+
+
+class AssetInventoryBaseView(LoginRequiredMixin, View):
+    template_name = 'got/assets/asset_inventory_report.html'
+    keyword_filter = None
+
+    def get(self, request, abbreviation):
+        asset = get_object_or_404(Asset, abbreviation=abbreviation)
+        suministros = get_suministros(asset, self.keyword_filter)
+
+        transacciones_historial = self.get_transacciones_historial(asset)
+        ultima_fecha_transaccion = transacciones_historial.aggregate(Max('fecha'))['fecha__max'] or "---"
+        context = self.get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
+        return render(request, self.template_name, context)
+
+    def post(self, request, abbreviation):
+        asset = get_object_or_404(Asset, abbreviation=abbreviation)
+        suministros = get_suministros(asset, self.keyword_filter)
+        action = request.POST.get('action', '')
+
+        if action == 'download_excel':
+            headers_mapping = self.get_headers_mapping()
+            filename = self.get_filename()
+            transacciones_historial = self.get_transacciones_historial(asset)
+            return generate_excel(transacciones_historial, headers_mapping, filename)
+
+        elif action == 'transfer_suministro':
+            suministro_id = request.POST.get('transfer_suministro_id')
+            suministro = get_object_or_404(Suministro, id=suministro_id, asset=asset)
+            transfer_fecha_str = request.POST.get('transfer_fecha', '')
+
+            if not re.match(r'^\d{4}-\d{2}-\d{2}$', transfer_fecha_str):
+                messages.error(request, "Fecha inválida de transferencia: usa el formato YYYY-MM-DD.")
+                return self.redirect_with_next(request)
+            
+            try:
+                transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, "Fecha inválida: no se pudo interpretar el valor ingresado.")
+                return self.redirect_with_next(request)
+            
+            result = handle_transfer(
+                request,
+                asset,
+                suministro,
+                request.POST.get('transfer_cantidad', '0') or '0',
+                request.POST.get('destination_asset_id'),
+                request.POST.get('transfer_motivo', ''),
+                transfer_fecha_str 
+            )
+            if isinstance(result, HttpResponse):
+                return result
+            else:
+                return self.redirect_with_next(request)
+
+        elif action == 'update_inventory':
+            motivo_global = ''
+            fecha_reporte_str = request.POST.get('fecha_reporte', timezone.now().date().strftime('%Y-%m-%d'))
+
+            print(fecha_reporte_str)
+            # 1) Verificar si coincide con el patrón YYYY-MM-DD
+            if not re.match(r'^\d{4}-\d{2}-\d{2}$', fecha_reporte_str):
+                messages.error(request, "Fecha inválida: usa el formato YYYY-MM-DD.")
+                return self.redirect_with_next(request)
+            
+            try:
+                fecha_reporte = datetime.strptime(fecha_reporte_str, '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, "Fecha inválida: no se pudo interpretar el valor ingresado.")
+                return self.redirect_with_next(request)
+
+            # 3) Comparar con la fecha actual
+            if fecha_reporte > timezone.now().date():
+                messages.error(request, 'La fecha del reporte no puede ser mayor a la fecha actual.')
+                return self.redirect_with_next(request)
+
+            operation = Operation.objects.filter(asset=asset, confirmado=True, start__lte=fecha_reporte, end__gte=fecha_reporte).first()
+
+            if operation:
+                motivo_global = operation.proyecto
+
+            result = handle_inventory_update(request, asset, suministros, motivo_global)
+            if isinstance(result, HttpResponse):
+                return result
+            else:
+                return self.redirect_with_next(request)
+
+        elif action == 'add_suministro' and request.user.has_perm('got.can_add_supply'):
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(Item, id=item_id)
+            suministro_existente = Suministro.objects.filter(asset=asset, item=item).exists()
+            if suministro_existente:
+                messages.error(request, f'El suministro para el artículo "{item.name}" ya existe en este asset.')
+            else:
+                Suministro.objects.create(item=item, cantidad=Decimal('0.00'), asset=asset)
+                messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
+            return self.redirect_with_next(request)
+
+        else:
+            messages.error(request, 'Acción no reconocida.')
+            return self.redirect_with_next(request)
+
+    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
+        motonaves = Asset.objects.filter(area='a', show=True)
+        available_items = Item.objects.exclude(id__in=suministros.values_list('item_id', flat=True))
+        context = {
+            'asset': asset,
+            'suministros': suministros,
+            'ultima_fecha_transaccion': ultima_fecha_transaccion,
+            'transacciones_historial': transacciones_historial,
+            'fecha_actual': timezone.now().date(),
+            'motonaves': motonaves,
+            'available_items': available_items,
+        }
+        return context
+
+    def get_headers_mapping(self):
+        return {}
+
+    def get_filename(self):
+        return 'export.xlsx'
+    
+    def get_transacciones_historial(self, asset):
+        transacciones_historial = Transaction.objects.filter(Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)).order_by('-fecha')
+        return transacciones_historial
+    
+    def redirect_with_next(self, request):
+        next_url = request.GET.get('next', '')
+        if next_url:
+            return redirect(next_url)
+        return redirect(request.path)
+
+
+class AssetSuministrosReportView(AssetInventoryBaseView):
+    keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
+
+    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
+        context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
+        # Agrupar suministros por presentación
+        suministros = suministros.order_by('item__presentacion')
+        grouped_suministros = {}
+        for key, group in groupby(suministros, key=attrgetter('item.presentacion')):
+            grouped_suministros[key] = list(group)
+        context['grouped_suministros'] = grouped_suministros
+        context['group_by'] = 'presentacion'
+
+        items_en_historial = set()
+        for t in transacciones_historial:
+            if t.suministro and t.suministro.item:
+                items_en_historial.add(t.suministro.item)
+
+        # Convertir a lista y ordenar (opcional, según la preferencia):
+        articulos_unicos = sorted(items_en_historial, key=lambda x: (x.name.lower(), x.reference.lower() if x.reference else ""))
+
+        context['articulos_unicos'] = articulos_unicos
+        return context
+
+    def get_headers_mapping(self):
+        return {
+            'fecha': 'Fecha',
+            'suministro__item__presentacion': 'Presentación',
+            'suministro__item__name': 'Artículo',
+            'cant': 'Cantidad',
+            'tipo': 'Tipo',
+            'user': 'Usuario',
+            'motivo': 'Motivo',
+            'cant_report': 'Cantidad Reportada',
+        }
+
+    def get_filename(self):
+        return 'historial_suministros.xlsx'
+
+
+class AssetInventarioReportView(AssetInventoryBaseView):
+    keyword_filter = ~(Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro'))
+
+    def get_headers_mapping(self):
+        return {
+            'fecha': 'Fecha',
+            'suministro__item__seccion': 'Categoría',
+            'suministro__item__name': 'Artículo',
+            'cant': 'Cantidad',
+            'tipo': 'Tipo',
+            'user': 'Usuario',
+            'motivo': 'Motivo',
+            'cant_report': 'Cantidad Reportada',
+        }
+
+    def get_filename(self):
+        return 'historial_inventario.xlsx'
+
+    def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
+        context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
+        suministros = suministros.order_by('item__seccion')
+        grouped_suministros = {}
+        for key, group in groupby(suministros, key=attrgetter('item.seccion')):
+            grouped_suministros[key] = list(group)
+        context['grouped_suministros'] = grouped_suministros
+        context['group_by'] = 'seccion'
+        secciones_dict = dict(Item.SECCION)
+        context['secciones_dict'] = secciones_dict
+
+        items_en_historial = set()
+        for t in transacciones_historial:
+            if t.suministro and t.suministro.item:
+                items_en_historial.add(t.suministro.item)
+
+        # Convertir a lista y ordenar (opcional, según la preferencia):
+        articulos_unicos = sorted(items_en_historial, key=lambda x: (x.name.lower(), x.reference.lower() if x.reference else ""))
+
+        context['articulos_unicos'] = articulos_unicos
+        return context
+    
+
+@permission_required('got.delete_transaction', raise_exception=True)
+def delete_transaction(request, transaction_id):
+    transaccion = get_object_or_404(Transaction, id=transaction_id)
+    next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/'))
+
+    if request.method == 'POST':
+        result = handle_delete_transaction(request, transaccion)
+        if isinstance(result, HttpResponse):
+            return result
+        else:
+            return redirect(next_url)
+    else:
+        return redirect(next_url)
+    
+
+def export_historial_pdf(request, abbreviation):
+    """
+    Genera un PDF con los registros de transacciones,
+    filtrados por rango de fechas y por artículos seleccionados,
+    usando la plantilla base de PDF (`pdf_template.html`) y la función render_to_pdf.
+    """
+    asset = get_object_or_404(Asset, abbreviation=abbreviation)
+
+    if request.method == 'POST':
+        # 1) Obtener fechas (inicio y fin)
+        fecha_inicio_str = request.POST.get('fecha_inicio', '')
+        fecha_fin_str = request.POST.get('fecha_fin', '')
+
+        # Parsear a objeto date, si no vienen => None
+        fecha_inicio = None
+        fecha_fin = None
+        if fecha_inicio_str:
+            try:
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            except:
+                pass
+        if fecha_fin_str:
+            try:
+                fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+            except:
+                pass
+
+        # 2) Artículos seleccionados (lista de IDs)
+        items_seleccionados = request.POST.getlist('items_seleccionados')
+        # items_seleccionados es una lista de strings con los IDs 
+        # Ej: ['12', '15', '20', ...]
+
+        # 3) Obtener transacciones base
+        transacciones = Transaction.objects.filter(
+            Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)
+        ).order_by('-fecha')
+
+        # 4) Filtrar por rango de fechas
+        if fecha_inicio and fecha_fin:
+            transacciones = transacciones.filter(
+                fecha__range=[fecha_inicio, fecha_fin]
+            )
+        elif fecha_inicio:
+            transacciones = transacciones.filter(fecha__gte=fecha_inicio)
+        elif fecha_fin:
+            transacciones = transacciones.filter(fecha__lte=fecha_fin)
+
+        # 5) Filtrar por items
+        #   items_seleccionados => ID del item
+        if items_seleccionados:
+            transacciones = transacciones.filter(
+                Q(suministro__item__id__in=items_seleccionados) |
+                Q(suministro_transf__item__id__in=items_seleccionados)
+            )
+
+        # 6) Preparar contexto para la plantilla PDF
+        # El layout es similar a la tabla que ya tienes: 
+        #  (Fecha, reportado, artículo+referencia, presentación, cantidad, movimiento, total_reportado, motivo)
+        # Con "asset" y transacciones
+        data_context = {
+            'asset': asset,
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin,
+            'transacciones': transacciones,
+        }
+
+        # 7) Renderizar con la plantilla PDF
+        pdf = render_to_pdf(
+            'inventory_management/historial_pdf.html',  # Plantilla para PDF (creada abajo)
+            data_context
+        )
+        if pdf:
+            filename = f"Historial_{asset.abbreviation}.pdf"
+            # inline => para abrir en navegador, attachment => para forzar descarga
+            content = f"inline; filename='{filename}'"
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = content
+            return response
+        else:
+            return HttpResponse("Error al generar el PDF", status=400)
+
+    # Si no es POST, redirigir
+    return redirect('inv:asset_inventario_report', abbreviation=abbreviation)
