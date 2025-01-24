@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         # si deseas asegurar orden, podrías hacer algo como:
-        ('got', '0004_userprofile_station'), 
+        ('got', '0003_remove_task_ruta_delete_ruta'), 
         # para evitar problemas, pero si no, dejar vacío.
     ]
 

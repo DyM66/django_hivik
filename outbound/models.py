@@ -1,12 +1,24 @@
 from django.db import models
 import uuid
 from datetime import datetime
+from got.paths import *
+from django.core.validators import RegexValidator
 
-def get_upload_path(instance, filename):
 
-    ext = filename.split('.')[-1]
-    filename = f"media/{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
-    return filename
+class Place(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, help_text="Latitud de la ubicación.")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, help_text="Longitude de la ubicación.")
+    contact_person = models.CharField(max_length=100)
+    contact_phone = models.CharField(max_length=15, validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$', message="Número de teléfono inválido.")],)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'outbound_place'
+        verbose_name = 'Lugar'
+        verbose_name_plural = 'Lugares'
 
 
 # Model 17: Salidas de articulos de la empresa $app

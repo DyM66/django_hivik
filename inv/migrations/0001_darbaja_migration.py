@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     dependencies = [
         # Indica la dependencia con la migración de got
         # que "separó" DarBaja. 
-        ('got', '0004_userprofile_station'), 
+        ('got', '0003_remove_task_ruta_delete_ruta'), 
         # o la más reciente en got (donde se eliminó el modelo)
         # si la app inventory_management depende de got...
         # ... si no, ajusta la dependencia según tu caso.

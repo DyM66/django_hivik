@@ -294,13 +294,15 @@ def handle_transfer(request, asset, suministro, transfer_cantidad_str, destinati
 
 def handle_inventory_update(request, asset, suministros, motivo_global=''):
     """
-    Maneja la actualización de inventario (ingresos y consumos).
-
-    :param request: Objeto HttpRequest.
+    +:param request: Objeto HttpRequest.
     :param asset: Instancia de Asset.
     :param suministros: QuerySet de suministros a actualizar.
     :param motivo_global: Motivo general para las transacciones.
     :return: None o renderiza una plantilla de confirmación.
+
+    Procesa la actualización del inventario basado en los suministros y las entradas de consumo/ingreso.
+    Asegura que no se generen cantidades negativas.
+
     """
     fecha_reporte_str = request.POST.get('fecha_reporte', timezone.now().date().strftime('%Y-%m-%d'))
     confirm_overwrite = request.POST.get('confirm_overwrite', 'no')
@@ -331,6 +333,15 @@ def handle_inventory_update(request, asset, suministros, motivo_global=''):
             continue
 
         existing_transactions = []
+
+        # Calcular la cantidad total después de los cambios
+        cantidad_actual = suministro.cantidad
+        nueva_cantidad = cantidad_actual + cantidad_ingresada - cantidad_consumida
+
+        # Validar que la nueva cantidad no sea negativa
+        if nueva_cantidad < 0:
+            messages.error(request, f'La cantidad consumida para "{suministro.item.name}" excede la cantidad disponible.')
+            return redirect(request.path)
 
         if cantidad_ingresada > Decimal('0'):
             existing_ingreso = Transaction.objects.filter(

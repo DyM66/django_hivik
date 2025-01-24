@@ -5,7 +5,7 @@ from got.paths import *
 
 # Model 3: Articulos
 class Item(models.Model):
-    SECCION = (('c', 'Consumibles'), ('h', 'Herramientas y equipos'), ('r', 'Repuestos'))
+    SECCION = (('c', 'Consumibles'), ('h', 'Herramientas y Elementos'), ('r', 'Repuestos'))
     name = models.CharField(max_length=50)
     reference = models.CharField(max_length=100, null=True, blank=True)
     imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)

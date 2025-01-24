@@ -178,101 +178,115 @@
     <div id="historial" style="display: none; margin-top: 20px;">
         <h2>Historial de Transacciones</h2>
         <!-- Filtros -->
-        <div class="filters" style="margin-bottom: 20px;">
-            <label for="filtro_seccion">Categoría:</label>
-            <select id="filtro_seccion">
-                <option value="">Todas</option>
-                {% for seccion_key, seccion_name in secciones_dict.items %}
-                    <option value="{{ seccion_name }}">{{ seccion_name }}</option>
-                {% endfor %}
-            </select>
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label for="filtro_seccion" class="form-label">Categoría:</label>
+                <select id="filtro_seccion" class="form-select">
+                    <option value="">Todas</option>
+                    {% for seccion_key, seccion_name in secciones_dict.items %}
+                        <option value="{{ seccion_name }}">{{ seccion_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-            <label for="filtro_articulo">Artículo:</label>
-            <select id="filtro_articulo">
-                <option value="">Todos</option>
-                {% for article in articles %}
-                    <option value="{{ article }}">{{ article }}</option>
-                {% endfor %}
-            </select>
+            <div class="col-md-3">
+                <label for="filtro_articulo" class="form-label">Artículo:</label>
+                <select id="filtro_articulo" class="form-select">
+                    <option value="">Todos</option>
+                    {% for it in articulos_unicos %}
+                        <option value="{{ it.id }}">{{ it.name }}{% if it.reference %} ({{ it.reference }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-            <label for="filtro_fecha_inicio">Desde:</label>
-            <input type="date" id="filtro_fecha_inicio">
+            <div class="col-md-3">
+                <label for="filtro_usuario" class="form-label">Usuario:</label>
+                <select id="filtro_usuario" class="form-select">
+                    <option value="">Todos</option>
+                    {% for user in users_unicos %}
+                        <option value="{{ user.username }}">{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-            <label for="filtro_fecha_fin">Hasta:</label>
-            <input type="date" id="filtro_fecha_fin">
+            <div class="col-md-3">
+                <label class="form-label">Rango de Fechas:</label>
+                <div class="input-group">
+                    <input type="date" id="filtro_fecha_inicio" class="form-control" placeholder="Desde">
+                    <input type="date" id="filtro_fecha_fin" class="form-control" placeholder="Hasta">
+                </div>
+            </div>
+        </div>
 
-            <button type="button" class="btn btn-secondary" onclick="aplicarFiltros()">Aplicar Filtros</button>
+        <!-- Botones de Exportación -->
+        <div class="mb-3">
             <form method="post" style="display:inline;">{% csrf_token %}
                 <input type="hidden" name="action" value="download_excel">
                 <button type="submit" name="download_excel" class="btn btn-info">Descargar Excel</button>
             </form>
 
-
-            <!-- NUEVO: Botón para generar PDF -->
-            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#exportPdfModal">
+            <!-- Botón para generar PDF -->
+            <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#exportPdfModal">
                 Generar PDF
             </button>
-
-
-<!-- NUEVO: Modal para filtrar Fechas y Artículos antes de generar PDF -->
-<div class="modal fade" id="exportPdfModal" tabindex="-1" aria-labelledby="exportPdfModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content" style="font-size:0.9rem;">
-        <form method="post" action="{% url 'inv:export_historial_pdf' asset.abbreviation %}" target="_blank">
-          <!-- El target _blank permite abrir el PDF en una nueva pestaña/ventana -->
-          {% csrf_token %}
-          <div class="modal-header">
-            <h5 class="modal-title" id="exportPdfModalLabel">Generar PDF del Historial</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-          </div>
-          <div class="modal-body">
-              <input type="hidden" name="action" value="pdf_historial">
-  
-              <!-- Rango de fechas -->
-              <div class="mb-3">
-                <label for="pdf_fecha_inicio" class="form-label">Fecha Inicio:</label>
-                <input type="date" class="form-control" id="pdf_fecha_inicio" name="fecha_inicio">
-              </div>
-              <div class="mb-3">
-                <label for="pdf_fecha_fin" class="form-label">Fecha Fin:</label>
-                <input type="date" class="form-control" id="pdf_fecha_fin" name="fecha_fin">
-              </div>
-  
-              <!-- Lista de artículos únicos en el historial -->
-              <!-- Generaremos un checkbox por cada artículo único que aparece en la tabla -->
-              <div class="mb-3">
-                <label class="form-label" style="font-weight:500;">Seleccionar Artículos:</label>
-                <div style="max-height: 200px; overflow-y:auto; border:1px solid #ddd; padding:5px;">
-                  {% comment %}
-                    Suponiendo que en tu contexto envías 'articulos_unicos' = conjunto
-                    o lista de Items que aparecen en la tabla:
-                  {% endcomment %}
-                  {% for it in articulos_unicos %}
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" 
-                             name="items_seleccionados" 
-                             value="{{ it.id }}" 
-                             id="itemCheck{{ it.id }}" 
-                             checked>
-                      <label class="form-check-label" for="itemCheck{{ it.id }}">
-                        {{ it.name }}{% if it.reference %} ({{ it.reference }}){% endif %}
-                      </label>
-                    </div>
-                  {% endfor %}
-                </div>
-                <small class="text-muted">Por defecto, todos los artículos están seleccionados.</small>
-              </div>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">
-              Generar PDF
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
         </div>
+
+
+            <!-- NUEVO: Modal para filtrar Fechas y Artículos antes de generar PDF -->
+            <div class="modal fade" id="exportPdfModal" tabindex="-1" aria-labelledby="exportPdfModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content" style="font-size:0.9rem;">
+                        <form method="post" action="{% url 'inv:export_historial_pdf' asset.abbreviation %}" target="_blank">{% csrf_token %}
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exportPdfModalLabel">Generar PDF del Historial</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" name="action" value="pdf_historial">
+  
+                                <!-- Rango de fechas -->
+                                <div class="mb-3">
+                                    <label for="pdf_fecha_inicio" class="form-label">Fecha Inicio:</label>
+                                    <input type="date" class="form-control" id="pdf_fecha_inicio" name="fecha_inicio">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="pdf_fecha_fin" class="form-label">Fecha Fin:</label>
+                                    <input type="date" class="form-control" id="pdf_fecha_fin" name="fecha_fin">
+                                </div>
+  
+                                <!-- Lista de artículos únicos en el historial -->
+                                <!-- Generaremos un checkbox por cada artículo único que aparece en la tabla -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-weight:500;">Seleccionar Artículos:</label>
+                                    <div class="form-check form-switch d-flex align-items-center mb-2" style="gap:6px;">
+                                        <input class="form-check-input" type="checkbox" id="toggleAllArticles" checked>
+                                        <label class="form-check-label" for="toggleAllArticles" style="cursor:pointer;">
+                                          Seleccionar/Deseleccionar todos
+                                        </label>
+                                    </div>
+                                    <div style="max-height: 200px; overflow-y:auto; border:1px solid #ddd; padding:5px;">
+                                        {% for it in articulos_unicos %}
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="items_seleccionados" value="{{ it.id }}" id="itemCheck{{ it.id }}" checked>
+                                                <label class="form-check-label" for="itemCheck{{ it.id }}">
+                                                    {{ it.name }}{% if it.reference %} ({{ it.reference }}){% endif %}
+                                                </label>
+                                            </div>
+                                        {% empty %}
+                                            <p class="text-muted">No se encontraron artículos en este historial.</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    Generar PDF
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
 
         <table id="tabla_historial" class="table-list table-detail">
             <thead>
@@ -299,7 +313,7 @@
                     <tr>
                         <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
                         <td>{{ transaccion.user }}</td>
-                        <td data-item-name="{{ transaccion.suministro.item.name }}">{{ transaccion.suministro.item }}</td>
+                        <td data-item-id="{{ transaccion.suministro.item.id }}">{{ transaccion.suministro.item }}</td>
                         {% if group_by == 'seccion' %}
                             <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
                         {% else %}
@@ -412,12 +426,26 @@
 {% endif %}
 
 <script>
+    // Función para seleccionar o deseleccionar TODOS los checkboxes de artículos
+    function toggleAllItems() {
+        const checkboxes = document.querySelectorAll('input[name="items_seleccionados"]');
+        const allChecked = [...checkboxes].every(cb => cb.checked === true);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+    }
+
+    // Función para seleccionar o deseleccionar TODOS los checkboxes de usuarios
+    function toggleAllUsers() {
+        const checkboxes = document.querySelectorAll('input[name="users_seleccionados"]');
+        const allChecked = [...checkboxes].every(cb => cb.checked === true);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+    }
+
     // Función para mostrar/ocultar el historial
     function toggleHistorial() {
         const historialDiv = document.getElementById('historial');
         if (historialDiv.style.display === 'none' || historialDiv.style.display === '') {
             historialDiv.style.display = 'block';
-            historialDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }); // Lleva la vista al inicio de la tabla
+            historialDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else {
             historialDiv.style.display = 'none';
         }
@@ -427,13 +455,88 @@
     function actualizarTotal(rowId) {
         const cantidadActual = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).getAttribute('data-cantidad-actual')) || 0;
         const cantidadIngresada = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).value) || 0;
-        const cantidadConsumida = parseFloat(document.querySelector(`input[name="consumido_${rowId}"]`).value) || 0;
+        const cantidadConsumidaInput = document.querySelector(`input[name="consumido_${rowId}"]`);
+        const cantidadConsumida = parseFloat(cantidadConsumidaInput.value) || 0;
 
         // Calcular el nuevo total
-        const total = cantidadActual + cantidadIngresada - cantidad_consumida;
+        const total = cantidadActual + cantidadIngresada - cantidadConsumida;
 
-        // Actualizar el valor en la columna Total
-        document.getElementById(`total_${rowId}`).innerText = total.toFixed(2);
+        // Elementos para mostrar errores
+        const errorIngreso = document.getElementById(`error_ingreso_${rowId}`);
+        const errorConsumo = document.getElementById(`error_consumo_${rowId}`);
+
+        let valid = true;
+
+        // Validación para cantidad ingresada
+        if (cantidadIngresada < 0) {
+            errorIngreso.style.display = 'block';
+            valid = false;
+        } else {
+            errorIngreso.style.display = 'none';
+        }
+
+        // Validación para cantidad consumida
+        if (cantidadConsumida > (cantidadActual + cantidadIngresada)) {
+            errorConsumo.style.display = 'block';
+            cantidadConsumidaInput.value = (cantidadActual + cantidadIngresada).toFixed(2);
+            document.getElementById(`total_${rowId}`).innerText = '0.00';
+            valid = false;
+        } else {
+            errorConsumo.style.display = 'none';
+            document.getElementById(`total_${rowId}`).innerText = total.toFixed(2);
+        }
+
+        // Verificar si hay errores para habilitar/deshabilitar el botón
+        verificarErrores();
+    }
+
+    // Función para validar transferencia en el modal
+    function validarTransferencia(suministroId) {
+        const transferCantidadInput = document.getElementById(`transferCantidad${suministroId}`);
+        const remainingCantidadSpan = document.getElementById(`remainingCantidad${suministroId}`);
+        const errorTransferencia = document.getElementById(`error_transferencia_${suministroId}`);
+        const maxCantidad = parseFloat(transferCantidadInput.getAttribute('max')) || 0;
+
+        let transferCantidad = parseFloat(transferCantidadInput.value) || 0;
+
+        if (transferCantidad > maxCantidad) {
+            errorTransferencia.style.display = 'block';
+            transferCantidadInput.value = maxCantidad;
+            transferCantidad = maxCantidad;
+        } else {
+            errorTransferencia.style.display = 'none';
+        }
+
+        const remainingCantidad = maxCantidad - transferCantidad;
+        remainingCantidadSpan.textContent = remainingCantidad.toFixed(2);
+    }
+
+    // Función para verificar si hay errores en los totales
+    function verificarErrores() {
+        let errores = false;
+        document.querySelectorAll('.cantidad-consumida').forEach(input => {
+            const rowId = input.getAttribute('data-row-id');
+            const total = parseFloat(document.getElementById(`total_${rowId}`).innerText) || 0;
+            if (total < 0) {
+                errores = true;
+            }
+        });
+        document.querySelector('.submit-button').disabled = errores;
+    }
+
+    // Inicializar la verificación de errores al cargar la página
+    window.onload = function() {
+        verificarErrores();
+
+        // Event listeners para los filtros
+        const filtros = ['filtro_seccion', 'filtro_articulo', 'filtro_usuario', 'filtro_fecha_inicio', 'filtro_fecha_fin'];
+        filtros.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.addEventListener('input', aplicarFiltros);
+                elemento.addEventListener('change', aplicarFiltros);
+            }
+        });
     }
 
     // Event listeners para los inputs de cantidad ingresada y consumida
@@ -444,36 +547,20 @@
         });
     });
 
-    // Función para actualizar la cantidad restante en el modal de transferencia
-    function updateRemainingCantidad(suministroId) {
-        var transferCantidadInput = document.getElementById('transferCantidad' + suministroId);
-        var currentCantidadSpan = document.getElementById('currentCantidad' + suministroId);
-        var remainingCantidadSpan = document.getElementById('remainingCantidad' + suministroId);
-        var maxCantidad = parseFloat(transferCantidadInput.getAttribute('max'));
-
-        transferCantidadInput.addEventListener('input', function() {
-            var transferCantidad = parseFloat(transferCantidadInput.value) || 0;
-            if (transferCantidad > maxCantidad) {
-                alert('La cantidad a transferir no puede ser mayor a la cantidad actual.');
-                transferCantidadInput.value = maxCantidad;
-                transferCantidad = maxCantidad;
-            }
-            var remainingCantidad = maxCantidad - transferCantidad;
-            remainingCantidadSpan.textContent = remainingCantidad.toFixed(2);
-        });
-    }
-
     // Inicializar la función para cada suministro
     {% for group in grouped_suministros.values %}
         {% for suministro in group %}
-            updateRemainingCantidad('{{ suministro.id }}');
+            document.addEventListener('DOMContentLoaded', function() {
+                validarTransferencia('{{ suministro.id }}');
+            });
         {% endfor %}
     {% endfor %}
 
-    // Función para aplicar filtros en el historial
+    // Función para aplicar filtros dinámicamente
     function aplicarFiltros() {
-        const filtroSeccion = document.getElementById('filtro_seccion').value;
-        const filtroArticulo = document.getElementById('filtro_articulo').value;
+        const filtroSeccion = document.getElementById('filtro_seccion').value.toLowerCase();
+        const filtroArticulo = document.getElementById('filtro_articulo').value.toLowerCase();
+        const filtroUsuario = document.getElementById('filtro_usuario').value.toLowerCase();
         const filtroFechaInicio = document.getElementById('filtro_fecha_inicio').value;
         const filtroFechaFin = document.getElementById('filtro_fecha_fin').value;
 
@@ -481,8 +568,10 @@
 
         rows.forEach(row => {
             const fechaTexto = row.cells[0].innerText.trim();
-            const articulo = row.querySelector('td[data-item-name]').getAttribute('data-item-name').trim();
-            const seccion = row.cells[3].innerText.trim();
+            const articuloId = row.querySelector('td[data-item-id]').getAttribute('data-item-id').trim();
+
+            const usuario = row.cells[1].innerText.trim().toLowerCase();
+            const seccion = row.cells[3].innerText.trim().toLowerCase();
 
             let mostrar = true;
 
@@ -491,34 +580,29 @@
                 mostrar = false;
             }
 
-            // Filtrar por artículo
-            if (filtroArticulo && articulo !== filtroArticulo) {
+            // Filtrar por artículo (usando ID)
+            if (filtroArticulo && articuloId !== filtroArticulo) {
+                mostrar = false;
+            }
+
+            // Filtrar por usuario
+            if (filtroUsuario && usuario !== filtroUsuario) {
                 mostrar = false;
             }
 
             // Filtrar por fechas
             if ((filtroFechaInicio || filtroFechaFin) && fechaTexto) {
-                // Convertir fecha de la fila a objeto Date
-                const partesFecha = fechaTexto.split('/');
-                const dia = parseInt(partesFecha[0], 10);
-                const mes = parseInt(partesFecha[1], 10) - 1; // Los meses en JavaScript son 0-indexed
-                const anio = parseInt(partesFecha[2], 10);
-                const fechaRow = new Date(anio, mes, dia);
+                const [dia, mes, anio] = fechaTexto.split('/');
+                const fechaRow = new Date(anio, mes - 1, dia);
+                let fechaInicio = filtroFechaInicio ? new Date(filtroFechaInicio) : null;
+                let fechaFin = filtroFechaFin ? new Date(filtroFechaFin) : null;
 
-                // Filtrar por fecha desde
-                if (filtroFechaInicio) {
-                    const fechaInicio = new Date(filtroFechaInicio);
-                    if (fechaRow < fechaInicio) {
-                        mostrar = false;
-                    }
+                if (fechaInicio && fechaRow < fechaInicio) {
+                    mostrar = false;
                 }
 
-                // Filtrar por fecha hasta
-                if (filtroFechaFin) {
-                    const fechaFin = new Date(filtroFechaFin);
-                    if (fechaRow > fechaFin) {
-                        mostrar = false;
-                    }
+                if (fechaFin && fechaRow > fechaFin) {
+                    mostrar = false;
                 }
             }
 
@@ -526,6 +610,7 @@
             row.style.display = mostrar ? '' : 'none';
         });
     }
+
 </script>
 
 {% endblock %}

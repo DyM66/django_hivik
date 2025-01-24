@@ -470,6 +470,7 @@ def create_supply_view(request, abbreviation):
 class AssetInventoryBaseView(LoginRequiredMixin, View):
     template_name = 'got/assets/asset_inventory_report.html'
     keyword_filter = None
+    keyword_filter2 = None
 
     def get(self, request, abbreviation):
         asset = get_object_or_404(Asset, abbreviation=abbreviation)
@@ -568,8 +569,10 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             return self.redirect_with_next(request)
 
     def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
-        motonaves = Asset.objects.filter(area='a', show=True)
+        motonaves = Asset.objects.filter(show=True)
         available_items = Item.objects.exclude(id__in=suministros.values_list('item_id', flat=True))
+        users_en_historial = transacciones_historial.values_list('user', flat=True).distinct()
+        users_unicos = User.objects.filter(username__in=users_en_historial).order_by('username')
         context = {
             'asset': asset,
             'suministros': suministros,
@@ -578,8 +581,18 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             'fecha_actual': timezone.now().date(),
             'motonaves': motonaves,
             'available_items': available_items,
+            'articulos_unicos': self.get_articulos_unicos(transacciones_historial),
+            'users_unicos': users_unicos, 
         }
         return context
+    
+    def get_articulos_unicos(self, transacciones_historial):
+        items_en_historial = set()
+        for t in transacciones_historial:
+            if t.suministro and t.suministro.item:
+                items_en_historial.add(t.suministro.item)
+        articulos_unicos = sorted(items_en_historial, key=lambda x: (x.name.lower(), x.reference.lower() if x.reference else ""))
+        return articulos_unicos
 
     def get_headers_mapping(self):
         return {}
@@ -588,7 +601,10 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
         return 'export.xlsx'
     
     def get_transacciones_historial(self, asset):
-        transacciones_historial = Transaction.objects.filter(Q(suministro__asset=asset) | Q(suministro_transf__asset=asset)).order_by('-fecha')
+        transacciones = Transaction.objects.filter(Q(suministro__asset=asset) | Q(suministro_transf__asset=asset))
+        if self.keyword_filter:
+            transacciones = transacciones.filter(self.keyword_filter2)
+        transacciones_historial = transacciones.order_by('-fecha')
         return transacciones_historial
     
     def redirect_with_next(self, request):
@@ -600,6 +616,12 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
 
 class AssetSuministrosReportView(AssetInventoryBaseView):
     keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
+
+    keyword_filter2 = (
+        Q(suministro__item__name__icontains='Combustible')
+        | Q(suministro__item__name__icontains='Aceite')
+        | Q(suministro__item__name__icontains='Filtro')
+    )
 
     def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
         context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)
@@ -640,6 +662,12 @@ class AssetSuministrosReportView(AssetInventoryBaseView):
 
 class AssetInventarioReportView(AssetInventoryBaseView):
     keyword_filter = ~(Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro'))
+
+    keyword_filter2 = ~(
+        Q(suministro__item__name__icontains='Combustible')
+        | Q(suministro__item__name__icontains='Aceite')
+        | Q(suministro__item__name__icontains='Filtro')
+    )
 
     def get_headers_mapping(self):
         return {
@@ -723,8 +751,9 @@ def export_historial_pdf(request, abbreviation):
 
         # 2) Artículos seleccionados (lista de IDs)
         items_seleccionados = request.POST.getlist('items_seleccionados')
-        # items_seleccionados es una lista de strings con los IDs 
-        # Ej: ['12', '15', '20', ...]
+        if not items_seleccionados:
+            messages.error(request, "Debe seleccionar al menos un artículo para generar el PDF.")
+            return redirect('inv:asset_inventario_report', abbreviation=abbreviation)
 
         # 3) Obtener transacciones base
         transacciones = Transaction.objects.filter(
@@ -743,28 +772,80 @@ def export_historial_pdf(request, abbreviation):
 
         # 5) Filtrar por items
         #   items_seleccionados => ID del item
-        if items_seleccionados:
-            transacciones = transacciones.filter(
-                Q(suministro__item__id__in=items_seleccionados) |
-                Q(suministro_transf__item__id__in=items_seleccionados)
-            )
+        transacciones = transacciones.filter(
+            Q(suministro__item__id__in=items_seleccionados) |
+            Q(suministro_transf__item__id__in=items_seleccionados)
+        )
+        # 6) Obtener los suministros seleccionados
+        suministros_seleccionados = Suministro.objects.filter(
+            item__id__in=items_seleccionados,
+            asset=asset
+        )
 
-        # 6) Preparar contexto para la plantilla PDF
-        # El layout es similar a la tabla que ya tienes: 
-        #  (Fecha, reportado, artículo+referencia, presentación, cantidad, movimiento, total_reportado, motivo)
-        # Con "asset" y transacciones
+
+        # 7) Calcular resúmenes por suministro
+        suministros_summary = []
+        for suministro in suministros_seleccionados:
+            # Cantidad inicial: latest 'cant_report' before 'fecha_inicio'
+            if fecha_inicio:
+                trans_before_start = Transaction.objects.filter(
+                    suministro=suministro,
+                    fecha__lte=fecha_inicio
+                ).order_by('-fecha').first()
+                cantidad_inicial = trans_before_start.cant_report if trans_before_start and trans_before_start.cant_report else Decimal('0.00')
+            else:
+                cantidad_inicial = Decimal('0.00')
+
+            # Total consumido: sum of 'c' transactions in the period
+            total_consumido = transacciones.filter(
+                suministro=suministro,
+                tipo='c'
+            ).aggregate(total=Sum('cant'))['total'] or Decimal('0.00')
+
+            # Total ingresado: sum of 'i' transactions in the period
+            total_ingresado = transacciones.filter(
+                suministro=suministro,
+                tipo='i'
+            ).aggregate(total=Sum('cant'))['total'] or Decimal('0.00')
+
+            # Cantidad final: latest 'cant_report' before 'fecha_fin'
+            if fecha_fin:
+                trans_before_end = Transaction.objects.filter(
+                    suministro=suministro,
+                    fecha__lte=fecha_fin
+                ).order_by('-fecha').first()
+                cantidad_final = trans_before_end.cant_report if trans_before_end and trans_before_end.cant_report else Decimal('0.00')
+            else:
+                # Si no hay fecha_fin, usar la última cantidad reportada hasta hoy
+                trans_before_end = Transaction.objects.filter(
+                    suministro=suministro,
+                    fecha__lte=date.today()
+                ).order_by('-fecha').first()
+                cantidad_final = trans_before_end.cant_report if trans_before_end and trans_before_end.cant_report else Decimal('0.00')
+
+            suministros_summary.append({
+                'suministro': suministro,
+                'cantidad_inicial': cantidad_inicial,
+                'total_consumido': total_consumido,
+                'total_ingresado': total_ingresado,
+                'cantidad_final': cantidad_final,
+            })
+
+        # 8) Obtener los artículos seleccionados para el resumen en el header
+        articulos_seleccionados = Item.objects.filter(id__in=items_seleccionados)
+
         data_context = {
             'asset': asset,
             'fecha_inicio': fecha_inicio,
             'fecha_fin': fecha_fin,
             'transacciones': transacciones,
+            'fecha_hoy': date.today(),
+            'items': articulos_seleccionados,
+            'suministros_summary': suministros_summary,
         }
 
         # 7) Renderizar con la plantilla PDF
-        pdf = render_to_pdf(
-            'inventory_management/historial_pdf.html',  # Plantilla para PDF (creada abajo)
-            data_context
-        )
+        pdf = render_to_pdf('inventory_management/historial_pdf.html', data_context)
         if pdf:
             filename = f"Historial_{asset.abbreviation}.pdf"
             # inline => para abrir en navegador, attachment => para forzar descarga

@@ -1,0 +1,40 @@
+<!-- templates/outbound/place_list.html -->
+
+{% extends "got/base/base_generic.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Lugares de Destino</h2>
+    <a href="{% url 'outbound:place-create' %}" class="btn btn-success mb-3">Añadir Nuevo Lugar</a>
+    
+    {% if places %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Contacto</th>
+                    <th>Teléfono</th>
+                    <th>Coordenadas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for place in places %}
+                    <tr>
+                        <td>{{ place.name }}</td>
+                        <td>{{ place.contact_person }}</td>
+                        <td>{{ place.contact_phone }}</td>
+                        <td>{{ place.latitude }}, {{ place.longitude }}</td>
+                        <td>
+                            <a href="{% url 'outbound:place-update' place.pk %}" class="btn btn-primary btn-sm">Editar</a>
+                            <a href="{% url 'outbound:place-delete' place.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay lugares registrados.</p>
+    {% endif %}
+</div>
+{% endblock %}

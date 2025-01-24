@@ -94,7 +94,7 @@ class Migration(migrations.Migration):
                 ('cancel', models.BooleanField(default=False)),
                 ('cancel_reason', models.TextField(blank=True, null=True)),
                 ('cancel_date', models.DateTimeField(blank=True, null=True)),
-                ('approved_by', models.CharField(blank=True, default='Jader Aguilar', max_length=100, null=True)),
+                ('approved_by', models.CharField(blank=True, max_length=100, null=True)),
                 ('recibido_por', models.TextField(blank=True, null=True)),
                 ('satisfaccion', models.BooleanField(default=False)),
                 ('requested_by', models.CharField(blank=True, max_length=100, null=True)),
@@ -105,6 +105,8 @@ class Migration(migrations.Migration):
                 'permissions': (
                     ('can_approve', 'Aprobar solicitudes'),
                     ('can_cancel', 'Puede cancelar'),
+                    ('can_view_all_rqs', 'Puede ver todas las solicitudes'), 
+                    ('can_transfer_solicitud', 'Puede transferir solicitudes'),
                 ),
             },
         ),
@@ -137,25 +139,6 @@ class Migration(migrations.Migration):
             ],
         ),
 
-        migrations.CreateModel(
-            name='DarBaja',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('fecha', models.DateField(auto_now_add=True)),
-                ('reporter', models.CharField(max_length=100)),
-                ('responsable', models.CharField(max_length=100)),
-                ('activo', models.CharField(max_length=150)),
-                ('motivo', models.CharField(choices=[('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('i', 'Inservible/depreciado')], max_length=1)),
-                ('observaciones', models.TextField()),
-                ('disposicion', models.TextField()),
-                ('firma_responsable', models.ImageField(upload_to=got.models.get_upload_path)),
-                ('firma_autorizado', models.ImageField(upload_to=got.models.get_upload_path),),
-                ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
-            ],
-            options={
-                'ordering': ['-fecha'],
-            },
-        ),
 
         migrations.CreateModel(
             name='Transferencia',
@@ -170,26 +153,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['-fecha'],
-            },
-        ),
-        migrations.CreateModel(
-            name='Salida',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('destino', models.CharField(max_length=200)),
-                ('fecha', models.DateField(auto_now_add=True)),
-                ('motivo', models.TextField()),
-                ('recibe', models.CharField(max_length=100)),
-                ('vehiculo', models.CharField(max_length=100, null=True)),
-                ('auth', models.BooleanField(default=False)),
-                ('responsable', models.CharField(max_length=100)),
-                ('propietario', models.CharField(max_length=100)),
-                ('sign_recibe', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
-                ('adicional', models.TextField(blank=True, null=True)),
-            ],
-            options={
-                'ordering': ['-fecha'],
-                'permissions': (('can_approve_it', 'Aprobar salidas'),),
             },
         ),
     ]

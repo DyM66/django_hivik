@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import generic
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .models import *
 from .forms import *
 from django.views import generic, View
@@ -13,10 +13,10 @@ from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.http import HttpResponse, HttpResponseRedirect
 from got.utils import render_to_pdf
-
+from django.urls import reverse_lazy
+from django.contrib import messages
 
 class OutboundListView(LoginRequiredMixin, generic.ListView):
-
     model = OutboundDelivery
     paginate_by = 20
     template_name = 'outbound/salidas_list.html'
@@ -150,35 +150,6 @@ def salida_pdf(request, pk):
         }
     return render_to_pdf('got/salidas/salida_detail.html', context)
 
-
-# def salida_email_pdf(pk):
-#     salida = OutboundDelivery.objects.get(pk=pk)
-#     nombre_completo = salida.responsable.split()
-#     if len(nombre_completo) > 1:
-#         first_name = nombre_completo[0]
-#         last_name = nombre_completo[1]
-#     else:
-#         first_name = salida.responsable
-#         last_name = ""
-
-#     # Buscar el usuario basado en el nombre y apellido
-#     try:
-#         user = User.objects.get(first_name=first_name, last_name=last_name)
-#         cargo = user.profile.cargo  # Asume que el perfil tiene un campo 'cargo'
-#     except User.DoesNotExist:
-#         cargo = 'Cargo no encontrado'
-#     context = {
-#         'rq': salida,
-#         'pro': cargo
-#         }
-#     # pdf_content = render_to_pdf('got/salidas/salida_detail.html', context)
-
-#     template = get_template('got/salidas/salida_detail.html')
-#     html = template.render(context)
-#     pdf_content = BytesIO()
-#     pisa.CreatePDF(html, dest=pdf_content)
-#     return pdf_content.getvalue()
-
         
 class ApproveSalidaView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
@@ -267,7 +238,43 @@ class SalidaUpdateView(LoginRequiredMixin, View):
             # )
             # email.attach(f'Salida_{salida.pk}.pdf', pdf_buffer, 'application/pdf')
             # email.send()
-
-
             return redirect('outbound:outbound-list')
         return render(request, self.template_name, context)
+    
+
+class PlaceListView(LoginRequiredMixin, generic.ListView):
+    model = Place
+    template_name = 'outbound/place_list.html'
+    context_object_name = 'places'
+
+class PlaceCreateView(LoginRequiredMixin, PermissionRequiredMixin, generic.CreateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'outbound/place_form.html'
+    success_url = reverse_lazy('outbound:place-list')
+    permission_required = 'outbound.add_place'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Lugar creado exitosamente.')
+        return super().form_valid(form)
+
+class PlaceUpdateView(LoginRequiredMixin, PermissionRequiredMixin, generic.UpdateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'outbound/place_form.html'
+    success_url = reverse_lazy('outbound:place-list')
+    permission_required = 'outbound.change_place'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Lugar actualizado exitosamente.')
+        return super().form_valid(form)
+
+class PlaceDeleteView(LoginRequiredMixin, PermissionRequiredMixin, generic.DeleteView):
+    model = Place
+    template_name = 'outbound/place_confirm_delete.html'
+    success_url = reverse_lazy('outbound:place-list')
+    permission_required = 'outbound.delete_place'
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Lugar eliminado exitosamente.')
+        return super().delete(request, *args, **kwargs)

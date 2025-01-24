@@ -111,7 +111,7 @@ class Migration(migrations.Migration):
             name='Equipo',
             fields=[
                 ('name', models.CharField(max_length=100)),
-                ('date_inv', models.DateField(auto_now_add=True)),
+                ('date_inv', models.DateField(auto_now_add=True, null=True)),
                 ('code', models.CharField(max_length=50, primary_key=True, serialize=False)),
                 ('model', models.CharField(blank=True, max_length=50, null=True)),
                 ('serial', models.CharField(blank=True, max_length=50, null=True)),
@@ -125,7 +125,7 @@ class Migration(migrations.Migration):
                 ('tipo_almacenamiento', models.CharField(blank=True, max_length=100, null=True)),
                 ('volumen', models.DecimalField(blank=True, decimal_places=2, max_digits=14, null=True)),
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='equipos', to='got.system')),
-                ('tipo', models.CharField(choices=[('a', 'Climatización'), ('b', 'Bomba'), ('c', 'Compresor'), ('d', 'Grúa'), ('e', 'Motor eléctrico'), ('f', 'Emergencias'), ('g', 'Generador'), ('h', 'Cilindro hidráulico'), ('i', 'Instrumentos y herramientas'), ('j', 'Distribución eléctrica'), ('k', 'Tanque de almacenamiento'), ('l', 'Gobierno'), ('m', 'Comunicación'), ('n', 'Navegación'), ('o', 'Maniobras'), ('p', 'Habitabilidad'), ('nr', 'No rotativo'), ('r', 'Motor a combustión'), ('t', 'Transmisión'), ('u', 'Unidad Hidráulica'), ('v', 'Valvula'), ('w', 'Winche'), ('x', 'Estructuras'), ('y', 'Soporte de vida'), ('z', 'Banco de baterias')], default='nr', max_length=2)),
+                ('tipo', models.CharField(choices=[('a', 'Climatización'), ('b', 'Bomba'), ('c', 'Compresor'), ('d', 'Grúa'), ('e', 'Motor eléctrico'), ('f', 'Emergencias'), ('g', 'Generador'), ('h', 'Cilindro hidráulico'), ('i', 'Instrumentos y herramientas'), ('j', 'Distribución eléctrica'), ('k', 'Tanque de almacenamiento'), ('l', 'Gobierno'), ('m', 'Comunicación'), ('n', 'Navegación'), ('o', 'Maniobras'), ('p', 'Habitabilidad'), ('q', 'Informatica y vigilacia'), ('nr', 'No rotativo'), ('r', 'Motor a combustión'), ('t', 'Transmisión'), ('u', 'Unidad Hidráulica'), ('v', 'Valvula'), ('w', 'Winche'), ('x', 'Estructuras'), ('y', 'Soporte de vida'), ('z', 'Banco de baterias')], default='nr', max_length=2)),
                 ('subsystem', models.CharField(blank=True, max_length=100, null=True)),
                 ('potencia', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('ubicacion', models.CharField(blank=True, max_length=150, null=True)),

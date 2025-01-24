@@ -83,4 +83,22 @@ class Migration(migrations.Migration):
                 'unique_together': {('equipo', 'fecha')},
             },
         ),
+        migrations.CreateModel(
+            name='MaintenanceRequirement',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('descripcion', models.CharField(blank=True, max_length=200, null=True)),
+                ('tipo', models.CharField(choices=[('m', 'Material'), ('h', 'Herramienta/Equipo'), ('s', 'Servicio')], max_length=1)),
+                ('cantidad', models.DecimalField(decimal_places=2, default=0.0, max_digits=10)),
+                ('item', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.item')),
+                ('service', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='maintenance_requirements', to='got.service')),
+                ('ruta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requisitos', to='got.ruta')),
+            ],
+        ),
+        # migrations.SeparateDatabaseAndState(
+        #     database_operations=[],
+        #     state_operations=[
+        #         migrations.DeleteModel(name='DarBaja'),
+        #     ]
+        # ),
     ]

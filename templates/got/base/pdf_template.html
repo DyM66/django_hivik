@@ -18,6 +18,7 @@
 
         body {
             font-family: Arial, Helvetica, sans-serif;
+            position: relative;
             font-size: 12px;
             line-height: 1.5;
         }
@@ -117,6 +118,26 @@
         .page-break {
             page-break-after: always;
         }
+
+        /* Marca de Agua */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            opacity: 0.1;
+            font-size: 5rem;
+            color: #000;
+            z-index: -1;
+            white-space: nowrap;
+        }
+        /* Estilos para el pie de página */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.7rem;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -138,5 +159,11 @@
     </table>
     
     {% block content %}{% endblock %}
+
+
+    <!-- Pie de Página -->
+    <div class="footer">
+        <p>Documento generado por el software <strong>GOT</strong></p>
+    </div>
 </body>
 </html>

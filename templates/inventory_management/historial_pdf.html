@@ -1,22 +1,20 @@
 {% extends "got/base/pdf_template.html" %}
-{% load static %}
 {% block title %}
-  Historial de Transacciones - {{ asset.name }}
+	Reporte de consumos
 {% endblock %}
 
 {% block doc_info %}
-  <td>
-    <!-- Aquí puedes poner algún detalle -->
-    <p style="font-size:0.8rem;margin:0;">Fecha: {{ fecha_hoy|date:"d/m/Y" }}</p>
-  </td>
+	<th>CODIGO:</th>
+	<th>VERSION 001</th>
+	<th>FECHA DE ACTUALIZACION: 23/01/2025</th>
 {% endblock %}
 
 {% block content %}
-  <div style="padding:10px; font-size:0.85rem;">
-    <h2 style="text-align:center; margin-bottom:10px;">
-      Historial de Transacciones
-    </h2>
+  
+<div style="font-size:0.85rem;">
 
+	<br>
+	<h2>HISTORIAL DE TRANSACCIONES</h2>
     {% if fecha_inicio or fecha_fin %}
       <p style="text-align:center;">
         Rango de fechas: 
@@ -26,76 +24,159 @@
       </p>
     {% endif %}
 
-    <table width="100%" style="border-collapse: collapse; font-size:0.85rem;">
-      <thead>
-        <tr style="background-color:#f0f0f0;">
-          <th style="border:1px solid #000; padding:5px;">Fecha</th>
-          <th style="border:1px solid #000; padding:5px;">Reportado por</th>
-          <th style="border:1px solid #000; padding:5px;">Artículo</th>
-          <th style="border:1px solid #000; padding:5px;">Presentación</th>
-          <th style="border:1px solid #000; padding:5px;">Cantidad</th>
-          <th style="border:1px solid #000; padding:5px;">Movimiento</th>
-          <th style="border:1px solid #000; padding:5px;">Total Reportado</th>
-          <th style="border:1px solid #000; padding:5px;">Descripción</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for transaccion in transacciones %}
-          <tr>
-            <td style="border:1px solid #ccc; padding:5px;">
-              {{ transaccion.fecha|date:"d/m/Y" }}
-            </td>
-            <td style="border:1px solid #ccc; padding:5px;">
-              {{ transaccion.user }}
-            </td>
-            <td style="border:1px solid #ccc; padding:5px;">
-              {% if transaccion.suministro.item %}
-                {{ transaccion.suministro.item.name }} 
-                {% if transaccion.suministro.item.reference %}
-                   ({{ transaccion.suministro.item.reference }})
-                {% endif %}
-              {% else %}
-                ---
-              {% endif %}
-            </td>
-            <td style="border:1px solid #ccc; padding:5px;">
-              {% if transaccion.suministro.item %}
-                {{ transaccion.suministro.item.presentacion }}
-              {% else %}
-                ---
-              {% endif %}
-            </td>
-            <td style="border:1px solid #ccc; padding:5px;">
-              {{ transaccion.cant }}
-            </td>
-            <td style="border:1px solid #ccc; padding:5px;">
-              {{ transaccion.get_tipo_display }}
-            </td>
-            <td style="border:1px solid #ccc; padding:5px;">
-              {% if transaccion.tipo == 't' %}
-                {% if transaccion.suministro.asset == asset %}
-                  {{ transaccion.cant_report|default:"---" }}
-                {% elif transaccion.suministro_transf.asset == asset %}
-                  {{ transaccion.cant_report_transf|default:"---" }}
-                {% else %}
-                  ---
-                {% endif %}
-              {% else %}
-                {{ transaccion.cant_report|default:"---" }}
-              {% endif %}
-            </td>
-            <td style="border:1px solid #ccc; padding:5px;">
-              {{ transaccion.motivo }}
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="8" style="text-align:center; border:1px solid #ccc;">
-              No hay transacciones en este rango.
-            </td>
-          </tr>
-        {% endfor %}
+	<br>
+	<table class="deta">
+		<thead>
+			<tr>
+				<th>
+					<strong>Activo:</strong>
+					<ul>
+						<li>{{ asset.name }} - {{ asset.abbreviation }}</li>
+					</ul>
+				</th>
+				<th>
+					<strong>Fecha del reporte:</strong>
+					<ul>
+						<li>{{ fecha_hoy }}</li>
+					</ul>
+				</th>
+				<th>
+					<strong>Estado:</strong>
+					<ul>
+						<li> </li>
+					</ul>
+				</th>
+			</tr>
+			<tr>
+				<th colspan="3">
+					Suministros
+					<ul>
+						{% for i in items %}
+							<li>{{ i }}</li>
+						{% endfor %}
+					</ul>
+				</th>
+			</tr>
+		</thead>
+	</table>
+	<br>
+
+    <table class="deta" style="font-size:0.85rem;">
+		<thead>
+			<tr style="background-color:#f0f0f0;">
+			<th style="padding:5px;">Fecha</th>
+			<th style="padding:5px;">Reportado por</th>
+			<th style="padding:5px;">Artículo</th>
+			<th style="padding:5px;">Presentación</th>
+			<th style="padding:5px;">Cantidad</th>
+			<th style="padding:5px;">Movimiento</th>
+			<th style="padding:5px;">Total Reportado</th>
+			<th style="padding:5px;">Descripción</th>
+			</tr>
+		</thead>
+		<tbody>
+        	{% for transaccion in transacciones %}
+				<tr>
+					<td style="border:1px solid #ccc; padding:5px;">
+						{{ transaccion.fecha|date:"d/m/Y" }}
+					</td>
+					<td style="border:1px solid #ccc; padding:5px;">
+						{{ transaccion.user }}
+					</td>
+            		<td style="border:1px solid #ccc; padding:5px;">
+              			{% if transaccion.suministro.item %}
+                			{{ transaccion.suministro.item.name }} 
+                			{% if transaccion.suministro.item.reference %}
+                   				({{ transaccion.suministro.item.reference }})
+                			{% endif %}
+              			{% else %}
+							---
+						{% endif %}
+            		</td>
+            		<td style="border:1px solid #ccc; padding:5px;">
+						{% if transaccion.suministro.item %}
+							{{ transaccion.suministro.item.presentacion }}
+						{% else %}
+							---
+						{% endif %}
+            		</td>
+					<td style="border:1px solid #ccc; padding:5px;">
+						{{ transaccion.cant }}
+					</td>
+					<td style="border:1px solid #ccc; padding:5px;">
+						{{ transaccion.get_tipo_display }}
+					</td>
+            		<td style="border:1px solid #ccc; padding:5px;">
+              			{% if transaccion.tipo == 't' %}
+                			{% if transaccion.suministro.asset == asset %}
+                  				{{ transaccion.cant_report|default:"---" }}
+							{% elif transaccion.suministro_transf.asset == asset %}
+								{{ transaccion.cant_report_transf|default:"---" }}
+							{% else %}
+								---
+							{% endif %}
+						{% else %}
+							{{ transaccion.cant_report|default:"---" }}
+						{% endif %}
+            		</td>
+					<td style="border:1px solid #ccc; padding:5px;">
+						{{ transaccion.motivo }}
+					</td>
+          		</tr>
+        	{% empty %}
+				<tr>
+					<td colspan="8" style="text-align:center; border:1px solid #ccc;">
+						No hay transacciones en este rango.
+					</td>
+				</tr>
+			{% endfor %}
       </tbody>
     </table>
-  </div>
+	
+
+    <!-- Agregar Resumen por Suministro -->
+    <br>
+    <h2>Resumen por Suministro</h2>
+    {% for summary in suministros_summary %}
+      	<table class="deta" style="margin-bottom: 10px;">
+			<thead>
+				<tr>
+					<th colspan="2" style="padding:5px; background-color:#f9f9f9;">
+					<strong>{{ summary.suministro.item.name }}{% if summary.suministro.item.reference %} ({{ summary.suministro.item.reference }}){% endif %}</strong>
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td style="padding:5px;"><strong>Cantidad Inicial:</strong></td>
+					<td style="padding:5px;">{{ summary.cantidad_inicial }}</td>
+				</tr>
+				<tr>
+					<td style="padding:5px;"><strong>Total Consumido:</strong></td>
+					<td style="padding:5px;">{{ summary.total_consumido }}</td>
+				</tr>
+				<tr>
+					<td style="padding:5px;"><strong>Total Ingresado:</strong></td>
+					<td style="padding:5px;">{{ summary.total_ingresado }}</td>
+				</tr>
+				<tr>
+					<td style="padding:5px;"><strong>Cantidad Final del Período:</strong></td>
+					<td style="padding:5px;">{{ summary.cantidad_final }}</td>
+				</tr>
+			</tbody>
+		</table>
+    {% empty %}
+      	<p>No hay suministros seleccionados para el resumen.</p>
+    {% endfor %}
+
+    <!-- Agregar sección de firma -->
+    <br>
+    <div style="margin-top: 50px;">
+		<p>Para constancia del presente documento, se firma a los <strong>{{ fecha_hoy|date:"d/m/Y" }}</strong>:</p>
+		<br><br><br>
+		<p><strong>Nombres y apellidos:</strong></p>
+		<p><strong>Cargo: Gerente de operaciones y/o jefe de operaciones</strong></p>
+    </div>
+
+</div>
 {% endblock %}

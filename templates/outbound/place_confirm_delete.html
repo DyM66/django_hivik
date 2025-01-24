@@ -1,0 +1,15 @@
+<!-- templates/outbound/place_confirm_delete.html -->
+
+{% extends "got/base/base_generic.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Eliminar Lugar</h2>
+    <p>¿Está seguro de que desea eliminar el lugar <strong>{{ object.name }}</strong>?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+        <a href="{% url 'outbound:place-list' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
