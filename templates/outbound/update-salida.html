@@ -20,80 +20,8 @@
         <button type="button" class="btn btn-secondary" onclick="clearSignature()">Limpiar Firma</button>
     </div>
 
-    <h4 class="mt-4">Artículos Asociados</h4>
-    <table class="table-list table-detail">
-        <thead>
-            <tr>
-                <th>Artículo</th>
-                <th>Cantidad</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody id="items-wrapper">
-            {% for suministro in suministros %}
-                <tr>
-                    <td>{{ suministro.item.name }}</td>
-                    <td>{{ suministro.cantidad }}</td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-danger" onclick="removeItem(this, '{{ suministro.item.id }}')">Eliminar</button>
-                    </td>
-                    <input type="hidden" name="item_id[]" value="{{ suministro.item.id }}">
-                    <input type="hidden" name="cantidad[]" value="{{ suministro.cantidad }}">
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
     <input type="submit" class="btn btn-primary mb-4" value="Actualizar">
 
-    <h3>Agregar Artículos</h3>
-    <input type="text" id="search-name-input" onkeyup="filterItems()" placeholder="Buscar por nombre..." class="form-control mb-1">
-    <input type="text" id="search-reference-input" onkeyup="filterItems()" placeholder="Buscar por referencia..." class="form-control mb-3 mt-4">
-
-    <div class="row" id="articles-container">
-        {% for item in items %}
-            <div class="col-lg-3 mb-3 article-card" data-name="{{ item|lower }}" data-reference="{{ item.reference|lower }}">
-                <div class="card">
-                    {% if item.imagen %}
-                        <img src="{{ item.imagen.url }}" class="card-img-top" alt="Imagen de {{ item.name }}" style="height: 200px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#imageModal{{ item.id }}">
-                    {% endif %}
-                    <div class="card-body">
-                        <h5 class="card-title">{{ item.name }}</h5>
-                        <p class="card-text">
-                            Referencia: {{ item.reference }}<br>
-                            Presentación: {{ item.presentacion }}<br>
-                            Código: {{ item.code }}<br>
-                            Sección: {{ item.get_seccion_display }}
-                        </p>
-                        <input type="number" id="quantity-{{ item.id }}" placeholder="Cantidad" min="1" class="form-control mb-2">
-                        <button type="button" class="btn btn-primary" onclick="addItem('{{ item.id }}', '{{ item }}')">Añadir Artículo</button>
-                    </div>
-                </div>
-            </div>
-
-            {% if item.imagen %}
-                <div class="modal fade" id="imageModal{{ item.id }}" tabindex="-1" aria-labelledby="imageModalLabel{{ item.id }}" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h6 class="modal-title" id="imageModalLabel{{ item.id }}">{{ item.name }} {{ item.reference }}</h6>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <img src="{{ item.imagen.url }}" class="img-fluid" alt="Responsive image">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-        {% endfor %}
-    </div>
-
-    <div class="pagination-controls">
-        <button type="button" onclick="changePage(-1)">Anterior</button>
-        <span id="page-info"></span>
-        <button type="button" onclick="changePage(1)">Siguiente</button>
-    </div>
     
 </form>
 

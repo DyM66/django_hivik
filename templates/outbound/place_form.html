@@ -1,12 +1,12 @@
 <!-- templates/outbound/place_form.html -->
 
 {% extends "got/base/base_generic.html" %}
+{% load my_tags %}  <!-- Cargar los filtros personalizados -->
 
 {% block content %}
 <div class="container mt-4">
     <h2>{% if form.instance.pk %}Actualizar Lugar{% else %}Crear Nuevo Lugar{% endif %}</h2>
-    <form method="post">
-        {% csrf_token %}
+    <form method="post" id="place-form" data-parsley-validate>{% csrf_token %}
         {{ form.non_field_errors }}
         <div class="mb-3">
             <label for="{{ form.name.id_for_label }}" class="form-label">Nombre</label>
@@ -16,10 +16,25 @@
         <div class="mb-3">
             <label class="form-label">Seleccionar Ubicación en el Mapa</label>
             <div id="map" style="height: 400px;"></div>
-            {{ form.latitude }}
-            {{ form.longitude }}
-            {{ form.latitude.errors }}
-            {{ form.longitude.errors }}
+            <div class="mt-2">
+                <label for="{{ form.latitude.id_for_label }}" class="form-label">Latitud</label>
+                {{ form.latitude }}
+                {{ form.latitude.errors }}
+            </div>
+            <div class="mt-2">
+                <label for="{{ form.longitude.id_for_label }}" class="form-label">Longitud</label>
+                {{ form.longitude }}
+                {{ form.longitude.errors }}
+            </div>
+            <div class="mt-2">
+                <label for="{{ form.city.id_for_label }}" class="form-label">Ciudad</label>
+                {{ form.city }}
+                {{ form.city.errors }}
+            </div>
+            <!-- <div class="mt-2">
+                <label for="id_city" class="form-label">Ciudad</label>
+                <input type="text" id="id_city" name="city" class="form-control" readonly>
+            </div> -->
         </div>
         <div class="mb-3">
             <label for="{{ form.contact_person.id_for_label }}" class="form-label">Persona de Contacto</label>
@@ -36,74 +51,169 @@
     </form>
 </div>
 
-<!-- Incluir la API de Google Maps -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDC4JuNX0U5YnJJCxBTCrnkl2ZupbOM4zA&libraries=places"></script>
+<!-- Incluir Leaflet.js -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-sA+e0pva6JzAyap+tvb5Ij34EGR54ipuaO1CW3Gq/Jg="
+      crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-o9N1jzGbN+j4rP3gJv4JrZJkvC/HeKw3zZJM0BueZ60="
+        crossorigin=""></script>
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.9.2/parsley.css" integrity="sha512-eyHLV1oYmGdlFppK4VEW5p6xWq4JymcLk1WAPc5Jeo5jxFGfpF+kDZjkQYOMItYDh6HcJ8qUgHhY3oVQK8H+eA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.9.2/parsley.min.js" integrity="sha512-eyHLV1oYmGdlFppK4VEW5p6xWq4JymcLk1WAPc5Jeo5jxFGfpF+kDZjkQYOMItYDh6HcJ8qUgHhY3oVQK8H+eA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+
 
 <script>
     let map;
     let marker;
-    let infowindow;
+    let cityInput = document.getElementById('id_city');
+    let latitudeInput = document.getElementById('id_latitude');
+    let longitudeInput = document.getElementById('id_longitude');
+    let form = document.getElementById('place-form');
 
     function initMap() {
-        // Coordenadas iniciales (puedes cambiarlas según tu preferencia)
-        const initialLat = parseFloat(document.getElementById('id_latitude').value) || 4.7110;
-        const initialLng = parseFloat(document.getElementById('id_longitude').value) || -74.0721;
-        const initialPosition = { lat: initialLat, lng: initialLng };
+        // Coordenadas predeterminadas: 10.386389, -75.515933
+        const initialLat = parseFloat(latitudeInput.value) || 10.386389;
+        const initialLng = parseFloat(longitudeInput.value) || -75.515933;
+        const initialPosition = [initialLat, initialLng];
 
-        map = new google.maps.Map(document.getElementById("map"), {
-            center: initialPosition,
-            zoom: 12,
+        // Inicializar el mapa
+        map = L.map('map').setView(initialPosition, 13);
+
+        // Añadir capa de OSM
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Añadir marcador inicial
+        marker = L.marker(initialPosition, { draggable: true }).addTo(map);
+
+        // Actualizar campos al mover el marcador
+        marker.on('dragend', function(e) {
+            const latlng = marker.getLatLng();
+            latitudeInput.value = latlng.lat.toFixed(6);
+            longitudeInput.value = latlng.lng.toFixed(6);
+            fetchCityName(latlng.lat, latlng.lng);
         });
 
-        infowindow = new google.maps.InfoWindow();
-
-        marker = new google.maps.Marker({
-            position: initialPosition,
-            map: map,
-            draggable: true,
-        });
-
-        // Actualizar los campos de coordenadas al mover el marcador
-        google.maps.event.addListener(marker, 'dragend', function(event) {
-            document.getElementById('id_latitude').value = event.latLng.lat().toFixed(6);
-            document.getElementById('id_longitude').value = event.latLng.lng().toFixed(6);
-        });
-
-        // Autocompletar de búsqueda
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = 'Buscar ubicación';
-        input.className = 'form-control mb-3';
-        input.id = 'search-box';
-        document.querySelector('form').insertBefore(input, document.getElementById('map'));
-
-        const autocomplete = new google.maps.places.Autocomplete(input);
-        autocomplete.bindTo('bounds', map);
-
-        autocomplete.setFields(['geometry']);
-
-        autocomplete.addListener('place_changed', function() {
-            const place = autocomplete.getPlace();
-            if (!place.geometry) {
-                alert("No se encontró la ubicación.");
-                return;
-            }
-
-            // Si el lugar tiene una geometría, centra el mapa y mueve el marcador
-            if (place.geometry.viewport) {
-                map.fitBounds(place.geometry.viewport);
-            } else {
-                map.setCenter(place.geometry.location);
-                map.setZoom(17);
-            }
-
-            marker.setPosition(place.geometry.location);
-            document.getElementById('id_latitude').value = place.geometry.location.lat().toFixed(6);
-            document.getElementById('id_longitude').value = place.geometry.location.lng().toFixed(6);
+        // Manejar clics en el mapa para mover el marcador
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            marker.setLatLng([lat, lng]);
+            latitudeInput.value = lat.toFixed(6);
+            longitudeInput.value = lng.toFixed(6);
+            fetchCityName(lat, lng);
         });
     }
 
-    // Inicializar el mapa al cargar la página
-    window.onload = initMap;
+    // Función para obtener el nombre de la ciudad utilizando Nominatim
+    function fetchCityName(lat, lng) {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.address) {
+                    // Priorizar diferentes campos para obtener la ciudad
+                    const city = data.address.city || data.address.town || data.address.village || 'Ciudad no identificada';
+                    cityInput.value = city;
+                } else {
+                    cityInput.value = 'Ciudad no identificada';
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener el nombre de la ciudad:', error);
+                cityInput.value = 'Error al obtener la ciudad';
+            });
+    }
+
+    // Función para validar y actualizar el marcador al ingresar coordenadas manualmente
+    function handleManualCoordinates() {
+        // Añadir evento de cambio a los campos de coordenadas
+        latitudeInput.addEventListener('change', updateMarkerFromInputs);
+        longitudeInput.addEventListener('change', updateMarkerFromInputs);
+    }
+
+    function updateMarkerFromInputs() {
+        const lat = parseFloat(latitudeInput.value);
+        const lng = parseFloat(longitudeInput.value);
+
+        // Validar las coordenadas
+        if (isNaN(lat) || isNaN(lng)) {
+            alert('Las coordenadas ingresadas no son válidas.');
+            return;
+        }
+        if (lat < -90 || lat > 90) {
+            alert('La latitud debe estar entre -90 y 90 grados.');
+            return;
+        }
+        if (lng < -180 || lng > 180) {
+            alert('La longitud debe estar entre -180 y 180 grados.');
+            return;
+        }
+
+        // Actualizar la posición del mapa y del marcador
+        const newLatLng = [lat, lng];
+        map.setView(newLatLng, 13);
+        marker.setLatLng(newLatLng);
+        fetchCityName(lat, lng);
+    }
+
+    // Validar el formulario antes de enviarlo
+    function validateForm(event) {
+        const lat = parseFloat(latitudeInput.value);
+        const lng = parseFloat(longitudeInput.value);
+
+        if (isNaN(lat) || isNaN(lng)) {
+            alert('Las coordenadas deben ser números válidos.');
+            event.preventDefault();
+            return false;
+        }
+        if (lat < -90 || lat > 90) {
+            alert('La latitud debe estar entre -90 y 90 grados.');
+            event.preventDefault();
+            return false;
+        }
+        if (lng < -180 || lng > 180) {
+            alert('La longitud debe estar entre -180 y 180 grados.');
+            event.preventDefault();
+            return false;
+        }
+
+        // Opcional: Validar que la ciudad esté presente
+        if (cityInput.value.trim() === '') {
+            alert('Debe seleccionar una ubicación válida en el mapa o ingresar las coordenadas correctamente.');
+            event.preventDefault();
+            return false;
+        }
+
+        return true;
+    }
+
+    // Inicializar el mapa y los manejadores de eventos al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+        handleManualCoordinates();
+        form.addEventListener('submit', validateForm);
+
+        // Inicializar Parsley.js
+        $('#place-form').parsley();
+    });
+
+    latitudeInput.addEventListener('blur', function() {
+    const lat = parseFloat(latitudeInput.value);
+    if (!isNaN(lat)) {
+        latitudeInput.value = lat.toFixed(6);
+    }
+});
+
+longitudeInput.addEventListener('blur', function() {
+    const lng = parseFloat(longitudeInput.value);
+    if (!isNaN(lng)) {
+        longitudeInput.value = lng.toFixed(6);
+    }
+});
+
 </script>
 {% endblock %}

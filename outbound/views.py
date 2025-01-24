@@ -51,15 +51,16 @@ class SalidaCreateView(LoginRequiredMixin, View):
         items = Item.objects.all()
         form = self.form_class()
         image_form = UploadImages(request.POST, request.FILES)
+        places = Place.objects.all()
 
         return render(request, self.template_name, {
             'items': items,
             'form': form,
-            'image_form': image_form
+            'image_form': image_form,
+            'places': places
         })
 
     def post(self, request):
-
             form = self.form_class(request.POST, request.FILES)
             image_form = UploadImages(request.POST, request.FILES)
             items_ids = request.POST.getlist('item_id[]') 
@@ -68,7 +69,8 @@ class SalidaCreateView(LoginRequiredMixin, View):
             context = {
                 'items': Item.objects.all(),
                 'form': form,
-                'image_form': image_form
+                'image_form': image_form,
+                'places': Place.objects.all()
             }
 
             if form.is_valid() and image_form.is_valid():
@@ -161,7 +163,7 @@ class ApproveSalidaView(LoginRequiredMixin, View):
 
 class SalidaUpdateView(LoginRequiredMixin, View):
     form_class = SalidaForm
-    template_name = 'got/salidas/update-salida.html'
+    template_name = 'outbound/update-salida.html'
 
     def get(self, request, pk):
         salida = get_object_or_404(OutboundDelivery, pk=pk)
@@ -255,8 +257,11 @@ class PlaceCreateView(LoginRequiredMixin, PermissionRequiredMixin, generic.Creat
     permission_required = 'outbound.add_place'
 
     def form_valid(self, form):
-        messages.success(self.request, 'Lugar creado exitosamente.')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        next_url = self.request.GET.get('next')
+        if next_url:
+            return redirect(next_url)
+        return response
 
 class PlaceUpdateView(LoginRequiredMixin, PermissionRequiredMixin, generic.UpdateView):
     model = Place

@@ -1,195 +1,158 @@
-{% extends "got/base_generic.html" %}
-{% block headtag %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.2/signature_pad.umd.min.js"></script>
-{% endblock %}
+<!-- templates/outbound/create-salida.html -->
+{% extends "got/base/base_generic.html" %}
+{% load my_tags %}
 {% block content %}
-
-    <h1>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.2/signature_pad.umd.min.js"></script>
+    <style>
+        .selected-row {
+            background-color: #d1e7dd !important;  /* Color verde claro */
+        }
+    </style>
+    <main class="px-3">
+    <h1 class="mb-4">
         Reportar salida de materiales de SERPORT
     </h1>
 
-    <form method="post" action="" id="solicitudForm"  enctype="multipart/form-data">{% csrf_token %}
+    <form method="post" action="" id="solicitudForm" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.destination }}  <!-- Campo oculto añadido aquí -->
 
-        {{form}}
-        <br>
-        {{ image_form }}
-        <br>
-        
-        
-        <!-- <h4 class="mt-4">Artículos Añadidos</h4>
-
-        <table class="table-list table-detail">
-            <thead>
-                <tr>
-                    <th>Artículo</th>
-                    <th>Cantidad</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            
-            <tbody id="items-wrapper">
-            </tbody>
-        </table> -->
-
-        <input type="submit" class="btn btn-primary mb-4" value="Enviar">
-
-        <!-- <h3>Artículos</h3>
-
-        <input type="text" id="search-name-input" onkeyup="filterItems()" placeholder="Buscar por nombre..." class="form-control mb-1">
-        <input type="text" id="search-reference-input" onkeyup="filterItems()" placeholder="Buscar por referencia..." class="form-control mb-3 mt-4">
-
-        <div class="row" id="articles-container">
-            {% for item in items %}
-                <div class="col-lg-3 mb-3 article-card" data-name="{{ item|lower }}" data-reference="{{ item.reference|lower }}">
-                    <div class="card">
-                        {% if item.imagen %}
-                            <img src="{{ item.imagen.url }}" class="card-img-top" alt="Imagen de {{ item.name }}" style="height: 200px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#imageModal{{ item.id }}">
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ item.name }}</h5>
-                            <p class="card-text">
-                                Referencia: {{ item.reference }}<br>
-                                Presentación: {{ item.presentacion }}<br>
-                                Código: {{ item.code }}<br>
-                                Sección: {{ item.get_seccion_display }}
-                            </p>
-                            <input type="number" id="quantity-{{ item.id }}" placeholder="Cantidad" min="1" class="form-control mb-2">
-                            <button type="button" class="btn btn-primary" onclick="addItem('{{ item.id }}', '{{ item }}')">Añadir Artículo</button>
-                        </div>
-                    </div>
+        <div class="row">
+            <!-- Columna de los campos del formulario -->
+            <div class="col-md-6">
+                <!-- Mostrar errores del formulario si los hay -->
+                {{ form.non_field_errors }}
+                
+                <div class="mb-3">
+                    <label for="{{ form.motivo.id_for_label }}" class="form-label">{{ form.motivo.label }}</label>
+                    {{ form.motivo }}
+                    {{ form.motivo.errors }}
                 </div>
-
-                {% if item.imagen %}
-                    <div class="modal fade" id="imageModal{{ item.id }}" tabindex="-1" aria-labelledby="imageModalLabel{{ item.id }}" aria-hidden="true">
-                        <div class="modal-dialog modal-lg modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h6 class="modal-title" id="imageModalLabel{{ item.id }}">{{ item.name }} {{ item.reference }}</h6>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <img src="{{ item.imagen.url }}" class="img-fluid" alt="Responsive image">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-            {% endfor %}
+                <div class="mb-3">
+                    <label for="{{ form.recibe.id_for_label }}" class="form-label">{{ form.recibe.label }}</label>
+                    {{ form.recibe }}
+                    {{ form.recibe.errors }}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.vehiculo.id_for_label }}" class="form-label">{{ form.vehiculo.label }}</label>
+                    {{ form.vehiculo }}
+                    {{ form.vehiculo.errors }}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.propietario.id_for_label }}" class="form-label">{{ form.propietario.label }}</label>
+                    {{ form.propietario }}
+                    {{ form.propietario.errors }}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.adicional.id_for_label }}" class="form-label">{{ form.adicional.label }}</label>
+                    {{ form.adicional }}
+                    {{ form.adicional.errors }}
+                </div>
+                {{ image_form }}
+                <br>
+                <input type="submit" class="btn btn-primary mb-4" value="Enviar">
+            </div>
+        
+            <!-- Columna de selección de destino -->
+            <div class="col-md-6">
+                <!-- Buscador -->
+                <div class="mb-3">
+                    <label for="search-destination" class="form-label">Buscar Lugar de Destino</label>
+                    <input type="text" id="search-destination" class="form-control" placeholder="Buscar por nombre o ciudad del lugar">
+                </div>
+                <!-- Botón para crear un nuevo Place -->
+                <div class="mb-3">
+                    <a href="{% url 'outbound:place-create' %}?next={% url 'outbound:create-salida' %}" class="btn btn-success">Crear Nueva ubicación</a>
+                </div>
+                <!-- Tabla de Places -->
+                <div class="mb-3" style="height: 400px; overflow-y: auto;">
+                    <table class="table table-striped table-hover" id="places-table">
+                        <thead class="table-dark">
+                            <tr>
+                                <th></th>
+                                <th>Nombre</th>
+                                <th>Ciudad</th>
+                                <th>Coordenadas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for place in places %}
+                                <tr data-name="{{ place.name|lower }}" data-city="{{ place.city|lower }}">
+                                    <td>
+                                        <input type="radio" name="selected_place" value="{{ place.id }}" onclick="selectPlace({{ place.id }})">
+                                    </td>
+                                    <td>{{ place.name }}</td>
+                                    <td>{{ place.city }}</td>
+                                    <td>
+                                        {{ place.latitude|floatformat:6|replace_comma }}, {{ place.longitude|floatformat:6|replace_comma }}
+                                        <a href="https://www.google.com/maps?q={{ place.latitude }},{{ place.longitude }}" target="_blank" rel="noopener noreferrer">
+                                            <i class="bi bi-geo-alt-fill" style="margin-left:5px;"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-
-        <div class="pagination-controls">
-            <button type="button" onclick="changePage(-1)">Anterior</button>
-            <span id="page-info"></span>
-            <button type="button" onclick="changePage(1)">Siguiente</button>
-        </div> -->
-        
-        
     </form>
 
+    </main>
     <script>
-        function addItem(itemId, itemName) {
-            const quantityInput = document.getElementById('quantity-' + itemId);
-            const quantity = quantityInput.value;
-            const itemsWrapper = document.getElementById('items-wrapper');
+    // Función para establecer el valor del campo oculto 'destination' y resaltar la fila seleccionada
+    function selectPlace(placeId) {
+        document.getElementById('id_destination').value = placeId;
+        
+        // Remover la clase 'selected-row' de todas las filas
+        const rows = document.querySelectorAll('#places-table tbody tr');
+        rows.forEach(row => {
+            row.classList.remove('selected-row');
+        });
+        
+        // Añadir la clase 'selected-row' a la fila seleccionada
+        const selectedRow = document.querySelector(`#places-table tbody tr input[value="${placeId}"]`).closest('tr');
+        selectedRow.classList.add('selected-row');
+    }
 
-            if (quantity <= 0 || quantity === '') {
-                alert('Por favor, introduzca una cantidad válida.');
-                return;
+    // Función para filtrar la tabla de Places
+    document.getElementById('search-destination').addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#places-table tbody tr');
+        
+        rows.forEach(row => {
+            const name = row.getAttribute('data-name') || '';
+            const city = row.getAttribute('data-city') || '';
+            if (name.includes(filter) || city.includes(filter)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
             }
-
-            const row = document.createElement('tr');
-            row.innerHTML = `<td>${itemName}</td><td>${quantity}</td>`;
-            row.appendChild(createRemoveButton(row));
-            row.appendChild(createHiddenInput('item_id[]', itemId));
-            row.appendChild(createHiddenInput('cantidad[]', quantity));
-            itemsWrapper.appendChild(row);
-
-            // Resetear la cantidad
-            quantityInput.value = '';
-        }
-
-        function createHiddenInput(name, value) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = name;
-            input.value = value;
-            return input;
-        }
-
-        function createRemoveButton(row) {
-            const btn = document.createElement('button');
-            btn.textContent = 'Eliminar';
-            btn.className = 'btn btn-sm btn-danger';
-            btn.onclick = () => row.remove();
-            const cell = document.createElement('td');
-            cell.appendChild(btn);
-            return cell;
-        }
-
-        function filterItems() {
-            const searchName = document.getElementById('search-name-input').value.toLowerCase();
-            const searchReference = document.getElementById('search-reference-input').value.toLowerCase();
-            const articles = document.querySelectorAll('.article-card');
-
-            articles.forEach(card => {
-                const itemName = card.getAttribute('data-name');
-                const itemReference = card.getAttribute('data-reference');
-                if (itemName.includes(searchName) && itemReference.includes(searchReference)) {
-                    card.style.display = '';
-                    card.classList.add('filtered');
-                } else {
-                    card.style.display = 'none';
-                    card.classList.remove('filtered');
-                }
-            });
-
-            currentPage = 1;
-            setupPagination();
-        }
-
-        let currentPage = 1;
-        const itemsPerPage = 16; // Cambia este valor según cuántos ítems por página desees mostrar
-
-        function setupPagination() {
-            let items = document.querySelectorAll('.article-card.filtered');
-            if (items.length === 0) {  // Si no hay filtrados, toma todos los ítems
-                items = document.querySelectorAll('.article-card');
-            }
-            
-            const totalPages = Math.ceil(items.length / itemsPerPage);
-            document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}`;
-
-            let itemIndex = 0;  // Índice para recorrer todos los ítems
-            items.forEach((item, index) => {
-                const start = (currentPage - 1) * itemsPerPage;
-                const end = start + itemsPerPage;
-                if (itemIndex >= start && itemIndex < end) {
-                    item.style.display = '';  // Muestra los ítems de la página actual
-                } else {
-                    item.style.display = 'none';  // Oculta los demás ítems
-                }
-                itemIndex++;
-            });
-        }
-
-
-        function changePage(step) {
-            const items = document.querySelectorAll('.article-card');
-            const totalPages = Math.ceil(items.length / itemsPerPage);
-            currentPage += step;
-
-            if (currentPage < 1) {
-                currentPage = 1;
-            } else if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
-
-            setupPagination();
-        }
-
-        document.addEventListener("DOMContentLoaded", setupPagination);
-
-
+        });
+    });
 
     </script>
+
+    <style>
+        /* Estilo para resaltar la fila seleccionada */
+        .selected-row {
+            background-color: #d1e7dd !important;  /* Color verde claro */
+        }
+
+        /* Opcional: Añadir transición suave al resaltar filas */
+        #places-table tbody tr {
+            transition: background-color 0.3s ease;
+        }
+
+        /* Estilos adicionales para una mejor apariencia */
+        #places-table th, #places-table td {
+            vertical-align: middle;
+        }
+
+        /* Estilo para los iconos de ubicación */
+        .bi-geo-alt-fill {
+            color: #0d6efd;  /* Color azul de Bootstrap */
+        }
+    </style>
+        
 {% endblock %}

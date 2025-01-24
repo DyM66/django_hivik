@@ -18,8 +18,9 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=200, unique=True)),
                 ('latitude', models.DecimalField(decimal_places=6, help_text='Latitud de la ubicación.', max_digits=9)),
                 ('longitude', models.DecimalField(decimal_places=6, help_text='Longitude de la ubicación.', max_digits=9)),
-                ('contact_person', models.CharField(max_length=100)),
-                ('contact_phone', models.CharField(max_length=15, validators=[django.core.validators.RegexValidator(message='Número de teléfono inválido.', regex='^\\+?1?\\d{9,15}$')])),
+                ('city', models.CharField(blank=True, max_length=100, null=True)),
+                ('contact_person', models.CharField(blank=True, max_length=100, null=True)),
+                ('contact_phone', models.CharField(blank=True, max_length=15, null=True, validators=[django.core.validators.RegexValidator(message='Número de teléfono inválido.', regex='^\\+?1?\\d{9,15}$')])),
             ],
             options={
                 'verbose_name': 'Lugar',

@@ -1,5 +1,5 @@
-{% extends "got/base_generic.html" %}
-
+{% extends "got/base/base_generic.html" %}
+{% load my_tags %}
 {% block header %}
     Salidas de materiales 
 {% endblock %}
@@ -58,7 +58,17 @@
                         {{ rq.id }} - {{ rq.motivo }}
                     </h6>
                 </td>
-                <td data-cell="Destino" class="nowrap"><strong>{{ rq.destino }}</strong></td>
+                <td data-cell="Destino" class="nowrap">
+                    <strong>
+                        {{ rq.destination|default_if_none:rq.destino }} - 
+                        {% if rq.destination %}
+                            <a href="https://www.google.com/maps?q={{ rq.destination.latitude|replace_comma }},{{ rq.destination.longitude|replace_comma }}" target="_blank" rel="noopener noreferrer">
+                                {{ rq.destination.latitude|floatformat:6|replace_comma }}, {{ rq.destination.longitude|floatformat:6|replace_comma }}
+                                <i class="bi bi-geo-alt-fill" style="margin-left:5px;"></i>
+                            </a>
+                        {% endif %} 
+                    </strong>
+                </td>
                 <td data-cell="Responsable" class="nowrap">{{ rq.responsable }}/ {{ rq.recibe}}</td>
                 <td data-cell="Estado">
                     <div class="dropdown">

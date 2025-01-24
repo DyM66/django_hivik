@@ -218,3 +218,13 @@ def index(sequence, position):
 @register.filter
 def enumerate(value):
     return list(enumerate(value))
+
+@register.filter
+def replace_comma(value):
+    """
+    Reemplaza comas por puntos en una cadena.
+    """
+    try:
+        return str(value).replace(',', '.')
+    except:
+        return value
