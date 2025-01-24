@@ -321,7 +321,7 @@
 										<label class="form-label">Categoría (Sección)</label>
 										<select class="form-control form-control-sm" name="new_item_seccion">
 										<option value="c">Consumibles</option>
-										<option value="h">Herramientas y equipos</option>
+										<option value="h">Herramientas/Elementos varios</option>
 										<option value="r">Repuestos</option>
 										</select>
 									</div>
@@ -485,10 +485,8 @@
                     <div class="modal-body">
                       <p><strong>Referencia:</strong> {{ s.item.reference }}</p>
                       <p><strong>Presentación:</strong> {{ s.item.presentacion }}</p>
-                      {% if s.item.image %}
-                        <img src="{{ s.item.imagen.url }}"
-                             alt="{{ s.item.name }}"
-                             class="img-fluid">
+                      {% if s.item.imagen %}
+                        <img src="{{ s.item.imagen.url }}" alt="{{ s.item.name }}" class="img-fluid">
                       {% else %}
                         <p class="text-muted">Sin imagen disponible.</p>
                       {% endif %}
@@ -526,8 +524,7 @@
     <div class="modal-content" style="font-size:0.9rem;">
       <div class="modal-header">
         <h5 class="modal-title" id="selectSystemModalLabel">Crear nuevo equipo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                aria-label="Cerrar"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
         <p>Seleccione el sistema en el que desea crear el nuevo equipo:</p>

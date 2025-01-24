@@ -249,7 +249,7 @@ class PlaceListView(LoginRequiredMixin, generic.ListView):
     template_name = 'outbound/place_list.html'
     context_object_name = 'places'
 
-class PlaceCreateView(LoginRequiredMixin, PermissionRequiredMixin, generic.CreateView):
+class PlaceCreateView(LoginRequiredMixin, generic.CreateView):
     model = Place
     form_class = PlaceForm
     template_name = 'outbound/place_form.html'
@@ -263,7 +263,7 @@ class PlaceCreateView(LoginRequiredMixin, PermissionRequiredMixin, generic.Creat
             return redirect(next_url)
         return response
 
-class PlaceUpdateView(LoginRequiredMixin, PermissionRequiredMixin, generic.UpdateView):
+class PlaceUpdateView(LoginRequiredMixin, generic.UpdateView):
     model = Place
     form_class = PlaceForm
     template_name = 'outbound/place_form.html'
