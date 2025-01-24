@@ -1,0 +1,95 @@
+<!-- templates/got/public_vehicle_menu.html -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Menú de Vehículos - SERPORT</title>
+    <!-- Incluir Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Incluir Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- Incluir Custom CSS para Mejorar la Apariencia -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .vehicle-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .vehicle-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .dropdown-item:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Encabezado Centralizado -->
+    <div class="container mt-5">
+        <div class="text-center mb-5">
+            <h1 class="display-4">Bienvenido a Nuestro Sistema de Vehículos</h1>
+            <p class="lead">Seleccione un vehículo para acceder a sus opciones de Preoperacional o Salida.</p>
+        </div>
+
+        <!-- Lista de Vehículos -->
+        <div class="row justify-content-center">
+            {% for vehiculo in vehiculos %}
+                <div class="col-md-4 mb-4">
+                    <div class="card vehicle-card shadow-sm h-100" data-bs-toggle="modal" data-bs-target="#vehiculoModal{{ vehiculo.code }}">
+                        {% if vehiculo.imagen %}
+                            <img src="{{ vehiculo.imagen.url }}" class="card-img-top" alt="{{ vehiculo.system.name }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 200px; background-color: #e9ecef;">
+                                <i class="bi bi-truck" style="font-size: 3rem; color: #6c757d;"></i>
+                            </div>
+                        {% endif %}
+                        <div class="card-body text-center">
+                            <h5 class="card-title">{{ vehiculo.system.name }}</h5>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12">
+                    <p class="text-center">No hay vehículos disponibles en este momento.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modales para Cada Vehículo -->
+    {% for vehiculo in vehiculos %}
+    <div class="modal fade" id="vehiculoModal{{ vehiculo.code }}" tabindex="-1" aria-labelledby="vehiculoModalLabel{{ vehiculo.code }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="vehiculoModalLabel{{ vehiculo.code }}">{{ vehiculo.system.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p>¿Qué acción deseas realizar con <strong>{{ vehiculo.system.name }}</strong>?</p>
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        <a href="{% url 'preoperacionales:preoperacional-dia' vehiculo.code %}" class="btn btn-primary">
+                            <i class="bi bi-calendar-check"></i> Preoperacional
+                        </a>
+                        <a href="{% url 'preoperacionales:preoperacional-especifico' vehiculo.code %}" class="btn btn-secondary">
+                            <i class="bi bi-truck"></i> Salida
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Incluir Bootstrap JS y sus dependencias -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

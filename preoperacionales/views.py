@@ -422,3 +422,9 @@ class PreoperacionalUpdateView(LoginRequiredMixin, generic.UpdateView):
         return reverse('preoperacionales:salidas-detail', kwargs={'pk': self.object.pk})
 
 
+class PublicVehicleMenuView(View):
+    template_name = 'preoperacional/public_vehicle_menu.html'
+
+    def get(self, request):
+        vehiculos = Equipo.objects.filter(system__asset__abbreviation='VEH').order_by('name')
+        return render(request, self.template_name, {'vehiculos': vehiculos})

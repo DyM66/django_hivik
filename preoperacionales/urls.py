@@ -17,4 +17,6 @@ urlpatterns = [
     path('preoperacionaldiario/export/excel/', views.export_salidas_to_excel, name='export-preoperacionaldiario-excel'),
     path('gracias/<str:code>/', views.gracias_view, name='gracias'),
     path('preoperacional/<int:pk>/edit/', views.PreoperacionalUpdateView.as_view(), name='salida-edit'),
+
+    path('public-vehicles/', views.PublicVehicleMenuView.as_view(), name='public_vehicle_menu'),
 ]
