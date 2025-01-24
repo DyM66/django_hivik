@@ -33,12 +33,13 @@ class SalidaForm(forms.ModelForm):
 class PlaceForm(forms.ModelForm):
     class Meta:
         model = Place
-        fields = ['name', 'latitude', 'longitude', 'city', 'contact_person', 'contact_phone']
+        fields = ['name', 'latitude', 'longitude', 'city', 'direccion', 'contact_person', 'contact_phone']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'latitude': forms.NumberInput(attrs={'class': 'form-control'}),
             'longitude': forms.NumberInput(attrs={'class': 'form-control'}),
             'city': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
             'contact_person': forms.TextInput(attrs={'class': 'form-control'}),
             'contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
         }
@@ -46,6 +47,7 @@ class PlaceForm(forms.ModelForm):
             'latitude': 'Selecciona la ubicación en el mapa o ingresa las coordenadas manualmente.',
             'longitude': 'Selecciona la ubicación en el mapa o ingresa las coordenadas manualmente.',
             'city': 'Nombre de la ciudad obtenida automáticamente.',
+            'direccion': 'Dirección',
         }
 
     def clean_latitude(self):

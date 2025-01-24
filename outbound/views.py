@@ -150,7 +150,7 @@ def salida_pdf(request, pk):
         'rq': salida,
         'pro': cargo
         }
-    return render_to_pdf('got/salidas/salida_detail.html', context)
+    return render_to_pdf('outbound/salida_detail.html', context)
 
         
 class ApproveSalidaView(LoginRequiredMixin, View):

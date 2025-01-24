@@ -11,6 +11,7 @@ class Place(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, help_text="Longitude de la ubicación.", null=True, blank=True)
     contact_person = models.CharField(max_length=100, null=True, blank=True)
     contact_phone = models.CharField(max_length=15, validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$', message="Número de teléfono inválido.")], null=True, blank=True)
+    direccion = models.CharField(max_length=200)
     city = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
