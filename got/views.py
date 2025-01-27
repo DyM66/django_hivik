@@ -115,7 +115,7 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         """
-        Conservar la lógica original que redirige a:
+        Redirige a:
           - El primer asset supervisado (maq_members).
           - Las tareas si es serport_members.
           - Caso contrario => mostrar la lista normal.
@@ -153,9 +153,26 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         }
 
         context['places'] = Place.objects.all()
-        # Suponiendo que supervisor/capitan pueden ser grupos o algo:
         context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'super_members'])
         context['capitanes'] = User.objects.filter(groups__name='maq_members')
+
+        open_failures = (
+            FailureReport.objects.filter(closed=False).values('equipo__system__asset_id').annotate(count=models.Count('id'))
+        )
+        open_failures_dict = {}
+        for asset in assets:
+            # todos los fail. de ese asset
+            qs = FailureReport.objects.filter(closed=False, equipo__system__asset=asset)
+            c = qs.count()
+            single_id = None
+            if c == 1:
+                single_id = qs.first().pk
+            open_failures_dict[asset.pk] = {
+                'count': c,
+                'single_id': single_id
+            }
+
+        context['open_failures_dict'] = open_failures_dict
         return context
     
 def asset_update_place(request, pk):
@@ -2737,12 +2754,12 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
         systems_queryset = System.objects.filter(asset__in=ships).select_related('asset')
         unique_systems = {}
         for system in systems_queryset:
-            key = system.group
+            key = system.name
             if key not in unique_systems:
                 unique_systems[key] = system
 
         # Ordenar los sistemas únicos por 'group' o como prefieras
-        systems = sorted(unique_systems.values(), key=lambda s: s.group)
+        systems = sorted(unique_systems.values(), key=lambda s: s.name)
 
         # Preparar la estructura de datos
         data = []
@@ -2755,10 +2772,10 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
             )
 
             # Crear un diccionario de sistemas del barco actual por 'group'
-            ship_systems_dict = {system.group: system for system in ship_systems}
+            ship_systems_dict = {system.name: system for system in ship_systems}
 
             for system in systems:
-                system_group = system.group
+                system_group = system.name
                 ship_system = ship_systems_dict.get(system_group)
                 if ship_system:
                     states, state_data = self.get_system_states(ship_system)

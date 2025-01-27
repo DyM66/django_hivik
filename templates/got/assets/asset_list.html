@@ -84,6 +84,26 @@
                                     </div>
                                 {% endif %}
                             {% endif %}
+
+                            {% with failinfo=open_failures_dict|dict_key:asset.pk %}
+                                {% if failinfo.count > 0 %}
+                                    <!-- Bloque para fallas abiertas -->
+                                    {% if failinfo.count == 1 %}
+                                        <!-- Un solo reporte => enlazar directamente al detail -->
+                                        <a href="{% url 'got:failure-report-detail' failinfo.single_id %}" class="asset-compliance compliance-mid d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Reportes de falla abiertos">
+                                            <i class="fa-solid fa-screwdriver-wrench"></i>
+                                            {{ failinfo.count }}
+                                        </a>
+                                    {% else %}
+                                    <!-- Varios => enlazar a la lista filtrada por asset -->
+                                    <a href="{% url 'got:failure-report-list' %}?asset_id={{ asset.pk }}&state=abierto" class="asset-compliance compliance-mid d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Reportes de falla abiertos">
+                                        <i class="fa fa-bug"></i>
+                                        {{ failinfo.count }}
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            {% endwith %}
+
                     
                         </div>
                     </div>
@@ -124,14 +144,14 @@
                                 </button>
 
                                 <button class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#collapseSupervisor-{{ asset.pk }}" aria-expanded="false" aria-controls="collapseSupervisor-{{ asset.pk }}">
-                                    <i class="fa-solid fa-user-tie me-1"></i>
+                                    <i class="fa-solid fa-user-gear"></i>
                                     Cambiar supervisor
                                 </button>
 
                                 {% if asset.area == 'a' %}
                                     <!-- Ejemplo: si “a” es Motonave -->
                                     <button class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#collapseCapitan-{{ asset.pk }}" aria-expanded="false" aria-controls="collapseCapitan-{{ asset.pk }}">
-                                        <i class="fa-solid fa-user-ninja me-1"></i>
+                                        <i class="fa-solid fa-user-gear"></i>
                                         Cambiar capitán
                                     </button>
                                 {% endif %}
@@ -230,6 +250,12 @@
 </main>
 
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'))

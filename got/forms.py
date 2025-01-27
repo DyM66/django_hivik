@@ -121,7 +121,7 @@ class RutinaFilterForm(forms.Form):
             systems = asset.system_set.all().distinct()
             other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset).distinct()
 
-            full_systems = systems.union(other_asset_systems).order_by('group')
+            full_systems = systems.union(other_asset_systems)
             locations = full_systems.values_list('location', flat=True)
             
             unique_locations = list(set(locations))  # Eliminar duplicados
