@@ -156,20 +156,39 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'super_members'])
         context['capitanes'] = User.objects.filter(groups__name='maq_members')
 
-        open_failures = (
-            FailureReport.objects.filter(closed=False).values('equipo__system__asset_id').annotate(count=models.Count('id'))
-        )
+
+        # Calcular reportes de falla abiertos (closed=False) por asset,
+        # separando criticos y no criticos
+        from got.models import FailureReport  # tu import
         open_failures_dict = {}
+
         for asset in assets:
-            # todos los fail. de ese asset
-            qs = FailureReport.objects.filter(closed=False, equipo__system__asset=asset)
-            c = qs.count()
-            single_id = None
-            if c == 1:
-                single_id = qs.first().pk
+            # Filtramos las fallas abiertas de este asset
+            fr_qs = FailureReport.objects.filter(
+                closed=False,
+                equipo__system__asset=asset
+            )
+            crit_qs = fr_qs.filter(critico=True)
+            no_crit_qs = fr_qs.filter(critico=False)
+
+            crit_count = crit_qs.count()
+            no_crit_count = no_crit_qs.count()
+
+            # Si hay exactamente 1 reporte critico, guardo su pk
+            single_crit_id = None
+            if crit_count == 1:
+                single_crit_id = crit_qs.first().pk
+
+            # Lo mismo para no critico
+            single_no_crit_id = None
+            if no_crit_count == 1:
+                single_no_crit_id = no_crit_qs.first().pk
+
             open_failures_dict[asset.pk] = {
-                'count': c,
-                'single_id': single_id
+                'crit_count': crit_count,
+                'no_crit_count': no_crit_count,
+                'single_crit_id': single_crit_id,
+                'single_no_crit_id': single_no_crit_id,
             }
 
         context['open_failures_dict'] = open_failures_dict

@@ -85,20 +85,42 @@
                                 {% endif %}
                             {% endif %}
 
+
+                            <!-- Indicador de Fallas: crit y no-crit -->
                             {% with failinfo=open_failures_dict|dict_key:asset.pk %}
-                                {% if failinfo.count > 0 %}
-                                    <!-- Bloque para fallas abiertas -->
-                                    {% if failinfo.count == 1 %}
-                                        <!-- Un solo reporte => enlazar directamente al detail -->
-                                        <a href="{% url 'got:failure-report-detail' failinfo.single_id %}" class="asset-compliance compliance-mid d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Reportes de falla abiertos">
-                                            <i class="fa-solid fa-screwdriver-wrench"></i>
-                                            {{ failinfo.count }}
+                                {% comment %} failinfo = { crit_count, no_crit_count, single_crit_id, single_no_crit_id } {% endcomment %}
+                                
+                                {% if failinfo.crit_count > 0 %}
+                                    <!-- Bloque para fallas CRÍTICAS -->
+                                    {% if failinfo.crit_count == 1 %}
+                                        <!-- Un solo reporte crítico => enlazar al detail -->
+                                        <a href="{% url 'got:failure-report-detail' failinfo.single_crit_id %}" class="asset-compliance compliance-low d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Reportes de falla CRÍTICOS abiertos">
+                                            <!-- Icono más 'rojo' / Llamativo -->
+                                            <i class="fa fa-triangle-exclamation"></i>
+                                            {{ failinfo.crit_count }}
                                         </a>
                                     {% else %}
-                                    <!-- Varios => enlazar a la lista filtrada por asset -->
-                                    <a href="{% url 'got:failure-report-list' %}?asset_id={{ asset.pk }}&state=abierto" class="asset-compliance compliance-mid d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Reportes de falla abiertos">
-                                        <i class="fa fa-bug"></i>
-                                        {{ failinfo.count }}
+                                        <!-- Varios => enlazar a la lista de fallas con un param? e.g. ?asset_id=xx&critico=1 -->
+                                        <a href="{% url 'got:failure-report-list' %}?asset_id={{ asset.pk }}&state=abierto&critico=1" class="asset-compliance compliance-low d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Reportes de falla CRÍTICOS abiertos">
+                                            <i class="fa fa-triangle-exclamation"></i>
+                                            {{ failinfo.crit_count }}
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if failinfo.no_crit_count > 0 %}
+                                    <!-- Bloque para fallas NO críticas -->
+                                    {% if failinfo.no_crit_count == 1 %}
+                                    <!-- Un solo reporte => detail -->
+                                    <a href="{% url 'got:failure-report-detail' failinfo.single_no_crit_id %}" class="asset-compliance compliance-mid d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Novedades">
+                                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                                        {{ failinfo.no_crit_count }}
+                                    </a>
+                                    {% else %}
+                                    <!-- Múltiples => lista filtrada -->
+                                    <a href="{% url 'got:failure-report-list' %}?asset_id={{ asset.pk }}&state=abierto&critico=0" class="asset-compliance compliance-mid d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top"title="Novedades">
+                                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                                        {{ failinfo.no_crit_count }}
                                     </a>
                                     {% endif %}
                                 {% endif %}
