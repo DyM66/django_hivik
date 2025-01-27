@@ -156,12 +156,7 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'super_members'])
         context['capitanes'] = User.objects.filter(groups__name='maq_members')
 
-
-        # Calcular reportes de falla abiertos (closed=False) por asset,
-        # separando criticos y no criticos
-        from got.models import FailureReport  # tu import
         open_failures_dict = {}
-
         for asset in assets:
             # Filtramos las fallas abiertas de este asset
             fr_qs = FailureReport.objects.filter(
@@ -270,15 +265,45 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         asset = self.get_object()
         user = self.request.user
         filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, self.request.GET)
-        rotativos = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
 
-        context['rotativos'] = rotativos
+        # 2) Separamos rutinas con "ejecución"
+        executing_rutas = []
+        normal_rutas = []
+        print(filtered_rutas)
+        for r in filtered_rutas:
+            if r.ot and r.ot.state == 'x':
+                executing_rutas.append(r)
+            else:
+                normal_rutas.append(r)
+
+        # 3) Guardamos en contexto
+        context['rotativos'] = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
         context['view_type'] = 'rutas'
         context['asset'] = asset
         context['mes'] = current_month_name_es
-        context['page_obj_rutas'] = filtered_rutas
+
+        # Rutinas "no en ejecución"
+        context['page_obj_rutas'] = normal_rutas
+
+        # Rutinas en ejecución
+        context['exec_rutas'] = executing_rutas
+        print(executing_rutas)
         context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
         context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
+
+        # Ubicaciones => definimos r.ubic_label, etc.
+        ubicaciones = set()
+        for r in filtered_rutas:
+            if r.equipo and r.equipo.ubicacion:
+                ubicaciones.add(r.equipo.ubicacion)
+
+            # Asignar r.ubic_label = su ubicación o "(sin)"
+            if r.equipo and r.equipo.ubicacion:
+                r.ubic_label = r.equipo.ubicacion
+            else:
+                r.ubic_label = "(sin)"
+
+        context['ubicaciones_unicas'] = sorted(ubicaciones)
         return context
 
     def post(self, request, *args, **kwargs):

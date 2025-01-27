@@ -23,12 +23,12 @@
 			</thead>
 			<tbody>
 				{% for ruta in page_obj_rutas %}
-				    <tr id="row{{forloop.counter}}" onclick="toggleDetails('details{{forloop.counter}}', this, event)">
+				    <tr id="row{{forloop.counter}}" onclick="toggleDetails('details{{forloop.counter}}', this, event)" data-ubicacion="{{ ruta.ubic_label|lower }}">
                         <td scope="row" data-cell="Equipo">
                             {% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ruta.system.name }}{% endif %}
                         </td>
-                        <td scope="row" data-cell="Equipo" class="nowrap">
-                            {% if ruta.equipo %}{{ ruta.equipo.system.location }}{% else %}{{ruta.system.location }}{% endif %}
+                        <td scope="row" data-cell="Equipo">
+                            {% if ruta.equipo and ruta.equipo.ubicacion %}{{ ruta.equipo.ubicacion }}{% else %}---{% endif %}
                         </td>
                         <td scope="row" data-cell="Codigo">
                             {{ ruta.name }}
@@ -48,11 +48,8 @@
                         <td data-cell="Acciones">
                             <div class="dropdown">
                                 <button 
-                                    class="btn status {% if ruta.maintenance_status == 'c' %}finished{%elif ruta.maintenance_status == 'p' %}pending{%elif ruta.maintenance_status == 'e' %}shipped{%elif ruta.maintenance_status == 'x' %}exe{% else %}close{% endif %} btn-sm dropdown-toggle" 
-                                    type="button" 
-                                    id="dropdownMenuButton" 
-                                    data-bs-toggle="dropdown" 
-                                    aria-expanded="false">
+                                    class="btn status {% if ruta.maintenance_status == 'c' %}finished{%elif ruta.maintenance_status == 'p' %}pending{%elif ruta.maintenance_status == 'e' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" 
+                                    type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                                     {% if ruta.maintenance_status == 'c' %}Completado{%elif ruta.maintenance_status == 'p' %}Planeado{%elif ruta.maintenance_status == 'e' %}Sin información{%elif ruta.maintenance_status == 'x' %}En ejecución{% else %}Retrasado{% endif %}
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
@@ -67,9 +64,6 @@
                                     <li><a class="dropdown-item" href="{% url 'got:create-ot-from-ruta' ruta_id=ruta.code %}">Reportar</a></li>
                                     {% if perms.got.change_ruta %}
                                         <li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
-                                    {% endif %}
-                                    {% if perms.got.delete_ruta %}
-                                        <li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
                                     {% endif %}
                                 </ul>
                             </div>
@@ -102,8 +96,6 @@
                                                     {% endfor %}
                                                 </div>
                                             </div>
-                                            
-                                            
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -168,32 +160,109 @@
 			</tbody>
 		</table>
 
-		<nav aria-label="Page navigation for rutas">
-			<ul class="pagination">
-				{% if page_obj_rutas.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page_rutas={{ page_obj_rutas.previous_page_number }}"
-                            aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-				{% endif %} 
-                
-                {% for num in page_obj_rutas.paginator.page_range %}
-                    <li class="page-item {% if page_obj_rutas.number == num %}active{% endif %}">
-                        <a class="page-link" href="?page_rutas={{ num }}">{{ num }}</a>
-                    </li>
-				{% endfor %} 
-                
-                {% if page_obj_rutas.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page_rutas={{ page_obj_rutas.next_page_number }}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-				{% endif %}
-			</ul>
-		</nav>
+        <!-- SEGUNDA TABLA: rutinas en ejecución -->
+        <div class="rutinas mt-4">
+            <table class="table-list table-detail">
+                <thead>
+                    <tr>
+                        <th colspan="7">
+                            Rutinas en ejecución
+                        </th>
+                    </tr>
+                    <tr>
+                        <th scope="col">Equipo</th>
+                        <th scope="col">Ubicación</th>
+                        <th scope="col">Codigo</th>
+                        <th scope="col">Frecuencia</th>
+                        <th scope="col">Ultima intervención</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                </thead>
+            <tbody>
+                {% for ruta in exec_rutas %}
+                    <tr id="row{{forloop.counter}}" onclick="toggleDetails('details-exe{{forloop.counter}}', this, event)" data-ubicacion="{{ ruta.ubic_label|lower }}">
+                        <td scope="row" data-cell="Equipo">
+                            {% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ruta.system.name }}{% endif %}
+                        </td>
+                        <td scope="row" data-cell="Equipo">
+                            {% if ruta.equipo and ruta.equipo.ubicacion %}{{ ruta.equipo.ubicacion }}{% else %}---{% endif %}
+                        </td>
+                        <td scope="row" data-cell="Codigo">
+                            {{ ruta.name }}
+                        </td>
+                        <td data-cell="Frecuencia">
+                            {{ ruta.frecuency }} {{ ruta.get_control_display }}
+                        </td>
+                        <td data-cell="Ultima intervención">
+                            {% if ruta.ot %}{{ ruta.intervention_date|date:"d/m/Y" }}{% else%}---{% endif %}
+                        </td>
+                        <td data-cell="Acciones">
+                            <div class="dropdown">
+                                <button class="btn status exe btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    En ejecución
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    {% if ruta.equipo %}
+                                        <li><a class="dropdown-item" href="{% url 'got:sys-detail-view' ruta.system.id ruta.equipo.code %}">Ver detalle</a></li>
+                                    {% endif %}
+                                    {% if perms.got.change_ruta %}
+                                        <li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr id="details-exe{{forloop.counter}}" class="detail-row" style="display:none;">
+						<td colspan="7">
+							<div>
+								<h4>
+									Actividades:  {{ruta.get_nivel_display}}
+									{% if perms.got.add_equipo %}
+										<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill add-more"></i></a>
+									{% endif %}
+								</h4>
+								{% if ruta.dependencia %}
+									Relación con rutina {{ ruta.dependencia.name }}
+								{% endif %}
+                                Ultima Orden de trabajo: <a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a>
+	                            
+                                {% if ruta.task_set.all %}
+									<ul>
+										{% for task in ruta.task_set.all %}
+											<li style="margin-bottom: 5px; list-style-type: disc;">{{ task.description }} ({{ task.responsible.profile.cargo }})
+	
+												{% if perms.got.add_equipo %}
+													<a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>
+													<a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a></li>
+												{% endif %}
+													
+												<ul style="list-style-type: none;">
+													{% if task.procedimiento %}
+													<li><strong>Procedimiento:<br></strong>{{ task.procedimiento|linebreaksbr }}</li>
+													{% endif %}
+													{% if task.suministros %}
+													<li><strong>Equipos, herramientas y consumibles:<br></strong>{{ task.suministros|linebreaksbr }}</li>
+													{% endif %}
+													{% if task.hse %}
+													<li><strong>Precauciones de seguridad:<br></strong>{{ task.hse|linebreaksbr }}</li>
+													{% endif %}
+												</ul>
+                                            </li>    
+										{% endfor %}
+									</ul>
+									<hr>
+								{% else %}
+									<p>No hay actividades registradas.</p>
+								{% endif %}
+							</div>
+						</td>
+					</tr>
+                {% empty %}
+                    <tr><td colspan="9">No hay rutinas en ejecución.</td></tr>
+                {% endfor %}
+            </tbody>
+            </table>
+        </div>
 	</div>
 
     <div class="acciones filter-form">
@@ -206,18 +275,31 @@
                     {{ rutinas_filter_form.month }} {{ rutinas_filter_form.year }}
                 </div>
     
-                <div class="form-check form-switch form-check-reverse">
+                <!-- <div class="form-check form-switch form-check-reverse">
                     <span class="form-check-label">Mostrar rutinas en ejecución</span>
-                    {{ rutinas_filter_form.execute }}
-                </div>
+                </div> -->
     
-                <legend>Ubicaciones:</legend>
-                <div>
-                    {% for location in rutinas_filter_form.locations %} {{ location }}
-                    <br />
+                <!-- Bloque manual de checkboxes de ubicación -->
+                <div class="mt-3">
+                    <strong>Ubicaciones (Equipos)</strong><br>
+                    <!-- Check principal "Mostrar sin equipo" -->
+                    <label>
+                        <input type="checkbox" name="showWithoutEquipo" id="showWithoutEquipo" checked>
+                        Sin equipo
+                    </label>
+                    <br>
+                    <!-- Para cada ubicación real -->
+                    {% for ub in ubicaciones_unicas %}
+                        <label>
+                            <input type="checkbox" class="ubicacion-checkbox" name="ubicacion" value="{{ ub }}" checked>
+                            {{ ub }}
+                        </label>
+                        <br>
                     {% endfor %}
                 </div>
-    
+
+                <!-- En tu filter-form, quita el "desmarcar todos" -->
+                <button type="button" class="btn btn-sm btn-secondary" id="toggleAllUbicaciones">Marcar todos</button>
                 <button type="submit" class="btn btn-primary">Filtrar</button>
             </fieldset>
         </form>
@@ -237,7 +319,6 @@
 </div>
 
 <script>
-
     function toggleDetails(detailId, trigger, event) {
         if (event.target.closest('.dropdown') || event.target.closest('.dropdown-toggle')) {
             return;
@@ -275,5 +356,64 @@
             });
         }
     }
-</script>
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1) Identificamos los checkboxes
+        const checkboxes = document.querySelectorAll('.ubicacion-checkbox');
+        const sinEquipoCheckbox = document.getElementById('showWithoutEquipo');
+        
+        // 2) Cada vez que hagan "change", llamamos a filtrar
+        checkboxes.forEach(chk => {
+            chk.addEventListener('change', filtrarUbicaciones);
+        });
+        sinEquipoCheckbox.addEventListener('change', filtrarUbicaciones);
+        
+        // 3) Lógica de filtrar
+        function filtrarUbicaciones() {
+            // a) Tomar ubicaciones "checked"
+            let ubicacionesSeleccionadas = [];
+            checkboxes.forEach(chk => {
+                if (chk.checked) {
+                    ubicacionesSeleccionadas.push(chk.value.toLowerCase());
+                }
+            });
+            // b) Saber si se incl. sinEquipo
+            let showSinEquipo = sinEquipoCheckbox.checked;
+    
+            // c) Recorrer filas
+            const rows = document.querySelectorAll('tr[data-ubicacion]');
+            rows.forEach(row => {
+                const ubRow = row.getAttribute('data-ubicacion'); // tolower ya lo pusiste
+                // l) Si ubRow == "(sin)" => se muestra si showSinEquipo==true
+                // ll) Sino => se muestra si ubRow está en ubicacionesSeleccionadas
+                if (ubRow === '(sin)') {
+                    if (showSinEquipo) {
+                    row.style.display = '';
+                    } else {
+                    row.style.display = 'none';
+                    }
+                } else {
+                    // Comprobamos si ubRow está en la lista
+                    if (ubicacionesSeleccionadas.includes(ubRow)) {
+                    row.style.display = '';
+                    } else {
+                    row.style.display = 'none';
+                    }
+                }
+            });
+        }
+    
+        // 4) "Mostrar todos" toggles se implementan en la function checkAllUbicaciones
+        window.checkAllUbicaciones = function(checked) {
+            // Marcar o desmarcar todos
+            sinEquipoCheckbox.checked = checked;
+            checkboxes.forEach(chk => { chk.checked = checked; });
+            // Llamar filtrarub
+            filtrarUbicaciones();
+        };
+    
+        // 5) Llamamos filtrar la primera vez si quieres
+        filtrarUbicaciones();
+    });
+</script>    
 {% endblock %}
