@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte Dar de Baja</title>
+  <style>
+    /* estilos para tu PDF */
+    body {
+      font-family: sans-serif;
+      font-size: 13px;
+    }
+    .header {
+      text-align: center;
+    }
+    .firmas {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 30px;
+    }
+    .firmas div {
+      text-align: center;
+    }
+    .imagenes-evidencia img {
+      width: 200px; 
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Reporte Dar de Baja #{{ dar_baja.pk }}</h2>
+  </div>
+  <p><strong>Equipo:</strong> {{ dar_baja.equipo.name }} / {{ dar_baja.activo }}</p>
+  <p><strong>Motivo:</strong> {{ dar_baja.get_motivo_display }}</p>
+  <p><strong>Observaciones:</strong> {{ dar_baja.observaciones }}</p>
+  <p><strong>Disposición:</strong> {{ dar_baja.disposicion }}</p>
+  <p><strong>Responsable:</strong> {{ dar_baja.responsable }}</p>
+  <p><strong>Reporter:</strong> {{ dar_baja.reporter }}</p>
+  <hr>
+  <div class="firmas">
+    <div>
+      <p>Firma Responsable</p>
+      {% if dar_baja.firma_responsable %}
+        <img src="{{ dar_baja.firma_responsable.url }}" alt="Firma Responsable" style="max-width:200px;">
+      {% else %}
+        <p>No hay firma responsable.</p>
+      {% endif %}
+    </div>
+    <div>
+      <p>Firma Autorizado</p>
+      {% if dar_baja.firma_autorizado %}
+        <img src="{{ dar_baja.firma_autorizado.url }}" alt="Firma Autorizado" style="max-width:200px;">
+      {% else %}
+        <p>No hay firma autorizado.</p>
+      {% endif %}
+    </div>
+  </div>
+  <hr>
+  <h3>Imágenes de Evidencia</h3>
+  <div class="imagenes-evidencia">
+  {% for img in dar_baja.images.all %}
+    <img src="{{ img.image.url }}" alt="Evidencia">
+  {% endfor %}
+  </div>
+
+  <p style="margin-top:20px; font-size:0.8em;">
+    Generado automáticamente.
+  </p>
+</body>
+</html>

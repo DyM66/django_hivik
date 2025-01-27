@@ -249,6 +249,7 @@ class PlaceListView(LoginRequiredMixin, generic.ListView):
     template_name = 'outbound/place_list.html'
     context_object_name = 'places'
 
+
 class PlaceCreateView(LoginRequiredMixin, generic.CreateView):
     model = Place
     form_class = PlaceForm
@@ -262,6 +263,7 @@ class PlaceCreateView(LoginRequiredMixin, generic.CreateView):
         if next_url:
             return redirect(next_url)
         return response
+
 
 class PlaceUpdateView(LoginRequiredMixin, generic.UpdateView):
     model = Place

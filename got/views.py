@@ -135,7 +135,6 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         areas = {
             'a': 'Motonave',
             'c': 'Barcazas',
-            'b': 'Buceo',
             'o': 'Oceanografía',
             'l': 'Locativo',
             'v': 'Vehiculos',
@@ -143,8 +142,51 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         }
         assets = Asset.objects.filter(show=True)
         context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in areas.items()}
-        print(context)
+
+        context['area_icons'] = {
+            'a': 'fa-ship',            # Motonave
+            'c': 'fa-solid fa-ferry',
+            'o': 'fa-water',           # Oceanografía
+            'l': 'fa-building',        # Locativo
+            'v': 'fa-car',             # Vehículos
+            'x': 'fa-cogs',            # Apoyo
+        }
+
+        context['places'] = Place.objects.all()
+        # Suponiendo que supervisor/capitan pueden ser grupos o algo:
+        context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'super_members'])
+        context['capitanes'] = User.objects.filter(groups__name='maq_members')
         return context
+    
+def asset_update_place(request, pk):
+    asset = get_object_or_404(Asset, pk=pk)
+    if request.method == 'POST':
+        place_id = request.POST.get('selected_place')
+        if place_id:
+            place = get_object_or_404(Place, pk=place_id)
+            asset.place = place
+            asset.save()
+    return redirect('got:asset-list')  # O redirige donde gustes
+
+def asset_update_supervisor(request, pk):
+    asset = get_object_or_404(Asset, pk=pk)
+    if request.method == 'POST':
+        supervisor_id = request.POST.get('supervisor')
+        if supervisor_id:
+            supervisor_user = get_object_or_404(User, pk=supervisor_id)
+            asset.supervisor = supervisor_user
+            asset.save()
+    return redirect('got:asset-list')
+
+def asset_update_capitan(request, pk):
+    asset = get_object_or_404(Asset, pk=pk)
+    if request.method == 'POST':
+        capitan_id = request.POST.get('capitan')
+        if capitan_id:
+            capitan_user = get_object_or_404(User, pk=capitan_id)
+            asset.capitan = capitan_user
+            asset.save()
+    return redirect('got:asset-list')
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
@@ -155,15 +197,13 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
         user = self.request.user
-        paginator = Paginator(get_full_systems(asset, user), 15)
-        page_number = self.request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
+        systems = get_full_systems(asset, user)
         rotativos = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
         
         context['rotativos'] = rotativos
         context['view_type'] = 'detail'
         context['consumibles'] = Suministro.objects.filter(asset=asset).exists()
-        context['page_obj'] = page_obj
+        context['page_obj'] = systems.order_by('name')
         context['items_by_subsystem'] = consumibles_summary(asset)
         context['fechas'] = fechas_range()
         context['consumos_grafica'] = consumos_combustible_asset(asset)
@@ -805,13 +845,12 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
         system = System.objects.get(pk=self.kwargs['pk'])
         form.instance.system = system
         asset_abbreviation = system.asset.abbreviation
-        group_number = system.group
         tipo = form.cleaned_data['tipo'].upper()
 
         # 1) Creamos la lógica de asignar code con bucle de reintento
         while True:
             # Generamos un code basado en lo que hay
-            generated_code = generate_equipo_code(asset_abbreviation, group_number, tipo)
+            generated_code = generate_equipo_code(asset_abbreviation, tipo)
             form.instance.code = generated_code
             form.instance.modified_by = self.request.user
 
@@ -2653,7 +2692,7 @@ def export_asset_system_equipo_excel(request):
         for system in asset.system_set.all():
             for equipo in system.equipos.all():
                 # Agregar una fila para cada Asset, System, Equipo y Equipo Code
-                worksheet.append([asset.name, system.name, system.group, equipo.name, equipo.code])
+                worksheet.append([asset.name, system.name, equipo.name, equipo.code])
 
     # Establecer el tipo de contenido de la respuesta HTTP
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

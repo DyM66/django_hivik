@@ -227,3 +227,43 @@ def track_model_deletion(sender, instance, **kwargs):
             object_id=instance.pk,
             timestamp=timezone.now()
         )
+
+
+@receiver(post_save, sender=Ruta)
+def update_asset_compliance_after_ruta_save(sender, instance, **kwargs):
+    """
+    Cada vez que se guarde un Ruta, actualizamos el compliance del Asset
+    relacionado con su 'system'.
+    """
+    system = instance.system
+    if system and system.asset:
+        system.asset.update_maintenance_compliance_cache()
+
+
+@receiver(post_save, sender=HistoryHour)
+def update_asset_compliance_after_hours_save(sender, instance, **kwargs):
+    """
+    Cada vez que se guarde un HistoryHour, recalculamos el compliance 
+    del Asset relacionado con equipo->system->asset.
+    """
+    equipo = instance.component
+    if equipo and equipo.system and equipo.system.asset:
+        equipo.system.asset.update_maintenance_compliance_cache()
+
+
+@receiver(post_save, sender=Ot)
+def update_asset_compliance_after_ot_save(sender, instance, **kwargs):
+    """
+    Cada vez que se guarde una OT, recalculamos el compliance 
+    del Asset relacionado con su 'system'.
+    Opcional: filtrar si solo quieres recalcular cuando la OT esté finalizada, etc.
+    """
+    system = instance.system
+    if system and system.asset:
+        # Ejemplo: recalcular solo si la OT está finalizada
+        # if instance.state == 'f':
+        #     system.asset.update_maintenance_compliance_cache()
+
+        # O recalcular siempre que se guarde
+        if instance.state == 'f':
+            system.asset.update_maintenance_compliance_cache()

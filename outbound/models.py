@@ -1,5 +1,4 @@
 from django.db import models
-import uuid
 from datetime import datetime
 from got.paths import *
 from django.core.validators import RegexValidator

@@ -107,5 +107,9 @@ urlpatterns = [
     path('budget/summary/assets/', views.BudgetSummaryByAssetView.as_view(), name='budget_summary_by_asset'),
 
     path('managerial-report/<str:abbreviation>/', views.managerial_asset_report_pdf, name='managerial_asset_report'),
+
+    path('asset/<str:pk>/update_place/', views.asset_update_place, name='asset-update-place'),
+    path('asset/<str:pk>/update_supervisor/', views.asset_update_supervisor, name='asset-update-supervisor'),
+    path('asset/<str:pk>/update_capitan/', views.asset_update_capitan, name='asset-update-capitan'),
 ]
 

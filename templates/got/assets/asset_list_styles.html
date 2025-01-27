@@ -1,0 +1,194 @@
+<style>
+    /**********************************************
+       Estilos para el nuevo Dashboard de Assets
+    **********************************************/
+    
+    /* Contenedor global de todas las áreas */
+            .areas-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem; /* Separación vertical entre secciones de área */
+        }
+    
+    /* Sección de cada área: 
+       Usamos display grid para que la primera columna (area-title) 
+       quede fija a la izquierda y la segunda (area-cards) ocupe el resto */
+        .area-section {
+            display: grid;
+            grid-template-columns: 180px 1fr; 
+            background-color: #D5DBDB; /* Fondo gris claro para destacar */
+            padding: 1.1rem;
+            column-gap: 0.9rem; /* Espacio entre la columna de título y las cards */
+            border-radius: 6px; /* Bordes redondeados sutiles */
+            align-items: center; /* Centra verticalmente la columna del título */
+        }
+    
+        /* Título de área */
+        .area-title {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; 
+            /* Justify left, pero centrado verticalmente */
+        }
+    
+        .area-title h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--color-primary)
+        }
+    
+        /* Contenedor de las cards de cada área */
+        .area-cards {
+            display: flex;
+            flex-wrap: wrap; /* Permite que las tarjetas hagan wrap si no caben */
+            gap: 0.9rem; /* Espacio entre tarjetas */
+        }
+    
+        /* Cada tarjeta de un asset */
+        .asset-card {
+            background-color: #fff; 
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0.75rem 1rem;
+            min-width: 220px;
+            max-width: 300px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+    
+        /* Efecto hover para la tarjeta */
+        .asset-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    
+        /* Encabezado de la tarjeta: nombre + abreviación */
+        .asset-card-header {
+            display: flex;
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+    
+        .asset-card-header .asset-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--color-primary);
+        }
+    
+        .asset-card-header .asset-abbr {
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: #888;
+        }
+    
+        /* Datos de Supervisor y Capitán */
+        .asset-responsibles p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+    
+        /* Compliance: colores + íconos discretos */
+        .asset-compliance {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+    
+        .compliance-low {
+            background-color: #ffecec;
+            color: #e53935;  /* rojo */
+        }
+    
+        .compliance-mid {
+            background-color: #f1f1f1;
+            color: #424242;  /* negro / gris oscuro */
+        }
+    
+        .compliance-high {
+            background-color: #ecf8f3;
+            color: #43a047;  /* verde */
+        }
+    
+        .asset-compliance i {
+            font-size: 1rem;
+        }
+    
+        @media (max-width: 767px) {
+            .area-section {
+                display: flex;
+                flex-direction: column;
+                align-items: center; /* Ajusta la alineación si lo deseas */
+            }
+    
+            .area-title {
+                margin-bottom: 1rem;
+            }
+    
+            .area-cards {
+                flex-direction: column;
+                align-items: stretch;
+            }
+    
+            .asset-card {
+                width: 100%;  /* Que ocupe todo el ancho posible */
+                max-width: none;
+                position: relative; /* Importante para el position: absolute del badge */
+            }
+        }
+    
+        /* Círculo con icono de área en la esquina sup. derecha */
+        .area-icon-badge {
+            position: absolute;
+            top: -15px;
+            right: 0;
+            width: 30px;
+            height: 30px;
+            background-color: var(--color-primary); 
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+    
+        .area-icon-badge:hover {
+            background-color: var(--color-aux); 
+        }
+    
+        .icon-inside-circle {
+            font-size: 1rem;
+        }
+    
+    /* Ubicación (Place) */
+    .asset-place {
+        margin: 4px 0;
+        font-size: 0.8rem;
+        color: #999;
+    }
+    
+    /* Pequeño ícono de info */
+    .info-icon {
+        font-size: 0.85rem;
+        margin-left: 4px; 
+        color: #666; /* gris discreto */
+        cursor: pointer;
+    }
+    
+    .info-icon:hover {
+        color: #333;
+    }
+
+    .offcanvas-end {
+        background-color: #f9f9f9; /* Gris clarito */
+        /* etc... */
+    }
+</style>

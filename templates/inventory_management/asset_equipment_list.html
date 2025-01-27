@@ -1,3 +1,4 @@
+<!-- inv/asset_equipment_list.html -->
 {% extends "got/base/base_generic.html" %}
 
 {% block content %}
@@ -6,7 +7,10 @@
 	<!-- ENCABEZADO PRINCIPAL -->
 	<div class="d-flex justify-content-between align-items-center mb-3">
     	<h2 class="mb-0">
-      		Equipos asociados al Activo <strong>{{ activo.name }}</strong>
+			{% if perms.got.view_asset %}
+				<a href="{% url 'got:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
+			{% endif %}
+      		Equipos asociados - <strong>{{ activo.name }}</strong>
     	</h2>
     	<div class="d-flex align-items-center">
       		<!-- Botón “Identificar” que abre modal de QR -->
@@ -20,58 +24,6 @@
     	</div>
   	</div>
 
-  	<!-- 1. Sección con scroll horizontal de Activos y buscador -->
-  	<div class="mb-3">
-    	<label for="searchActivoInput" class="form-label" style="font-weight:500;">
-      		Buscar otro Activo:
-    	</label>
-    	<input type="text" id="searchActivoInput" class="form-control form-control-sm" placeholder="Escribe para filtrar...">
-  	</div>
-
-  	<div id="activosScrollContainer" class="d-flex flex-row" style="overflow-x: auto; white-space: nowrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #ccc;">
-    	{% for a in all_activos %}
-      		{% if a.abbreviation == activo.abbreviation %}
-        		<div class="activo-card" style="display: inline-block; cursor: pointer; width: 100%; outline:2px solid #0d6efd;" onclick="window.location.href='{% url 'inv:asset_equipment_list' a.abbreviation %}'">
-      		{% else %}
-        		<div class="activo-card" style="display: inline-block; cursor: pointer; width: 100%;" onclick="window.location.href='{% url 'inv:asset_equipment_list' a.abbreviation %}'">
-      		{% endif %}
-          		<div class="card h-100" style="border:1px solid #ccc; min-width: 220px;">
-            		<div class="card-header bg-light">
-              			<h5 class="card-title mb-0" style="font-size:1.0rem; font-weight:600;">
-                			{{ a.name }}
-              			</h5>
-            		</div>
-            		<div class="card-body">
-              			{% if a.supervisor %}
-                			<p class="card-text mb-1">
-                  				<strong>Supervisor:</strong><br>
-                  				{{ a.supervisor.first_name }} {{ a.supervisor.last_name }}
-                			</p>
-              			{% else %}
-                			<p class="card-text mb-1 text-muted">
-                  				<strong>Supervisor:</strong><br>
-                  				No asignado
-                			</p>
-              			{% endif %}
-
-              			{% if a.area == 'a' %}
-                			{% if a.capitan %}
-                 	 			<p class="card-text mb-1">
-                    				<strong>Capitán:</strong><br>
-                    				{{ a.capitan.first_name }} {{ a.capitan.last_name }}
-                  				</p>
-                			{% else %}
-                  				<p class="card-text mb-1 text-muted">
-                    				<strong>Capitán:</strong><br>
-                    				No asignado
-                  				</p>
-                			{% endif %}
-              			{% endif %}
-            		</div>
-          		</div>
-        	</div>
-    	{% endfor %}
-  	</div>
   	<hr>
 
   	<!-- 2. Buscador + Botón Nuevo Equipo -->
@@ -354,8 +306,7 @@
     	</div>
   	</div><!-- Fin Modal -->
 
-
-	  <script>
+	<script>
 		document.addEventListener('DOMContentLoaded', function() {
 			const toggleBtn = document.getElementById('toggleNewItemFormBtn');
 			const newItemFormContainer = document.getElementById('newItemFormContainer');
@@ -368,84 +319,74 @@
 				isNewItemField.value = isHidden ? '1' : '0';
 			});
 		});
-		</script>
-		
 
+		document.addEventListener('DOMContentLoaded', function() {
+			// Filtrar items en “Crear Suministro”
+			const supplyItemSearch = document.getElementById('supplyItemSearch');
+			const supplyItemTable = document.getElementById('supplyItemTable');
 
-<script>
-	document.addEventListener('DOMContentLoaded', function() {
-    	// Filtrar items en “Crear Suministro”
-      	const supplyItemSearch = document.getElementById('supplyItemSearch');
-      	const supplyItemTable = document.getElementById('supplyItemTable');
+			if (supplyItemSearch && supplyItemTable) {
+				supplyItemSearch.addEventListener('input', function() {
+				const filterVal = this.value.toLowerCase();
+				const rows = supplyItemTable.querySelectorAll('tbody tr');
+				rows.forEach(row => {
+					const nameVal = row.getAttribute('data-name') || "";
+					const refVal = row.getAttribute('data-ref') || "";
+					if (nameVal.includes(filterVal) || refVal.includes(filterVal)) {
+						row.style.display = "";
+					} else {
+						row.style.display = "none";
+					}
+				});
+				});
+			}
+		});
+	</script>
 
-      	if (supplyItemSearch && supplyItemTable) {
-        	supplyItemSearch.addEventListener('input', function() {
-          	const filterVal = this.value.toLowerCase();
-          	const rows = supplyItemTable.querySelectorAll('tbody tr');
-          	rows.forEach(row => {
-            	const nameVal = row.getAttribute('data-name') || "";
-            	const refVal = row.getAttribute('data-ref') || "";
-            	if (nameVal.includes(filterVal) || refVal.includes(filterVal)) {
-              		row.style.display = "";
-            	} else {
-              		row.style.display = "none";
-            	}
-          	});
-        	});
-      	}
-    });
-</script>
-
-  <!-- NUEVA TABLA DE SUMINISTROS: QUITAMOS los modales de ingreso/consumo/transferencia,
-       y añadimos solo un link al reporte correspondiente. -->
-  <div class="table-responsive">
-    <table class="table table-sm align-middle" style="font-size:0.85rem;">
-      <thead>
-        <tr>
-          <th>Artículo</th>
-          <th>Tipo</th>
-          <th>Presentación</th>
-          <th>Cantidad</th>
-          <th class="text-end">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if suministros %}
-          {% for s in suministros %}
-            <tr>
-              <td>
-                {% if s.item %}
-                  {{ s.item.name }}
-                  ({{ s.item.reference|default_if_none:"-" }})
-                {% else %}
-                  -
-                {% endif %}
-              </td>
-              <td>
-                {% if s.item %}
-                  {{ s.item.get_seccion_display }}
-                {% else %}
-                  -
-                {% endif %}
-              </td>
-              <td>
-                {% if s.item %}
-                  {{ s.item.presentacion }}
-                {% else %}
-                  -
-                {% endif %}
-              </td>
-              <td>{{ s.cantidad }}</td>
-              <td class="text-end">
-                {% if s.item %}
-                  <!-- Ver detalle del artículo (modal) -->
-                  <a href="#"
-                     class="text-primary me-2"
-                     data-bs-toggle="modal"
-                     data-bs-target="#itemDetailModal{{ s.item.id }}"
-                     title="Ver Detalle del Artículo">
-                    <i class="fa-solid fa-eye"></i>
-                  </a>
+	<div class="table-responsive">
+		<table class="table table-sm align-middle" style="font-size:0.85rem;">
+			<thead>
+				<tr>
+					<th>Artículo</th>
+					<th>Tipo</th>
+					<th>Presentación</th>
+					<th>Cantidad</th>
+					<th class="text-end">Acciones</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% if suministros %}
+					{% for s in suministros %}
+						<tr>
+							<td>
+								{% if s.item %}
+									{{ s.item.name }}
+									({{ s.item.reference|default_if_none:"-" }})
+								{% else %}
+									-
+								{% endif %}
+							</td>
+							<td>
+								{% if s.item %}
+									{{ s.item.get_seccion_display }}
+								{% else %}
+									-
+								{% endif %}
+							</td>
+							<td>
+								{% if s.item %}
+									{{ s.item.presentacion }}
+								{% else %}
+									-
+								{% endif %}
+							</td>
+							<td>{{ s.cantidad }}</td>
+							<td class="text-end">
+								{% if s.item %}
+									<!-- Ver detalle del artículo (modal) -->
+									<a href="#" class="text-primary me-2" data-bs-toggle="modal" data-bs-target="#itemDetailModal{{ s.item.id }}" title="Ver Detalle del Artículo">
+										<i class="fa-solid fa-eye"></i>
+									</a>
 
                   {% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
                     <!-- Link a AssetSuministrosReportView -->
@@ -597,116 +538,141 @@
 		w.document.close();
 	}
 
-// Filtrados y ordenamientos
-document.addEventListener('DOMContentLoaded', function() {
-  // 1) Filtrar activos
-  const searchActivoInput = document.getElementById('searchActivoInput');
-  const activoCards = document.querySelectorAll('.activo-card');
-  searchActivoInput.addEventListener('input', function() {
-    const filterText = searchActivoInput.value.toLowerCase();
-    activoCards.forEach(card => {
-      const cardText = card.innerText.toLowerCase();
-      card.style.display = cardText.includes(filterText) ? 'inline-block' : 'none';
-    });
-  });
+	// Filtrados y ordenamientos
+	document.addEventListener('DOMContentLoaded', function() {
+		// 1) Filtrar equipos
+		const searchEquiposInput = document.getElementById('searchEquiposInput');
+		const equiposTable = document.getElementById('equiposTable');
+		const equiposRows = equiposTable.getElementsByTagName('tr');
 
-  // 2) Filtrar equipos
-  const searchEquiposInput = document.getElementById('searchEquiposInput');
-  const equiposTable = document.getElementById('equiposTable');
-  const equiposRows = equiposTable.getElementsByTagName('tr');
+		searchEquiposInput.addEventListener('input', function() {
+			const filterText = searchEquiposInput.value.toLowerCase();
+			for(let i=1; i < equiposRows.length; i++){
+			const row = equiposRows[i];
+			const nameCell = row.querySelector('.equipo-name');
+			if(!nameCell) continue;
+			const eqName = nameCell.textContent.toLowerCase();
+			row.style.display = eqName.includes(filterText) ? '' : 'none';
+			}
+		});
+	});
 
-  searchEquiposInput.addEventListener('input', function() {
-    const filterText = searchEquiposInput.value.toLowerCase();
-    for(let i=1; i < equiposRows.length; i++){
-      const row = equiposRows[i];
-      const nameCell = row.querySelector('.equipo-name');
-      if(!nameCell) continue;
-      const eqName = nameCell.textContent.toLowerCase();
-      row.style.display = eqName.includes(filterText) ? '' : 'none';
-    }
-  });
+	document.addEventListener('DOMContentLoaded', function() {
+		const equiposTable = document.getElementById('equiposTable');
+		const tbody = equiposTable.querySelector('tbody');
 
-  // 3) Sorting de la tabla de equipos
-  (function(){
-    let sortEquipoAsc = true;
-    let sortTipoAsc = true;
-    let sortUbicAsc = true;
-    let tbody = equiposTable.querySelector('tbody');
+		let sortEquipoAsc = true;
+		let sortTipoAsc = true;
+		let sortUbicAsc = true;
 
-    function sortTable(columnKey, asc) {
-      let rowsArray = Array.from(tbody.querySelectorAll('tr'));
-      rowsArray.sort((rowA, rowB) => {
-        let tdA = "", tdB = "";
-        if (columnKey === 'equipo') {
-          tdA = rowA.querySelector('.equipo-name')?.textContent.trim() || '';
-          tdB = rowB.querySelector('.equipo-name')?.textContent.trim() || '';
-        } else if (columnKey === 'tipo') {
-          tdA = rowA.cells[1]?.textContent.trim() || '';
-          tdB = rowB.cells[1]?.textContent.trim() || '';
-        } else if (columnKey === 'ubic') {
-          tdA = rowA.cells[2]?.textContent.trim() || '';
-          tdB = rowB.cells[2]?.textContent.trim() || '';
-        }
-        if (tdA < tdB) return asc ? -1 : 1;
-        if (tdA > tdB) return asc ? 1 : -1;
-        return 0;
-      });
-      rowsArray.forEach(row => tbody.appendChild(row));
-    }
+		// Función auxiliar para comparar strings (con ascendencia/descendencia)
+		function compareValues(a, b, asc) {
+			if (a < b) return asc ? -1 : 1;
+			if (a > b) return asc ? 1 : -1;
+			return 0;
+		}
 
-    document.getElementById('sortByEquipo').addEventListener('click', function(){
-      sortTable('equipo', sortEquipoAsc);
-      sortEquipoAsc = !sortEquipoAsc;
-    });
-    document.getElementById('sortByTipo').addEventListener('click', function(){
-      sortTable('tipo', sortTipoAsc);
-      sortTipoAsc = !sortTipoAsc;
-    });
-    document.getElementById('sortByUbicacion').addEventListener('click', function(){
-      sortTable('ubic', sortUbicAsc);
-      sortUbicAsc = !sortUbicAsc;
-    });
-  })();
-});
+		function sortTable(columnKey, asc) {
+			// Convertimos filas en array
+			let rowsArray = Array.from(tbody.querySelectorAll('tr'));
 
-// Lógica para escaneo HTML5-QRCODE
-document.addEventListener('DOMContentLoaded', function() {
-  let scanModal = document.getElementById('scanQRModal');
-  let html5QrCode;
+			rowsArray.sort((rowA, rowB) => {
+				let primaryA = "", primaryB = "";
+				let nameA = rowA.querySelector('.equipo-name')?.textContent.trim().toLowerCase() || "";
+				let nameB = rowB.querySelector('.equipo-name')?.textContent.trim().toLowerCase() || "";
 
-  // Cuando se abra el modal => iniciar cámara
-  scanModal.addEventListener('show.bs.modal', function() {
-    html5QrCode = new Html5Qrcode("qrReader");
-    const config = { fps: 10, qrbox: 250 };
+				if (columnKey === 'equipo') {
+					// Ordenar por nombre de equipo directamente
+					primaryA = nameA;
+					primaryB = nameB;
+				} else if (columnKey === 'tipo') {
+					// Columna 2 => Tipo
+					// Notar que: rowA.cells[2] es la 3ra columna (0-based: 0=Equipo,1=Sistema,2=Tipo,3=Ubic)
+					primaryA = (rowA.cells[2]?.textContent || "").trim().toLowerCase();
+					primaryB = (rowB.cells[2]?.textContent || "").trim().toLowerCase();
+				} else if (columnKey === 'ubic') {
+					// Columna 3 => Ubicación
+					primaryA = (rowA.cells[3]?.textContent || "").trim().toLowerCase();
+					primaryB = (rowB.cells[3]?.textContent || "").trim().toLowerCase();
+				}
 
-    html5QrCode.start(
-      { facingMode: "environment" }, // o "user"
-      config,
-      qrCodeMessage => {
-        console.log("QR detectado: " + qrCodeMessage);
-        window.location.href = qrCodeMessage;
-        // Detener y cerrar modal
-        html5QrCode.stop().then(ignore => {
-          let modal = bootstrap.Modal.getInstance(scanModal);
-          modal.hide();
-        });
-      },
-      errorMessage => {
-        // debug
-      }
-    ).catch(err => {
-      console.error("No se pudo iniciar la cámara: ", err);
-    });
-  });
+				// 1) Comparación primaria
+				let result = compareValues(primaryA, primaryB, asc);
+				if (result !== 0) {
+					// Si no hay empate, retornamos
+					return result;
+				} else {
+					// 2) Si hay empate => comparamos por nombre de equipo (si la columna principal NO era ya 'equipo')
+					if (columnKey !== 'equipo') {
+						return compareValues(nameA, nameB, true); 
+						// Siempre en asc para el nombre, o si prefieres "asc" = asc, "desc" = desc, hazlo con `asc`.
+					} else {
+						// Si la columna es equipo y result = 0 => filas completamente idénticas
+						return 0;
+					}
+				}
+			});
 
-  // Cuando se cierra => detener
-  scanModal.addEventListener('hide.bs.modal', function() {
-    if (html5QrCode) {
-      html5QrCode.stop().then(ignore => {
-        console.log("Cámara detenida.");
-      });
-    }
-  });
-});
+			// Reinsertamos las filas ordenadas
+			rowsArray.forEach(row => tbody.appendChild(row));
+		}
+
+		// Listeners para cada columna “clickeable”
+		document.getElementById('sortByEquipo').addEventListener('click', function() {
+			sortTable('equipo', sortEquipoAsc);
+			sortEquipoAsc = !sortEquipoAsc;
+		});
+
+		document.getElementById('sortByTipo').addEventListener('click', function() {
+			sortTable('tipo', sortTipoAsc);
+			sortTipoAsc = !sortTipoAsc;
+		});
+
+		document.getElementById('sortByUbicacion').addEventListener('click', function() {
+			sortTable('ubic', sortUbicAsc);
+			sortUbicAsc = !sortUbicAsc;
+		});
+	});
+
+
+	// Lógica para escaneo HTML5-QRCODE
+	document.addEventListener('DOMContentLoaded', function() {
+		let scanModal = document.getElementById('scanQRModal');
+		let html5QrCode;
+
+		// Cuando se abra el modal => iniciar cámara
+		scanModal.addEventListener('show.bs.modal', function() {
+			html5QrCode = new Html5Qrcode("qrReader");
+			const config = { fps: 10, qrbox: 250 };
+
+			html5QrCode.start(
+				{ facingMode: "environment" }, // o "user"
+				config,
+				qrCodeMessage => {
+					console.log("QR detectado: " + qrCodeMessage);
+					window.location.href = qrCodeMessage;
+					// Detener y cerrar modal
+					html5QrCode.stop().then(ignore => {
+					let modal = bootstrap.Modal.getInstance(scanModal);
+					modal.hide();
+					});
+				},
+				errorMessage => {
+					// debug
+				}
+			).catch(err => {
+				console.error("No se pudo iniciar la cámara: ", err);
+			});
+		});
+
+		// Cuando se cierra => detener
+		scanModal.addEventListener('hide.bs.modal', function() {
+			if (html5QrCode) {
+				html5QrCode.stop().then(ignore => {
+					console.log("Cámara detenida.");
+				});
+			}
+		});
+	});
 </script>
 {% endblock %}

@@ -32,23 +32,32 @@
             </div>
 
             <div class="col-md-6">
-                <div class="mb-3">
-                    <label for="{{ form.city.id_for_label }}" class="form-label">Ciudad</label>
-                    {{ form.city }}
-                    {{ form.city.errors }}
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="toggle-map">
+                    <label class="form-check-label" for="toggle-map">Agregar ubicación en el mapa</label>
                 </div>
-                <div class="mt-2">
-                    <label for="{{ form.latitude.id_for_label }}" class="form-label">Latitud</label>
-                    {{ form.latitude }}
-                    {{ form.latitude.errors }}
+
+                <div id="location-fields" style="display: none;">
+                    <div class="mb-3">
+                        <label for="{{ form.city.id_for_label }}" class="form-label">Ciudad</label>
+                        {{ form.city }}
+                        {{ form.city.errors }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.latitude.id_for_label }}" class="form-label">Latitud</label>
+                        {{ form.latitude }}
+                        {{ form.latitude.errors }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.longitude.id_for_label }}" class="form-label">Longitud</label>
+                        {{ form.longitude }}
+                        {{ form.longitude.errors }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Ubicación en el Mapa</label>
+                        <div id="map"></div>
+                    </div>
                 </div>
-                <div class="mt-2">
-                    <label for="{{ form.longitude.id_for_label }}" class="form-label">Longitud</label>
-                    {{ form.longitude }}
-                    {{ form.longitude.errors }}
-                </div>
-                <label class="form-label">Seleccionar Ubicación en el Mapa</label>
-                <div id="map" style="height: 400px;"></div>
 
                 <button type="submit" class="btn btn-primary mt-4">{% if form.instance.pk %}Actualizar{% else %}Crear{% endif %}</button>
                 <a href="{% url 'outbound:place-list' %}" class="btn btn-secondary mt-4">Cancelar</a>
@@ -77,6 +86,8 @@
     let latitudeInput = document.getElementById('id_latitude');
     let longitudeInput = document.getElementById('id_longitude');
     let form = document.getElementById('place-form');
+    let toggleMapCheckbox = document.getElementById('toggle-map');
+    let locationFields = document.getElementById('location-fields');
 
     function initMap() {
         // Coordenadas predeterminadas: 10.386389, -75.515933
@@ -166,60 +177,78 @@
         fetchCityName(lat, lng);
     }
 
+    // Función para manejar el toggle del mapa
+    function handleMapToggle() {
+        if (toggleMapCheckbox.checked) {
+            locationFields.style.display = 'block';
+            initMap();
+        } else {
+            locationFields.style.display = 'none';
+            // Limpiar los campos relacionados con la ubicación
+            cityInput.value = '';
+            latitudeInput.value = '';
+            longitudeInput.value = '';
+            if (marker) {
+                map.removeLayer(marker);
+            }
+        }
+    }
+
     // Validar el formulario antes de enviarlo
     function validateForm(event) {
-        const lat = parseFloat(latitudeInput.value);
-        const lng = parseFloat(longitudeInput.value);
+        if (toggleMapCheckbox.checked) {
+            const lat = parseFloat(latitudeInput.value);
+            const lng = parseFloat(longitudeInput.value);
 
-        if (isNaN(lat) || isNaN(lng)) {
-            alert('Las coordenadas deben ser números válidos.');
-            event.preventDefault();
-            return false;
-        }
-        if (lat < -90 || lat > 90) {
-            alert('La latitud debe estar entre -90 y 90 grados.');
-            event.preventDefault();
-            return false;
-        }
-        if (lng < -180 || lng > 180) {
-            alert('La longitud debe estar entre -180 y 180 grados.');
-            event.preventDefault();
-            return false;
-        }
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('Las coordenadas deben ser números válidos.');
+                event.preventDefault();
+                return false;
+            }
+            if (lat < -90 || lat > 90) {
+                alert('La latitud debe estar entre -90 y 90 grados.');
+                event.preventDefault();
+                return false;
+            }
+            if (lng < -180 || lng > 180) {
+                alert('La longitud debe estar entre -180 y 180 grados.');
+                event.preventDefault();
+                return false;
+            }
 
-        // Opcional: Validar que la ciudad esté presente
-        if (cityInput.value.trim() === '') {
-            alert('Debe seleccionar una ubicación válida en el mapa o ingresar las coordenadas correctamente.');
-            event.preventDefault();
-            return false;
+            // Validar que la ciudad esté presente
+            if (cityInput.value.trim() === '') {
+                alert('Debe seleccionar una ubicación válida en el mapa o ingresar las coordenadas correctamente.');
+                event.preventDefault();
+                return false;
+            }
         }
-
+        // Si el mapa no se usa, no se requiere validación adicional
         return true;
     }
 
     // Inicializar el mapa y los manejadores de eventos al cargar la página
     document.addEventListener('DOMContentLoaded', function() {
-        initMap();
         handleManualCoordinates();
         form.addEventListener('submit', validateForm);
-
+        toggleMapCheckbox.addEventListener('change', handleMapToggle);
         // Inicializar Parsley.js
         $('#place-form').parsley();
     });
 
+    // Formatear las coordenadas al perder el foco
     latitudeInput.addEventListener('blur', function() {
-    const lat = parseFloat(latitudeInput.value);
-    if (!isNaN(lat)) {
-        latitudeInput.value = lat.toFixed(6);
-    }
-});
+        const lat = parseFloat(latitudeInput.value);
+        if (!isNaN(lat)) {
+            latitudeInput.value = lat.toFixed(6);
+        }
+    });
 
-longitudeInput.addEventListener('blur', function() {
-    const lng = parseFloat(longitudeInput.value);
-    if (!isNaN(lng)) {
-        longitudeInput.value = lng.toFixed(6);
-    }
-});
-
+    longitudeInput.addEventListener('blur', function() {
+        const lng = parseFloat(longitudeInput.value);
+        if (!isNaN(lng)) {
+            longitudeInput.value = lng.toFixed(6);
+        }
+    });
 </script>
 {% endblock %}

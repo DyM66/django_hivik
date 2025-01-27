@@ -9,7 +9,7 @@ from django.utils import timezone
 from taggit.managers import TaggableManager
 from .paths import *
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
-from outbound.models import OutboundDelivery
+from outbound.models import Place
 from inv.models import DarBaja
 from got.models_group.Item_model import Item
 from got.models_group.Service_model import Service
@@ -47,12 +47,12 @@ class Asset(models.Model):
     arqueo_bruto = models.IntegerField(default=0, null=True, blank=True)
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
 
-    @property
-    def maintenance_compliance(self):
+    maintenance_compliance_cache = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Valor cacheado de mantenimiento (%)")
+    place = models.ForeignKey(Place, on_delete=models.SET_NULL, null=True, blank=True, related_name='assets', help_text='Ubicación asociada (opcional).')
+
+    def calculate_maintenance_compliance(self):
         systems = self.system_set.all()
         all_rutas = Ruta.objects.filter(system__in=systems)
-
-        # total_rutas = all_rutas.count()
         total_niveles = sum(ruta.nivel for ruta in all_rutas)
 
         if total_niveles == 0:
@@ -60,14 +60,11 @@ class Asset(models.Model):
 
         compliant_weight = 0
         for ruta in all_rutas:
-            # Verificamos si la rutina está al día según su tipo de control
             if ruta.control == 'd':
-                # Al día si next_date >= hoy
                 if ruta.next_date >= date.today():
                     compliant_weight += ruta.nivel
 
             elif ruta.control in ['h', 'k']:
-                # Para control por horas o km
                 accumulated_hours = ruta.equipo.hours.filter(
                     report_date__gte=ruta.intervention_date,
                     report_date__lte=date.today()
@@ -79,6 +76,14 @@ class Asset(models.Model):
         compliance_percentage = (compliant_weight / total_niveles) * 100
         return round(compliance_percentage, 2)
 
+    def update_maintenance_compliance_cache(self):
+        """
+        Calcula y guarda el valor en maintenance_compliance_cache.
+        Llamar a este método cuando se quiera refrescar el compliance en DB.
+        """
+        new_value = self.calculate_maintenance_compliance()
+        self.maintenance_compliance_cache = new_value
+        self.save(update_fields=['maintenance_compliance_cache'])
 
     def __str__(self):
         return self.name
@@ -95,7 +100,7 @@ class Asset(models.Model):
 class System(models.Model):
     STATUS = (('m', 'Mantenimiento'), ('o', 'Operativo'), ('x', 'Fuera de servicio'), ('s', 'Stand by'))
     name = models.CharField(max_length=50)
-    group = models.IntegerField()
+    # group = models.IntegerField()
     location = models.CharField(max_length=50, default="Cartagena", null=True, blank=True)
     state = models.CharField(choices=STATUS, default='m', max_length=1)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
@@ -108,7 +113,7 @@ class System(models.Model):
         return reverse('got:sys-detail', args=[self.id])
 
     class Meta:
-        ordering = ['asset__name', 'group']
+        ordering = ['asset__name', 'name']
 
 
 # Model 3: Ordenes de trabajo

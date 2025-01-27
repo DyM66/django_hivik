@@ -2,6 +2,110 @@
 {% obtener_asset_del_supervisor as asset_del_supervisor %}
 {% obtener_vehiculos as vehiculos %}
 
+<style>
+    /* ============ ESTILOS ============ */
+    .navbar {
+        position: relative;
+    }
+
+    .mega-dropdown {
+        position: static;
+    }
+
+    /* 3) Mega menú ESCRITORIO => .mega-menu-desktop */
+    .mega-menu-desktop {
+        position: absolute;   /* Ocupa todo el ancho => left:0,right:0 */
+        top: 100%; left: 0; right: 0;
+        background-color: var(--color-primary);
+        color: #fff;
+        overflow: hidden;     /* Oculta contenido si colapsa (max-height) */
+        max-height: 0;        /* Inicia “oculto” */
+        transition: max-height 0.3s ease; /* animación suave */
+        z-index: 999;
+        display: block;       /* en escritorio, está en block, pero con height=0 */
+    }
+
+    /* Para enlaces dentro del mega-menu ESCRITORIO */
+    .mega-menu-desktop .dropdown-item {
+        color: #fff;
+    }
+
+    .mega-menu-desktop .dropdown-item:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Al hacer hover sobre .mega-dropdown => expandir .mega-menu-desktop */
+    .mega-dropdown:hover .mega-menu-desktop {
+        max-height: 600px; /* Ajusta según tu contenido */
+    }
+
+    /* Subcontenedor interno (opcional) */
+    .mega-menu-desktop .container-fluid {
+        min-height: 200px; /* altura base */
+    }
+
+    /* ========== VERSIÓN MÓVIL => submenú con .collapse ========== */
+    .mega-menu-mobile {
+        background-color: var(--color-aux);
+        color: #fff;
+        width: 100%; /* se expande en todo el ancho */
+        margin-top: 0.5rem; 
+    }
+    .mega-menu-mobile .dropdown-item {
+        color: #fff;
+        text-align: center; /* Cada opción centrada */
+    }
+    .mega-menu-mobile .dropdown-item:hover {
+        background-color: rgba(255,255,255,0.2);
+    }
+
+    @media (min-width: 992px) {
+        .mega-menu-desktop {
+            display: block; /* Se usa en escritorio */
+        }
+        .mega-menu-mobile {
+            display: none !important; /* no se muestra en escritorio */
+        }
+    }
+
+    @media (max-width: 991px) {
+        .mega-menu-desktop {
+            display: none !important; /* no se usa en móviles */
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const isLargeScreen = window.innerWidth >= 992;
+
+  // --- Mantenimiento (ya existente) ---
+  const maintenanceLink = document.getElementById('maintenanceDropdown');
+  if (maintenanceLink) {
+    if (!isLargeScreen) {
+      maintenanceLink.classList.add('dropdown-toggle');
+      maintenanceLink.setAttribute('data-bs-toggle', 'collapse');
+      maintenanceLink.setAttribute('data-bs-target', '#megaMaintenance');
+      maintenanceLink.setAttribute('aria-expanded', 'false');
+      maintenanceLink.setAttribute('aria-controls', 'megaMaintenance');
+    }
+  }
+
+  // --- Vehículos (nuevo) ---
+  const vehiclesLink = document.getElementById('vehiclesDropdown');
+  if (vehiclesLink) {
+    if (!isLargeScreen) {
+      vehiclesLink.classList.add('dropdown-toggle');
+      vehiclesLink.setAttribute('data-bs-toggle', 'collapse');
+      vehiclesLink.setAttribute('data-bs-target', '#megaVehicles');
+      vehiclesLink.setAttribute('aria-expanded', 'false');
+      vehiclesLink.setAttribute('aria-controls', 'megaVehicles');
+    }
+  }
+
+});
+</script>
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
         <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" width="150px">
@@ -14,29 +118,75 @@
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
                 <!-- Dropdown de Mantenimiento -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name in 'maintenance_dashboard' %}active{% endif %}" href="#" id="maintenanceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <li class="nav-item dropdown mega-dropdown">
+                    <a class="nav-link {% if request.resolver_match.url_name in 'maintenance_dashboard' %}active{% endif %}" href="#" id="maintenanceDropdown" role="button">
                         Mantenimiento
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="maintenanceDropdown">
-                        {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
-                            <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:vehiculosmtto' %}">Vehiculos</a></li>
-                        {% endif %}
-                        {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" or request.user|has_group:"buzos_members" %}
-                            <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
-                            <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
-                        {% endif %}
-                        {% if perms.got.view_task %}
-                            <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
-                        {% endif %}
-                        {% if perms.got.view_ot %}
-                            <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
-                        {% endif %}
-                        {% if perms.got.view_failurereport %}
-                            <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
-                        {% endif %}
-                    </ul>
+                    <!-- Nuestro mega-menu -->
+                    <div class="mega-menu-desktop" aria-labelledby="maintenanceDropdown">
+                        <div class="container-fluid p-3 d-flex flex-wrap">
+                            <!-- Ejemplo de “columnas” dentro del mega-menu -->
+                        
+                            <div class="flex-fill me-4">
+                                <ul class="list-unstyled">
+                                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                                    <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'got:vehiculosmtto' %}">Vehiculos</a></li>
+                                {% endif %}
+                                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" or request.user|has_group:"buzos_members" %}
+                                    <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
+                                {% endif %}
+                                </ul>
+                            </div>
+
+                            <div class="flex-fill me-4">
+                                <h5 class="text-white">OT y Fallas</h5>
+                                <ul class="list-unstyled">
+                                {% if perms.got.view_task %}
+                                    <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
+                                {% endif %}
+                                {% if perms.got.view_ot %}
+                                    <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
+                                {% endif %}
+                                {% if perms.got.view_failurereport %}
+                                    <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
+                                {% endif %}
+                                </ul>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- 2) Submenú MÓVIL => collapse -->
+                    <div id="megaMaintenance" class="collapse mega-menu-mobile">
+                        <div class="p-3 text-center">
+                            <!-- Mismos links que arriba -->
+                            <ul class="list-unstyled">
+                                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                                <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
+                                <li><a class="dropdown-item" href="{% url 'got:vehiculosmtto' %}">Vehiculos</a></li>
+                                {% endif %}
+                                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" or request.user|has_group:"buzos_members" %}
+                                <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
+                                <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
+                                {% endif %}
+                            </ul>
+                            <hr class="my-2">
+                            <h5 class="text-white">OT y Fallas</h5>
+                            <ul class="list-unstyled">
+                                {% if perms.got.view_task %}
+                                <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
+                                {% endif %}
+                                {% if perms.got.view_ot %}
+                                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
+                                {% endif %}
+                                {% if perms.got.view_failurereport %}
+                                <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
                 </li>
           
                 {% if asset_del_supervisor %}
@@ -102,29 +252,44 @@
                     </a>
                 </li>
                 {% endif %}
-
-                {% if perms.got.view_equipo %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'asset_list' %}active{% endif %}" href="{% url 'inv:asset_list' %}">
-                        Inventario
-                    </a>
-                </li>
-                {% endif %}
                 
                 <!-- Dropdown de Vehículos -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle custom-dropdown" href="#" id="vehiclesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <li class="nav-item dropdown mega-dropdown">
+                    <a class="nav-link" href="#" id="vehiclesDropdown" role="button">
                         Vehículos
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="vehiclesDropdown">
-                        {% for vehiculo in vehiculos %}
-                            <li>
-                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#vehiculoModal{{ vehiculo.code }}">
-                                    {{ vehiculo.system.name }}
-                                </a>
-                            </li>
-                        {% endfor %}
-                    </ul>
+                    <div class="mega-menu-desktop" aria-labelledby="vehiclesDropdown">
+                        <div class="container-fluid p-3 d-flex flex-wrap text-center">
+                            <div class="flex-fill me-4">
+                                <h5 class="text-white">Flota de Vehículos</h5>
+                                <ul class="list-unstyled">
+                                    {% for vehiculo in vehiculos %}
+                                        <li>
+                                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#vehiculoModal{{ vehiculo.code }}">
+                                                {{ vehiculo.system.name }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2) Submenú MÓVIL => collapse -->
+                    <div id="megaVehicles" class="collapse mega-menu-mobile">
+                        <div class="p-3 text-center">
+                            <h5 class="text-white mb-3">Flota de Vehículos</h5>
+                            <ul class="list-unstyled">
+                                {% for vehiculo in vehiculos %}
+                                <li>
+                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#vehiculoModal{{ vehiculo.code }}">
+                                        {{ vehiculo.system.name }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
                 </li>
             </ul>
 

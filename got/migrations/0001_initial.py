@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('presentacion', models.CharField(max_length=10)),
                 ('code', models.CharField(blank=True, max_length=50, null=True)),
-                ('seccion', models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas y equipos'), ('r', 'Repuestos')], default='c', max_length=1)),
+                ('seccion', models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas y Elementos'), ('r', 'Repuestos')], default='c', max_length=1)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('unit_price', models.DecimalField(decimal_places=2, default=0.0, max_digits=15)),
             ],
@@ -69,6 +69,7 @@ class Migration(migrations.Migration):
                 ('capitan', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='Capitanes', to=settings.AUTH_USER_MODEL)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_assets', to=settings.AUTH_USER_MODEL)),
                 ('show', models.BooleanField(default=True)),
+                ('maintenance_compliance_cache', models.DecimalField(blank=True, decimal_places=2, help_text='Valor cacheado de mantenimiento (%)', max_digits=5, null=True)),
             ],
             options={
                 'ordering': ['area', 'name'],
@@ -80,14 +81,13 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=50)),
-                ('group', models.IntegerField()),
                 ('location', models.CharField(blank=True, default='Cartagena', max_length=50, null=True)),
                 ('state', models.CharField(choices=[('m', 'Mantenimiento'), ('o', 'Operativo'), ('x', 'Fuera de servicio'), ('s', 'Stand by')], default='m', max_length=1)),
                 ('asset', models.ForeignKey(to='got.asset', on_delete=models.CASCADE)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'ordering': ['asset__name', 'group'],
+                'ordering': ['asset__name', 'name'],
             },
         ),
         migrations.CreateModel(
@@ -111,7 +111,7 @@ class Migration(migrations.Migration):
             name='Equipo',
             fields=[
                 ('name', models.CharField(max_length=100)),
-                ('date_inv', models.DateField(auto_now_add=True, null=True)),
+                ('date_inv', models.DateField(auto_now_add=True)),
                 ('code', models.CharField(max_length=50, primary_key=True, serialize=False)),
                 ('model', models.CharField(blank=True, max_length=50, null=True)),
                 ('serial', models.CharField(blank=True, max_length=50, null=True)),

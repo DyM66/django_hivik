@@ -11,18 +11,16 @@
 					    Sistemas 
                         {% if perms.got.add_system %}
                             <button type="button" class="btn-add-table" data-bs-toggle="modal" data-bs-target="#sysModal">
-                                <i class="bi bi-plus-circle btn-add-table"></i>
+                                <i class="bi bi-plus-circle"></i>
                             </button>
 					    {% endif %}
-                        {% if perms.got.add_system %}
-                            <a class="btn-add-table" href="{% url 'got:managerial_asset_report' asset.abbreviation %}">
-                                <i class="fa-light fa-download"></i>
-                            </a>
-                        {% endif %}
+                        <a class="btn-add-table" href="{% url 'got:managerial_asset_report' asset.abbreviation %}">
+                            <i class="bi bi-download"></i>
+                        </a>
 				    </th>
 			    </tr>
 			    <tr>
-				    <th scope="col">Grupo</th>
+				    <th scope="col"></th>
 					<th scope="col">Nombre</th>
 				    {% if not asset.area == 'a' %}
 				        <th scope="col">Ubicación</th>
@@ -33,7 +31,7 @@
 		    <tbody>
 				{% for sys in page_obj %}
 			        <tr>
-					    <td data-cell="Grupo" scope="row">{{sys.group}}</td>
+					    <td scope="row">{{ forloop.counter }}</td>
 					    <td data-cell="Sistema">
 					        <a href="{{ sys.get_absolute_url }}">{{sys.name}}</a>
 				        </td>

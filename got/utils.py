@@ -25,7 +25,31 @@ from django.contrib.admin.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
 from openpyxl.utils import get_column_letter
 from megger_app.models import Megger
+from django.db.models import Prefetch, Sum
+from django.core.management.base import BaseCommand
 
+def update_compliance_all():
+    """
+    Recalcula y guarda el compliance de todos los Assets.
+    Llamable desde shell con:
+        >>> from got.management.commands.update_compliance import update_compliance_all
+        >>> update_compliance_all()
+    """
+    assets = Asset.objects.all()
+    for asset in assets:
+        asset.update_maintenance_compliance_cache()
+    print("Proceso completado. Se ha actualizado el compliance de todos los Assets.")
+
+
+class Command(BaseCommand):
+    help = 'Recalcula y guarda el compliance de todos los Assets'
+
+    def handle(self, *args, **options):
+        # Usa la función anterior para recalcular
+        update_compliance_all()
+        self.stdout.write(self.style.SUCCESS(
+            'Todos los Assets han sido actualizados correctamente.'
+        ))
 
 
 def actualizar_rutas_dependientes(ruta):
@@ -52,13 +76,13 @@ def render_to_pdf(template_src, context_dict={}):
 
 
 
-def generate_equipo_code(asset_abbr, group_number, tipo):
+def generate_equipo_code(asset_abbr, tipo):
     """
     Retorna el siguiente código único con el formato:
         <asset_abbr>-<group_number>-<tipo>-<seq>
     donde <seq> es un número incremental con 3 dígitos.
     """
-    prefix = f"{asset_abbr}-{group_number}-{tipo}"
+    prefix = f"{asset_abbr}-{tipo}"
     
     # Buscar todos los equipos que comiencen con prefix
     # y extraer la parte final numérica para encontrar el mayor.
@@ -693,13 +717,12 @@ def update_equipo_code(old_code):
     equipo = Equipo.objects.get(code=old_code)
     system = equipo.system
     asset_abbreviation = system.asset.abbreviation
-    group_number = system.group
     tipo = equipo.tipo.upper()
  
-    similar_equipments = Equipo.objects.filter(code__startswith=f"{asset_abbreviation}-{group_number}-{tipo}")
+    similar_equipments = Equipo.objects.filter(code__startswith=f"{asset_abbreviation}-{tipo}")
     sequence_number = similar_equipments.count() + 1
     sequence_str = str(sequence_number).zfill(3) 
-    generated_code = f"{asset_abbreviation}-{group_number}-{tipo}-{sequence_str}"
+    generated_code = f"{asset_abbreviation}-{tipo}-{sequence_str}"
 
     try:
         # Iniciar una transacción para asegurar que todo se actualice correctamente
@@ -826,7 +849,7 @@ def get_full_systems(asset, user):
     #         return System.objects.none()
     other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset)
 
-    combined = systems.union(other_asset_systems).order_by('group')
+    combined = systems.union(other_asset_systems)
     return combined
     # return (systems.union(other_asset_systems)).order_by('group')
 

@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import migrations, models
 import got.models
 from decimal import Decimal
+import taggit.managers
 
 
 class Migration(migrations.Migration):
@@ -154,5 +155,35 @@ class Migration(migrations.Migration):
             options={
                 'ordering': ['-fecha'],
             },
+        ),
+        migrations.CreateModel(
+            name='Document',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('file', models.FileField(upload_to=got.models.get_upload_pdfs)),
+                ('description', models.CharField(max_length=200)),
+                ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.asset')),
+                ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.ot')),
+                ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='got.equipo')),
+                ('creation', models.DateField(auto_now_add=True)),
+                ('date_expiry', models.DateField(blank=True, null=True)),
+                ('doc_type', models.CharField(choices=[('c', 'Certificado'), ('f', 'Ficha técnica'), ('i', 'Informe'), ('m', 'Manual'), ('p', 'Plano'), ('o', 'Otro')], default='o', max_length=1)),
+                ('uploaded_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='uploaded_documents', to=settings.AUTH_USER_MODEL)),
+                ('tags', taggit.managers.TaggableManager(blank=True, help_text='A comma-separated list of tags.', through='taggit.TaggedItem', to='taggit.Tag', verbose_name='Tags')),
+            ],
+        ),
+        migrations.CreateModel(
+            name='ActivityLog',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('user_name', models.CharField(max_length=100)),
+                ('action', models.CharField(max_length=100)),
+                ('model_name', models.CharField(max_length=100)),
+                ('object_id', models.CharField(blank=True, max_length=100, null=True)),
+                ('field_name', models.CharField(blank=True, max_length=100, null=True)),
+                ('old_value', models.TextField(blank=True, null=True)),
+                ('new_value', models.TextField(blank=True, null=True)),
+                ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
+            ],
         ),
     ]
