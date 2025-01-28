@@ -1,12 +1,13 @@
 # inventory_management/views.py
 import base64
 import qrcode
+from io import BytesIO
 import re
 import qrcode.image.svg
 from itertools import groupby
 from operator import attrgetter
 from django.contrib.auth.decorators import permission_required
-from io import BytesIO
+
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404
@@ -38,34 +39,35 @@ class ActivoEquipmentListView(View):
     template_name = 'inventory_management/asset_equipment_list.html'
 
     def get(self, request, abbreviation):
-        all_activos = (Asset.objects.filter(show=True).select_related('supervisor', 'capitan').order_by('name'))
         activo = get_object_or_404(Asset, abbreviation=abbreviation)
         sistemas_ids = get_full_systems_ids(activo, request.user)
-        equipos = Equipo.objects.filter(system__in=sistemas_ids)
+        # Optimizar la consulta de equipos
+        equipos = Equipo.objects.filter(system__in=sistemas_ids).select_related('system').prefetch_related('images')
+
+        # Optimizar la consulta de suministros
         suministros = Suministro.objects.filter(asset=activo).select_related('item')
-        all_items = Item.objects.all().order_by('name')
 
-        domain = "https://got.serport.co"
-        for eq in equipos:
-            public_url = f"{domain}/inv/public/equipo/{eq.code}/"
-
-            qr = qrcode.QRCode(version=1, box_size=4, border=2)
-            qr.add_data(public_url)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-            qr_io = BytesIO()
-            img.save(qr_io, format='PNG')
-            eq.qr_code_b64 = base64.b64encode(qr_io.getvalue()).decode('utf-8')
+        # Optimizar la consulta de items (si es necesario)
+        all_items = Item.objects.all().only('id', 'name', 'reference', 'seccion', 'presentacion').order_by('name')
 
         context = {
             'activo': activo,
-            'all_activos': all_activos,
             'equipos': equipos,
             'fecha_actual': timezone.now().date(),
             'suministros': suministros,
             'all_items': all_items,
         }
         return render(request, self.template_name, context)
+
+from django.template.loader import render_to_string
+class EquipoDetailPartialView(View):
+    def get(self, request, eq_id):
+        equipo = get_object_or_404(Equipo, pk=eq_id)
+        context = {
+            'equipo': equipo,
+        }
+        html = render_to_string('inventory_management/partial_equipo_detail.html', context, request=request)
+        return HttpResponse(html)
     
 
 @csrf_exempt

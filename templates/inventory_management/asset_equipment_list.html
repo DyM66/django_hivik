@@ -76,9 +76,11 @@
 								<i class="fa-solid fa-right-left"></i>
 							</a>
 							<!-- Ver Detalle (modal) -->
-							<a href="#" class="me-1 text-primary" title="Ver Detalle" data-bs-toggle="modal" data-bs-target="#equipoDetailModal{{ eq.pk }}">
+							<!-- En lugar de generar un modal por cada equipo -->
+							<a href="#" class="me-1 text-primary ver-detalle-equipo" data-eq-id="{{ eq.pk }}" title="Ver Detalle">
 								<i class="fa-solid fa-eye"></i>
 							</a>
+
 							<!-- Mostrar QR en nueva ventana -->
 							<a href="#" class="ms-1 text-secondary" title="Mostrar QR" onclick="openQRInNewWindow('data:image/png;base64,{{ eq.qr_code_b64 }}', '{{ eq.name|escapejs }}', '{{ eq.code|escapejs }}'); return false;">
 								<i class="fa-solid fa-qrcode"></i>
@@ -86,94 +88,56 @@
         				</td>
         			</tr>
 
-					<!-- Modal Detalle del equipo -->
-					<div class="modal fade" id="equipoDetailModal{{ eq.pk }}" tabindex="-1" aria-labelledby="equipoDetailModalLabel{{ eq.pk }}" aria-hidden="true">
-						<div class="modal-dialog modal-xl modal-dialog-scrollable">
-							<div class="modal-content">
-								<div class="modal-header">
-									<h5 class="modal-title" id="equipoDetailModalLabel{{ eq.pk }}">
-										Detalle del Equipo: {{ eq.name }}
-									</h5>
-									<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-								</div>
-								<div class="modal-body">
-									<div class="row">
-										<div class="col-md-5">
-                    						<h4>{{ eq.name }}</h4>
-                    						<ul class="mb-0 list-unstyled">
-												<li><strong>Código Interno:</strong> {{ eq.code }}</li>
-												<li><strong>Modelo:</strong> {{ eq.model|default_if_none:"---" }}</li>
-												<li><strong>Marca:</strong> {{ eq.marca|default_if_none:"---" }}</li>
-												<li><strong>Serial:</strong> {{ eq.serial|default_if_none:"---" }}</li>
-												<li><strong>Fabricante:</strong> {{ eq.fabricante|default_if_none:"---" }}</li>
-												<li><strong>Ubicación:</strong> {{ eq.ubicacion|default_if_none:eq.system.location }}</li>
-
-                      							{% if eq.system.asset.area == 'v' %}
-                        							<li><strong>Kilometraje:</strong> {{ eq.horometro }} km</li>
-                      							{% elif eq.tipo == 'r' %}
-                        							<li><strong>Horómetro:</strong> {{ eq.horometro }} horas</li>
-                        							<li><strong>Prom. Horas/Día:</strong> {{ eq.prom_hours|default_if_none:"---" }}</li>
-                      							{% endif %}
-												{% if eq.volumen %}
-													<li><strong>Capacidad:</strong> {{ eq.volumen }} Gls</li>
-												{% endif %}
-
-                      							<li><strong>Tipo:</strong> {{ eq.get_tipo_display }}</li>
-												{% if eq.manual_pdf %}
-													<li> <strong>Manual:</strong> <a href="{{ eq.manual_pdf.url }}" target="_blank">Descargar PDF</a></li>
-												{% endif %}
-                      							<li><strong>Especificaciones:</strong><br>{{ eq.feature|linebreaks }}</li>
-                      							<li><strong>Recomendaciones:</strong><br>{{ eq.recomendaciones|linebreaks }}</li>
-                    						</ul>
-                  						</div>
-                  						<div class="col-md-7">
-                    						{% if eq.images.all %}
-                      							<div id="equipoCarousel{{ eq.pk }}" class="carousel slide" data-bs-ride="carousel">
-                        							<div class="carousel-inner">
-														{% for img in eq.images.all %}
-															<div class="carousel-item {% if forloop.first %}active{% endif %}">
-																<img src="{{ img.image.url }}" class="d-block w-100" alt="Imagen del equipo">
-															</div>
-														{% endfor %}
-                        							</div>
-                        							<button class="carousel-control-prev" type="button" data-bs-target="#equipoCarousel{{ eq.pk }}" data-bs-slide="prev">
-                          								<span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                          								<span class="visually-hidden">Previous</span>
-                        							</button>
-                        							<button class="carousel-control-next" type="button" data-bs-target="#equipoCarousel{{ eq.pk }}" data-bs-slide="next">
-                          								<span class="carousel-control-next-icon" aria-hidden="true"></span>
-														<span class="visually-hidden">Next</span>
-													</button>
-                      							</div>
-												<!-- Thumbnails -->
-												<div class="row mt-2">
-													{% for img in eq.images.all %}
-														<div class="col-3 mb-2">
-															<img src="{{ img.image.url }}" class="img-thumbnail thumb-{{ eq.pk }}" data-index="{{ forloop.counter0 }}" alt="Miniatura">
-														</div>
-													{% endfor %}
-                      							</div>
-                    						{% else %}
-                      							<p class="text-muted">
-                        							No hay imágenes disponibles para este equipo.
-                      							</p>
-                    						{% endif %}
-                  						</div>
-                					</div>
-              					</div>
-              					<div class="modal-footer">
-                					<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                  						Cerrar
-                					</button>
-              					</div>
-            				</div>
-          				</div>
-        			</div>
         		{% endfor %}
       		</tbody>
     	</table>
   	</div>
 	<hr>
+
+<!-- Modal Detalle del Equipo -->
+<div class="modal fade" id="equipoDetailModal" tabindex="-1" aria-labelledby="equipoDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="equipoDetailModalLabel">Detalle del Equipo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Contenido cargado dinámicamente -->
+                <div id="detalleEquipoContent">
+                    <p>Cargando...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const detalleEquipoModal = document.getElementById('equipoDetailModal');
+        detalleEquipoModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const eqId = button.getAttribute('data-eq-id');
+
+            const detalleContent = document.getElementById('detalleEquipoContent');
+            detalleContent.innerHTML = '<p>Cargando...</p>';
+
+            fetch(`/inv/equipo/${eqId}/detalle/`)
+                .then(response => response.text())
+                .then(data => {
+                    detalleContent.innerHTML = data;
+                })
+                .catch(error => {
+                    detalleContent.innerHTML = '<p>Error al cargar los detalles.</p>';
+                    console.error('Error:', error);
+                });
+        });
+    });
+</script>
+
 
 	<!-- 4. Sección de Suministros -->
 	<div class="d-flex justify-content-between align-items-center mt-4 mb-2">
