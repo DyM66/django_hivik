@@ -215,19 +215,19 @@ class Equipo(models.Model):
     
     qr_code_url = models.URLField(max_length=255, blank=True, null=True)
 
-    def save(self, *args, **kwargs):
-        if not self.qr_code_url:
-            domain = "https://got.serport.co"
-            public_url = f"{domain}/inv/public/equipo/{self.code}/"
-            qr = qrcode.QRCode(version=1, box_size=4, border=2)
-            qr.add_data(public_url)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-            qr_io = BytesIO()
-            img.save(qr_io, format='PNG')
-            qr_base64 = base64.b64encode(qr_io.getvalue()).decode('utf-8')
-            self.qr_code_url = f"data:image/png;base64,{qr_base64}"
-        super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if not self.qr_code_url:
+    #         domain = "https://got.serport.co"
+    #         public_url = f"{domain}/inv/public/equipo/{self.code}/"
+    #         qr = qrcode.QRCode(version=1, box_size=4, border=2)
+    #         qr.add_data(public_url)
+    #         qr.make(fit=True)
+    #         img = qr.make_image(fill_color="black", back_color="white")
+    #         qr_io = BytesIO()
+    #         img.save(qr_io, format='PNG')
+    #         qr_base64 = base64.b64encode(qr_io.getvalue()).decode('utf-8')
+    #         self.qr_code_url = f"data:image/png;base64,{qr_base64}"
+    #     super().save(*args, **kwargs)
 
     @property
     def consumo_promedio_por_hora(self):
