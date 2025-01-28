@@ -33,6 +33,8 @@ from taggit.models import Tag
 from .utils import *
 from .models import *
 from .forms import *
+from django.db import transaction, IntegrityError
+
 
 
 logger = logging.getLogger(__name__)
@@ -121,7 +123,7 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
           - Caso contrario => mostrar la lista normal.
         """
         user = request.user
-        if user.groups.filter(name='maq_members').exists():
+        if user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
             asset = Asset.objects.filter(models.Q(supervisor=request.user) | models.Q(capitan=request.user)).first()
 
             if asset:
@@ -201,22 +203,41 @@ def asset_update_place(request, pk):
 
 def asset_update_supervisor(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
+    supervisor = asset.supervisor
     if request.method == 'POST':
-        supervisor_id = request.POST.get('supervisor')
-        if supervisor_id:
-            supervisor_user = get_object_or_404(User, pk=supervisor_id)
-            asset.supervisor = supervisor_user
-            asset.save()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        
+        if not first_name or not last_name:
+            messages.error(request, "El nombre y el apellido son requeridos.")
+            return redirect('got:asset-list')
+        
+        supervisor.first_name = first_name
+        supervisor.last_name = last_name
+        supervisor.save()
+        messages.success(request, "Supervisor actualizado correctamente.")
+        return redirect('got:asset-list')
+    # Opcional: Manejar métodos GET si es necesario
     return redirect('got:asset-list')
 
 def asset_update_capitan(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
+    capitan = asset.capitan
     if request.method == 'POST':
-        capitan_id = request.POST.get('capitan')
-        if capitan_id:
-            capitan_user = get_object_or_404(User, pk=capitan_id)
-            asset.capitan = capitan_user
-            asset.save()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        
+        if not first_name or not last_name:
+            messages.error(request, "El nombre y el apellido son requeridos.")
+            return redirect('got:asset-list')
+        
+        capitan.first_name = first_name
+        capitan.last_name = last_name
+        capitan.save()
+        messages.success(request, "Capitán actualizado correctamente.")
+        return redirect('got:asset-list')
+    
+    # Opcional: Manejar métodos GET si es necesario
     return redirect('got:asset-list')
 
 
@@ -887,12 +908,20 @@ def asset_maintenance_pdf(request, asset_id):
 
     return render_to_pdf('got/systems/asset_pdf_template.html', context)
 
-from django.db import transaction, IntegrityError
+
 'EQUIPMENTS VIEW'
 class EquipoCreateView(LoginRequiredMixin, CreateView):
     model = Equipo
     form_class = EquipoForm
     template_name = 'got/systems/equipo_form.html'
+
+    def get_system(self):
+        return get_object_or_404(System, pk=self.kwargs['pk'])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['system'] = self.get_system()
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -900,10 +929,11 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
             context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
         else:
             context['upload_form'] = UploadImages()
+        context['sys'] = self.get_system()
         return context
 
     def form_valid(self, form):
-        system = System.objects.get(pk=self.kwargs['pk'])
+        system = self.get_system()
         form.instance.system = system
         asset_abbreviation = system.asset.abbreviation
         tipo = form.cleaned_data['tipo'].upper()
@@ -929,7 +959,7 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
         if upload_form.is_valid():
             for file in self.request.FILES.getlist('file_field'):
                 Image.objects.create(image=file, equipo=self.object)
-
+        messages.success(self.request, "Equipo creado exitosamente.")
         return response
 
     def get_success_url(self):

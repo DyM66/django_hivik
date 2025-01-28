@@ -27,7 +27,6 @@
                     <h2>{{ area_name }}</h2>
                 </div>
 
-
                 <!-- Contenedor de cards de Assets -->
                 <div class="area-cards">
                     
@@ -85,7 +84,6 @@
                                 {% endif %}
                             {% endif %}
 
-
                             <!-- Indicador de Fallas: crit y no-crit -->
                             {% with failinfo=open_failures_dict|dict_key:asset.pk %}
                                 {% comment %} failinfo = { crit_count, no_crit_count, single_crit_id, single_no_crit_id } {% endcomment %}
@@ -125,12 +123,8 @@
                                     {% endif %}
                                 {% endif %}
                             {% endwith %}
-
-                    
                         </div>
                     </div>
-
-
 
                     <!-- Offcanvas para este Asset (cada asset tiene su offcanvas con ID distinto) -->
                     <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasRight-{{ asset.pk }}" aria-labelledby="offcanvasRightLabel-{{ asset.pk }}">
@@ -225,13 +219,12 @@
                                 <h5>Cambiar supervisor</h5>
                                 <form method="POST" action="{% url 'got:asset-update-supervisor' asset.pk %}">¿{% csrf_token %}
                                     <div class="mb-3">
-                                        <label for="supervisorSelect-{{ asset.pk }}" class="form-label">Seleccionar supervisor:</label>
-                                        <select class="form-select" name="supervisor" id="supervisorSelect-{{ asset.pk }}">
-                                            <option value="">-- Seleccionar --</option>
-                                            {% for user in supervisors %}
-                                            <option value="{{ user.pk }}">{{ user.get_full_name }}</option>
-                                            {% endfor %}
-                                        </select>
+                                        <label for="supervisorFirstName-{{ asset.pk }}" class="form-label">Nombre del supervisor:</label>
+                                        <input type="text" class="form-control form-control-sm" name="first_name" id="supervisorFirstName-{{ asset.pk }}" value="{{ asset.supervisor.first_name }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="supervisorLastName-{{ asset.pk }}" class="form-label">Apellido del supervisor:</label>
+                                        <input type="text" class="form-control form-control-sm" name="last_name" id="supervisorLastName-{{ asset.pk }}" value="{{ asset.supervisor.last_name }}" required>
                                     </div>
                                     <button type="submit" class="btn btn-success btn-sm">
                                         Guardar supervisor
@@ -246,14 +239,13 @@
                                     <h5>Cambiar capitán</h5>
                                     <form method="POST" action="{% url 'got:asset-update-capitan' asset.pk %}">{% csrf_token %}
                                         <div class="mb-3">
-                                        <label for="capitanSelect-{{ asset.pk }}" class="form-label">Seleccionar capitán:</label>
-                                            <select class="form-select" name="capitan" id="capitanSelect-{{ asset.pk }}">
-                                                <option value="">-- Seleccionar --</option>
-                                                {% for user in capitanes %}
-                                                <option value="{{ user.pk }}">{{ user.get_full_name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                            </div>
+                                            <label for="capitanFirstName-{{ asset.pk }}" class="form-label">Nombre del capitán:</label>
+                                            <input type="text" class="form-control form-control-sm" name="first_name" id="capitanFirstName-{{ asset.pk }}" value="{{ asset.capitan.first_name }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="capitanLastName-{{ asset.pk }}" class="form-label">Apellido del capitán:</label>
+                                            <input type="text" class="form-control form-control-sm" name="last_name" id="capitanLastName-{{ asset.pk }}" value="{{ asset.capitan.last_name }}" required>
+                                        </div>
                                         <button type="submit" class="btn btn-success btn-sm">
                                             Guardar capitán
                                         </button>
@@ -267,7 +259,6 @@
             </div>
             {% endif %}
         {% endfor %}
-        
     </div>
 </main>
 

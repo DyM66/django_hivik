@@ -1,23 +1,412 @@
-{% extends "got/base_generic.html" %}
-{% block header %}Equipos{% endblock %}
+<!-- got/templates/got/systems/equipo_form.html -->
+{% extends "got/base/base_generic.html" %}
 
 {% block content %}
-<div class="container">
-    <form action="" method="post" enctype="multipart/form-data" class="adap shadow">{% csrf_token %}
+
+
+<!-- Estilos Personalizados -->
+<style>
+/* static/css/equipo_create.css */
+
+/* Paleta de Colores */
+:root {
+    --primary-color: #191645; /* Color predominante */
+    --secondary-color: #f0f4f8; /* Fondo del formulario */
+    --accent-color: #007bff; /* Azul para acentos */
+    --danger-color: #dc3545; /* Rojo para botones de peligro */
+    --input-bg-color: #e9ecef; /* Fondo de los inputs */
+    --input-border-color: #191645; /* Borde de los inputs */
+}
+
+/* Contenedor Principal */
+.container {
+    background-color: var(--secondary-color);
+    padding: 20px;
+    border: 2px solid #d1d1d1; /* Contorno fino y notable */
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Títulos */
+h2, h4 {
+    color: var(--primary-color);
+}
+
+/* Botones */
+.btn-primary, .btn-secondary, .btn-danger, .btn-success {
+    background-color: var(--primary-color);
+    border: none;
+    color: var(--secondary-color);
+    transition: background-color 0.3s;
+}
+
+.btn-primary:hover, .btn-secondary:hover, .btn-danger:hover, .btn-success:hover {
+    background-color: var(--accent-color);
+    color: var(--secondary-color);
+}
+
+/* Campos de Entrada */
+input[type="text"], input[type="number"], textarea, select, input[type="file"] {
+    background-color: var(--input-bg-color);
+    border: 1px solid var(--input-border-color);
+    border-radius: 4px;
+    padding: 8px;
+    width: 100%;
+}
+
+input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    outline: none;
+}
+
+/* Widget de Subida de Imágenes */
+.image-upload-container {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 Aspect Ratio */
+    border: 2px dashed var(--primary-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s;
+    background-color: rgba(25, 22, 69, 0.05); /* Fondo ligeramente teñido */
+}
+
+.image-upload-container:hover {
+    border-color: var(--accent-color);
+}
+
+.image-upload-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    background-color: transparent;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 2rem;
+}
+
+.image-upload-container input[type="file"] {
+    display: none;
+}
+
+.image-upload-container:hover .image-upload-label {
+    color: var(--accent-color);
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Previsualización de Imágenes */
+#image-preview-carousel img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+#image-preview-carousel .carousel-item {
+    position: relative;
+    text-align: center;
+}
+
+/* Botón de Eliminación de Imágenes */
+.carousel-item .delete-image-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(220, 53, 69, 0.8); /* Rojo semitransparente */
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+    z-index: 10; /* Asegura que esté por encima de otros elementos */
+}
+
+.carousel-item .delete-image-btn:hover {
+    background-color: rgba(220, 53, 69, 1);
+}
+
+/* Footer de Información de Imágenes */
+#image-footer {
+    margin-top: 10px;
+    display: none;
+    color: var(--primary-color);
+}
+
+/* Botón de Eliminación Global */
+#delete-images-button {
+    margin-top: 10px;
+    display: none;
+}
+
+/* Ajuste de los Controles del Carrusel para Evitar Superposición */
+.carousel-control-prev, .carousel-control-next {
+    width: 5%;
+}
+
+.carousel-control-prev-icon, .carousel-control-next-icon {
+    background-size: 100%, 100%;
+}
+</style>
+
+<div class="container mt-4" style="font-size:0.9rem;">
+
+    <h2 class="mb-3">
+        Crear Equipo - <strong>{{ sys }}</strong>
+    </h2>
+    <hr>
+
+    <form action="" method="post" enctype="multipart/form-data" class="adap p-4">
+        {% csrf_token %}
         <input type="hidden" name="next" value="{{ next_url }}">
-        <table>{{ form }}</table>    
-
-        <h4>Subir Imágenes</h4>
-        {{ upload_form.file_field }}
-
-        {% for image in image_formset %}
-            <div class="image-preview">
-                <img src="{{ image.instance.image.url }}" alt="Imagen del equipo" style="width: 100px; height: 100px;">
-                <button type="submit" name="delete_image" value="{{ image.instance.id }}" class="btn btn-danger">Eliminar</button>
+        <div class="row">
+            <!-- Primera Columna: Campos Básicos -->
+            <div class="col-md-6">
+                <h4>Información Básica</h4>
+                <div class="mb-2">
+                    {{ form.name.label_tag }}
+                    {{ form.name }}
+                </div>
+                <div class="mb-2">
+                    {{ form.model.label_tag }}
+                    {{ form.model }}
+                </div>
+                <div class="mb-2">
+                    {{ form.serial.label_tag }}
+                    {{ form.serial }}
+                </div>
+                <div class="mb-2">
+                    {{ form.marca.label_tag }}
+                    {{ form.marca }}
+                </div>
+                <div class="mb-2">
+                    {{ form.fabricante.label_tag }}
+                    {{ form.fabricante }}
+                </div>
+                <div class="mb-2">
+                    {{ form.tipo.label_tag }}
+                    {{ form.tipo }}
+                </div>
+                <div class="mb-2">
+                    {{ form.critico.label_tag }}
+                    {{ form.critico }}
+                </div>
+                <div class="mb-2">
+                    {{ form.feature.label_tag }}
+                    {{ form.feature }}
+                </div>
+                <div class="mb-2">
+                    {{ form.recomendaciones.label_tag }}
+                    {{ form.recomendaciones }}
+                </div>
             </div>
-        {% endfor %}
 
-        <button type="submit" class="btn btn-success submit-button">Guardar</button>
+            <!-- Segunda Columna: Campos Adicionales -->
+            <div class="col-md-6">
+                <h4>Información Adicional</h4>
+                <div class="mb-3">
+                    <label for="{{ form.related.id_for_label }}">
+                        {{ form.related.label }}
+                        <small class="form-text text-muted">{{ form.related.help_text }}</small>
+                    </label>
+                    {{ form.related }}
+                </div>
+                <div class="mb-3">
+                    {{ form.ubicacion.label_tag }}
+                    {{ form.ubicacion }}
+                </div>
+
+                <!-- Widget de Subida de Imágenes -->
+                <div class="mb-3">
+                    <label class="form-label">Subir Imágenes</label>
+                    <div id="image-upload-container" class="image-upload-container">
+                        <label for="id_file_field" class="image-upload-label">
+                            <i class="fa fa-plus"></i>
+                        </label>
+                        {{ upload_form.file_field }}
+                    </div>
+                    <div id="image-preview-carousel" class="carousel slide mt-3 d-none" data-bs-ride="carousel">
+                        <div class="carousel-inner" id="carousel-inner">
+                            <!-- Imágenes se insertarán aquí dinámicamente -->
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#image-preview-carousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Anterior</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#image-preview-carousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Siguiente</span>
+                        </button>
+                    </div>
+                    <div id="image-footer" class="text-center">
+                        <small id="image-count"></small>
+                    </div>
+                    <button type="button" id="delete-images-button" class="btn btn-danger btn-sm mt-2">Eliminar Todas las Imágenes</button>
+                </div>
+
+                <!-- Campo para Subir Manual PDF -->
+                <div class="mb-3">
+                    {{ form.manual_pdf.label_tag }}
+                    {{ form.manual_pdf }}
+                </div>
+
+                <!-- Sección Opcional para Motores -->
+                <div class="mb-3">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#motor-section" aria-expanded="false" aria-controls="motor-section">
+                        {{ form.potencia.label }} y Horas (Opcional)
+                    </button>
+                    <div class="collapse mt-2" id="motor-section">
+                        <div class="mb-3">
+                            {{ form.potencia.label_tag }}
+                            {{ form.potencia }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.initial_hours.label_tag }}
+                            {{ form.initial_hours }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección Opcional para Tanques -->
+                <div class="mb-3">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#tanque-section" aria-expanded="false" aria-controls="tanque-section">
+                        Información de Tanques (Opcional)
+                    </button>
+                    <div class="collapse mt-2" id="tanque-section">
+                        <div class="mb-3">
+                            {{ form.tipo_almacenamiento.label_tag }}
+                            {{ form.tipo_almacenamiento }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.volumen.label_tag }}
+                            {{ form.volumen }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón de Guardar -->
+        <button type="submit" class="btn btn-success">Guardar</button>
     </form>
 </div>
+
+
+
+<!-- Bootstrap Carousel JS y otros scripts necesarios -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+// static/js/equipo_create.js
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('id_file_field');
+    const imageUploadContainer = document.getElementById('image-upload-container');
+    const imagePreviewCarousel = document.getElementById('image-preview-carousel');
+    const carouselInner = document.getElementById('carousel-inner');
+    const deleteImagesButton = document.getElementById('delete-images-button');
+    const imageCount = document.getElementById('image-count');
+    const imageFooter = document.getElementById('image-footer');
+
+    // Array para almacenar los archivos seleccionados
+    let selectedFiles = [];
+
+    fileInput.addEventListener('change', function(event) {
+        const files = event.target.files;
+        if (files.length > 0) {
+            // Añadir los nuevos archivos al array seleccionado
+            selectedFiles = selectedFiles.concat(Array.from(files));
+
+            // Limpiar el FileList para evitar duplicados
+            fileInput.value = '';
+
+            // Actualizar la previsualización
+            updateImagePreview();
+        }
+    });
+
+    // Función para actualizar la previsualización de imágenes
+    function updateImagePreview() {
+        carouselInner.innerHTML = ''; // Limpiar previsualizaciones anteriores
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const carouselItem = document.createElement('div');
+                carouselItem.classList.add('carousel-item');
+                if (index === 0) {
+                    carouselItem.classList.add('active');
+                }
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.classList.add('d-block', 'w-100');
+                img.alt = `Imagen ${index + 1}`;
+
+                // Botón de Eliminación Individual
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.classList.add('delete-image-btn');
+                deleteBtn.innerHTML = '&times;'; // Icono "x"
+                deleteBtn.addEventListener('click', function() {
+                    removeImage(index);
+                });
+
+                carouselItem.appendChild(img);
+                carouselItem.appendChild(deleteBtn);
+                carouselInner.appendChild(carouselItem);
+            }
+            reader.readAsDataURL(file);
+        });
+
+        if (selectedFiles.length > 0) {
+            imagePreviewCarousel.classList.remove('d-none');
+            deleteImagesButton.classList.remove('d-none');
+            imageFooter.classList.remove('d-none');
+            imageCount.textContent = `${selectedFiles.length} imagen(es) subida(s).`;
+            imageUploadContainer.classList.add('d-none'); // Ocultar el cuadro de subida
+        } else {
+            imagePreviewCarousel.classList.add('d-none');
+            deleteImagesButton.classList.add('d-none');
+            imageFooter.classList.add('d-none');
+            carouselInner.innerHTML = '';
+            imageCount.textContent = '';
+            imageUploadContainer.classList.remove('d-none'); // Mostrar el cuadro de subida
+        }
+    }
+
+    // Función para eliminar una imagen del array y actualizar la previsualización
+    function removeImage(index) {
+        selectedFiles.splice(index, 1);
+        updateImagePreview();
+    }
+
+    // Manejar eliminación de todas las imágenes
+    deleteImagesButton.addEventListener('click', function() {
+        // Limpiar el array de archivos seleccionados
+        selectedFiles = [];
+        updateImagePreview();
+    });
+
+    // Antes de enviar el formulario, crear un nuevo DataTransfer y añadir los archivos seleccionados
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        fileInput.files = dataTransfer.files;
+    });
+});
+
+</script>
 {% endblock %}

@@ -22,10 +22,7 @@
 			    <tr>
 				    <th scope="col"></th>
 					<th scope="col">Nombre</th>
-				    {% if not asset.area == 'a' %}
-				        <th scope="col">Ubicación</th>
-				    {% endif %}
-				    <th scope="col">Mantenimiento</th>
+				    <th scope="col">Estado</th>
 				</tr>
 			</thead>
 		    <tbody>
@@ -35,9 +32,6 @@
 					    <td data-cell="Sistema">
 					        <a href="{{ sys.get_absolute_url }}">{{sys.name}}</a>
 				        </td>
-				        {% if not asset.area == 'a' %}
-				            <td data-cell="Ubicación">{{ sys.location }}</td>
-				        {% endif %}
 					    <td data-cell="Estado">
 					        <div class="dropdown">
 						        <button class="btn status {% if sys.state == 'o' %}finished{% elif sys.state == 'm' %}pending{% elif sys.state == 's' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
@@ -220,7 +214,7 @@
     </div>
 </div>
 
-{% if rotativos %} 
+{% if rotativos and asset.area == 'a' %} 
     {% include 'got/assets/graps.html' %}
 {% endif %}
 

@@ -169,31 +169,38 @@ class SysForm(forms.ModelForm):
 
 
 class EquipoForm(forms.ModelForm):
-
     critico = forms.ChoiceField(
         choices=[(True, 'Sí'), (False, 'No')],
         widget=forms.RadioSelect,
-        label='Equipo crítico',
+        label='¿El equipo es crítico?',
         initial=False,
         required=False
     )
 
+    related = forms.ModelChoiceField(
+        queryset=Equipo.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=False,
+        label='Relacionado con otro equipo',
+        help_text='Opcional. Seleccione si este equipo depende o tiene una relación directa con otro equipo dentro del mismo sistema.'
+    )
+
     class Meta:
         model = Equipo
-        exclude = ['system', 'horometro', 'prom_hours', 'code', 'imagen', 'modified_by', 'related']
+        exclude = ['system', 'horometro', 'prom_hours', 'code', 'modified_by', 'related']
         labels = {
-            'name': 'Nombre',
+            'name': 'Nombre del equipo',
             'model': 'Modelo',
             'serial': '# Serial',
             'marca': 'Marca',
             'fabricante': 'Fabricante',
-            'feature': 'Caracteristicas',
+            'feature': 'Características',
             'manual_pdf': 'Manual',
-            'tipo': 'tipo de equipo:',
+            'tipo': 'Tipo de equipo:',
             'initial_hours': 'Horas iniciales (Motores)',
             'tipo_almacenamiento': 'Tipo de almacenamiento (Tanques)',
             'volumen': 'Capacidad de almacenamiento - Galones (Tanques)',
-            'subsystem': 'Categoria (Si aplica)',
+            'subsystem': 'Categoría (Si aplica)',
             'potencia': 'Potencia (kw)',
             'recomendaciones': 'Recomendaciones',
             }
@@ -208,17 +215,22 @@ class EquipoForm(forms.ModelForm):
             'initial_hours': forms.NumberInput(attrs={'class': 'form-control'}),
             'volumen': forms.NumberInput(attrs={'class': 'form-control'}),
             'potencia': forms.NumberInput(attrs={'class': 'form-control'}),
-            'feature': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'feature': forms.Textarea(attrs={'rows': 6, 'class': 'form-control'}),
             'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
-            'ubicacion': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
             'recomendaciones': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
-            }
+        }
 
     def __init__(self, *args, **kwargs):
+        system = kwargs.pop('system', None)
         super(EquipoForm, self).__init__(*args, **kwargs)
         self.fields['critico'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
-
+        
+        if system:
+            self.fields['related'].queryset = Equipo.objects.filter(system=system)
+        else:
+            self.fields['related'].queryset = Equipo.objects.none()
 
 
 # ----------------- OTs -------------------- #
