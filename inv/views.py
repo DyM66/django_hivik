@@ -40,7 +40,7 @@ from django.http import JsonResponse
 
 class ActivoEquipmentListView(View):
     template_name = 'inventory_management/asset_equipment_list.html'
-    paginate_by = 20
+    # paginate_by = 20
 
     def get(self, request, abbreviation):
         activo = get_object_or_404(Asset, abbreviation=abbreviation)
@@ -55,19 +55,19 @@ class ActivoEquipmentListView(View):
         all_items = Item.objects.all().only('id', 'name', 'reference', 'seccion', 'presentacion').order_by('name')
 
         # Filtrado
-        search_query = request.GET.get('search', '')
-        if search_query:
-            equipos = equipos.filter(name__icontains=search_query)
+        # search_query = request.GET.get('search', '')
+        # if search_query:
+        #     equipos = equipos.filter(name__icontains=search_query)
 
-        paginator = Paginator(equipos, self.paginate_by)
-        page = request.GET.get('page')
+        # paginator = Paginator(equipos, self.paginate_by)
+        # page = request.GET.get('page')
 
-        try:
-            equipos_paginated = paginator.page(page)
-        except PageNotAnInteger:
-            equipos_paginated = paginator.page(1)
-        except EmptyPage:
-            equipos_paginated = paginator.page(paginator.num_pages)
+        # try:
+        #     equipos_paginated = paginator.page(page)
+        # except PageNotAnInteger:
+        #     equipos_paginated = paginator.page(1)
+        # except EmptyPage:
+        #     equipos_paginated = paginator.page(paginator.num_pages)
 
         suministros = Suministro.objects.filter(asset=activo).select_related('item')
         all_items = Item.objects.all().only('id', 'name', 'reference', 'seccion', 'presentacion').order_by('name')
@@ -79,11 +79,11 @@ class ActivoEquipmentListView(View):
 
         context = {
             'activo': activo,
-            'equipos': equipos_paginated,
+            'equipos': equipos,
             'fecha_actual': timezone.now().date(),
             'suministros': suministros,
             'all_items': all_items,
-            'page_obj': equipos_paginated,
+            # 'page_obj': equipos_paginated,
         }
         return render(request, self.template_name, context)
 
