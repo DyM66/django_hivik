@@ -27,3 +27,17 @@ class DarBaja(models.Model):
 
     def __str__(self):
         return f"{self.activo}/{self.equipo} - {self.fecha}"
+    
+
+class EquipoCodeCounter(models.Model):
+    asset_abbreviation = models.CharField(max_length=50)
+    tipo = models.CharField(max_length=10)
+    last_number = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('asset_abbreviation', 'tipo')
+        verbose_name = 'Contador de Código de Equipo'
+        verbose_name_plural = 'Contadores de Códigos de Equipo'
+
+    def __str__(self):
+        return f"{self.asset_abbreviation} - {self.tipo}: {self.last_number}"
