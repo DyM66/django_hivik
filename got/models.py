@@ -154,8 +154,9 @@ class Ot(models.Model):
 import qrcode
 from io import BytesIO
 import base64
+from dirtyfields import DirtyFieldsMixin
 # Model 4
-class Equipo(models.Model):
+class Equipo(DirtyFieldsMixin, models.Model):
     TIPO = (
         ('a', 'Climatización'),
         ('b', 'Bomba'),
@@ -213,21 +214,31 @@ class Equipo(models.Model):
     volumen = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     
-    qr_code_url = models.URLField(max_length=255, blank=True, null=True)
+    qr_code_url = models.URLField(max_length=1000, blank=True, null=True)
 
-    # def save(self, *args, **kwargs):
-    #     if not self.qr_code_url:
-    #         domain = "https://got.serport.co"
-    #         public_url = f"{domain}/inv/public/equipo/{self.code}/"
-    #         qr = qrcode.QRCode(version=1, box_size=4, border=2)
-    #         qr.add_data(public_url)
-    #         qr.make(fit=True)
-    #         img = qr.make_image(fill_color="black", back_color="white")
-    #         qr_io = BytesIO()
-    #         img.save(qr_io, format='PNG')
-    #         qr_base64 = base64.b64encode(qr_io.getvalue()).decode('utf-8')
-    #         self.qr_code_url = f"data:image/png;base64,{qr_base64}"
-    #     super().save(*args, **kwargs)
+    def generate_qr_code(self):
+        """
+        Genera el código QR basado en el código único del equipo y lo almacena en `qr_code_url`.
+        """
+        domain = "https://got.serport.co"
+        public_url = f"{domain}/inv/public/equipo/{self.code}/"
+        qr = qrcode.QRCode(version=1, box_size=4, border=2)
+        qr.add_data(public_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        qr_io = BytesIO()
+        img.save(qr_io, format='PNG')
+        qr_base64 = base64.b64encode(qr_io.getvalue()).decode('utf-8')
+        self.qr_code_url = f"data:image/png;base64,{qr_base64}"
+
+    def save(self, *args, **kwargs):
+        """
+        Sobrescribe el método save para generar y almacenar el código QR si no existe o si el código ha cambiado.
+        """
+        # Verificar si el código ha cambiado o si `qr_code_url` está vacío
+        if not self.qr_code_url or 'code' in self.get_dirty_fields():
+            self.generate_qr_code()
+        super().save(*args, **kwargs)
 
     @property
     def consumo_promedio_por_hora(self):

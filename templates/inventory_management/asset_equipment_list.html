@@ -77,12 +77,12 @@
 							</a>
 							<!-- Ver Detalle (modal) -->
 							<!-- En lugar de generar un modal por cada equipo -->
-							<a href="#" class="me-1 text-primary ver-detalle-equipo" data-eq-id="{{ eq.pk }}" title="Ver Detalle">
+							<a href="{% url 'got:sys-detail-view' eq.system.id eq.code %}" class="me-1 text-primary" title="Ver Detalle">
 								<i class="fa-solid fa-eye"></i>
 							</a>
 
 							<!-- Mostrar QR en nueva ventana -->
-							<a href="#" class="ms-1 text-secondary" title="Mostrar QR" onclick="openQRInNewWindow('data:image/png;base64,{{ eq.qr_code_b64 }}', '{{ eq.name|escapejs }}', '{{ eq.code|escapejs }}'); return false;">
+							<a href="#" class="ms-1 text-secondary" title="Mostrar QR" onclick="openQRInNewWindow('{{ eq.qr_code_url }}', '{{ eq.name|escapejs }}', '{{ eq.code|escapejs }}'); return false;">
 								<i class="fa-solid fa-qrcode"></i>
 							</a>
         				</td>
@@ -122,51 +122,6 @@
 		
   	</div>
 	<hr>
-
-<!-- Modal Detalle del Equipo -->
-<div class="modal fade" id="equipoDetailModal" tabindex="-1" aria-labelledby="equipoDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="equipoDetailModalLabel">Detalle del Equipo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Contenido cargado dinámicamente -->
-                <div id="detalleEquipoContent">
-                    <p>Cargando...</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const detalleEquipoModal = document.getElementById('equipoDetailModal');
-        detalleEquipoModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const eqId = button.getAttribute('data-eq-id');
-
-            const detalleContent = document.getElementById('detalleEquipoContent');
-            detalleContent.innerHTML = '<p>Cargando...</p>';
-
-            fetch(`/inv/equipo/${eqId}/detalle/`)
-                .then(response => response.text())
-                .then(data => {
-                    detalleContent.innerHTML = data;
-                })
-                .catch(error => {
-                    detalleContent.innerHTML = '<p>Error al cargar los detalles.</p>';
-                    console.error('Error:', error);
-                });
-        });
-    });
-</script>
-
 
 	<!-- 4. Sección de Suministros -->
 	<div class="d-flex justify-content-between align-items-center mt-4 mb-2">
@@ -299,42 +254,6 @@
     	</div>
   	</div><!-- Fin Modal -->
 
-	<script>
-		document.addEventListener('DOMContentLoaded', function() {
-			const toggleBtn = document.getElementById('toggleNewItemFormBtn');
-			const newItemFormContainer = document.getElementById('newItemFormContainer');
-			const isNewItemField = document.getElementById('is_newItemField');
-		
-			toggleBtn.addEventListener('click', function(){
-				let isHidden = (newItemFormContainer.style.display === 'none');
-				newItemFormContainer.style.display = isHidden ? 'block' : 'none';
-				// Si se muestra => is_new_item = 1
-				isNewItemField.value = isHidden ? '1' : '0';
-			});
-		});
-
-		document.addEventListener('DOMContentLoaded', function() {
-			// Filtrar items en “Crear Suministro”
-			const supplyItemSearch = document.getElementById('supplyItemSearch');
-			const supplyItemTable = document.getElementById('supplyItemTable');
-
-			if (supplyItemSearch && supplyItemTable) {
-				supplyItemSearch.addEventListener('input', function() {
-				const filterVal = this.value.toLowerCase();
-				const rows = supplyItemTable.querySelectorAll('tbody tr');
-				rows.forEach(row => {
-					const nameVal = row.getAttribute('data-name') || "";
-					const refVal = row.getAttribute('data-ref') || "";
-					if (nameVal.includes(filterVal) || refVal.includes(filterVal)) {
-						row.style.display = "";
-					} else {
-						row.style.display = "none";
-					}
-				});
-				});
-			}
-		});
-	</script>
 
 	<div class="table-responsive">
 		<table class="table table-sm align-middle" style="font-size:0.85rem;">
@@ -381,73 +300,61 @@
 										<i class="fa-solid fa-eye"></i>
 									</a>
 
-                  {% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
-                    <!-- Link a AssetSuministrosReportView -->
-                    <a href="{% url 'inv:asset-suministros' activo.abbreviation %}"
-                       class="text-info"
-                       title="Ver Reporte Suministros">
-                      <i class="fa-solid fa-list"></i>
-                    </a>
-                  {% else %}
-                    <!-- Link a AssetInventarioReportView -->
-                    <a href="{% url 'inv:asset_inventario_report' activo.abbreviation %}"
-                       class="text-success"
-                       title="Ver Reporte Inventario">
-                      <i class="fa-solid fa-clipboard-list"></i>
-                    </a>
-					{% endif %}
+                  					{% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
+										<!-- Link a AssetSuministrosReportView -->
+										<a href="{% url 'inv:asset-suministros' activo.abbreviation %}" class="text-info" title="Ver Reporte Suministros">
+											<i class="fa-solid fa-list"></i>
+										</a>
+									{% else %}
+										<!-- Link a AssetInventarioReportView -->
+										<a href="{% url 'inv:asset_inventario_report' activo.abbreviation %}" class="text-success" title="Ver Reporte Inventario">
+											<i class="fa-solid fa-clipboard-list"></i>
+										</a>
+									{% endif %}
+								{% endif %}
+							</td>
+						</tr>
+
+            			<!-- Modal para detalle del artículo -->
+            			{% if s.item %}
+              				<div class="modal fade" id="itemDetailModal{{ s.item.id }}" tabindex="-1" aria-hidden="true">
+                				<div class="modal-dialog">
+                  					<div class="modal-content" style="font-size:0.9rem;">
+                    					<div class="modal-header">
+                      						<h5 class="modal-title">
+                        						Detalle: {{ s.item.name }}
+                      						</h5>
+                      						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    					</div>
+                    					<div class="modal-body">
+											<p><strong>Referencia:</strong> {{ s.item.reference }}</p>
+											<p><strong>Presentación:</strong> {{ s.item.presentacion }}</p>
+											{% if s.item.imagen %}
+												<img src="{{ s.item.imagen.url }}" alt="{{ s.item.name }}" class="img-fluid">
+											{% else %}
+												<p class="text-muted">Sin imagen disponible.</p>
+											{% endif %}
+											<p><strong>Descripción:</strong></p>
+											<p>{{ s.item.descripcion|default_if_none:"No hay descripción." }}</p>
+										</div>
+										<div class="modal-footer">
+											<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+												Cerrar
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						{% endif %}
+          			{% endfor %}
+				{% else %}
+					<tr>
+						<td colspan="5">No hay suministros asociados a este Activo.</td>
+					</tr>
 				{% endif %}
-
-              </td>
-            </tr>
-
-            <!-- Modal para detalle del artículo -->
-            {% if s.item %}
-              <div class="modal fade" id="itemDetailModal{{ s.item.id }}"
-                   tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                  <div class="modal-content" style="font-size:0.9rem;">
-                    <div class="modal-header">
-                      <h5 class="modal-title">
-                        Detalle: {{ s.item.name }}
-                      </h5>
-                      <button type="button"
-                              class="btn-close"
-                              data-bs-dismiss="modal"
-                              aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      <p><strong>Referencia:</strong> {{ s.item.reference }}</p>
-                      <p><strong>Presentación:</strong> {{ s.item.presentacion }}</p>
-                      {% if s.item.imagen %}
-                        <img src="{{ s.item.imagen.url }}" alt="{{ s.item.name }}" class="img-fluid">
-                      {% else %}
-                        <p class="text-muted">Sin imagen disponible.</p>
-                      {% endif %}
-                      <p><strong>Descripción:</strong></p>
-                      <p>{{ s.item.descripcion|default_if_none:"No hay descripción." }}</p>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button"
-                              class="btn btn-secondary btn-sm"
-                              data-bs-dismiss="modal">
-                        Cerrar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            {% endif %}
-
-          {% endfor %}
-        {% else %}
-          <tr>
-            <td colspan="5">No hay suministros asociados a este Activo.</td>
-          </tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div><!-- table-responsive -->
+			</tbody>
+		</table>
+	</div><!-- table-responsive -->
 </div><!-- container -->
 
 
@@ -666,6 +573,41 @@
 				});
 			}
 		});
+	});
+
+	document.addEventListener('DOMContentLoaded', function() {
+		const toggleBtn = document.getElementById('toggleNewItemFormBtn');
+		const newItemFormContainer = document.getElementById('newItemFormContainer');
+		const isNewItemField = document.getElementById('is_newItemField');
+	
+		toggleBtn.addEventListener('click', function(){
+			let isHidden = (newItemFormContainer.style.display === 'none');
+			newItemFormContainer.style.display = isHidden ? 'block' : 'none';
+			// Si se muestra => is_new_item = 1
+			isNewItemField.value = isHidden ? '1' : '0';
+		});
+	});
+
+	document.addEventListener('DOMContentLoaded', function() {
+		// Filtrar items en “Crear Suministro”
+		const supplyItemSearch = document.getElementById('supplyItemSearch');
+		const supplyItemTable = document.getElementById('supplyItemTable');
+
+		if (supplyItemSearch && supplyItemTable) {
+			supplyItemSearch.addEventListener('input', function() {
+			const filterVal = this.value.toLowerCase();
+			const rows = supplyItemTable.querySelectorAll('tbody tr');
+			rows.forEach(row => {
+				const nameVal = row.getAttribute('data-name') || "";
+				const refVal = row.getAttribute('data-ref') || "";
+				if (nameVal.includes(filterVal) || refVal.includes(filterVal)) {
+					row.style.display = "";
+				} else {
+					row.style.display = "none";
+				}
+			});
+			});
+		}
 	});
 </script>
 {% endblock %}

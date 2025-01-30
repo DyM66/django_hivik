@@ -27,6 +27,9 @@ from openpyxl.utils import get_column_letter
 from megger_app.models import Megger
 from django.db.models import Prefetch, Sum
 from django.core.management.base import BaseCommand
+from inv.models import EquipoCodeCounter
+from django.db import transaction
+
 
 def update_compliance_all():
     """
@@ -39,17 +42,6 @@ def update_compliance_all():
     for asset in assets:
         asset.update_maintenance_compliance_cache()
     print("Proceso completado. Se ha actualizado el compliance de todos los Assets.")
-
-
-class Command(BaseCommand):
-    help = 'Recalcula y guarda el compliance de todos los Assets'
-
-    def handle(self, *args, **options):
-        # Usa la función anterior para recalcular
-        update_compliance_all()
-        self.stdout.write(self.style.SUCCESS(
-            'Todos los Assets han sido actualizados correctamente.'
-        ))
 
 
 def actualizar_rutas_dependientes(ruta):
@@ -75,34 +67,22 @@ def render_to_pdf(template_src, context_dict={}):
     return HttpResponse('Error al generar el PDF', status=400)
 
 
-
 def generate_equipo_code(asset_abbr, tipo):
     """
     Retorna el siguiente código único con el formato:
-        <asset_abbr>-<group_number>-<tipo>-<seq>
+        <asset_abbr>-<tipo>-<seq>
     donde <seq> es un número incremental con 3 dígitos.
     """
-    prefix = f"{asset_abbr}-{tipo}"
-    
-    # Buscar todos los equipos que comiencen con prefix
-    # y extraer la parte final numérica para encontrar el mayor.
-    highest_number = 0
-    equipos_similares = Equipo.objects.filter(code__startswith=prefix)
-    
-    for eq in equipos_similares:
-        parts = eq.code.split('-')
-        if len(parts) == 4:
-            # parts[3] es el seq
-            try:
-                seq_int = int(parts[3])
-                if seq_int > highest_number:
-                    highest_number = seq_int
-            except ValueError:
-                pass
-    
-    new_seq = highest_number + 1
-    seq_str = str(new_seq).zfill(3)
-    return f"{prefix}-{seq_str}"
+    with transaction.atomic():
+        # Bloquear la fila correspondiente para evitar condiciones de carrera
+        counter, created = EquipoCodeCounter.objects.select_for_update().get_or_create(
+            asset_abbr=asset_abbr,
+            tipo=tipo,
+            defaults={'last_seq': 0}
+        )
+        new_seq = counter.increment_seq()
+        seq_str = str(new_seq).zfill(3)
+        return f"{asset_abbr}-{tipo}-{seq_str}"
 
 
 def get_filtered_rutas(asset, user, request_data=None):
@@ -755,21 +735,16 @@ def calculate_status_code(t):
 
 
 def update_equipo_code(old_code):
-    equipo = Equipo.objects.get(code=old_code)
-    system = equipo.system
-    asset_abbreviation = system.asset.abbreviation
-    tipo = equipo.tipo.upper()
- 
-    similar_equipments = Equipo.objects.filter(code__startswith=f"{asset_abbreviation}-{tipo}")
-    sequence_number = similar_equipments.count() + 1
-    sequence_str = str(sequence_number).zfill(3) 
-    generated_code = f"{asset_abbreviation}-{tipo}-{sequence_str}"
-
     try:
-        # Iniciar una transacción para asegurar que todo se actualice correctamente
-        with db_transaction.atomic():
-            # Obtener el equipo cuyo código se va a cambiar
-            equipo = Equipo.objects.get(code=old_code)
+        with transaction.atomic():
+            equipo = Equipo.objects.select_for_update().get(code=old_code)
+            system = equipo.system
+            asset_abbreviation = system.asset.abbreviation
+            tipo = equipo.tipo.upper()
+ 
+            generated_code = generate_equipo_code(asset_abbreviation, tipo)
+
+           # Actualizar el código del equipo
             equipo.code = generated_code
             equipo.save()
 

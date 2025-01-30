@@ -937,23 +937,19 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
         form.instance.system = system
         asset_abbreviation = system.asset.abbreviation
         tipo = form.cleaned_data['tipo'].upper()
+        
+        try:
+            with transaction.atomic():
+                # Generar código único
+                form.instance.code = generate_equipo_code(asset_abbreviation, tipo)
+                form.instance.modified_by = self.request.user
 
-        # 1) Creamos la lógica de asignar code con bucle de reintento
-        while True:
-            # Generamos un code basado en lo que hay
-            generated_code = generate_equipo_code(asset_abbreviation, tipo)
-            form.instance.code = generated_code
-            form.instance.modified_by = self.request.user
+                response = super().form_valid(form)
+        except IntegrityError:
+            form.add_error('code', 'Error al generar un código único. Por favor, inténtalo de nuevo.')
+            form.add_error('code', 'Error al generar un código único. Por favor, inténtalo de nuevo.')
+            return self.form_invalid(form)
 
-            try:
-                with transaction.atomic():
-                    response = super().form_valid(form)
-                    # Si llegó hasta aquí, guardó sin colisión => salimos del while
-                    break
-            except IntegrityError:
-                # Significa que code ya existía (condición de carrera).
-                # Reintentamos con el siguiente number
-                continue
         # Manejar carga de imágenes
         upload_form = self.get_context_data()['upload_form']
         if upload_form.is_valid():

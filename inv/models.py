@@ -29,15 +29,24 @@ class DarBaja(models.Model):
         return f"{self.activo}/{self.equipo} - {self.fecha}"
     
 
+
 class EquipoCodeCounter(models.Model):
-    asset_abbreviation = models.CharField(max_length=50)
-    tipo = models.CharField(max_length=10)
-    last_number = models.PositiveIntegerField(default=0)
+    asset_abbr = models.CharField(max_length=50)
+    tipo = models.CharField(max_length=2)
+    last_seq = models.PositiveIntegerField(default=0)
 
     class Meta:
-        unique_together = ('asset_abbreviation', 'tipo')
+        unique_together = ('asset_abbr', 'tipo')
         verbose_name = 'Contador de Código de Equipo'
-        verbose_name_plural = 'Contadores de Códigos de Equipo'
+        verbose_name_plural = 'Contadores de Código de Equipo'
+
+    def increment_seq(self):
+        """
+        Incrementa el contador de secuencia y retorna el nuevo valor.
+        """
+        self.last_seq += 1
+        self.save(update_fields=['last_seq'])
+        return self.last_seq
 
     def __str__(self):
-        return f"{self.asset_abbreviation} - {self.tipo}: {self.last_number}"
+        return f"{self.asset_abbr}-{self.tipo}: {self.last_seq}"

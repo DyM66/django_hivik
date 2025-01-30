@@ -34,13 +34,12 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, Case, When, IntegerField, BooleanField, Value
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.http import JsonResponse
+from django.template.loader import render_to_string
 
 
 
 class ActivoEquipmentListView(View):
     template_name = 'inventory_management/asset_equipment_list.html'
-    paginate_by = 20
 
     def get(self, request, abbreviation):
         activo = get_object_or_404(Asset, abbreviation=abbreviation)
@@ -54,40 +53,19 @@ class ActivoEquipmentListView(View):
         # Optimizar la consulta de items (si es necesario)
         all_items = Item.objects.all().only('id', 'name', 'reference', 'seccion', 'presentacion').order_by('name')
 
-        # Filtrado
-        search_query = request.GET.get('search', '')
-        if search_query:
-            equipos = equipos.filter(name__icontains=search_query)
-
-        paginator = Paginator(equipos, self.paginate_by)
-        page = request.GET.get('page')
-
-        try:
-            equipos_paginated = paginator.page(page)
-        except PageNotAnInteger:
-            equipos_paginated = paginator.page(1)
-        except EmptyPage:
-            equipos_paginated = paginator.page(paginator.num_pages)
-
         suministros = Suministro.objects.filter(asset=activo).select_related('item')
         all_items = Item.objects.all().only('id', 'name', 'reference', 'seccion', 'presentacion').order_by('name')
 
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            html = render_to_string('inventory_management/partial_equipment_table.html', {'equipos': equipos_paginated}, request=request)
-            return JsonResponse({'html': html})
-
-
         context = {
             'activo': activo,
-            'equipos': equipos_paginated,
+            'equipos': equipos,
             'fecha_actual': timezone.now().date(),
             'suministros': suministros,
             'all_items': all_items,
-            'page_obj': equipos_paginated,
         }
         return render(request, self.template_name, context)
 
-from django.template.loader import render_to_string
+
 class EquipoDetailPartialView(View):
     def get(self, request, eq_id):
         equipo = get_object_or_404(Equipo, pk=eq_id)
