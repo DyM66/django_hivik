@@ -111,5 +111,7 @@ urlpatterns = [
     path('asset/<str:pk>/update_place/', views.asset_update_place, name='asset-update-place'),
     path('asset/<str:pk>/update_supervisor/', views.asset_update_supervisor, name='asset-update-supervisor'),
     path('asset/<str:pk>/update_capitan/', views.asset_update_capitan, name='asset-update-capitan'),
+
+    path('equipo/<pk>/delete_image/', views.EquipoDeleteImageView.as_view(), name='equipo-delete-image'),
 ]
 

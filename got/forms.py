@@ -50,12 +50,29 @@ class MultipleFileField(forms.FileField):
         super().__init__(*args, **kwargs)
 
     def clean(self, data, initial=None):
-        single_file_clean = super().clean
-        if isinstance(data, (list, tuple)):
-            result = [single_file_clean(d, initial) for d in data]
-        else:
-            result = [single_file_clean(data, initial)]
-        return result
+        # Permitir datos vacíos si no son requeridos
+        if not data:
+            return []
+        
+        # Asegurarse de que data sea una lista
+        if not isinstance(data, (list, tuple)):
+            data = [data]
+        
+        cleaned_data = []
+        for f in data:
+            if f:
+                try:
+                    # Limpia cada archivo individualmente
+                    cleaned = super().clean(f, initial)
+                    if cleaned:
+                        cleaned_data.append(cleaned)
+                except forms.ValidationError as e:
+                    # Opcional: Manejar o registrar errores específicos
+                    pass
+            else:
+                # Opcional: Registrar o manejar archivos vacíos
+                print("Archivo vacío detectado y omitido.")
+        return cleaned_data
     
 
 class UserProfileForm(forms.ModelForm):
@@ -187,7 +204,7 @@ class EquipoForm(forms.ModelForm):
 
     class Meta:
         model = Equipo
-        exclude = ['system', 'horometro', 'prom_hours', 'code', 'modified_by', 'related']
+        exclude = ['system', 'horometro', 'prom_hours', 'code', 'modified_by']
         labels = {
             'name': 'Nombre del equipo',
             'model': 'Modelo',
@@ -215,7 +232,7 @@ class EquipoForm(forms.ModelForm):
             'initial_hours': forms.NumberInput(attrs={'class': 'form-control'}),
             'volumen': forms.NumberInput(attrs={'class': 'form-control'}),
             'potencia': forms.NumberInput(attrs={'class': 'form-control'}),
-            'feature': forms.Textarea(attrs={'rows': 6, 'class': 'form-control'}),
+            'feature': forms.Textarea(attrs={'rows': 10, 'class': 'form-control'}),
             'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
             'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),

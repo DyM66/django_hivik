@@ -158,12 +158,51 @@ input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:foc
 .carousel-control-prev-icon, .carousel-control-next-icon {
     background-size: 100%, 100%;
 }
+
+
+/* Aseguramos que el contenedor de la imagen tenga posición relativa */
+.image-wrapper {
+    position: relative;
+}
+
+/* Estilos para el botón de eliminación */
+.delete-image-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #fff;
+    color: var(--danger-color);
+    border: 2px solid var(--danger-color);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.3s, background-color 0.3s, color 0.3s;
+    z-index: 999;  /* Valor alto para que se muestre siempre encima */
+}
+
+.delete-image-btn:hover {
+    opacity: 1;
+    background-color: var(--danger-color);
+    color: #fff;
+}
+
+
 </style>
 
 <div class="container mt-4" style="font-size:0.9rem;">
 
     <h2 class="mb-3">
-        Crear Equipo - <strong>{{ sys }}</strong>
+        {% if object %}
+            Editar Equipo - <strong>{{ object.system }}</strong>
+        {% else %}
+            Crear Equipo - <strong>{{ sys }}</strong>
+        {% endif %}
     </h2>
     <hr>
 
@@ -227,33 +266,75 @@ input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:foc
                     {{ form.ubicacion }}
                 </div>
 
+
+<!-- Bloque donde se muestran las imágenes -->
+<div id="image-list">
+    <h5>Imágenes asociadas {% if object %}({{ image_count }}){% endif %}</h5>
+
                 <!-- Widget de Subida de Imágenes -->
                 <div class="mb-3">
-                    <label class="form-label">Subir Imágenes</label>
-                    <div id="image-upload-container" class="image-upload-container">
-                        <label for="id_file_field" class="image-upload-label">
-                            <i class="fa fa-plus"></i>
-                        </label>
-                        {{ upload_form.file_field }}
-                    </div>
-                    <div id="image-preview-carousel" class="carousel slide mt-3 d-none" data-bs-ride="carousel">
-                        <div class="carousel-inner" id="carousel-inner">
-                            <!-- Imágenes se insertarán aquí dinámicamente -->
-                        </div>
-                        <button class="carousel-control-prev" type="button" data-bs-target="#image-preview-carousel" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Anterior</span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#image-preview-carousel" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Siguiente</span>
-                        </button>
-                    </div>
-                    <div id="image-footer" class="text-center">
-                        <small id="image-count"></small>
-                    </div>
-                    <button type="button" id="delete-images-button" class="btn btn-danger btn-sm mt-2">Eliminar Todas las Imágenes</button>
+                    {{ upload_form }}  
                 </div>
+
+{% if object %}
+    
+    <div class="row">
+        {% for image in object.images.all %}
+        <div class="col-md-3" id="image-{{ image.id }}">
+            <div class="image-wrapper">
+                <img src="{{ image.image.url }}" class="img-thumbnail" alt="Imagen del equipo">
+                <!-- Botón "X" para eliminar; se usa type="button" para que no dispare submit -->
+                <button type="button" class="delete-image-btn" data-image-id="{{ image.id }}" title="Eliminar imagen">
+                    &times;
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function(){
+            // Agregar listener a los botones de eliminación
+            const deleteButtons = document.querySelectorAll('.delete-image-btn');
+            deleteButtons.forEach(function(button) {
+                button.addEventListener('click', function(event){
+                    event.preventDefault(); // Prevenir comportamiento por defecto
+                    const imageId = this.getAttribute('data-image-id');
+                    // Realiza la petición AJAX a la vista EquipoDeleteImageView
+                    fetch("{% url 'got:equipo-delete-image' object.pk %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "X-CSRFToken": "{{ csrf_token }}"
+                        },
+                        body: "image_id=" + imageId
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.success){
+                            // Elimina el contenedor de la imagen en el DOM
+                            const imageDiv = document.getElementById("image-" + imageId);
+                            if(imageDiv){
+                                imageDiv.remove();
+                            }
+                            // Actualiza el contador de imágenes
+                            const header = document.querySelector("#image-list h5");
+                            header.textContent = "Imágenes asociadas (" + data.image_count + ")";
+                        } else {
+                            alert("Error: " + (data.error || "No se pudo eliminar la imagen."));
+                        }
+                    })
+                    .catch(error => console.error("Error en la eliminación de la imagen:", error));
+                });
+            });
+        });
+        </script>
+        
+
+{% endif %}
+
+</div>
+
 
                 <!-- Campo para Subir Manual PDF -->
                 <div class="mb-3">
@@ -302,111 +383,4 @@ input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:foc
     </form>
 </div>
 
-
-
-<!-- Bootstrap Carousel JS y otros scripts necesarios -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-// static/js/equipo_create.js
-
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('id_file_field');
-    const imageUploadContainer = document.getElementById('image-upload-container');
-    const imagePreviewCarousel = document.getElementById('image-preview-carousel');
-    const carouselInner = document.getElementById('carousel-inner');
-    const deleteImagesButton = document.getElementById('delete-images-button');
-    const imageCount = document.getElementById('image-count');
-    const imageFooter = document.getElementById('image-footer');
-
-    // Array para almacenar los archivos seleccionados
-    let selectedFiles = [];
-
-    fileInput.addEventListener('change', function(event) {
-        const files = event.target.files;
-        if (files.length > 0) {
-            // Añadir los nuevos archivos al array seleccionado
-            selectedFiles = selectedFiles.concat(Array.from(files));
-
-            // Limpiar el FileList para evitar duplicados
-            fileInput.value = '';
-
-            // Actualizar la previsualización
-            updateImagePreview();
-        }
-    });
-
-    // Función para actualizar la previsualización de imágenes
-    function updateImagePreview() {
-        carouselInner.innerHTML = ''; // Limpiar previsualizaciones anteriores
-        selectedFiles.forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const carouselItem = document.createElement('div');
-                carouselItem.classList.add('carousel-item');
-                if (index === 0) {
-                    carouselItem.classList.add('active');
-                }
-
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.classList.add('d-block', 'w-100');
-                img.alt = `Imagen ${index + 1}`;
-
-                // Botón de Eliminación Individual
-                const deleteBtn = document.createElement('button');
-                deleteBtn.type = 'button';
-                deleteBtn.classList.add('delete-image-btn');
-                deleteBtn.innerHTML = '&times;'; // Icono "x"
-                deleteBtn.addEventListener('click', function() {
-                    removeImage(index);
-                });
-
-                carouselItem.appendChild(img);
-                carouselItem.appendChild(deleteBtn);
-                carouselInner.appendChild(carouselItem);
-            }
-            reader.readAsDataURL(file);
-        });
-
-        if (selectedFiles.length > 0) {
-            imagePreviewCarousel.classList.remove('d-none');
-            deleteImagesButton.classList.remove('d-none');
-            imageFooter.classList.remove('d-none');
-            imageCount.textContent = `${selectedFiles.length} imagen(es) subida(s).`;
-            imageUploadContainer.classList.add('d-none'); // Ocultar el cuadro de subida
-        } else {
-            imagePreviewCarousel.classList.add('d-none');
-            deleteImagesButton.classList.add('d-none');
-            imageFooter.classList.add('d-none');
-            carouselInner.innerHTML = '';
-            imageCount.textContent = '';
-            imageUploadContainer.classList.remove('d-none'); // Mostrar el cuadro de subida
-        }
-    }
-
-    // Función para eliminar una imagen del array y actualizar la previsualización
-    function removeImage(index) {
-        selectedFiles.splice(index, 1);
-        updateImagePreview();
-    }
-
-    // Manejar eliminación de todas las imágenes
-    deleteImagesButton.addEventListener('click', function() {
-        // Limpiar el array de archivos seleccionados
-        selectedFiles = [];
-        updateImagePreview();
-    });
-
-    // Antes de enviar el formulario, crear un nuevo DataTransfer y añadir los archivos seleccionados
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function(event) {
-        const dataTransfer = new DataTransfer();
-        selectedFiles.forEach(file => {
-            dataTransfer.items.add(file);
-        });
-        fileInput.files = dataTransfer.files;
-    });
-});
-
-</script>
 {% endblock %}

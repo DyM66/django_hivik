@@ -909,22 +909,30 @@ def asset_maintenance_pdf(request, asset_id):
     return render_to_pdf('got/systems/asset_pdf_template.html', context)
 
 
-'EQUIPMENTS VIEW'
 class EquipoCreateView(LoginRequiredMixin, CreateView):
     model = Equipo
     form_class = EquipoForm
     template_name = 'got/systems/equipo_form.html'
+    http_method_names = ['get', 'post']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Guarda la URL previa si está presente para redirigir luego
+        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
 
     def get_system(self):
+        # Recupera el sistema utilizando el parámetro 'pk' de la URL
         return get_object_or_404(System, pk=self.kwargs['pk'])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
+        # Se inyecta el objeto system en los argumentos del formulario
         kwargs['system'] = self.get_system()
         return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Se instancia el formulario de carga de imágenes
         if self.request.POST:
             context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
         else:
@@ -932,43 +940,53 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
         context['sys'] = self.get_system()
         return context
 
-    def form_valid(self, form):
+    def post(self, request, *args, **kwargs):
+        self.object = None  # Asegurarse de que self.object esté inicializado
+        form = self.get_form()
+        upload_form = UploadImages(request.POST, request.FILES)
+        # Se validan ambos formularios
+        if form.is_valid() and upload_form.is_valid():
+            return self.form_valid(form, upload_form)
+        else:
+            return self.form_invalid(form, upload_form)
+
+    def form_valid(self, form, upload_form):
         system = self.get_system()
         form.instance.system = system
         asset_abbreviation = system.asset.abbreviation
+        # Convertir el tipo a mayúsculas (suponiendo que es requerido)
         tipo = form.cleaned_data['tipo'].upper()
-        
+
         try:
             with transaction.atomic():
-                # Generar código único
+                # Generar código único para el equipo
                 form.instance.code = generate_equipo_code(asset_abbreviation, tipo)
                 form.instance.modified_by = self.request.user
-
+                # Guarda el registro del equipo; esto asigna self.object
                 response = super().form_valid(form)
         except IntegrityError:
             form.add_error('code', 'Error al generar un código único. Por favor, inténtalo de nuevo.')
-            form.add_error('code', 'Error al generar un código único. Por favor, inténtalo de nuevo.')
-            return self.form_invalid(form)
+            return self.form_invalid(form, upload_form)
 
-        # Manejar carga de imágenes
-        upload_form = self.get_context_data()['upload_form']
-        if upload_form.is_valid():
-            for file in self.request.FILES.getlist('file_field'):
-                Image.objects.create(image=file, equipo=self.object)
+        # Una vez guardado el equipo, se procesan las imágenes
+        for file in self.request.FILES.getlist('file_field'):
+            Image.objects.create(image=file, equipo=self.object)
         messages.success(self.request, "Equipo creado exitosamente.")
         return response
 
+    def form_invalid(self, form, upload_form):
+        context = self.get_context_data(form=form, upload_form=upload_form)
+        return self.render_to_response(context)
+
     def get_success_url(self):
         """
-        Redirige a la URL 'next' si está presente.
-        Sino fallback => sys-detail
+        Redirige a la URL 'next' si está presente; de lo contrario redirige a la vista de detalle del sistema.
         """
-        next_url = self.request.GET.get('next')
-        if next_url:
-            return next_url
+        if self.next_url:
+            return self.next_url
         else:
             return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
-    
+
 
 class EquipoUpdate(UpdateView):
     model = Equipo
@@ -980,6 +998,12 @@ class EquipoUpdate(UpdateView):
         # Guardar la URL previa en self.next_url, si la hay
         self.next_url = request.GET.get('next') or request.POST.get('next') or ''
         return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        equipo = Equipo.objects.get(pk=self.kwargs['pk'])
+        kwargs['system'] = get_object_or_404(System, equipos=equipo)
+        return kwargs
     
     def get_object(self, queryset=None):
         """
@@ -994,11 +1018,16 @@ class EquipoUpdate(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Formulario para carga de imágenes
         if self.request.POST:
             context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
         else:
             context['upload_form'] = UploadImages()
-        context['image_formset'] = modelformset_factory(Image, fields=('image',), extra=0)(queryset=self.object.images.all())
+        # Formset para mostrar las imágenes ya asociadas al equipo
+        ImageFormset = modelformset_factory(Image, fields=('image',), extra=0)
+        context['image_formset'] = ImageFormset(queryset=self.object.images.all())
+        # Agregar la cantidad de imágenes
+        context['image_count'] = self.object.images.count()
         context['next_url'] = self.next_url
         return context
     
@@ -1025,6 +1054,15 @@ class EquipoUpdate(UpdateView):
                 print(file)
         return response
     
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        # Opción para eliminar imagen vía formulario tradicional (fallback)
+        if "delete_image" in request.POST:
+            image_id = request.POST.get("delete_image")
+            Image.objects.filter(id=image_id, equipo=self.object).delete()
+            return redirect(self.get_success_url())
+        return super().post(request, *args, **kwargs)
+    
     def get_success_url(self):
         """
         Si existe la self.next_url, redirige allí.
@@ -1037,13 +1075,29 @@ class EquipoUpdate(UpdateView):
             sys_code = self.object.system.id
             return reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if "delete_image" in request.POST:
-            image_id = request.POST.get("delete_image")
-            Image.objects.filter(id=image_id).delete()
-            return redirect(self.get_success_url())
-        return super().post(request, *args, **kwargs)
+
+class EquipoDeleteImageView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        # Obtener el Equipo
+        equipo = get_object_or_404(Equipo, pk=pk)
+        # Obtener el ID de la imagen desde el POST
+        image_id = request.POST.get('image_id')
+        if not image_id:
+            return JsonResponse({'error': 'No se proporcionó el ID de la imagen.'}, status=400)
+        
+        # Obtener la imagen y asegurarse de que pertenece al equipo
+        image = get_object_or_404(Image, id=image_id, equipo=equipo)
+        
+        # Opcional: Verificar permisos adicionales si es necesario
+        if not request.user.has_perm('inv.delete_image', image):
+            return JsonResponse({'error': 'No tienes permiso para eliminar esta imagen.'}, status=403)
+        
+        # Eliminar la imagen
+        image.delete()
+        
+        # Devolver la cantidad actualizada de imágenes
+        image_count = equipo.images.count()
+        return JsonResponse({'success': True, 'image_count': image_count})
 
 
 class EquipoDelete(DeleteView):
