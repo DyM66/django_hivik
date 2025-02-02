@@ -18,4 +18,6 @@ urlpatterns = [
     path('transaction/<int:transaction_id>/delete/', delete_transaction, name='delete_transaction'),
 
     path('asset/<str:abbreviation>/historial/pdf/', export_historial_pdf, name='export_historial_pdf'),
+    path('transferir/<str:equipo_id>/', transferir_equipo, name='transferir_equipo'),
+
 ]

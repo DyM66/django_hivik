@@ -27,11 +27,6 @@ class OtAdmin(admin.ModelAdmin):
         'supervisor'
         )
 
-class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'cargo', 'firma')
-    search_fields = ('user__username', 'cargo')
-
-admin.site.register(UserProfile, UserProfileAdmin)
 
 admin.site.register(Asset)
 admin.site.register(MaintenanceRequirement)

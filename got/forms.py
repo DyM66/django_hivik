@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User, Group
 from got.models import *
+from dth.models import UserProfile
 from datetime import datetime
 
 from django.forms import modelformset_factory
@@ -22,7 +23,7 @@ class UserChoiceField(forms.ModelChoiceField):
         
         if obj.groups.filter(name="maq_members").exists():
             try:
-                asset = Asset.objects.get(supervisor=obj)
+                asset = Asset.objects.get(Q(supervisor=obj) | Q(capitan=obj))
                 asset_name = f" ({asset})"
             except Asset.DoesNotExist:
                 asset_name = ""
@@ -73,30 +74,6 @@ class MultipleFileField(forms.FileField):
                 # Opcional: Registrar o manejar archivos vacíos
                 print("Archivo vacío detectado y omitido.")
         return cleaned_data
-    
-
-class UserProfileForm(forms.ModelForm):
-    first_name = forms.CharField(label='Nombre', max_length=30, required=False)
-    last_name = forms.CharField(label='Apellido', max_length=30, required=False)
-    email = forms.EmailField(label='Correo electrónico', required=False)
-
-    class Meta:
-        model = UserProfile
-        fields = ['cargo', 'station', 'firma']
-        labels = {
-            'cargo': 'Cargo',
-            'station': 'Estación',
-            'firma': 'Firma',
-        }
-        widgets = {
-            'firma': forms.FileInput(),
-        }
-
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
-        super(UserProfileForm, self).__init__(*args, **kwargs)
-        if user and not user.groups.filter(name='buzos_members').exists():
-            self.fields.pop('station')
     
     
 class RutinaFilterForm(forms.Form):
@@ -846,23 +823,6 @@ class PreoperacionalForm(forms.ModelForm):
         else:
             self.fields['nombre_no_registrado'].required = True
         self.fields['vehiculo'].queryset = System.objects.filter(asset__area='v')
-
-
-class TransferenciaForm(forms.ModelForm):
-    destino = forms.ModelChoiceField(
-        queryset=System.objects.all().select_related('asset').order_by('asset__name', 'name'),
-        label="Sistema Destino",
-        required=True
-    )
-    observaciones = forms.CharField(widget=forms.Textarea, label="Justificación", required=False)
-
-    class Meta:
-        model = Transferencia
-        fields = ['destino', 'observaciones']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['destino'].label_from_instance = lambda obj: f"{obj.asset.name} - {obj.name}"
 
 
 class ItemForm(forms.ModelForm):

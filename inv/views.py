@@ -6,8 +6,8 @@ import re
 import qrcode.image.svg
 from itertools import groupby
 from operator import attrgetter
-from django.contrib.auth.decorators import permission_required
 
+from django.contrib.auth.decorators import permission_required, login_required
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404
@@ -897,3 +897,40 @@ def export_historial_pdf(request, abbreviation):
 
     # Si no es POST, redirigir
     return redirect('inv:asset_inventario_report', abbreviation=abbreviation)
+
+
+@login_required
+def transferir_equipo(request, equipo_id):
+    equipo = get_object_or_404(Equipo, pk=equipo_id)
+    if request.method == 'POST':
+        # form = TransferenciaForm(request.POST)
+        if form.is_valid():
+            nuevo_sistema = form.cleaned_data['destino']
+            observaciones = form.cleaned_data['observaciones']
+            
+            sistema_origen = equipo.system            
+            equipo.system = nuevo_sistema
+            equipo.save()
+
+            rutas = Ruta.objects.filter(equipo=equipo)
+            for ruta in rutas:
+                ruta.system = nuevo_sistema
+                ruta.save()
+            
+            Transferencia.objects.create(
+                equipo=equipo,
+                responsable=f"{request.user.first_name} {request.user.last_name}",
+                origen=sistema_origen,
+                destino=nuevo_sistema,
+                observaciones=observaciones
+            )
+            
+            return redirect(nuevo_sistema.get_absolute_url())
+    else:
+        form = TransferenciaForm()
+
+    context = {
+        'form': form,
+        'equipo': equipo
+    }
+    return render(request, 'inventory_management/transferencias.html', context)

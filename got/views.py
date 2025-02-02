@@ -4,7 +4,6 @@ import logging
 import uuid
 import json
 import re
-from collections import OrderedDict
 from datetime import timedelta, date, datetime
 from decimal import Decimal
 from django.conf import settings
@@ -35,80 +34,7 @@ from .models import *
 from .forms import *
 from django.db import transaction, IntegrityError
 
-
-
 logger = logging.getLogger(__name__)
-@cache_control(max_age=86400)
-def manifest(request):
-    manifest_data = {
-        "name": "GOT",
-        "short_name": "GOT",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#FFFFFF",
-        "theme_color": "#191645",
-        "icons": [
-            {
-                "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png",
-                # "sizes": "200x200",
-                "type": "image/png"
-            },
-            {
-                "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png",
-                # "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
-    }
-    return JsonResponse(manifest_data)
-
-
-@never_cache
-def service_worker(request):
-    js = '''
-    self.addEventListener('install', function(event) {
-        self.skipWaiting();
-    });
-
-    self.addEventListener('fetch', function(event) {
-    });
-    '''
-    response = HttpResponse(js, content_type='application/javascript')
-    return response
-
-
-@login_required
-def get_unapproved_requests_count(request):
-    count = Solicitud.objects.filter(approved=False).count()
-    return JsonResponse({'count': count})
-
-
-@login_required
-def profile_update(request):
-    user = request.user
-    profile = user.profile
-
-    if request.method == 'POST':
-        form = UserProfileForm(request.POST, request.FILES, instance=profile, user=user)
-        if form.is_valid():
-            # Actualizar campos del usuario
-            user.first_name = form.cleaned_data['first_name']
-            user.last_name = form.cleaned_data['last_name']
-            user.email = form.cleaned_data['email']
-            user.save()
-            # Guardar perfil
-            form.save()
-            messages.success(request, 'Tu perfil ha sido actualizado exitosamente.')
-            return redirect('got:asset-list')
-        else:
-            messages.error(request, 'Por favor corrige los errores indicados.')
-    else:
-        form = UserProfileForm(instance=profile, user=user, initial={
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'email': user.email,
-        })
-    return render(request, 'profile_update.html', {'form': form})
 
 
 'ASSETS VIEWS'
@@ -837,9 +763,9 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
 
         try:
             equipment = Equipo.objects.get(code=view_type)
-            transferencias = Transferencia.objects.filter(equipo=equipment).order_by('-fecha')
+            # transferencias = Transferencia.objects.filter(equipo=equipment).order_by('-fecha')
             context['equipo'] = equipment
-            context['transferencias'] = transferencias
+            # context['transferencias'] = transferencias
             context['suministros'] = Suministro.objects.filter(equipo=equipment)
         except Equipo.DoesNotExist:
             equipments = Equipo.objects.filter(system=system, subsystem=view_type)
@@ -1088,10 +1014,6 @@ class EquipoDeleteImageView(LoginRequiredMixin, View):
         # Obtener la imagen y asegurarse de que pertenece al equipo
         image = get_object_or_404(Image, id=image_id, equipo=equipo)
         
-        # Opcional: Verificar permisos adicionales si es necesario
-        if not request.user.has_perm('inv.delete_image', image):
-            return JsonResponse({'error': 'No tienes permiso para eliminar esta imagen.'}, status=403)
-        
         # Eliminar la imagen
         image.delete()
         
@@ -1127,43 +1049,6 @@ def add_supply_to_equipment(request, code):
             suministro.equipo = equipo
             suministro.save()
             return redirect(reverse('got:sys-detail-view', args=[equipo.system.id, equipo.code]))
-
-
-@login_required
-def transferir_equipo(request, equipo_id):
-    equipo = get_object_or_404(Equipo, pk=equipo_id)
-    if request.method == 'POST':
-        form = TransferenciaForm(request.POST)
-        if form.is_valid():
-            nuevo_sistema = form.cleaned_data['destino']
-            observaciones = form.cleaned_data['observaciones']
-            
-            sistema_origen = equipo.system            
-            equipo.system = nuevo_sistema
-            equipo.save()
-
-            rutas = Ruta.objects.filter(equipo=equipo)
-            for ruta in rutas:
-                ruta.system = nuevo_sistema
-                ruta.save()
-            
-            Transferencia.objects.create(
-                equipo=equipo,
-                responsable=f"{request.user.first_name} {request.user.last_name}",
-                origen=sistema_origen,
-                destino=nuevo_sistema,
-                observaciones=observaciones
-            )
-            
-            return redirect(nuevo_sistema.get_absolute_url())
-    else:
-        form = TransferenciaForm()
-
-    context = {
-        'form': form,
-        'equipo': equipo
-    }
-    return render(request, 'got/systems/transferencia-equipo.html', context)
 
 
 'FAILURE REPORTS VIEW'

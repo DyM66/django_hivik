@@ -15,16 +15,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='UserProfile',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cargo', models.CharField(blank=True, max_length=100, null=True)),
-                ('firma', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
-                ('station', models.CharField(blank=True, max_length=100, null=True)),
-            ],
-        ),
-        migrations.CreateModel(
             name='Item',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -133,6 +123,7 @@ class Migration(migrations.Migration):
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('recomendaciones', models.TextField(blank=True, null=True)),
                 ('related', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='related_with', to='got.equipo')),
+                ('qr_code_url', models.URLField(blank=True, max_length=1000, null=True)),
             ],
             options={
                 'ordering': ['name', 'code'],

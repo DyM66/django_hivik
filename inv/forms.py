@@ -1,9 +1,8 @@
 # inv/forms.py
 from django import forms
-from .models import DarBaja
+from .models import *
 from django.forms.widgets import ClearableFileInput
-from django.core.files.base import ContentFile
-import base64
+from got.models import System
 
 class DarBajaForm(forms.ModelForm):
     class Meta:
@@ -50,17 +49,25 @@ class UploadEvidenciasYFirmasForm(forms.Form):
     - firma_responsable_file => UNA sola imagen (opcional)
     - firma_autorizado_file => UNA sola imagen (opcional)
     """
-    file_field = MultipleFileField(
-        label='Evidencias',
-        required=False,
-    )
+    file_field = MultipleFileField(label='Evidencias', required=False)
 
-    firma_responsable_file = forms.ImageField(
-        required=False,
-        label="Firma Responsable (imagen)"
-    )
+    firma_responsable_file = forms.ImageField(required=False, label="Firma Responsable (imagen)")
 
-    firma_autorizado_file = forms.ImageField(
-        required=False,
-        label="Firma Autorizado (imagen)"
+    firma_autorizado_file = forms.ImageField(required=False, label="Firma Autorizado (imagen)")
+
+
+class TransferenciaForm(forms.ModelForm):
+    destino = forms.ModelChoiceField(
+        queryset=System.objects.filter(asset__show=True).select_related('asset').order_by('asset__name', 'name'),
+        label="Sistema Destino",
+        required=True
     )
+    observaciones = forms.CharField(widget=forms.Textarea, label="Justificación", required=False)
+
+    class Meta:
+        model = Transferencia
+        fields = ['destino', 'observaciones']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['destino'].label_from_instance = lambda obj: f"{obj.asset.name} - {obj.name}"

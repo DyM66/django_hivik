@@ -1,7 +1,8 @@
 from django import template
-from got.models import Asset, FailureReport, Solicitud, UserProfile, Equipo
+from got.models import Asset, FailureReport, Solicitud, Equipo
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
+from dth.models import UserProfile
 import os
 from django.db.models.functions import Concat
 from django.db.models import Value

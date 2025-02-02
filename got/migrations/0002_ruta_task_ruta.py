@@ -139,23 +139,6 @@ class Migration(migrations.Migration):
                 ('preoperacional', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='preoperacionales.preoperacional')),
             ],
         ),
-
-
-        migrations.CreateModel(
-            name='Transferencia',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('fecha', models.DateField(auto_now_add=True)),
-                ('responsable', models.CharField(max_length=100)),
-                ('observaciones', models.TextField(blank=True, null=True)),
-                ('destino', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='destino', to='got.system')),
-                ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
-                ('origen', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='origen', to='got.system')),
-            ],
-            options={
-                'ordering': ['-fecha'],
-            },
-        ),
         migrations.CreateModel(
             name='Document',
             fields=[

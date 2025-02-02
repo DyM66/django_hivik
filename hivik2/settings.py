@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'preoperacionales.apps.PreoperacionalesConfig',
     'outbound.apps.OutboundConfig',
     'megger_app.apps.MeggerAppConfig',
-    'inv.apps.InvConfig', 
+    'inv.apps.InvConfig',
+    'dth.apps.DthConfig', 
     'taggit',
 ]
 

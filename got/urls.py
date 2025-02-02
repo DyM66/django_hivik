@@ -1,11 +1,10 @@
 from django.urls import path
 from . import views
+from got import pwa
 
 app_name = 'got'
 
 urlpatterns = [
-
-    path('profile/', views.profile_update, name='profile_update'),
     path("", views.AssetsListView.as_view(), name="asset-list"),
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
     path("asset/<str:pk>/maintenance-plan/", views.AssetMaintenancePlanView.as_view(), name="asset-maintenance-plan"),
@@ -21,13 +20,10 @@ urlpatterns = [
     path("reportehorasasset/<str:asset_id>/",views.reportHoursAsset,name='horas-asset'),
     path("reportehoraasset/<str:asset_id>/",views.reportHoursAsset,name='report-hours-update'),
 
-
-
     path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
     path('buceo/', views.BuceoMttoView.as_view(), name='buceomtto'),
     path('vehiculos/', views.VehiculosMttoView.as_view(), name='vehiculosmtto'),
     path("dash/", views.indicadores, name='dashboard'),
-
 
     path("systems/<int:pk>/", views.SysDetailView.as_view(), name="sys-detail"), # VERIFICAR USO
     path('systems/<int:pk>/<str:view_type>/', views.SysDetailView.as_view(), name='sys-detail-view'),
@@ -39,7 +35,6 @@ urlpatterns = [
     path('equipo/<str:pk>/update/', views.EquipoUpdate.as_view(), name='equipo-update'),
     path('equipo/<str:pk>/delete/', views.EquipoDelete.as_view(), name='equipo-delete'),
     path('equipment/<str:code>/add_supply/', views.add_supply_to_equipment, name='supply'),
-    path('transferir-equipo/<str:equipo_id>/', views.transferir_equipo, name='transferir_equipo'),
 
     path("report-failure/", views.FailureListView.as_view(), name="failure-report-list"),
     path("report-failure/<str:pk>/", views.FailureDetailView.as_view(), name="failure-report-detail"),
@@ -98,9 +93,6 @@ urlpatterns = [
 
 
     path('export/excel/', views.export_asset_system_equipo_excel, name='export_excel'),
-    path('manifest.json', views.manifest, name='manifest'),
-    path('service-worker.js', views.service_worker, name='service_worker'),
-    path('api/unapproved_requests_count/', views.get_unapproved_requests_count, name='unapproved_requests_count_api'),
     path('solicitud/<int:pk>/delete/', views.DeleteSolicitudView.as_view(), name='delete-solicitud'),
 
     path('budget/', views.BudgetView.as_view(), name='budget_view'),
@@ -111,7 +103,10 @@ urlpatterns = [
     path('asset/<str:pk>/update_place/', views.asset_update_place, name='asset-update-place'),
     path('asset/<str:pk>/update_supervisor/', views.asset_update_supervisor, name='asset-update-supervisor'),
     path('asset/<str:pk>/update_capitan/', views.asset_update_capitan, name='asset-update-capitan'),
-
     path('equipo/<pk>/delete_image/', views.EquipoDeleteImageView.as_view(), name='equipo-delete-image'),
+
+    path('manifest.json', pwa.manifest, name='manifest'),
+    path('service-worker.js', pwa.service_worker, name='service_worker'),
+    path('api/unapproved_requests_count/', pwa.get_unapproved_requests_count, name='unapproved_requests_count_api'),
 ]
 

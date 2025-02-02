@@ -10,11 +10,14 @@ from taggit.managers import TaggableManager
 from .paths import *
 from preoperacionales.models import Preoperacional, PreoperacionalDiario
 from outbound.models import Place
-from inv.models import DarBaja
 from got.models_group.Item_model import Item
 from got.models_group.Service_model import Service
-from got.models_group.Userprofile_model import UserProfile
 from got.models_group.ActivityLog_model import ActivityLog
+
+import qrcode
+from io import BytesIO
+import base64
+from dirtyfields import DirtyFieldsMixin
 
 
 # Model 1: Activos (Centro de costos)
@@ -151,10 +154,7 @@ class Ot(models.Model):
     class Meta:
         ordering = ['-num_ot']
 
-import qrcode
-from io import BytesIO
-import base64
-from dirtyfields import DirtyFieldsMixin
+
 # Model 4
 class Equipo(DirtyFieldsMixin, models.Model):
     TIPO = (
@@ -196,7 +196,6 @@ class Equipo(DirtyFieldsMixin, models.Model):
     feature = models.TextField()
     tipo = models.CharField(choices=TIPO, default='nr', max_length=2)
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
-    related = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='related_with')
     subsystem = models.CharField(max_length=100, null=True, blank=True)
     ubicacion = models.CharField(max_length=150, null=True, blank=True)
     critico = models.BooleanField(default=False)
@@ -213,7 +212,8 @@ class Equipo(DirtyFieldsMixin, models.Model):
     tipo_almacenamiento = models.CharField(max_length=100, null=True, blank=True)
     volumen = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-    
+
+    related = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='related_with')
     qr_code_url = models.URLField(max_length=1000, blank=True, null=True)
 
     def generate_qr_code(self):
@@ -280,22 +280,6 @@ class Equipo(DirtyFieldsMixin, models.Model):
 
     def get_absolute_url(self):
         return reverse('got:sys-detail-view', args=[self.system.id, self.code])
-
-
-# Model 5: Registro de transferencias de equipos
-class Transferencia(models.Model):
-    fecha = models.DateField(auto_now_add=True)
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
-    responsable = models.CharField(max_length=100)
-    origen = models.ForeignKey(System, on_delete=models.CASCADE, related_name='origen')
-    destino = models.ForeignKey(System, on_delete=models.CASCADE, related_name='destino')
-    observaciones = models.TextField(null=True, blank=True)
-
-    class Meta:
-        ordering = ['-fecha']
-
-    def __str__(self):
-        return f"{self.equipo} - {self.origen} -> {self.destino}"
 
 
 # Model 6: Historial de horas de equipos/ Kilometros

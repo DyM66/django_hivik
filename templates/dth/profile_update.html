@@ -1,0 +1,44 @@
+{% extends 'dth/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Actualizar Perfil</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.first_name.id_for_label }}" class="form-label">{{ form.first_name.label }}</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.last_name.id_for_label }}" class="form-label">{{ form.last_name.label }}</label>
+                        {{ form.last_name }}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                    {{ form.email }}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.cargo.id_for_label }}" class="form-label">{{ form.cargo.label }}</label>
+                    {{ form.cargo }}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.firma.id_for_label }}" class="form-label">{{ form.firma.label }}</label>
+                    {{ form.firma }}
+                    {% if form.instance.firma %}
+                    <div class="mt-2">
+                        <img src="{{ form.instance.firma.url }}" alt="Firma actual" class="img-thumbnail" style="max-width: 200px;">
+                    </div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

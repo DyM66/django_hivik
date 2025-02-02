@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <li><span class="dropdown-item-text"><strong>Estación:</strong> {{ user.profile.station }}</span></li>
                         {% endif %}
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'got:profile_update' %}">Actualizar Información</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dth:profile_update' %}">Actualizar Información</a></li>
                         <li>
                             <form action="{% url 'logout' %}" method="post" class="dropdown-item">
                                 {% csrf_token %}
