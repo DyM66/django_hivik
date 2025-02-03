@@ -1062,7 +1062,7 @@ def add_supply_to_equipment(request, code):
             suministro = form.save(commit=False)
             suministro.equipo = equipo
             suministro.save()
-            return redirect(reverse('got:sys-detail-view', args=[equipo.system.id, equipo.code]))
+            return redirect(reverse('got:sys-detail', args=[equipo.system.id, equipo.code]))
 
 
 'FAILURE REPORTS VIEW'

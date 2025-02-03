@@ -279,7 +279,7 @@ class Equipo(DirtyFieldsMixin, models.Model):
         ordering = ['name', 'code']
 
     def get_absolute_url(self):
-        return reverse('got:sys-detail-view', args=[self.system.id, self.code])
+        return reverse('got:sys-detail', args=[self.system.id, self.code])
 
 
 # Model 6: Historial de horas de equipos/ Kilometros
