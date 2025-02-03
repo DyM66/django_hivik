@@ -229,3 +229,31 @@ def replace_comma(value):
         return str(value).replace(',', '.')
     except:
         return value
+    
+
+
+@register.filter
+def filter_ot_state(asset, state_value):
+    return asset.ot_set.filter(state=state_value)
+
+
+
+@register.filter
+def filter_queryset(queryset, args):
+    """
+    Filtra un queryset según un argumento en formato "clave=valor".
+    Ejemplo de uso:
+        {% with tasks=ot.task_set|filter_queryset:"finished=False" %}
+    """
+    try:
+        key, value = args.split('=')
+        key = key.strip()
+        value = value.strip()
+        # Convertir el valor a booleano si es 'true' o 'false'
+        if value.lower() == 'true':
+            value = True
+        elif value.lower() == 'false':
+            value = False
+        return queryset.filter(**{key: value})
+    except Exception:
+        return queryset

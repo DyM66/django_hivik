@@ -208,7 +208,7 @@
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                                     {% if ruta.equipo %}
-                                        <li><a class="dropdown-item" href="{% url 'got:sys-detail' ruta.system.id ruta.equipo.code %}">Ver detalle</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'got:sys-detail' ruta.system.id %}">Ver detalle</a></li>
                                     {% endif %}
                                     {% if perms.got.change_ruta %}
                                         <li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>

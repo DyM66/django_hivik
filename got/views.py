@@ -114,6 +114,7 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
             'x': 'Apoyo'
         }
         assets = Asset.objects.filter(show=True)
+        context['all_assets'] = Asset.objects.filter(show=True).order_by('name')
         context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in areas.items()}
 
         context['area_icons'] = {
@@ -159,6 +160,83 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         context['open_failures_dict'] = open_failures_dict
         return context
 
+
+@login_required
+# @csrf_exempt
+def AssetSummaryPDFView(request):
+    """
+    Genera un PDF que contiene:
+      - Una primera página (resumen) con un “card” por cada activo seleccionado (de la lista del modal). Cada card muestra:
+          • Nombre, código, supervisor, capitán, ubicación, indicador de cumplimiento y cantidad de reportes de falla abiertos.
+          • Se dispondrán en 3 columnas (la plantilla se encargará de ello).
+      - A continuación, para cada activo se listarán, en páginas siguientes, las órdenes de trabajo en ejecución (estado "x").
+        Para cada OT se mostrarán las actividades (tareas) abiertas y las cerradas, así como, debajo, si existe un reporte de falla o una rutina asociada.
+      - Finalmente, se listarán también los reportes de falla abiertos del activo, indicando si son críticos y el usuario que los generó.
+      
+    Toda la lógica se procesa en la vista para que la plantilla no tenga lógica.
+    Se espera que el formulario del modal envíe, vía POST, una lista de activos seleccionados (por su “abbreviation”).
+    """
+    if request.method == "POST":
+        # Obtenemos la lista de activos seleccionados (por ejemplo, enviados en el input name="assets")
+        selected_asset_ids = request.POST.getlist("assets")
+    else:
+        selected_asset_ids = []
+
+    # Filtramos los activos que se mostrarán (solo los seleccionados y que estén activos)
+    assets = Asset.objects.filter(abbreviation__in=selected_asset_ids, show=True).order_by('name')
+
+    asset_details = []
+    for asset in assets:
+        # Información básica
+        supervisor_name = asset.supervisor.get_full_name() if asset.supervisor else "---"
+        captain_name = asset.capitan.get_full_name() if asset.capitan else "---"
+        location = asset.place.name if asset.place else "---"
+        compliance = asset.maintenance_compliance_cache if asset.maintenance_compliance_cache is not None else 0
+
+        # Reportes de falla abiertos (para este activo)
+        open_failures = FailureReport.objects.filter(
+            equipo__system__asset=asset,
+            closed=False
+        )
+
+        failures_count = open_failures.count()
+        failures_data = list(open_failures.values("id", "critico", "report", "description"))
+
+        # Órdenes de trabajo en ejecución (estado "x")
+        ots = Ot.objects.filter(system__asset=asset, state='x').order_by('creation_date')
+
+        ot_details = []
+        for ot in ots:
+            tasks_open = list(ot.task_set.filter(finished=False).order_by('start_date'))
+            tasks_closed = list(ot.task_set.filter(finished=True).order_by('start_date'))
+            # Verificamos si la OT tiene un reporte de falla asociado (opcional, según tu modelo)
+            ot_failure = ot.failure_report.filter(closed=False).first()
+            # Verificamos si la OT tiene una rutina de mantenimiento asociada (esto puede variar según la relación)
+            ot_rutina = ot.ruta_set.first()
+            ot_details.append({
+                "ot": ot,
+                "tasks_open": tasks_open,
+                "tasks_closed": tasks_closed,
+                "failure": ot_failure,
+                "rutina": ot_rutina,
+            })
+
+        asset_details.append({
+            "asset": asset,
+            "supervisor_name": supervisor_name,
+            "captain_name": captain_name,
+            "location": location,
+            "compliance": compliance,
+            "failures_count": failures_count,
+            "failures_data": failures_data,
+            "ots": ot_details,
+        })
+
+    context = {
+        "selected_assets": asset_details,
+        "today": date.today(),
+    }
+    return render_to_pdf("got/mantenimiento/asset_summary.html", context)
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
     model = Asset

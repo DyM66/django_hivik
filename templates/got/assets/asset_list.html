@@ -16,6 +16,43 @@
             <a href="{% url 'inv:all_equipment_list' %}" class="btn btn-sm btn-outline-dark">
                 Ver todos los Equipos
             </a>
+
+<!-- Botón para abrir el modal del resumen PDF -->
+<a href="#" class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#assetSummaryModal">
+    Generar Resumen PDF
+</a>
+
+<!-- Modal para selección de activos para el PDF -->
+<div class="modal fade" id="assetSummaryModal" tabindex="-1" aria-labelledby="assetSummaryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="{% url 'got:asset-summary-pdf' %}" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="assetSummaryModalLabel">Seleccionar Activos para Resumen PDF</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p>Seleccione los activos que desea incluir en el resumen:</p>
+          <div class="form-check">
+            {% for asset in all_assets %}
+              <input class="form-check-input" type="checkbox" name="assets" value="{{ asset.abbreviation }}" id="asset_{{ asset.abbreviation }}"
+              {% if asset.area == 'a' %} checked {% endif %}>
+              <label class="form-check-label" for="asset_{{ asset.abbreviation }}">
+                {{ asset.name }} ({{ asset.get_area_display }})
+              </label><br>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Generar PDF</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
         </div>
         
         {% for area_name, assets in assets_by_area.items %}
