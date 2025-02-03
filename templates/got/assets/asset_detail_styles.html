@@ -1,0 +1,69 @@
+<style>
+    
+    /* 
+    Estilos de la sección detalle de Activos:
+    asset_base, asset_detail, asset_maintenance_plan, graps
+    */
+    #asset {
+        width: 350px;
+        height: 300px;
+        object-fit: cover;
+    }
+
+    .main-asset {
+        display: grid;
+        grid-template-columns: 2.2fr 0.8fr;
+        gap: 10px;
+        grid-template-areas:
+            "sistemas detail"
+            "ruta acciones"
+    }
+
+    .main-asset .info-asset {
+        grid-area: detail;
+    }
+
+    .main-asset .sistemas {
+        grid-area: sistemas;
+    }
+
+    .main-asset .rutinas {
+        grid-area: ruta;
+    }
+
+    .main-asset .acciones {
+        grid-area: acciones;
+    }
+
+    .grafica-consumos {
+        grid-area: g-com;   
+    }
+
+    .grafica-horas {
+        grid-area: g-hor;  
+    }
+
+    /* graps */
+    .grafica-container {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .grafica-consumos, .grafica-horas {
+        flex: 1 1 45%;
+        min-width: 300px;
+    }
+
+    /* asset_maintenance_plan */
+    .filter-form {
+        padding: 20px;
+        color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 16px;
+        background-color: var(--color-primary);
+        margin-right: 15px;
+    }
+</style>

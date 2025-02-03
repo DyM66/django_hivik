@@ -1,0 +1,553 @@
+{% extends "got/base/base_generic.html" %}
+{% load ruta_extras %}
+
+{% block content %}
+<div class="mt-4">
+
+    <div>
+        <h1>
+            {{ object.system.asset }}/{{ object.system.name }}
+        </h1>
+    </div>
+    
+    <hr>
+  <div class="row">
+    <!-- MENÚ LATERAL DE EQUIPOS (columna izquierda) -->
+    <div class="col-md-3 px-3">
+      <div class="equipment-section shadow-custom p-3 mb-4" style="background-color: #fff; border-radius: 8px;">
+        <h2 class="mb-3" style="font-size: 1.25rem; color: #7D8B84;">Equipos</h2>
+        <table class="equipment-table">
+          <tbody>
+            {% for grupo in equipos_con_dependientes %}
+              {% with principal=grupo.principal dependientes=grupo.dependientes %}
+                <tr class="equipment-row" data-update-url="{% url 'got:equipo-update' principal.code %}">
+                  <td>
+                    {% if dependientes %}
+                      <span class="expand-icon" data-target="#dependents-{{ principal.code }}">
+                        {% if principal.code == object.code %}
+                          <i class="fa-solid fa-chevron-up"></i>
+                        {% else %}
+                          <i class="fa-solid fa-chevron-down"></i>
+                        {% endif %}
+                      </span>
+                    {% else %}
+                      <i class="fa-solid fa-list"></i>
+                    {% endif %}
+                    {% if principal.code == object.code %}
+                      <strong>{{ principal.name }}</strong>
+                    {% else %}
+                      {{ principal.name }}
+                    {% endif %}
+                  </td>
+                </tr>
+                {% if dependientes %}
+                  <tr id="dependents-{{ principal.code }}" class="dependents-row" data-expanded="false" style="{% if principal.code == object.code %}display: table-row;{% else %}display: none;{% endif %};">
+                    <td style="background-color: #e0f7fa;">
+                      <ul class="dependents-list">
+                        {% for dep in dependientes %}
+                          <li data-update-url="{% url 'got:equipo-update' dep.code %}">
+                            <a href="{% url 'got:equipo-update' dep.code %}" style="text-decoration: none; color: inherit;">
+                              {{ dep.name }}
+                            </a>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </td>
+                  </tr>
+                {% endif %}
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SECCIÓN DE SUMINISTROS (MENÚ LATERAL) -->
+      <div class="suministros-section mb-4" style="font-size: 0.8rem;">
+        <h4>Suministros</h4>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Artículo</th>
+              <th>Cantidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for suministro in suministros %}
+              <tr>
+                <td>{{ suministro.item }}</td>
+                <td>{{ suministro.cantidad }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="2">No hay suministros registrados.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANEL CENTRAL: FICHA TÉCNICA, IMÁGENES, RUTINAS Y TRANSFERENCIAS (columna derecha) -->
+    <div class="col-md-9">
+      <!-- FICHA TÉCNICA Y ACCIONES -->
+      <div class="equipo-info card shadow-custom mb-4">
+        {% comment %}
+          Se asigna el color del header según la marca. Ejemplo:
+          - Caterpillar: #FFC400
+          - Detroit Diesel: #5b9e68
+          - Por defecto: #CCCCCC
+        {% endcomment %}
+        {% if object.marca|lower == "caterpillar" %}
+          <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #FFC400; color: #000;">
+        {% elif object.marca|lower == "detroit diesel" %}
+          <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #5b9e68; color: #000;">
+        {% else %}
+          <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #CCCCCC; color: #000;">
+        {% endif %}
+            <!-- Fecha de Ingreso -->
+            <div class="date-inv">
+              <small>{{ object.date_inv|date:"d M, Y" }}</small>
+            </div>
+            <!-- Íconos de Acción -->
+            <div class="actions">
+              <a href="{% url 'inv:dar_baja' object.code %}" title="Dar baja" class="action-icon me-2">
+                <i class="bi bi-x-octagon"></i>
+              </a>
+              <a href="{% url 'inv:transferir_equipo' object.code %}" title="Transferir" class="action-icon me-2">
+                <i class="fa-solid fa-right-left"></i>
+              </a>
+              <a href="{% url 'got:equipo-update' object.code %}?next={{ request.path }}" title="Editar" class="action-icon me-2">
+                <i class="bi bi-pen"></i>
+              </a>
+              <a href="{% url 'got:acta_entrega' object.code %}" title="Crear acta de entrega" class="action-icon me-2">
+                <i class="bi bi-inbox"></i>
+              </a>
+              <a href="{% url 'got:equipo-delete' object.code %}" title="Eliminar" class="action-icon me-2">
+                <i class="bi bi-trash"></i>
+              </a>
+              {% if object.critico %}
+                <i class="fa-solid fa-star action-icon" title="Equipo crítico"></i>
+              {% else %}
+                <i class="fa-regular fa-star action-icon" title="Equipo no crítico"></i>
+              {% endif %}
+            </div>
+          </div>
+        <div class="card-body">
+
+        
+      <!-- SECCIÓN DE IMÁGENES -->
+      {% if object.images.all %}
+      <div class="imagenes-section mb-4">
+        <h2>{{ object.name }}</h2>
+        <div id="equipoCarousel" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner">
+            {% for image in object.images.all %}
+            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+              <img src="{{ image.image.url }}" class="d-block w-100" alt="Imagen de {{ object.name }}" style="max-height: 300px; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#imageModal">
+            </div>
+            {% endfor %}
+          </div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#equipoCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Anterior</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#equipoCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Siguiente</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal de Imágenes (vista ampliada) -->
+      <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="imageModalLabel">Imágenes de {{ object.name }}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+              <div id="modalCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                  {% for image in object.images.all %}
+                  <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                    <img src="{{ image.image.url }}" class="d-block w-100" alt="Imagen de {{ object.name }}" style="max-height: 600px; object-fit: contain;">
+                  </div>
+                  {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#modalCarousel" data-bs-slide="prev">
+                  <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#modalCarousel" data-bs-slide="next">
+                  <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Siguiente</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+          <!-- Distribución en 2 columnas para datos básicos -->
+          <div class="row">
+            <div class="col-md-6">
+              <ul class="list-unstyled">
+                <li><strong>Código:</strong> {{ object.code }}</li>
+                <li><strong>Modelo:</strong> {{ object.model|default:"---" }}</li>
+                <li><strong>Serial:</strong> {{ object.serial|default:"---" }}</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <ul class="list-unstyled">
+                <li><strong>Marca:</strong> {{ object.marca|default:"---" }}</li>
+                <li><strong>Fabricante:</strong> {{ object.fabricante|default:"---" }}</li>
+                <li><strong>Tipo:</strong> {{ object.get_tipo_display }}</li>
+                <li><strong>Ubicación:</strong> {{ object.ubicacion|default:"---" }}</li>
+              </ul>
+            </div>
+          </div>
+          <!-- Información extendida -->
+          <div class="mt-3">
+            <p><strong>Características:</strong><br>{{ object.feature|linebreaks }}</p>
+            <p><strong>Recomendaciones:</strong><br>{{ object.recomendaciones|linebreaks }}</p>
+            <p><strong>Documentos:</strong>
+              <a href="{% url 'got:asset-documents' object.system.asset.abbreviation %}" title="Ver documentos relacionados" style="text-decoration: none; color: inherit;">
+                Ver documentos
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- SECCIÓN DE RUTINAS DE MANTENIMIENTO -->
+      <div class="rutinas-section mb-4">
+        <h2>Rutinas de Mantenimiento</h2>
+        <table class="table-list table-detail">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Frecuencia</th>
+              <th>Tiempo restante</th>
+              <th>Última intervención</th>
+              <th>Próxima intervención</th>
+              <th>Orden de trabajo</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ruta in rutinas %}
+              <tr class="rutina-row" data-equipo="{% if ruta.equipo %}{{ ruta.equipo.name|lower }}{% else %}{{ system.asset.name|lower }}{% endif %}" onclick="toggleDetails('details{{ forloop.counter }}', this, event)">
+                <td>{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}</td>
+                <td>{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
+                <td>{{ ruta.daysleft }}</td>
+                <td>{{ ruta.intervention_date|date:"d/m/Y" }}</td>
+                <td>{{ ruta.next_date|date:"d/m/Y" }}</td>
+                <td>
+                  {% if ruta.ot %}
+                    <a href="{{ ruta.ot.get_absolute_url }}">OT-{{ ruta.ot.num_ot }}</a>
+                  {% else %}
+                    ---
+                  {% endif %}
+                </td>
+                <td>
+                  {% ruta_status ruta as status %}
+                  <div class="dropdown">
+                    <button type="button" class="btn btn-sm dropdown-toggle" style="{{ status.style }}" data-bs-toggle="dropdown" aria-expanded="false">
+                      {{ status.label }}
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
+                      <li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
+                      <li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#crearOtModal{{ ruta.code }}">
+                          Crear nueva OT
+                        </button>
+                      </li>
+                      <li><a class="dropdown-item" href="{% url 'got:create-ot-from-ruta' ruta_id=ruta.code %}">Reportar</a></li>
+                      {% if ruta.ot %}
+                        <li><a class="dropdown-item" href="{% url 'got:report' ruta.ot.num_ot %}">Informe</a></li>
+                      {% endif %}
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+              <tr id="details{{ forloop.counter }}" class="detail-row" style="display:none;">
+                <td colspan="7">
+                  <div>
+                    <h4>Actividades: {{ ruta.get_nivel_display }}</h4>
+                    {% if perms.got.add_equipo %}
+                      <a href="{% url 'got:task-create' ruta.code %}">
+                        <i class="bi bi-clipboard2-plus-fill add-more"></i>
+                      </a>
+                    {% endif %}
+                    {% if ruta.dependencia %}
+                      <p>Relación con rutina {{ ruta.dependencia.name }}</p>
+                    {% endif %}
+                    <p>Última Orden de trabajo: 
+                      {% if ruta.ot %}
+                        <a href="{{ ruta.ot.get_absolute_url }}"><i class="bi bi-pen"></i> OT-{{ ruta.ot.num_ot }}</a>
+                      {% else %}
+                        ---
+                      {% endif %}
+                    </p>
+                    {% if ruta.task_set.all %}
+                      <ul>
+                        {% for task in ruta.task_set.all %}
+                          <li style="margin-bottom: 5px; list-style-type: disc;">
+                            {{ task.description|linebreaksbr }} ({{ task.responsible.profile.cargo }})
+                            {% if perms.got.add_equipo %}
+                              <a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>
+                              <a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
+                            {% endif %}
+                          </li>
+                          <ul style="list-style-type: none;">
+                            {% if task.procedimiento %}
+                              <li><strong>Procedimiento:<br></strong>{{ task.procedimiento|linebreaksbr }}</li>
+                            {% endif %}
+                            {% if task.hse %}
+                              <li><strong>Precauciones de seguridad:<br></strong>{{ task.hse|linebreaksbr }}</li>
+                            {% endif %}
+                          </ul>
+                        {% endfor %}
+                      </ul>
+                      <hr>
+                    {% else %}
+                      <p>No hay actividades registradas.</p>
+                    {% endif %}
+                    
+                    {% if ruta.requisitos.all %}
+                      <h4>Requerimientos:</h4>
+                      <ul>
+                        {% for req in ruta.requisitos.all %}
+                          <li>
+                            {% if req.tipo == 'm' or req.tipo == 'h' %}
+                              {{ req.item }}
+                            {% elif req.tipo == 's' %}
+                              {% if req.service %}
+                                {{ req.service.description }}
+                              {% else %}
+                                Servicio sin nombre
+                              {% endif %}
+                            {% else %}
+                              Requerimiento sin tipo definido
+                            {% endif %} - {{ req.cantidad }}
+                            {% if req.tipo in material_types and req.item %}
+                              {{ req.item.presentacion }}
+                            {% endif %}
+                            {% if req.tipo == 's' %} servicios{% endif %}
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p>No hay requerimientos registrados.</p>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Modal para Crear OT -->
+              <div class="modal fade" id="crearOtModal{{ ruta.code }}" tabindex="-1" aria-labelledby="crearOtModalLabel{{ ruta.code }}" aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="crearOtModalLabel{{ ruta.code }}">Crear Orden de Trabajo</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                      ¿Desea crear una orden de trabajo para la rutina <strong>{{ ruta.name }}</strong>?
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <a href="{% url 'got:crear_ot_desde_ruta' ruta.code %}" class="btn btn-success">Crear OT</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SECCIÓN DE TRANSFERENCIAS -->
+      <div class="transferencias-section mb-4">
+        <h2>Transferencias</h2>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Responsable</th>
+              <th>Sistema Origen</th>
+              <th>Sistema Destino</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for transferencia in transferencias %}
+              <tr>
+                <td>{{ transferencia.fecha|date:"d M, Y" }}</td>
+                <td>{{ transferencia.responsable }}</td>
+                <td>{{ transferencia.origen.asset }}</td>
+                <td>{{ transferencia.destino.asset }}</td>
+                <td>{{ transferencia.observaciones }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5">No hay transferencias registradas para este equipo.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estilos personalizados para la vista de detalle de equipo -->
+<style>
+  /* Sombra para el contenedor */
+  .shadow-custom {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  /* Estilos para la tabla de equipos en el menú lateral */
+  .equipment-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Poppins', sans-serif;
+      margin-bottom: 1rem;
+      border: 1px solid #7D8B84;
+  }
+  .equipment-table th, .equipment-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #7D8B84;
+      font-size: 0.9rem;
+  }
+  .equipment-table th {
+      background-color: #7D8B84;
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+  }
+  .equipment-table tr:hover {
+      background-color: #f8f9fa;
+  }
+  /* Estilos para la lista de dependientes */
+  .dependents-row {
+      background-color: #e0f7fa;
+  }
+  .dependents-list {
+      list-style: none;
+      padding-left: 1rem;
+      margin: 0;
+  }
+  .dependents-list li {
+      padding: 0.4rem;
+      border-bottom: 1px solid #7D8B84;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+  }
+  .dependents-list li:hover {
+      background-color: #d0ebf8;
+  }
+  /* Estilos para la ficha técnica y acciones */
+  .equipo-info.card {
+      margin-bottom: 1rem;
+  }
+  .equipo-info .card-header {
+      /* El color se definirá en el template según la marca */
+      padding: 0.75rem 1rem;
+  }
+  .equipo-info .actions a, .equipo-info .actions i {
+      margin-left: 0.8rem;
+      color: inherit;
+  }
+  .equipo-info .card-body ul li {
+      margin-bottom: 0.5rem;
+  }
+  /* Estilos para el carrusel de imágenes */
+  .imagenes-section {
+      margin-bottom: 1rem;
+  }
+</style>
+
+<!-- Scripts para navegación en el menú de equipos y buscador -->
+<script>
+  // Activar el clic en el ícono para alternar la lista de dependientes (solo mediante clic)
+  document.querySelectorAll(".expand-icon").forEach(function(icon) {
+      icon.addEventListener("click", function(e) {
+          e.stopPropagation();
+          let targetId = this.getAttribute("data-target");
+          let depRow = document.querySelector(targetId);
+          if (depRow.style.display === "none" || depRow.style.display === "") {
+              depRow.style.display = "table-row";
+              this.innerHTML = '<i class="fa-solid fa-chevron-up"></i>';
+          } else {
+              depRow.style.display = "none";
+              this.innerHTML = '<i class="fa-solid fa-chevron-down"></i>';
+          }
+      });
+  });
+
+  // Al hacer clic en la fila de un equipo (excepto en el ícono) se redirige a la vista de actualización
+  document.querySelectorAll(".equipment-row").forEach(function(row) {
+      row.addEventListener("click", function(e) {
+          if (e.target.closest(".expand-icon")) return;
+          let updateUrl = row.getAttribute("data-update-url");
+          if (updateUrl) {
+              window.location.href = updateUrl;
+          }
+      });
+  });
+
+  // Hacer que los items de la lista de dependientes sean clicables
+  document.querySelectorAll(".dependents-list li").forEach(function(li) {
+      li.addEventListener("click", function(e) {
+          e.stopPropagation();
+          let updateUrl = li.getAttribute("data-update-url");
+          if (updateUrl) {
+              window.location.href = updateUrl;
+          }
+      });
+  });
+
+  // Buscador de equipos: filtrar tanto la tabla de equipos como las filas de rutinas
+  document.getElementById("equipmentSearch").addEventListener("keyup", function() {
+      let filter = this.value.toLowerCase();
+      
+      // Filtrar equipos
+      let equipmentRows = document.querySelectorAll(".equipment-table tbody .equipment-row");
+      equipmentRows.forEach(function(row) {
+          let nameCell = row.cells[0].textContent.toLowerCase();
+          if (nameCell.indexOf(filter) > -1) {
+              row.style.display = "";
+          } else {
+              row.style.display = "none";
+          }
+      });
+      
+      // Filtrar rutinas (filtrar por el atributo data-equipo)
+      let rutinaRows = document.querySelectorAll(".rutina-row");
+      rutinaRows.forEach(function(row) {
+          let equipoName = row.getAttribute("data-equipo") || "";
+          if (equipoName.indexOf(filter) > -1) {
+              row.style.display = "";
+          } else {
+              row.style.display = "none";
+          }
+      });
+  });
+
+  // Función para alternar la visualización de detalles en la tabla de rutinas
+  function toggleDetails(detailId, trigger, event) {
+      if (event.target.closest('.dropdown') || event.target.closest('.dropdown-toggle')) {
+          return;
+      }
+      var detailRow = document.getElementById(detailId);
+      detailRow.style.display = (detailRow.style.display === 'none') ? '' : 'none';
+      trigger.style.fontWeight = (detailRow.style.display === 'none') ? 'normal' : 'bold';
+  }
+</script>
+{% endblock %}

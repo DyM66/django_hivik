@@ -1,4 +1,6 @@
 {% extends "got/assets/asset_base.html" %}
+{% load ruta_extras %}
+
 {% block asset %}
 <div class="main-asset">
 
@@ -46,11 +48,14 @@
                             {{ ruta.next_date|date:"d/m/Y" }}
                         </td>
                         <td data-cell="Acciones">
+                            {% ruta_status ruta as status %}
                             <div class="dropdown">
-                                <button 
-                                    class="btn status {% if ruta.maintenance_status == 'c' %}finished{%elif ruta.maintenance_status == 'p' %}pending{%elif ruta.maintenance_status == 'e' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" 
-                                    type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                                    {% if ruta.maintenance_status == 'c' %}Completado{%elif ruta.maintenance_status == 'p' %}Planeado{%elif ruta.maintenance_status == 'e' %}Sin información{%elif ruta.maintenance_status == 'x' %}En ejecución{% else %}Retrasado{% endif %}
+                                <button type="button"
+                                        class="btn btn-sm dropdown-toggle"
+                                        style="{{ status.style }}"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+                                    {{ status.label }}
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                                     {% if ruta.equipo %}

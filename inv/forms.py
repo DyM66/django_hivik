@@ -56,18 +56,16 @@ class UploadEvidenciasYFirmasForm(forms.Form):
     firma_autorizado_file = forms.ImageField(required=False, label="Firma Autorizado (imagen)")
 
 
+
 class TransferenciaForm(forms.ModelForm):
-    destino = forms.ModelChoiceField(
-        queryset=System.objects.filter(asset__show=True).select_related('asset').order_by('asset__name', 'name'),
-        label="Sistema Destino",
-        required=True
-    )
-    observaciones = forms.CharField(widget=forms.Textarea, label="Justificación", required=False)
+    receptor = forms.CharField(label="Receptor", max_length=150, required=True, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre y apellido del receptor'}))
+    destino = forms.ModelChoiceField(queryset=System.objects.filter(asset__show=True).select_related('asset').order_by('asset__name', 'name'), label="Sistema Destino", required=True, widget=forms.Select(attrs={'class': 'form-control'}))
+    observaciones = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Ingrese observaciones y detalles de la transferencia...'}), label="Justificación", required=False)
 
     class Meta:
-        model = Transferencia
-        fields = ['destino', 'observaciones']
+         model = Transferencia
+         fields = ['destino', 'receptor', 'observaciones']
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['destino'].label_from_instance = lambda obj: f"{obj.asset.name} - {obj.name}"
+         super().__init__(*args, **kwargs)
+         self.fields['destino'].label_from_instance = lambda obj: f"{obj.asset.name} - {obj.name}"

@@ -1,46 +1,341 @@
-{% extends "got/base/base_detail.html" %}
+{% extends "got/base/base_generic.html" %}
+{% load ruta_extras %}
+
 {% block content %}
-
-<main class="sys">
-	<div class="title-sys">
-		<h1>
-			<a href="{% url 'got:asset-detail' system.asset.abbreviation %}"><i class="bi bi-arrow-90deg-left"></i></a>
-			{{ system.asset }}/{{ system.name }}
-			<box-icon name='chevron-left'></box-icon>
-		</h1>
-	</div>
-	
-	<div class="nav-sys">
-		<ul>
-			<li class="tit"><h5><a href="{% url 'got:sys-detail-view' system.id 'sys' %}">Sistemas</a></h4></li>
-			{% for subsystem in unique_subsystems %}
-				<li><a href="{% url 'got:sys-detail-view' system.id subsystem %}">{{ subsystem }}</a></li>
-			{% endfor %}
-			<li class="tit"><h5><a href="{% url 'got:sys-detail-view' system.id 'equipment' %}">Equipos</a></h5></li>
-			<li><a href="{% url 'got:asset_maintenance_pdf' system.asset.abbreviation %}">Descargar Informe del Sistema</a></li>
-			<li><a class="{% if perms.got.add_equipo %}disabled{% endif %}" href="{% url 'got:equipo-create' system.id %}">Crear equipo</a></li>
-			{% for equipo in system.equipos.all %}
-				<li><a href="{% url 'got:sys-detail-view' system.id equipo.code %}">{{ equipo.name }}</a></li>
-			{% endfor %}
-		</ul>
-	</div>
-	
-	<div class="main-info-sys">
-
-		{% if view_type == 'sys' %}
-            {% include 'got/systems/system_equipos.html' %}
-		{% elif equipo %}
-			{% include 'got/systems/equipment_detail.html' %}
-		{% else %}
-			{% include 'got/system_subsystems.html' %}
-        {% endif %}
-
+	<main>
+		<div>
+			<h1>
+				<a href="{{ next_url }}"><i class="bi bi-arrow-90deg-left"></i></a>
+				{{ system.asset }}/{{ system.name }}
+			</h1>
+		</div>
 		
+		<hr>
 
-	</div>
+		<div class="row">
+		  	<!-- Columna Equipos (3 de 12 columnas) -->
+		  	<div class="col-md-3">
+				<div class="equipment-section shadow-custom p-3 mb-4" style="background-color: #fff; border-radius: 8px;">
+			  		<div class="d-flex justify-content-between align-items-center mb-3">
+						<h2 class="mb-0" style="font-size: 1.25rem;">Equipos</h2>
+						<a href="{% url 'got:equipo-create' system.pk %}" title="Crear nuevo equipo" style="font-size: 1.2rem; color: #7D8B84;">
+							<i class="fa-regular fa-square-plus"></i>
+						</a>
+			  		</div>
+					<!-- Buscador de equipos -->
+					<div class="mb-3">
+						<input type="text" id="equipmentSearch" class="form-control" placeholder="Buscar equipo por nombre...">
+					</div>
+					<table class="equipment-table">
+						<tbody>
+							{% for grupo in equipos_con_dependientes %}
+								{% with principal=grupo.principal dependientes=grupo.dependientes %}
+									<tr class="equipment-row" data-update-url="{% url 'got:equipo-detail' principal.code %}">
+										<td>
+											{% if dependientes %}
+												<span class="expand-icon" data-target="#dependents-{{ principal.code }}">
+													<i class="fa-solid fa-chevron-down"></i>
+												</span>
+											{% else %}
+												<i class="fa-solid fa-list"></i>
+											{% endif %}
+											{{ principal.name }}
+										</td>
+									</tr>
+									{% if dependientes %}
+										<tr id="dependents-{{ principal.code }}" class="dependents-row" data-expanded="false" style="display: none;">
+											<td style="background-color: #f8f9fa;">
+												<ul class="dependents-list">
+												{% for dep in dependientes %}
+													<li data-update-url="{% url 'got:equipo-detail' dep.code %}">
+														{{ dep.name }}
+													</li>
+												{% endfor %}
+												</ul>
+											</td>
+										</tr>
+									{% endif %}
+								{% endwith %}
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		  
+		  	<!-- Columna Rutinas de Mantenimiento (9 de 12 columnas) -->
+		  	<div class="col-md-9">
+				<div class="rutinas-section">
+			  		<table class="table-list table-detail">
+						<thead>
+							<tr>
+								<th colspan="7">
+					  				Rutinas de mantenimiento
+									{% if perms.got.add_ruta %}
+										<a href="{% url 'got:ruta-create' system.id %}"><i class="bi bi-plus-circle btn-add-table"></i></a>
+									{% endif %}
+								</th>
+							</tr>
+							<tr>
+								<th>Equipo</th>
+								<th>Frecuencia</th>
+								<th>Tiempo restante</th>
+								<th>Última intervención</th>
+								<th>Próxima intervención</th>
+								<th>Orden de trabajo</th>
+								<th>Acciones</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for ruta in rutinas %}
+								<tr class="rutina-row" data-equipo="{% if ruta.equipo %}{{ ruta.equipo.name|lower }}{% else %}{{ system.asset.name|lower }}{% endif %}" onclick="toggleDetails('details{{ forloop.counter }}', this, event)">
+									<td>{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}</td>
+									<td>{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
+									<td>{{ ruta.daysleft }}</td>
+									<td>{{ ruta.intervention_date|date:"d/m/Y" }}</td>
+									<td>{{ ruta.next_date|date:"d/m/Y" }}</td>
+									<td>
+										{% if ruta.ot %}
+											<a href="{{ ruta.ot.get_absolute_url }}">OT-{{ ruta.ot.num_ot }}</a>
+										{% else %}
+										---
+										{% endif %}
+									</td>
+									<td>
+										{% ruta_status ruta as status %}
+										<div class="dropdown">
+											<button type="button" class="btn btn-sm dropdown-toggle" style="{{ status.style }}" data-bs-toggle="dropdown" aria-expanded="false">
+												{{ status.label }}
+											</button>
+											<ul class="dropdown-menu">
+												{% if ruta.equipo %}
+													<li><a class="dropdown-item" href="{% url 'got:equipo-detail' ruta.equipo.code %}">Ver detalle</a></li>
+												{% endif %}
+												<li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
+												<li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
+												<li>
+													<button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#crearOtModal{{ ruta.code }}">
+														Crear nueva OT
+													</button>
+												</li>
+												<li><a class="dropdown-item" href="{% url 'got:create-ot-from-ruta' ruta_id=ruta.code %}">Reportar</a></li>
+												{% if ruta.ot %}
+													<li><a class="dropdown-item" href="{% url 'got:report' ruta.ot.num_ot %}">Informe</a></li>
+												{% endif %}
+											</ul>
+										</div>
+									</td>
+								</tr>
+								<tr id="details{{ forloop.counter }}" class="detail-row" style="display:none;">
+									<td colspan="7">
+										<div>
+											<h4>
+												Actividades:  {{ruta.get_nivel_display}}
+												{% if perms.got.add_equipo %}
+													<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill add-more"></i></a>
+												{% endif %}
+											</h4>
+											{% if ruta.dependencia %}
+												Relación con rutina {{ ruta.dependencia.name }}
+											{% endif %}
+											Ultima Orden de trabajo: <a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a>
+					
+											{% if ruta.task_set.all %}
+												<ul>
+													{% for task in ruta.task_set.all %}
+														<li style="margin-bottom: 5px; list-style-type: disc;">{{ task.description|linebreaksbr }} ({{ task.responsible.profile.cargo }})
+															{% if perms.got.add_equipo %}
+																<a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>
+																<a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
+															{% endif %}
+														</li>
+														<ul style="list-style-type: none;">
+															{% if task.procedimiento %}
+																<li><strong>Procedimiento:<br></strong>{{ task.procedimiento|linebreaksbr }}</li>
+															{% endif %}
+															{% if task.hse %}
+																<li><strong>Precauciones de seguridad:<br></strong>{{ task.hse|linebreaksbr }}</li>
+															{% endif %}
+														</ul>
+													{% endfor %}
+												</ul>
+												<hr>
+											{% else %}
+												<p>No hay actividades registradas.</p>
+											{% endif %}
+													
+											<!-- Agregar el listado de requerimientos -->
+											{% if ruta.requisitos.all %}
+												<h4>Requerimientos:</h4>
+												<ul>
+													{% for req in ruta.requisitos.all %}
+														<li>
+															{% if req.tipo == 'm' or req.tipo == 'h' %}
+																{{ req.item }}
+															{% elif req.tipo == 's' %}
+																{% if req.service %}
+																	{{ req.service.description }}
+																{% else %}
+																	Servicio sin nombre
+																{% endif %}
+															{% else %}
+																Requerimiento sin tipo definido
+															{% endif %}- {{ req.cantidad }}
+															{% if req.tipo in material_types and req.item %}{{ req.item.presentacion }}{% endif %}
+															{% if req.tipo == 's' %} servicios{% endif %}
+														</li>
+													{% endfor %}
+												</ul>
+											{% else %}
+												<p>No hay requerimientos registrados.</p>
+											{% endif %}
+										</div>
+									</td>
+								</tr>
 
-			
-</main>
+								<div class="modal fade" id="crearOtModal{{ ruta.code }}" tabindex="-1" aria-labelledby="crearOtModalLabel{{ ruta.code }}" aria-hidden="true">
+									<div class="modal-dialog">
+										<div class="modal-content">
+											<div class="modal-header">
+												<h5 class="modal-title" id="crearOtModalLabel{{ ruta.code }}">Crear Orden de Trabajo</h5>
+												<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+											</div>
+											<div class="modal-body">
+												¿Desea crear una orden de trabajo para la rutina <strong>{{ ruta.name }}</strong>?
+											</div>
+											<div class="modal-footer">
+												<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+												<a href="{% url 'got:crear_ot_desde_ruta' ruta.code %}" class="btn btn-success">Crear OT</a>
+											</div>
+										</div>
+									</div>
+								</div>
+				  			{% endfor %}
+						</tbody>
+			  		</table>
+				</div>
+		  	</div>
+		</div>
+	</main>
+	  
+	<style>
+		/* Estilos generales para la sección de equipos */
+		.shadow-custom {
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+		}
+		.equipment-table {
+			width: 100%;
+			border-collapse: collapse;
+			font-family: 'Poppins', sans-serif;
+			margin-bottom: 1rem;
+			border: 1px solid #7D8B84;
+		}
+		.equipment-table th, .equipment-table td {
+			padding: 0.75rem;
+			text-align: left;
+			border-bottom: 1px solid var(--color-primary);
+			font-size: 0.9rem;
+		}
+		.equipment-table tr:hover {
+			background-color: #FFC400;
+		}
+		.dependents-row {
+			background-color: #e0f7fa;  /* Fondo azul pastel suave */
+		}
+		/* Dependientes: cada item tiene hover independiente */
+		.dependents-list li {
+			padding: 0.4rem;
+			border-bottom: 1px solid #7D8B84;
+			font-size: 0.8rem;
+			cursor: pointer;
+			list-style: none;
+		}
+		.dependents-list li:hover {
+			background-color: #d0ebf8;  /* Un tono un poco más intenso para el hover */
+		}
+	</style>
+
+<script>
+// Reemplaza el bloque anterior con este código para que el menú de equipos dependientes se muestre solo al hacer clic en el ícono:
+document.querySelectorAll(".expand-icon").forEach(function(icon) {
+    icon.addEventListener("click", function(e) {
+        // Evitar que el clic se propague a la fila principal
+        e.stopPropagation();
+        let targetId = this.getAttribute("data-target");
+        let depRow = document.querySelector(targetId);
+        if (depRow.style.display === "none" || depRow.style.display === "") {
+            depRow.style.display = "table-row";  // o "block" según convenga para la tabla
+            this.innerHTML = '<i class="fa-solid fa-chevron-up"></i>';
+        } else {
+            depRow.style.display = "none";
+            this.innerHTML = '<i class="fa-solid fa-chevron-down"></i>';
+        }
+    });
+});
+  
+// Mantener el clic en la fila para redirigir a la vista de actualización:
+document.querySelectorAll(".equipment-row").forEach(function(row) {
+    row.addEventListener("click", function(e) {
+        // Si se hizo clic en el icono, ya se gestionó, no navegamos.
+        if (e.target.closest(".expand-icon")) return;
+        let updateUrl = row.getAttribute("data-update-url");
+        if (updateUrl) {
+            window.location.href = updateUrl;
+        }
+    });
+});
 
 
+  
+	// Hacer que los items de la lista de dependientes sean clicables
+	document.querySelectorAll(".dependents-list li").forEach(function(li) {
+		// Agregar el atributo data-update-url en el HTML (si no está, asegúrate de incluirlo)
+		li.addEventListener("click", function(e) {
+			e.stopPropagation();
+			let updateUrl = li.getAttribute("data-update-url");
+			if (updateUrl) {
+				window.location.href = updateUrl;
+			}
+		});
+	});
+  
+	// Buscador de equipos: filtrar tanto la tabla de equipos como las filas de rutinas
+	document.getElementById("equipmentSearch").addEventListener("keyup", function() {
+		let filter = this.value.toLowerCase();
+		
+		// Filtrar equipos
+		let equipmentRows = document.querySelectorAll(".equipment-table tbody .equipment-row");
+		equipmentRows.forEach(function(row) {
+			let nameCell = row.cells[0].textContent.toLowerCase();
+			if (nameCell.indexOf(filter) > -1) {
+				row.style.display = "";
+			} else {
+				row.style.display = "none";
+			}
+		});
+		
+		// Filtrar rutinas (filtrar la columna que contenga el nombre del equipo asociado)
+		let rutinaRows = document.querySelectorAll(".rutina-row");
+		rutinaRows.forEach(function(row) {
+			let equipoName = row.getAttribute("data-equipo") || "";
+			if (equipoName.indexOf(filter) > -1) {
+				row.style.display = "";
+			} else {
+				row.style.display = "none";
+			}
+		});
+	});
+
+	function toggleDetails(detailId, trigger, event) {
+			if (event.target.closest('.dropdown') || event.target.closest('.dropdown-toggle')) {
+				return;
+			}
+
+			var detailRow = document.getElementById(detailId);
+			detailRow.style.display = (detailRow.style.display === 'none') ? '' : 'none';
+
+			// Cambiar el estilo de la fila para indicar si está expandida o no
+			trigger.style.fontWeight = (detailRow.style.display === 'none') ? 'normal' : 'bold';
+		}
+  </script>
+  
 {% endblock %}

@@ -72,7 +72,7 @@
 								<i class="fa-solid fa-trash"></i>
 							</a>
 							<!-- Transferir -->
-							<a href="{% url 'got:transferir_equipo' eq.code %}" class="me-1 text-warning" title="Transferir">
+							<a href="{% url 'inv:transferir_equipo' eq.code %}?next={{ request.get_full_path }}" class="me-1 text-warning" title="Transferir">
 								<i class="fa-solid fa-right-left"></i>
 							</a>
 							<!-- Ver Detalle (modal) -->

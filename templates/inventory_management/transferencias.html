@@ -1,11 +1,49 @@
-{% extends "got/base_generic.html" %}
+{% extends "got/base/base_generic.html" %}
 
 {% block content %}
-  <h2>Transferir Equipo</h2>
-  <p>Transferir: {{ equipo.name }} (Actualmente en {{ equipo.system.asset.name }} - {{ equipo.system.name }})</p>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Transferir</button>
-  </form>
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header text-white" style="background-color: #191645;">
+            <h2 class="mb-0">Transferir Equipo</h2>
+        </div>
+        <div class="card-body">
+            <p>
+                <strong>Equipo:</strong> {{ equipo.name }} <br>
+                <strong>Ubicación actual:</strong> {{ equipo.system.asset.name }} - {{ equipo.system.name }}
+            </p>
+            <form method="post">{% csrf_token %}
+				{% if next_url %}
+					<input type="hidden" name="next" value="{{ next_url }}">
+				{% endif %}
+                <div class="mb-3">
+                    <label for="{{ form.destino.id_for_label }}" class="form-label">{{ form.destino.label }}</label>
+                    {{ form.destino }}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.receptor.id_for_label }}" class="form-label">{{ form.receptor.label }}</label>
+                    {{ form.receptor }}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.observaciones.id_for_label }}" class="form-label">{{ form.observaciones.label }}</label>
+                    {{ form.observaciones }}
+                </div>
+                {% if related_equipos %}
+                <div class="mb-3">
+                    <label class="form-label">Equipos relacionados</label>
+                    <p class="text-muted">Seleccione los equipos relacionados que desea transferir junto con el equipo principal. Los equipos no seleccionados quedarán desvinculados.</p>
+                    {% for rel in related_equipos %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="transfer_related" value="{{ rel.code }}" id="related_{{ rel.code }}" checked>
+                        <label class="form-check-label" for="related_{{ rel.code }}">
+                            {{ rel.name }} ({{ rel.system }})
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <button type="submit" class="btn btn-success">Transferir</button>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,0 +1,27 @@
+Estimado equipo,
+
+Se ha realizado la transferencia del equipo "{{ equipo.name }}" el {{ transferencia.fecha|date:"d/m/Y" }}.
+
+Detalles de la transferencia:
+-------------------------------------------------
+Equipo: {{ equipo.name }}
+Responsable: {{ transferencia.responsable }}
+Receptor: {{ transferencia.receptor }}
+Sistema de Origen: {{ sistema_origen }}
+Sistema de Destino: {{ nuevo_sistema }}
+-------------------------------------------------
+{% if transferencia.observaciones %}
+Observaciones:
+{{ transferencia.observaciones }}
+-------------------------------------------------
+{% endif %}
+{% if equipos_relacionados %}
+Equipos relacionados transferidos:
+{{ equipos_relacionados }}
+-------------------------------------------------
+{% endif %}
+
+Esta acción fue ejecutada de forma automática a través del sistema GOT de Serport.
+
+Atentamente,
+El equipo de mantenimiento.

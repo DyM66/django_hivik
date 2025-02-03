@@ -68,7 +68,7 @@
                                         <i class="fa fa-info-circle info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Indicador de cumplimiento del plan de mantenimiento"></i>
 
                                     </div>
-                                {% elif asset.maintenance_compliance_cache < 70 %}
+                                {% elif asset.maintenance_compliance_cache < 80 %}
                                     <div class="asset-compliance compliance-mid">
                                         <i class="fa fa-exclamation-circle"></i>
                                         {{ asset.maintenance_compliance_cache }}%
@@ -183,7 +183,12 @@
                                     <input type="text" class="form-control form-control-sm"id="placeSearch-{{ asset.pk }}" placeholder="Buscar lugar..." onkeyup="filterPlaces({{ asset.pk }})">
                                 </div>
 
-                                <form method="POST" action="{% url 'got:asset-update-place' asset.pk %}">{% csrf_token %}
+                                <form method="POST" action="{% url 'got:asset-list' %}">{% csrf_token %}        
+                                    
+                                    <!-- Campos ocultos para identificar el asset y la acción -->
+                                    <input type="hidden" name="asset_pk" value="{{ asset.pk }}">
+                                    <input type="hidden" name="action" value="update_place">
+
                                     <!-- Tabla de Places (scroll + font-size reducido) -->
                                     <div class="mb-3" style="height: 200px; overflow-y: auto;">
                                         <table class="table table-striped table-hover table-sm" id="places-table-{{ asset.pk }}" style="font-size: 0.85rem;">
@@ -217,7 +222,12 @@
                             <div class="collapse" id="collapseSupervisor-{{ asset.pk }}">
                                 <hr>
                                 <h5>Cambiar supervisor</h5>
-                                <form method="POST" action="{% url 'got:asset-update-supervisor' asset.pk %}">¿{% csrf_token %}
+                                <form method="post" action="{% url 'got:asset-list' %}">
+                                    {% csrf_token %}
+                                    <!-- Campos ocultos para asset y acción -->
+                                    <input type="hidden" name="asset_pk" value="{{ asset.pk }}">
+                                    <input type="hidden" name="action" value="update_supervisor">
+                                    
                                     <div class="mb-3">
                                         <label for="supervisorFirstName-{{ asset.pk }}" class="form-label">Nombre del supervisor:</label>
                                         <input type="text" class="form-control form-control-sm" name="first_name" id="supervisorFirstName-{{ asset.pk }}" value="{{ asset.supervisor.first_name }}" required>
@@ -232,26 +242,31 @@
                                 </form>
                             </div>
 
-                            <!-- Formulario para cambiar el capitán (solo si area == 'a') -->
                             {% if asset.area == 'a' %}
-                                <div class="collapse" id="collapseCapitan-{{ asset.pk }}">
-                                    <hr>
-                                    <h5>Cambiar capitán</h5>
-                                    <form method="POST" action="{% url 'got:asset-update-capitan' asset.pk %}">{% csrf_token %}
-                                        <div class="mb-3">
-                                            <label for="capitanFirstName-{{ asset.pk }}" class="form-label">Nombre del capitán:</label>
-                                            <input type="text" class="form-control form-control-sm" name="first_name" id="capitanFirstName-{{ asset.pk }}" value="{{ asset.capitan.first_name }}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="capitanLastName-{{ asset.pk }}" class="form-label">Apellido del capitán:</label>
-                                            <input type="text" class="form-control form-control-sm" name="last_name" id="capitanLastName-{{ asset.pk }}" value="{{ asset.capitan.last_name }}" required>
-                                        </div>
-                                        <button type="submit" class="btn btn-success btn-sm">
-                                            Guardar capitán
-                                        </button>
-                                    </form>
-                                </div>
+                            <div class="collapse" id="collapseCapitan-{{ asset.pk }}">
+                                <hr>
+                                <h5>Cambiar capitán</h5>
+                                <form method="post" action="{% url 'got:asset-list' %}">
+                                    {% csrf_token %}
+                                    <!-- Campos ocultos para asset y acción -->
+                                    <input type="hidden" name="asset_pk" value="{{ asset.pk }}">
+                                    <input type="hidden" name="action" value="update_capitan">
+                                    
+                                    <div class="mb-3">
+                                        <label for="capitanFirstName-{{ asset.pk }}" class="form-label">Nombre del capitán:</label>
+                                        <input type="text" class="form-control form-control-sm" name="first_name" id="capitanFirstName-{{ asset.pk }}" value="{{ asset.capitan.first_name }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="capitanLastName-{{ asset.pk }}" class="form-label">Apellido del capitán:</label>
+                                        <input type="text" class="form-control form-control-sm" name="last_name" id="capitanLastName-{{ asset.pk }}" value="{{ asset.capitan.last_name }}" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        Guardar capitán
+                                    </button>
+                                </form>
+                            </div>
                             {% endif %}
+                            
                         </div><!-- /.offcanvas-body -->
                     </div><!-- /.offcanvas offcanvas-end -->
                     {% endfor %}

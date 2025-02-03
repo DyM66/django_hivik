@@ -222,7 +222,11 @@ class EquipoForm(forms.ModelForm):
         self.fields['critico'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
         
         if system:
-            self.fields['related'].queryset = Equipo.objects.filter(system=system)
+            qs = Equipo.objects.filter(system=system)
+            # Excluir el mismo equipo si se está editando (evitar relación consigo mismo)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            self.fields['related'].queryset = qs
         else:
             self.fields['related'].queryset = Equipo.objects.none()
 

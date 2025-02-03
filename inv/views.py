@@ -35,6 +35,7 @@ from django.contrib import messages
 from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, Case, When, IntegerField, BooleanField, Value
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.template.loader import render_to_string
+from inv.utils import enviar_correo_transferencia
 
 
 
@@ -902,35 +903,72 @@ def export_historial_pdf(request, abbreviation):
 @login_required
 def transferir_equipo(request, equipo_id):
     equipo = get_object_or_404(Equipo, pk=equipo_id)
+    next_url = request.GET.get('next') or request.POST.get('next') or None
+    related_equipos = equipo.related_with.all()
+
     if request.method == 'POST':
-        # form = TransferenciaForm(request.POST)
+        form = TransferenciaForm(request.POST)
+
+        # Obtener lista de equipos relacionados que se desean transferir (checkboxes)
+        transfer_related_ids = request.POST.getlist('transfer_related')
         if form.is_valid():
             nuevo_sistema = form.cleaned_data['destino']
             observaciones = form.cleaned_data['observaciones']
-            
+            receptor = form.cleaned_data['receptor']
+
             sistema_origen = equipo.system            
+            # Actualiza el sistema del equipo principal
             equipo.system = nuevo_sistema
             equipo.save()
 
+            # Actualiza las rutas asociadas al equipo
             rutas = Ruta.objects.filter(equipo=equipo)
             for ruta in rutas:
                 ruta.system = nuevo_sistema
                 ruta.save()
-            
-            Transferencia.objects.create(
+
+            # Procesa los equipos relacionados
+            transferred_related_names = []
+            for rel in related_equipos:
+                if str(rel.code) in transfer_related_ids:
+                    # Se transfiere el equipo relacionado
+                    rel.system = nuevo_sistema
+                    rel.save()
+                    transferred_related_names.append(rel.name)
+                else:
+                    # Se rompe la relación (se desvincula)
+                    rel.related = None
+                    rel.save()
+
+            # Anexa la lista de equipos relacionados transferidos a las observaciones
+            if transferred_related_names:
+                observaciones += "\nEquipos relacionados transferidos: " + ", ".join(transferred_related_names)
+
+            # Crea el registro de Transferencia
+            transferencia = Transferencia.objects.create(
                 equipo=equipo,
                 responsable=f"{request.user.first_name} {request.user.last_name}",
+                receptor=receptor,
                 origen=sistema_origen,
                 destino=nuevo_sistema,
                 observaciones=observaciones
             )
-            
-            return redirect(nuevo_sistema.get_absolute_url())
+
+            # Enviar correo de notificación (ver sección siguiente)
+            enviar_correo_transferencia(transferencia, equipo, sistema_origen, nuevo_sistema, observaciones)
+
+            messages.success(request, "Transferencia realizada exitosamente.")
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect(nuevo_sistema.get_absolute_url())
     else:
         form = TransferenciaForm()
 
     context = {
         'form': form,
-        'equipo': equipo
+        'equipo': equipo,
+        'related_equipos': related_equipos,
+        'next_url': next_url
     }
     return render(request, 'inventory_management/transferencias.html', context)

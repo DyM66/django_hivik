@@ -11,11 +11,15 @@ urlpatterns = [
     path('asset/<str:abbreviation>/documents/', views.AssetDocumentsView.as_view(), name='asset-documents'),
     path('document/<int:pk>/edit/', views.edit_document, name='edit-document'),
     path('document/<int:pk>/delete/', views.delete_document, name='delete-document'),
+
+    path("systems/<int:pk>/", views.SysDetailView.as_view(), name="sys-detail"),
+    path('Equipment/<str:pk>/', views.EquipoDetailView.as_view(), name='equipo-detail'),
+
+
     path('ruta/<int:pk>/', views.RutaDetailView.as_view(), name='ruta_detail'),
     path('asset/acta/<str:pk>/', views.acta_entrega_pdf, name='acta_entrega'),
 
     path('reporte-gerencial/', views.ManagerialReportView.as_view(), name='managerial_report'),
-
 
     path("reportehorasasset/<str:asset_id>/",views.reportHoursAsset,name='horas-asset'),
     path("reportehoraasset/<str:asset_id>/",views.reportHoursAsset,name='report-hours-update'),
@@ -25,8 +29,7 @@ urlpatterns = [
     path('vehiculos/', views.VehiculosMttoView.as_view(), name='vehiculosmtto'),
     path("dash/", views.indicadores, name='dashboard'),
 
-    path("systems/<int:pk>/", views.SysDetailView.as_view(), name="sys-detail"), # VERIFICAR USO
-    path('systems/<int:pk>/<str:view_type>/', views.SysDetailView.as_view(), name='sys-detail-view'),
+
     path('system/<int:pk>/update/', views.SysUpdate.as_view(), name='sys-update'),
     path('system/<int:pk>/delete/', views.SysDelete.as_view(), name='sys-delete'),
     path('got/budget/summary/assets/<str:asset_id>/pdf/', views.asset_maintenance_pdf, name='asset_maintenance_pdf'),
@@ -99,10 +102,6 @@ urlpatterns = [
     path('budget/summary/assets/', views.BudgetSummaryByAssetView.as_view(), name='budget_summary_by_asset'),
 
     path('managerial-report/<str:abbreviation>/', views.managerial_asset_report_pdf, name='managerial_asset_report'),
-
-    path('asset/<str:pk>/update_place/', views.asset_update_place, name='asset-update-place'),
-    path('asset/<str:pk>/update_supervisor/', views.asset_update_supervisor, name='asset-update-supervisor'),
-    path('asset/<str:pk>/update_capitan/', views.asset_update_capitan, name='asset-update-capitan'),
     path('equipo/<pk>/delete_image/', views.EquipoDeleteImageView.as_view(), name='equipo-delete-image'),
 
     path('manifest.json', pwa.manifest, name='manifest'),

@@ -1,6 +1,10 @@
 {% extends "got/base/base_generic.html" %}
 {% load my_tags %}
 
+{% block headtag %}
+    {% include "got/assets/asset_detail_styles.html" %}
+{% endblock %}
+
 {% block content %}
     <div>
         <h1>

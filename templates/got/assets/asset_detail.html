@@ -30,7 +30,7 @@
 			        <tr>
 					    <td scope="row">{{ forloop.counter }}</td>
 					    <td data-cell="Sistema">
-					        <a href="{{ sys.get_absolute_url }}">{{sys.name}}</a>
+					        <a href="{{ sys.get_absolute_url }}?next={{ request.path }}">{{sys.name}}</a>
 				        </td>
 					    <td data-cell="Estado">
 					        <div class="dropdown">
@@ -39,7 +39,7 @@
 							    </button>
 							    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 							        <li>
-								        <a class="dropdown-item" href="{{ sys.get_absolute_url }}">Ver detalle</a>
+								        <a class="dropdown-item" href="{{ sys.get_absolute_url }}?next={{ request.path }}">Ver detalle</a>
 							        </li>
 		    				        {% if perms.got.change_system %}
 							            <li>

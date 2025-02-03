@@ -175,15 +175,5 @@
 </div>
 
 <script>
-	function toggleDetails(detailId, trigger, event) {
-		if (event.target.closest('.dropdown') || event.target.closest('.dropdown-toggle')) {
-			return;
-		}
 
-		var detailRow = document.getElementById(detailId);
-		detailRow.style.display = (detailRow.style.display === 'none') ? '' : 'none';
-
-		// Cambiar el estilo de la fila para indicar si está expandida o no
-		trigger.style.fontWeight = (detailRow.style.display === 'none') ? 'normal' : 'bold';
-	}
 </script>

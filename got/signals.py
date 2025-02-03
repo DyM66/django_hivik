@@ -4,6 +4,7 @@ from .models import *
 from django.db.models import Avg, Sum, Min
 from decimal import Decimal
 from datetime import datetime
+from dth.models import UserProfile
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):

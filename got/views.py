@@ -1,9 +1,7 @@
 import base64
-import calendar
 import logging
 import uuid
 import json
-import re
 from datetime import timedelta, date, datetime
 from decimal import Decimal
 from django.conf import settings
@@ -57,6 +55,53 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         elif user.groups.filter(name='serport_members').exists():
             return redirect('got:my-tasks')
         return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        asset_pk = request.POST.get('asset_pk')
+        if not asset_pk:
+            messages.error(request, "No se ha especificado el asset a actualizar.")
+            return redirect('got:asset-list')
+
+        asset = get_object_or_404(Asset, pk=asset_pk)
+        action = request.POST.get('action')
+
+        if action == 'update_place':
+            place_id = request.POST.get('selected_place')
+            if place_id:
+                place = get_object_or_404(Place, pk=place_id)
+                asset.place = place
+                asset.save()
+                messages.success(request, "La ubicación del asset se ha actualizado correctamente.")
+            else:
+                messages.error(request, "No se seleccionó ninguna ubicación.")
+
+        elif action == 'update_supervisor':
+            supervisor = asset.supervisor
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            if not first_name or not last_name:
+                messages.error(request, "El nombre y el apellido del supervisor son requeridos.")
+                return redirect('got:asset-list')
+            supervisor.first_name = first_name
+            supervisor.last_name = last_name
+            supervisor.save()
+            messages.success(request, "Supervisor actualizado correctamente.")
+
+        elif action == 'update_capitan':
+            capitan = asset.capitan
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            if not first_name or not last_name:
+                messages.error(request, "El nombre y el apellido del capitán son requeridos.")
+                return redirect('got:asset-list')
+            capitan.first_name = first_name
+            capitan.last_name = last_name
+            capitan.save()
+            messages.success(request, "Capitán actualizado correctamente.")
+
+        else:
+            messages.error(request, "Acción no reconocida.")
+        return redirect('got:asset-list')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -87,10 +132,7 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         open_failures_dict = {}
         for asset in assets:
             # Filtramos las fallas abiertas de este asset
-            fr_qs = FailureReport.objects.filter(
-                closed=False,
-                equipo__system__asset=asset
-            )
+            fr_qs = FailureReport.objects.filter(closed=False, equipo__system__asset=asset)
             crit_qs = fr_qs.filter(critico=True)
             no_crit_qs = fr_qs.filter(critico=False)
 
@@ -116,55 +158,6 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
 
         context['open_failures_dict'] = open_failures_dict
         return context
-    
-def asset_update_place(request, pk):
-    asset = get_object_or_404(Asset, pk=pk)
-    if request.method == 'POST':
-        place_id = request.POST.get('selected_place')
-        if place_id:
-            place = get_object_or_404(Place, pk=place_id)
-            asset.place = place
-            asset.save()
-    return redirect('got:asset-list')  # O redirige donde gustes
-
-def asset_update_supervisor(request, pk):
-    asset = get_object_or_404(Asset, pk=pk)
-    supervisor = asset.supervisor
-    if request.method == 'POST':
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
-        
-        if not first_name or not last_name:
-            messages.error(request, "El nombre y el apellido son requeridos.")
-            return redirect('got:asset-list')
-        
-        supervisor.first_name = first_name
-        supervisor.last_name = last_name
-        supervisor.save()
-        messages.success(request, "Supervisor actualizado correctamente.")
-        return redirect('got:asset-list')
-    # Opcional: Manejar métodos GET si es necesario
-    return redirect('got:asset-list')
-
-def asset_update_capitan(request, pk):
-    asset = get_object_or_404(Asset, pk=pk)
-    capitan = asset.capitan
-    if request.method == 'POST':
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
-        
-        if not first_name or not last_name:
-            messages.error(request, "El nombre y el apellido son requeridos.")
-            return redirect('got:asset-list')
-        
-        capitan.first_name = first_name
-        capitan.last_name = last_name
-        capitan.save()
-        messages.success(request, "Capitán actualizado correctamente.")
-        return redirect('got:asset-list')
-    
-    # Opcional: Manejar métodos GET si es necesario
-    return redirect('got:asset-list')
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
@@ -216,7 +209,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         # 2) Separamos rutinas con "ejecución"
         executing_rutas = []
         normal_rutas = []
-        print(filtered_rutas)
         for r in filtered_rutas:
             if r.ot and r.ot.state == 'x':
                 executing_rutas.append(r)
@@ -234,7 +226,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
 
         # Rutinas en ejecución
         context['exec_rutas'] = executing_rutas
-        print(executing_rutas)
         context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
         context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
 
@@ -394,6 +385,97 @@ def delete_document(request, pk):
         doc.delete()
         return redirect('got:asset-documents', abbreviation=abbr)
     return redirect('got:asset-documents', abbreviation='AAA')
+
+
+'SYSTEMS VIEW'
+class SysDetailView(LoginRequiredMixin, generic.DetailView):
+    model = System
+    template_name = "got/systems/system_base.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        system = self.get_object()
+
+        # Aquí se añade la lógica para el parámetro de retorno ("next")
+        next_url = self.request.GET.get('next')
+        if not next_url:
+            # Si no se pasó, se redirige por defecto a la vista de detalle del asset del sistema
+            next_url = reverse('got:asset-detail', args=[system.asset.abbreviation])
+        context['next_url'] = next_url
+
+        main_equipos = Equipo.objects.filter(system=system, related__isnull=True)
+        # Para cada equipo, obtenemos sus dependientes
+        equipos_con_dependientes = []
+        for eq in main_equipos:
+            dependientes = eq.related_with.all()
+            equipos_con_dependientes.append({
+                'principal': eq,
+                'dependientes': dependientes,
+            })
+        context['equipos_con_dependientes'] = equipos_con_dependientes
+
+        rutinas = Ruta.objects.filter(system=system).order_by('-nivel', 'frecuency')
+        context['rutinas'] = rutinas
+        # context['items'] = Item.objects.all()
+        return context
+
+
+class SysUpdate(UpdateView):
+    model = System
+    form_class = SysForm
+    template_name = 'got/systems/system_form.html'
+
+    def form_valid(self, form):
+        system = form.save(commit=False)
+        system.modified_by = self.request.user
+        system.save()
+        return super().form_valid(form)
+
+
+class SysDelete(DeleteView):
+    model = System
+    template_name = 'got/systems/system_confirm_delete.html'
+
+    def delete(self, request, *args, **kwargs):
+        system = self.get_object()
+        system.modified_by = request.user
+        return super().delete(request, *args, **kwargs)
+
+    def get_success_url(self):
+        asset_code = self.object.asset.abbreviation
+        success_url = reverse_lazy(
+            'got:asset-detail', kwargs={'pk': asset_code})
+        return str(success_url)
+    
+
+class EquipoDetailView(LoginRequiredMixin, generic.DetailView):
+    model = Equipo
+    template_name = "got/systems/equipo_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipo = self.get_object()
+        system = equipo.system
+        
+        # Menú lateral de equipos: todos los equipos principales del sistema y sus dependientes
+        main_equipos = Equipo.objects.filter(system=system, related__isnull=True)
+        equipos_con_dependientes = []
+        for eq in main_equipos:
+            dependientes = eq.related_with.all()
+            equipos_con_dependientes.append({
+                'principal': eq,
+                'dependientes': dependientes,
+            })
+        context['equipos_con_dependientes'] = equipos_con_dependientes
+        context['object'] = equipo
+        context['suministros'] = Suministro.objects.filter(equipo=equipo)
+        context['rutinas'] = Ruta.objects.filter(equipo=equipo)
+        context['transferencias'] = Transferencia.objects.filter(equipo=equipo)
+
+        return context
+
+    def get_success_url(self):
+        return reverse('got:equipo-detail', args=[self.object.code])
 
 
 @login_required
@@ -735,74 +817,6 @@ def acta_entrega_pdf(request, pk):
         'current_date': current_date,
     }
     return render_to_pdf('got/systems/acta-entrega.html', context)
-
-
-'SYSTEMS VIEW'
-class SysDetailView(LoginRequiredMixin, generic.DetailView):
-    model = System
-    template_name = "got/systems/system_base.html"
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        system = self.get_object()
-        context['is_structures'] = system.name.lower() == "estructuras"
-        
-        orders_list = Ot.objects.filter(system=system)
-        view_type = self.kwargs.get('view_type', 'sys')
-        context['view_type'] = view_type
-        paginator = Paginator(orders_list, 4)
-
-        page = self.request.GET.get('page')
-        try:
-            orders = paginator.page(page)
-        except PageNotAnInteger:
-            orders = paginator.page(1)
-        except EmptyPage:
-            orders = paginator.page(paginator.num_pages)
-        context['orders'] = orders
-
-        try:
-            equipment = Equipo.objects.get(code=view_type)
-            # transferencias = Transferencia.objects.filter(equipo=equipment).order_by('-fecha')
-            context['equipo'] = equipment
-            # context['transferencias'] = transferencias
-            context['suministros'] = Suministro.objects.filter(equipo=equipment)
-        except Equipo.DoesNotExist:
-            equipments = Equipo.objects.filter(system=system, subsystem=view_type)
-            context['equipos'] = equipments
-
-        subsystems = Equipo.objects.filter(system=system).exclude(subsystem__isnull=True).exclude(subsystem__exact='').values_list('subsystem', flat=True)
-        context['unique_subsystems'] = list(set(subsystems))
-        context['items'] = Item.objects.all()
-        return context
-
-
-class SysUpdate(UpdateView):
-    model = System
-    form_class = SysForm
-    template_name = 'got/systems/system_form.html'
-
-    def form_valid(self, form):
-        system = form.save(commit=False)
-        system.modified_by = self.request.user
-        system.save()
-        return super().form_valid(form)
-
-
-class SysDelete(DeleteView):
-    model = System
-    template_name = 'got/systems/system_confirm_delete.html'
-
-    def delete(self, request, *args, **kwargs):
-        system = self.get_object()
-        system.modified_by = request.user
-        return super().delete(request, *args, **kwargs)
-
-    def get_success_url(self):
-        asset_code = self.object.asset.abbreviation
-        success_url = reverse_lazy(
-            'got:asset-detail', kwargs={'pk': asset_code})
-        return str(success_url)
     
 
 def asset_maintenance_pdf(request, asset_id):
@@ -1112,7 +1126,7 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
     def send_email(self, context):
         """Sends an email compiled from the given context."""
         subject = 'Nuevo Reporte de Falla'
-        email_template_name = 'got/failure_report_email.txt'
+        email_template_name = 'emails/failure_report_email.txt'
         
         email_body_html = render_to_string(email_template_name, context)
         
@@ -2539,7 +2553,8 @@ class TransferSolicitudView(LoginRequiredMixin, PermissionRequiredMixin, View):
 'GENERAL VIEWS'
 @login_required
 def indicadores(request):
-    m = 12
+    m = 1
+    y = 2025
 
     area_filter = request.GET.get('area', None)
 
@@ -2571,44 +2586,44 @@ def indicadores(request):
     barcos = bar.filter(system__asset__area='a')
 
     if area_filter:
-        ots = len(Ot.objects.filter(creation_date__month=m, creation_date__year=2024, system__asset__area=area_filter))
+        ots = len(Ot.objects.filter(creation_date__month=m, creation_date__year=y, system__asset__area=area_filter))
 
         ot_finish = len(Ot.objects.filter(
             creation_date__month=m,
-            creation_date__year=2024, state='f',
+            creation_date__year=y, state='f',
             system__asset__area=area_filter))
 
         preventivo = len(Ot.objects.filter(
             creation_date__month=m,
-            creation_date__year=2024,
+            creation_date__year=y,
             tipo_mtto='p',
             system__asset__area=area_filter
             ))
         correctivo = len(Ot.objects.filter(
             creation_date__month=m,
-            creation_date__year=2024,
+            creation_date__year=y,
             tipo_mtto='c',
             system__asset__area=area_filter
             ))
         modificativo = len(Ot.objects.filter(
             creation_date__month=m,
-            creation_date__year=2024,
+            creation_date__year=y,
             tipo_mtto='m',
             system__asset__area=area_filter
             ))
 
     else:
         ots = len(Ot.objects.filter(
-            creation_date__month=m, creation_date__year=2024))
+            creation_date__month=m, creation_date__year=y))
         ot_finish = len(Ot.objects.filter(
-            creation_date__month=m, creation_date__year=2024, state='f'))
+            creation_date__month=m, creation_date__year=y, state='f'))
 
         preventivo = len(Ot.objects.filter(
-            creation_date__month=m, creation_date__year=2024, tipo_mtto='p'))
+            creation_date__month=m, creation_date__year=y, tipo_mtto='p'))
         correctivo = len(Ot.objects.filter(
-            creation_date__month=m, creation_date__year=2024, tipo_mtto='c'))
+            creation_date__month=m, creation_date__year=y, tipo_mtto='c'))
         modificativo = len(Ot.objects.filter(
-            creation_date__month=m, creation_date__year=2024, tipo_mtto='m'))
+            creation_date__month=m, creation_date__year=y, tipo_mtto='m'))
 
     if ots == 0:
         ind_cumplimiento = 0

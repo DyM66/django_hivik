@@ -63,18 +63,18 @@ class Asset(models.Model):
 
         compliant_weight = 0
         for ruta in all_rutas:
-            if ruta.control == 'd':
-                if ruta.next_date >= date.today():
-                    compliant_weight += ruta.nivel
+            if ruta.next_date >= date.today():
+                compliant_weight += ruta.nivel
 
-            elif ruta.control in ['h', 'k']:
-                accumulated_hours = ruta.equipo.hours.filter(
-                    report_date__gte=ruta.intervention_date,
-                    report_date__lte=date.today()
-                ).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
+            # elif ruta.control in ['h', 'k']:
+            #     accumulated_hours = ruta.equipo.hours.filter(
+            #         report_date__gte=ruta.intervention_date,
+            #         report_date__lte=date.today()
+            #     ).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
 
-                if accumulated_hours <= ruta.frecuency:
-                    compliant_weight += ruta.nivel
+            #     if accumulated_hours <= ruta.frecuency:
+            #         compliant_weight += ruta.nivel
+            #         print(ruta.nivel)
 
         compliance_percentage = (compliant_weight / total_niveles) * 100
         return round(compliance_percentage, 2)

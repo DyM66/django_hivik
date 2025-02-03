@@ -65,10 +65,4 @@ class Migration(migrations.Migration):
                 ('ruta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requisitos', to='got.ruta')),
             ],
         ),
-        # migrations.SeparateDatabaseAndState(
-        #     database_operations=[],
-        #     state_operations=[
-        #         migrations.DeleteModel(name='DarBaja'),
-        #     ]
-        # ),
     ]
