@@ -9,16 +9,19 @@
 <body>
     <!-- Página 1: Resumen de Activos -->
     <div class="summary-container">
-        <h1 style="width:100%; text-align:center; margin-bottom:1rem;">Resumen de Activos</h1>
+        <h1 style="width:100%; text-align:center; margin-bottom:1rem;">Resumen</h1>
         {% for asset_detail in selected_assets %}
-            <div class="asset-card">
-                <h3>{{ asset_detail.asset.name }}</h3>
-                <p><strong>Código:</strong> {{ asset_detail.asset.abbreviation }}</p>
-                <p><strong>Supervisor:</strong> {{ asset_detail.supervisor_name }}</p>
-                <p><strong>Capitán:</strong> {{ asset_detail.captain_name }}</p>
-                <p><strong>Ubicación:</strong> {{ asset_detail.location }}</p>
-                <p><strong>Compliance:</strong> {{ asset_detail.compliance }}%</p>
-                <p><strong>Fallas abiertas:</strong> {{ asset_detail.failures_count }}</p>
+            <div class="asset-card" style="border: 1px #000 solid;">
+                <div>
+                    <h3>{{ asset_detail.asset.name }}</h3> - {{ asset_detail.asset.abbreviation }}
+                    <ul>
+                        <li><p><strong>Supervisor:</strong> {{ asset_detail.supervisor_name }}</p></li>
+                        <li><p><strong>Capitán:</strong> {{ asset_detail.captain_name }}</p></li>
+                        <li><p><strong>Ubicación:</strong> {{ asset_detail.location }}</p></li>
+                        <li><p><strong>Compliance:</strong> {{ asset_detail.compliance }}%</p></li>
+                        <li><p><strong>Fallas abiertas:</strong> {{ asset_detail.failures_count }}</p></li>
+                    </ul>
+                </div>
             </div>
         {% endfor %}
     </div>

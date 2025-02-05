@@ -11,76 +11,76 @@
     </div>
     
     <hr>
-  <div class="row">
-    <!-- MENÚ LATERAL DE EQUIPOS (columna izquierda) -->
-    <div class="col-md-3 px-3">
-      <div class="equipment-section shadow-custom p-3 mb-4" style="background-color: #fff; border-radius: 8px;">
-        <h2 class="mb-3" style="font-size: 1.25rem; color: #7D8B84;">Equipos</h2>
-        <table class="equipment-table">
-          <tbody>
-            {% for grupo in equipos_con_dependientes %}
-              {% with principal=grupo.principal dependientes=grupo.dependientes %}
-                <tr class="equipment-row" data-update-url="{% url 'got:equipo-update' principal.code %}">
-                  <td>
-                    {% if dependientes %}
-                      <span class="expand-icon" data-target="#dependents-{{ principal.code }}">
-                        {% if principal.code == object.code %}
-                          <i class="fa-solid fa-chevron-up"></i>
-                        {% else %}
-                          <i class="fa-solid fa-chevron-down"></i>
-                        {% endif %}
-                      </span>
-                    {% else %}
-                      <i class="fa-solid fa-list"></i>
-                    {% endif %}
-                    {% if principal.code == object.code %}
-                      <strong>{{ principal.name }}</strong>
-                    {% else %}
-                      {{ principal.name }}
-                    {% endif %}
-                  </td>
-                </tr>
-                {% if dependientes %}
-                  <tr id="dependents-{{ principal.code }}" class="dependents-row" data-expanded="false" style="{% if principal.code == object.code %}display: table-row;{% else %}display: none;{% endif %};">
-                    <td style="background-color: #e0f7fa;">
-                      <ul class="dependents-list">
-                        {% for dep in dependientes %}
-                          <li data-update-url="{% url 'got:equipo-update' dep.code %}">
-                            <a href="{% url 'got:equipo-update' dep.code %}" style="text-decoration: none; color: inherit;">
-                              {{ dep.name }}
-                            </a>
-                          </li>
-                        {% endfor %}
-                      </ul>
-                    </td>
-                  </tr>
-                {% endif %}
-              {% endwith %}
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+  	<div class="row">
+    	<!-- MENÚ LATERAL DE EQUIPOS (columna izquierda) -->
+    	<div class="col-md-3 px-3">
+      		<div class="equipment-section shadow-custom p-3 mb-4" style="background-color: #fff; border-radius: 8px;">
+        		<h2 class="mb-3" style="font-size: 1.25rem; color: #7D8B84;">Equipos</h2>
+					<table class="equipment-table">
+						<tbody>
+							{% for grupo in equipos_con_dependientes %}
+								{% with principal=grupo.principal dependientes=grupo.dependientes %}
+									<tr class="equipment-row" data-update-url="{% url 'got:equipo-detail' principal.code %}">
+										<td>
+											{% if dependientes %}
+												<span class="expand-icon" data-target="#dependents-{{ principal.code }}">
+													{% if principal.code == object.code %}
+														<i class="fa-solid fa-chevron-up"></i>
+													{% else %}
+														<i class="fa-solid fa-chevron-down"></i>
+													{% endif %}
+												</span>
+											{% else %}
+												<i class="fa-solid fa-list"></i>
+											{% endif %}
+											{% if principal.code == object.code %}
+												<strong>{{ principal.name }}</strong>
+											{% else %}
+												{{ principal.name }}
+											{% endif %}
+										</td>
+									</tr>
+									{% if dependientes %}
+										<tr id="dependents-{{ principal.code }}" class="dependents-row" data-expanded="false" style="{% if principal.code == object.code %}display: table-row;{% else %}display: none;{% endif %};">
+											<td style="background-color: #e0f7fa;">
+												<ul class="dependents-list">
+													{% for dep in dependientes %}
+														<li data-update-url="{% url 'got:equipo-update' dep.code %}">
+															<a href="{% url 'got:equipo-update' dep.code %}" style="text-decoration: none; color: inherit;">
+															{{ dep.name }}
+															</a>
+														</li>
+													{% endfor %}
+												</ul>
+											</td>
+										</tr>
+									{% endif %}
+								{% endwith %}
+							{% endfor %}
+          				</tbody>
+					</table>
+				</div>
 
-      <!-- SECCIÓN DE SUMINISTROS (MENÚ LATERAL) -->
-      <div class="suministros-section mb-4" style="font-size: 0.8rem;">
-        <h4>Suministros</h4>
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Artículo</th>
-              <th>Cantidad</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for suministro in suministros %}
-              <tr>
-                <td>{{ suministro.item }}</td>
-                <td>{{ suministro.cantidad }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="2">No hay suministros registrados.</td>
-              </tr>
+				<!-- SECCIÓN DE SUMINISTROS (MENÚ LATERAL) -->
+				<div class="suministros-section mb-4" style="font-size: 0.8rem;">
+					<h4>Suministros</h4>
+						<table class="table table-striped">
+							<thead>
+								<tr>
+									<th>Artículo</th>
+									<th>Cantidad</th>
+								</tr>
+							</thead>
+							<tbody>
+							{% for suministro in suministros %}
+								<tr>
+									<td>{{ suministro.item }}</td>
+									<td>{{ suministro.cantidad }}</td>
+								</tr>
+							{% empty %}
+							<tr>
+								<td colspan="2">No hay suministros registrados.</td>
+							</tr>
             {% endfor %}
           </tbody>
         </table>

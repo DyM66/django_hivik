@@ -77,6 +77,7 @@
 							</tr>
 							<tr>
 								<th>Equipo</th>
+								<th>Ruta</th>
 								<th>Frecuencia</th>
 								<th>Tiempo restante</th>
 								<th>Última intervención</th>
@@ -89,6 +90,7 @@
 							{% for ruta in rutinas %}
 								<tr class="rutina-row" data-equipo="{% if ruta.equipo %}{{ ruta.equipo.name|lower }}{% else %}{{ system.asset.name|lower }}{% endif %}" onclick="toggleDetails('details{{ forloop.counter }}', this, event)">
 									<td>{% if ruta.equipo %}{{ ruta.equipo.name }}{% else %}{{ ruta.system.name }}{% endif %}</td>
+									<td>{{ ruta.name }}</td>
 									<td>{{ ruta.frecuency }} {{ ruta.get_control_display }}</td>
 									<td>{{ ruta.daysleft }}</td>
 									<td>{{ ruta.intervention_date|date:"d/m/Y" }}</td>
@@ -126,7 +128,7 @@
 									</td>
 								</tr>
 								<tr id="details{{ forloop.counter }}" class="detail-row" style="display:none;">
-									<td colspan="7">
+									<td colspan="8">
 										<div>
 											<h4>
 												Actividades:  {{ruta.get_nivel_display}}
