@@ -1,0 +1,12 @@
+<h1>Listado de Actividades Pendientes</h1>
+
+{% for act in tasks %}
+<ul>
+    <li>OT-{{ act.ot }}</li>
+    <li>{{ act.ot.system.asset }}/{{ act.ot.system.name }}</li>
+    <li>{{ act.description }}</li>
+    <li>{{ act.responsible.first_name }} {{ act.responsible.last_name }}</li>
+    <li>{{ act.start_date|date:"d/m/Y" }} - {{ act.final_date|date:"d/m/Y" }}</li>
+</ul>
+<hr>
+{% endfor %}

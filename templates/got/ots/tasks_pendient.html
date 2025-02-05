@@ -52,6 +52,33 @@
                         </ul>
                     </div>
                 {% endif %}
+
+                <div class="btn-group-vertical w-100 mb-2" role="group">
+                    <a href="{% url 'got:assigned-tasks-pdf' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="btn-outline-primary btn w-100">
+                        Generar PDF
+                    </a>
+                </div>
+
+                <div class="btn-group-vertical w-100 mb-2" role="group">
+                    <!-- Formulario de filtro por rango de fechas -->
+                    <form method="get" class="row g-3">
+                        <div class="col-auto">
+                            <label for="start_date" class="visually-hidden">Desde</label>
+                            <input type="date" name="start_date" id="start_date" class="form-control"
+                                   value="{{ request.GET.start_date }}">
+                        </div>
+                        <div class="col-auto">
+                            <label for="end_date" class="visually-hidden">Hasta</label>
+                            <input type="date" name="end_date" id="end_date" class="form-control"
+                                   value="{{ request.GET.end_date }}">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary mb-3">Filtrar</button>
+                        </div>
+                    </form>
+                </div>
+
+                  
             </aside>
         </div>
     </div>

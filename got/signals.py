@@ -30,44 +30,25 @@ def update_solicitud_dates(sender, instance, **kwargs):
 @receiver(post_delete, sender=HistoryHour)
 def update_equipo_horometro(sender, instance, **kwargs):
     equipo = instance.component
-
-    ultimos_10_registros = HistoryHour.objects.filter(
-        component=equipo).order_by('-report_date')[:10]
-
-    # Calcula el promedio de horas de los últimos 30 registros.
-    promedio_horas = ultimos_10_registros.aggregate(
-        promedio_horas=Avg('hour'))['promedio_horas']
-
+    ultimos_10_registros = HistoryHour.objects.filter(component=equipo).order_by('-report_date')[:10]
+    promedio_horas = ultimos_10_registros.aggregate(promedio_horas=Avg('hour'))['promedio_horas']
     equipo.prom_hours = promedio_horas or 0
     equipo.horometro = equipo.calculate_horometro()
     equipo.save()
     update_fuel_consumption_for_asset(equipo, instance.report_date)
 
-
 def update_fuel_consumption_for_asset(equipo, fecha):
     asset = equipo.system.asset
-    
-    # Obtener todos los equipos tipo 'r' (Motor a combustión) del asset
     equipos = Equipo.objects.filter(system__asset=asset, tipo='r')
 
     fecha_primer_reporte = Transaction.objects.filter(
-        suministro__asset=asset,
-        suministro__item__id=132,  # ID del combustible
-        tipo='c'
-    ).aggregate(primer_fecha=Min('fecha'))['primer_fecha']    
+        suministro__asset=asset, suministro__item__id=132,  # ID del combustible
+        tipo='c').aggregate(primer_fecha=Min('fecha'))['primer_fecha']    
 
     # Obtener las horas totales del asset en la fecha dada
-    total_horas_asset = HistoryHour.objects.filter(
-        component__system__asset=asset,
-        report_date=fecha
-    ).aggregate(Sum('hour'))['hour__sum'] or 0
+    total_horas_asset = HistoryHour.objects.filter(component__system__asset=asset, report_date=fecha).aggregate(Sum('hour'))['hour__sum'] or 0
 
-    suministro_combustible = Transaction.objects.filter(
-        suministro__asset=asset,
-        suministro__item__id=132,
-        fecha=fecha,
-        tipo='c' 
-    ).aggregate(total_consumed=Sum('cant'))['total_consumed'] or 0
+    suministro_combustible = Transaction.objects.filter(suministro__asset=asset, suministro__item__id=132, fecha=fecha, tipo='c').aggregate(total_consumed=Sum('cant'))['total_consumed'] or 0
 
     if suministro_combustible > 0 and total_horas_asset > 0:
         consumo_historico_total = DailyFuelConsumption.objects.filter(
@@ -95,12 +76,7 @@ def update_fuel_consumption_for_asset(equipo, fecha):
                 consumo_estimado = (horas_hoy / total_horas_asset) * suministro_combustible * factor_correccion
 
                 # Actualizar o crear el registro de DailyFuelConsumption
-                DailyFuelConsumption.objects.update_or_create(
-                    equipo=equipo,
-                    fecha=fecha,
-                    defaults={'com_estimado_motor': consumo_estimado}
-                )
-
+                DailyFuelConsumption.objects.update_or_create(equipo=equipo, fecha=fecha, defaults={'com_estimado_motor': consumo_estimado})
 
 @receiver(post_save, sender=Transaction)
 def create_daily_fuel_consumption(sender, instance, **kwargs):
@@ -110,10 +86,8 @@ def create_daily_fuel_consumption(sender, instance, **kwargs):
         asset = suministro.asset
 
         fecha_primer_reporte = Transaction.objects.filter(
-            suministro__asset=asset,
-            suministro__item__id=132,  # ID del combustible
-            tipo='c'
-        ).aggregate(primer_fecha=Min('fecha'))['primer_fecha']  
+            suministro__asset=asset, suministro__item__id=132,  # ID del combustible
+            tipo='c').aggregate(primer_fecha=Min('fecha'))['primer_fecha']  
 
         if isinstance(instance.fecha, str):
             today = datetime.strptime(instance.fecha, '%Y-%m-%d').date()
@@ -155,12 +129,7 @@ def create_daily_fuel_consumption(sender, instance, **kwargs):
                     factor_correccion = Decimal(1) 
 
                 consumo_estimado = (horas_hoy / total_horas_asset) * suministro_consumido_hoy * factor_correccion
-                DailyFuelConsumption.objects.update_or_create(
-                    equipo=equipo,
-                    fecha=today,
-                    defaults={'com_estimado_motor': consumo_estimado}
-                )
-
+                DailyFuelConsumption.objects.update_or_create(equipo=equipo, fecha=today, defaults={'com_estimado_motor': consumo_estimado})
 
 @receiver(pre_save)
 def track_model_changes_pre_save(sender, instance, **kwargs):
@@ -172,7 +141,6 @@ def track_model_changes_pre_save(sender, instance, **kwargs):
                 instance._original_state = sender.objects.get(pk=instance.pk)
             except sender.DoesNotExist:
                 instance._original_state = None
-
 
 @receiver(post_save)
 def track_model_changes_post_save(sender, instance, **kwargs):
@@ -215,7 +183,6 @@ def track_model_changes_post_save(sender, instance, **kwargs):
         # Manejar otros errores si es necesario (registro en logs, etc.)
         pass
 
-
 @receiver(pre_delete)
 def track_model_deletion(sender, instance, **kwargs):
     # Solo rastrear los modelos que tienen el campo modified_by
@@ -229,7 +196,6 @@ def track_model_deletion(sender, instance, **kwargs):
             timestamp=timezone.now()
         )
 
-
 @receiver(post_save, sender=Ruta)
 def update_asset_compliance_after_ruta_save(sender, instance, **kwargs):
     """
@@ -239,7 +205,6 @@ def update_asset_compliance_after_ruta_save(sender, instance, **kwargs):
     system = instance.system
     if system and system.asset:
         system.asset.update_maintenance_compliance_cache()
-
 
 @receiver(post_save, sender=HistoryHour)
 def update_asset_compliance_after_hours_save(sender, instance, **kwargs):

@@ -109,5 +109,7 @@ urlpatterns = [
     path('api/unapproved_requests_count/', pwa.get_unapproved_requests_count, name='unapproved_requests_count_api'),
 
     path('assets/summary/pdf/', views.AssetSummaryPDFView, name='asset-summary-pdf'),
+    path('tasks/pdf/', views.assignedTasks_pdf, name='assigned-tasks-pdf')
+
 ]
 

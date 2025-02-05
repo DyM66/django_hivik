@@ -238,6 +238,7 @@ def AssetSummaryPDFView(request):
     }
     return render_to_pdf("got/mantenimiento/asset_summary.html", context)
 
+
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
     model = Asset
     template_name = 'got/assets/asset_detail.html'
@@ -486,10 +487,7 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
         equipos_con_dependientes = []
         for eq in main_equipos:
             dependientes = eq.related_with.all()
-            equipos_con_dependientes.append({
-                'principal': eq,
-                'dependientes': dependientes,
-            })
+            equipos_con_dependientes.append({'principal': eq, 'dependientes': dependientes,})
         context['equipos_con_dependientes'] = equipos_con_dependientes
 
         rutinas = Ruta.objects.filter(system=system).order_by('-nivel', 'frecuency')
@@ -549,7 +547,6 @@ class EquipoDetailView(LoginRequiredMixin, generic.DetailView):
         context['suministros'] = Suministro.objects.filter(equipo=equipo)
         context['rutinas'] = Ruta.objects.filter(equipo=equipo)
         context['transferencias'] = Transferencia.objects.filter(equipo=equipo)
-
         return context
 
     def get_success_url(self):
@@ -1690,20 +1687,27 @@ def ot_pdf(request, num_ot):
     return response
 
 
+from django.db.models import Func
+
+class DayInterval(Func):
+    template = "(%(expressions)s * interval '1 day')"
+
+
 'TASKS VIEW'
 class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
     model = Task
     template_name = 'got/ots/tasks_pendient.html'
-    paginate_by = 20
+    paginate_by = 25
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if self.request.user.groups.filter(name='buzos_members').exists():
-            context['assets'] = Asset.objects.filter(area='b')
-        else:
-            context['assets'] = Asset.objects.all()
+        context['assets'] = Asset.objects.all()
         context['all_users'] = operational_users(self.request.user)
         context['total_tasks'] = self.get_queryset().count()
+
+        # Incluimos los parámetros de fecha para poder construir el enlace al PDF
+        context['start_date'] = self.request.GET.get('start_date', '')
+        context['end_date'] = self.request.GET.get('end_date', '')
         return context
 
     def get_queryset(self):
@@ -1717,19 +1721,76 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         if responsable_id:
             queryset = queryset.filter(responsible=responsable_id)
 
+        # Filtrado por rango de fechas (solapamiento)
+        start_date_str = self.request.GET.get('start_date')
+        end_date_str = self.request.GET.get('end_date')
+        if start_date_str and end_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                queryset = queryset.annotate(
+                    calc_final_date=ExpressionWrapper(
+                        F('start_date') + DayInterval(F('men_time')),
+                        output_field=DateField()
+                    )
+                ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
+            except ValueError:
+                pass  # Si hay error en el formato, no filtramos por fecha
+
         if current_user.groups.filter(name='serport_members').exists():
             return queryset.filter(responsible=current_user)
         elif current_user.groups.filter(name='super_members').exists():
             return queryset
-        elif current_user.groups.filter(name='maq_members').exists():
+        elif current_user.groups.filter(name_in=['maq_members', 'buzos_members']).exists():
             return queryset.filter(ot__system__asset__supervisor=current_user)
-        elif current_user.groups.filter(name='buzos_members').exists():
-            user_station = self.request.user.profile.station
-            if user_station:
-                return queryset.filter(ot__system__asset__area='b', ot__system__location__in=user_station)
-            return queryset.filter(ot__system__asset__area='b')
-        
         return queryset.none() 
+    
+
+@login_required
+def assignedTasks_pdf(request):
+    queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('start_date')
+
+    asset_id = request.GET.get('asset_id')
+    if asset_id:
+        queryset = queryset.filter(ot__system__asset_id=asset_id)
+
+    responsable_id = request.GET.get('worker')
+    if responsable_id:
+        queryset = queryset.filter(responsible=responsable_id)
+
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            queryset = queryset.annotate(
+                calc_final_date=ExpressionWrapper(
+                    F('start_date') + DayInterval(F('men_time')),
+                    output_field=DateField()
+                )
+            ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
+        except ValueError:
+            pass
+
+    current_user = request.user
+    if current_user.groups.filter(name='serport_members').exists():
+        queryset = queryset.filter(responsible=current_user)
+    elif current_user.groups.filter(name='super_members').exists():
+        pass
+    elif current_user.groups.filter(name='maq_members').exists():
+        queryset = queryset.filter(ot__system__asset__supervisor=current_user)
+    elif current_user.groups.filter(name='buzos_members').exists():
+        user_station = current_user.profile.station
+        if user_station:
+            queryset = queryset.filter(ot__system__asset__area='b', ot__system__location__in=user_station)
+        else:
+            queryset = queryset.filter(ot__system__asset__area='b')
+    else:
+        queryset = queryset.none()
+
+    context = {'tasks': queryset}
+    return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
 
 
 class TaskCreate(CreateView):
