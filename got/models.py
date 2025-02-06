@@ -186,6 +186,12 @@ class Equipo(DirtyFieldsMixin, models.Model):
         ('z', 'Banco de baterias'),
     )
 
+    ESTADO = (
+        ('b', 'BUEN ESTADO'),
+        ('m', 'MAL ESTADO'),
+        ('f', 'FUERA DE SERVICIO'),
+    )
+
     code = models.CharField(primary_key=True, max_length=50)
     name = models.CharField(max_length=100)
     date_inv = models.DateField(auto_now_add=True)
@@ -195,6 +201,7 @@ class Equipo(DirtyFieldsMixin, models.Model):
     fabricante = models.CharField(max_length=50, null=True, blank=True)
     feature = models.TextField()
     tipo = models.CharField(choices=TIPO, default='nr', max_length=2)
+    estado = models.CharField(choices=ESTADO, default='b', max_length=1)
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
     subsystem = models.CharField(max_length=100, null=True, blank=True)
     ubicacion = models.CharField(max_length=150, null=True, blank=True)

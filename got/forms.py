@@ -191,6 +191,7 @@ class EquipoForm(forms.ModelForm):
             'feature': 'Características',
             'manual_pdf': 'Manual',
             'tipo': 'Tipo de equipo:',
+            'estado': 'Estado:',
             'initial_hours': 'Horas iniciales (Motores)',
             'tipo_almacenamiento': 'Tipo de almacenamiento (Tanques)',
             'volumen': 'Capacidad de almacenamiento - Galones (Tanques)',
@@ -212,6 +213,7 @@ class EquipoForm(forms.ModelForm):
             'feature': forms.Textarea(attrs={'rows': 10, 'class': 'form-control'}),
             'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
             'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
             'recomendaciones': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
         }

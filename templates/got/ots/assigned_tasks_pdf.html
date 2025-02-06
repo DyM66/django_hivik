@@ -9,14 +9,27 @@
 {% endblock %}
 {% block content %}
 
-{% for act in tasks %}
-<ul>
-    <li>OT-{{ act.ot }}</li>
-    <li><strong>Equipo: </strong>{{ act.ot.system.asset }}/{{ act.ot.system.name }}</li>
-    <li><strong>Actividad: </strong>{{ act.description }}</li>
-    <li><strong>Responsable: </strong>{{ act.responsible.first_name }} {{ act.responsible.last_name }}</li>
-    <li>{{ act.start_date|date:"d/m/Y" }} - {{ act.final_date|date:"d/m/Y" }}</li>
-</ul>
+<br>
+<br>
+
+{{start}} - {{end}}
 <hr>
+
+{% regroup tasks by ot.system.asset as tasks_by_asset %}
+
+{% for group in tasks_by_asset %}
+    <!-- Subtítulo con la información del activo -->
+    <h2>{{ group.grouper.name }} ({{ group.grouper.abbreviation }})</h2>
+    {% for act in group.list %}
+
+        <ul>
+            <li><h3>OT-{{ act.ot }}</h3></li>
+            <li><strong>Equipo: </strong>{{ act.ot.system.asset }}/{{ act.ot.system.name }}</li>
+            <li><strong>Actividad: </strong>{{ act.description }}</li>
+            <li><strong>Responsable: </strong>{{ act.responsible.first_name }} {{ act.responsible.last_name }}</li>
+            <li>{{ act.start_date|date:"d/m/Y" }} - {{ act.final_date|date:"d/m/Y" }}</li>
+        </ul>
+        <br>
+    {% endfor %}
 {% endfor %}
 {% endblock %}

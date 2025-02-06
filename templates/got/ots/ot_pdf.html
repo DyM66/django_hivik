@@ -122,22 +122,8 @@
     <h2 class="section-title">DESCRIPCIÓN DEL TRABAJO EFECTUADO</h2>
     <div class="section-content">
         {% for act in tareas %}
-            <strong>{{ act.start_date|date:"d/m/Y" }}:</strong>{{ act.description|linebreaksbr }}
-            {% if not forloop.last %}
-                <br><br>
-            {% endif %}
-        {% endfor %}
-    </div>
-</div>
-
-<br>
-<div class="section">
-    <h2 class="section-title">NOVEDADES</h2>
-    <div class="section-content">
-        {% for act in tareas %}
-            {% if act.news %}
-            <strong>{{ act.start_date|date:"d/m/Y" }}:</strong>{{act.news|linebreaksbr}}
-            {% endif %}
+            <strong>{{ act.start_date|date:"d/m/Y" }}:</strong>{{ act.description|linebreaksbr }} <br>
+            <strong>Hallazgos:</strong>{{act.news|linebreaksbr}}
             {% if not forloop.last %}
                 <br><br>
             {% endif %}

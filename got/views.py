@@ -1748,7 +1748,7 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 
 @login_required
 def assignedTasks_pdf(request):
-    queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('start_date')
+    queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('ot__system__asset__name', 'start_date')
 
     asset_id = request.GET.get('asset_id')
     if asset_id:
@@ -1789,7 +1789,7 @@ def assignedTasks_pdf(request):
     else:
         queryset = queryset.none()
 
-    context = {'tasks': queryset}
+    context = {'tasks': queryset, 'start': start_date, 'end': end_date}
     return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
 
 

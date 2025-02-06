@@ -11,6 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        # ('outbound', '0003_place_direccion'),
     ]
 
     operations = [
@@ -60,6 +61,7 @@ class Migration(migrations.Migration):
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_assets', to=settings.AUTH_USER_MODEL)),
                 ('show', models.BooleanField(default=True)),
                 ('maintenance_compliance_cache', models.DecimalField(blank=True, decimal_places=2, help_text='Valor cacheado de mantenimiento (%)', max_digits=5, null=True)),
+                ('place', models.ForeignKey(blank=True, help_text='Ubicación asociada (opcional).', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='assets', to='outbound.place')),
             ],
             options={
                 'ordering': ['area', 'name'],
