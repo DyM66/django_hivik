@@ -145,8 +145,26 @@ def export_equipment_supplies(request, abbreviation):
         equipment_data.append(row)
         counter += 1
 
-    # 3. Recolectar datos de Suministros
     suministros_qs = Suministro.objects.filter(asset=asset).select_related('item')
+
+    for s in suministros_qs:
+        equipment_data.append([
+            counter,
+            s.item.code,
+            "",
+            s.item.get_seccion_display(),
+            s.item.name,
+            s.item.reference or "",
+            "",
+            "",
+            s.item.presentacion or "",
+            str(s.cantidad), 
+            "",
+            ""
+        ])
+        counter += 1
+
+    # 3. Recolectar datos de Suministros
     # Cabeceras para "Suministros"
     supply_headers = [
         'Artículo', 'Referencia', 'Presentación', 'Cantidad'
@@ -450,13 +468,13 @@ def export_equipment_supplies(request, abbreviation):
 
     ws_equips.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=6)
     cell = ws_equips.cell(row=current_row, column=1)
-    cell.value = "Firma de quien realiza la toma física"
+    cell.value = "Firma del Aprobador (Jefe de Abastecimiento y Logistica)"
     cell.alignment = Alignment(horizontal="center", vertical="bottom")
     cell.font = Font(bold=True, name='Arial')
 
     ws_equips.merge_cells(start_row=current_row, start_column=7, end_row=current_row, end_column=12)
     cell = ws_equips.cell(row=current_row, column=7)
-    cell.value = "Firma - Responsable o delegado que acompaña en el conteo físico"
+    cell.value = "Firma - Responsable de la Dependencia Inspeccionada (Capitan, Jefe Area, Etc)"
     cell.alignment = Alignment(horizontal="center", vertical="bottom")
     cell.font = Font(bold=True, name='Arial')
 

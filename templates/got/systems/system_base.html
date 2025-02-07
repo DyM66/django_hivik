@@ -139,8 +139,10 @@
 											{% if ruta.dependencia %}
 												Relación con rutina {{ ruta.dependencia.name }}
 											{% endif %}
-											Ultima Orden de trabajo: <a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a>
-					
+											Ultima Orden de trabajo: <a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a><br>
+											{% if ruta.equipo.tipo == 'r' %}
+												Promedio de horas del motor: {{ ruta.ot.prom_hours }} Horas
+											{% endif %}
 											{% if ruta.task_set.all %}
 												<ul>
 													{% for task in ruta.task_set.all %}
@@ -150,14 +152,14 @@
 																<a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
 															{% endif %}
 														</li>
-														<ul style="list-style-type: none;">
+														<!-- <ul style="list-style-type: none;">
 															{% if task.procedimiento %}
 																<li><strong>Procedimiento:<br></strong>{{ task.procedimiento|linebreaksbr }}</li>
 															{% endif %}
 															{% if task.hse %}
 																<li><strong>Precauciones de seguridad:<br></strong>{{ task.hse|linebreaksbr }}</li>
 															{% endif %}
-														</ul>
+														</ul> -->
 													{% endfor %}
 												</ul>
 												<hr>
