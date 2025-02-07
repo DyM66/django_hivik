@@ -271,73 +271,65 @@ input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:foc
                 </div>
 
 
-<!-- Bloque donde se muestran las imágenes -->
-<div id="image-list">
-    <h5>Imágenes asociadas {% if object %}({{ image_count }}){% endif %}</h5>
-
-                <!-- Widget de Subida de Imágenes -->
-                <div class="mb-3">
-                    {{ upload_form }}  
+                <!-- Bloque donde se muestran las imágenes -->
+                <div id="image-list">
+                    <h5>Imágenes asociadas {% if object %}({{ image_count }}){% endif %}</h5>
+                    <!-- Widget de Subida de Imágenes -->
+                    <div class="mb-3">
+                        {{ upload_form }}  
+                    </div>
+                    {% if object %} 
+                        <div class="row">
+                            {% for image in object.images.all %}
+                                <div class="col-md-3" id="image-{{ image.id }}">
+                                    <div class="image-wrapper">
+                                        <img src="{{ image.image.url }}" class="img-thumbnail" alt="Imagen del equipo">
+                                        <!-- Botón "X" para eliminar; se usa type="button" para que no dispare submit -->
+                                        <button type="button" class="delete-image-btn" data-image-id="{{ image.id }}" title="Eliminar imagen">
+                                            &times;
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <script>
+                            document.addEventListener("DOMContentLoaded", function(){
+                                // Agregar listener a los botones de eliminación
+                                const deleteButtons = document.querySelectorAll('.delete-image-btn');
+                                deleteButtons.forEach(function(button) {
+                                    button.addEventListener('click', function(event){
+                                        event.preventDefault(); // Prevenir comportamiento por defecto
+                                        const imageId = this.getAttribute('data-image-id');
+                                        // Realiza la petición AJAX a la vista EquipoDeleteImageView
+                                        fetch("{% url 'got:equipo-delete-image' object.pk %}", {
+                                            method: "POST",
+                                            headers: {
+                                                "Content-Type": "application/x-www-form-urlencoded",
+                                                "X-CSRFToken": "{{ csrf_token }}"
+                                            },
+                                            body: "image_id=" + imageId
+                                        })
+                                        .then(response => response.json()).then(data => {
+                                            if(data.success){
+                                                // Elimina el contenedor de la imagen en el DOM
+                                                const imageDiv = document.getElementById("image-" + imageId);
+                                                if(imageDiv){
+                                                    imageDiv.remove();
+                                                }
+                                                // Actualiza el contador de imágenes
+                                                const header = document.querySelector("#image-list h5");
+                                                header.textContent = "Imágenes asociadas (" + data.image_count + ")";
+                                            } else {
+                                                alert("Error: " + (data.error || "No se pudo eliminar la imagen."));
+                                            }
+                                        })
+                                        .catch(error => console.error("Error en la eliminación de la imagen:", error));
+                                    });
+                                });
+                            });
+                            </script>
+                    {% endif %}
                 </div>
-
-{% if object %}
-    
-    <div class="row">
-        {% for image in object.images.all %}
-        <div class="col-md-3" id="image-{{ image.id }}">
-            <div class="image-wrapper">
-                <img src="{{ image.image.url }}" class="img-thumbnail" alt="Imagen del equipo">
-                <!-- Botón "X" para eliminar; se usa type="button" para que no dispare submit -->
-                <button type="button" class="delete-image-btn" data-image-id="{{ image.id }}" title="Eliminar imagen">
-                    &times;
-                </button>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function(){
-            // Agregar listener a los botones de eliminación
-            const deleteButtons = document.querySelectorAll('.delete-image-btn');
-            deleteButtons.forEach(function(button) {
-                button.addEventListener('click', function(event){
-                    event.preventDefault(); // Prevenir comportamiento por defecto
-                    const imageId = this.getAttribute('data-image-id');
-                    // Realiza la petición AJAX a la vista EquipoDeleteImageView
-                    fetch("{% url 'got:equipo-delete-image' object.pk %}", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded",
-                            "X-CSRFToken": "{{ csrf_token }}"
-                        },
-                        body: "image_id=" + imageId
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if(data.success){
-                            // Elimina el contenedor de la imagen en el DOM
-                            const imageDiv = document.getElementById("image-" + imageId);
-                            if(imageDiv){
-                                imageDiv.remove();
-                            }
-                            // Actualiza el contador de imágenes
-                            const header = document.querySelector("#image-list h5");
-                            header.textContent = "Imágenes asociadas (" + data.image_count + ")";
-                        } else {
-                            alert("Error: " + (data.error || "No se pudo eliminar la imagen."));
-                        }
-                    })
-                    .catch(error => console.error("Error en la eliminación de la imagen:", error));
-                });
-            });
-        });
-        </script>
-        
-
-{% endif %}
-
-</div>
 
 
                 <!-- Campo para Subir Manual PDF -->
