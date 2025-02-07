@@ -110,7 +110,7 @@
 											</button>
 											<ul class="dropdown-menu">
 												{% if ruta.equipo %}
-													<li><a class="dropdown-item" href="{% url 'got:equipo-detail' ruta.equipo.code %}">Ver detalle</a></li>
+													<li><a class="dropdown-item" href="{% url 'got:ruta_detail' ruta.code %}">Ver detalle</a></li>
 												{% endif %}
 												<li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
 												<li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
