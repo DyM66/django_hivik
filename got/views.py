@@ -1741,7 +1741,7 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
             return queryset.filter(responsible=current_user)
         elif current_user.groups.filter(name='super_members').exists():
             return queryset
-        elif current_user.groups.filter(name_in=['maq_members', 'buzos_members']).exists():
+        elif current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
             return queryset.filter(ot__system__asset__supervisor=current_user)
         return queryset.none() 
     
