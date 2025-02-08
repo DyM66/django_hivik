@@ -206,9 +206,8 @@ input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:foc
     </h2>
     <hr>
 
-    <form action="" method="post" enctype="multipart/form-data" class="adap p-4">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ next_url }}">
+    <form action="" method="post" enctype="multipart/form-data" class="adap p-4">{% csrf_token %}
+        <input type="hidden" name="next_to" value="{{ next_to }}">
         <div class="row">
             <!-- Primera Columna: Campos Básicos -->
             <div class="col-md-6">

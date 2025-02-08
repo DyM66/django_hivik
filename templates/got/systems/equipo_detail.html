@@ -4,8 +4,9 @@
 {% block content %}
 <div class="mt-4">
 
-    <div>
+    <div class="px-3">
         <h1>
+			<a href="{{ previous_url }}"><i class="fa-solid fa-square-caret-left"></i></a>
             {{ object.system.asset }}/{{ object.system.name }}
         </h1>
     </div>
@@ -45,8 +46,8 @@
 											<td style="background-color: #e0f7fa;">
 												<ul class="dependents-list">
 													{% for dep in dependientes %}
-														<li data-update-url="{% url 'got:equipo-update' dep.code %}">
-															<a href="{% url 'got:equipo-update' dep.code %}" style="text-decoration: none; color: inherit;">
+														<li data-update-url="{% url 'got:equipo-detail' dep.code %}">
+															<a href="{% url 'got:equipo-detail' dep.code %}" style="text-decoration: none; color: inherit;">
 															{{ dep.name }}
 															</a>
 														</li>
@@ -102,7 +103,7 @@
 								<a href="{% url 'inv:transferir_equipo' object.code %}" title="Transferir" class="action-icon me-2">
 									<i class="fa-solid fa-right-left"></i>
 								</a>
-								<a href="{% url 'got:equipo-update' object.code %}?next={{ request.path }}" title="Editar" class="action-icon me-2">
+								<a href="{% url 'got:equipo-update' object.code %}?next={{ request.path }}&next_to={{ previous_url|urlencode }}" title="Editar" class="action-icon me-2">
 									<i class="bi bi-pen"></i>
 								</a>
 								<a href="{% url 'got:acta_entrega' object.code %}" title="Crear acta de entrega" class="action-icon me-2">
@@ -180,9 +181,13 @@
 
 				<!-- SECCIÓN DE RUTINAS DE MANTENIMIENTO -->
 				<div class="rutinas-section mb-4">
-					<h2>Rutinas de Mantenimiento</h2>
 					<table class="table-list table-detail">
 						<thead>
+							<tr>
+								<th colspan="7">
+					  				Rutinas de mantenimiento
+								</th>
+							</tr>
 							<tr>
 								<th>Código</th>
 								<th>Frecuencia</th>
@@ -215,166 +220,166 @@
 											{{ status.label }}
 											</button>
 											<ul class="dropdown-menu">
-											<li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
-											<li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
-											<li>
-												<button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#crearOtModal{{ ruta.code }}">
-												Crear nueva OT
-												</button>
-											</li>
-											<li><a class="dropdown-item" href="{% url 'got:create-ot-from-ruta' ruta_id=ruta.code %}">Reportar</a></li>
-											{% if ruta.ot %}
-												<li><a class="dropdown-item" href="{% url 'got:report' ruta.ot.num_ot %}">Informe</a></li>
+												<li><a class="dropdown-item" href="{% url 'got:ruta-update' ruta.code %}">Editar</a></li>
+												<li><a class="dropdown-item" href="{% url 'got:ruta-delete' ruta.code %}">Eliminar</a></li>
+												<li>
+													<button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#crearOtModal{{ ruta.code }}">
+													Crear nueva OT
+													</button>
+												</li>
+												<li><a class="dropdown-item" href="{% url 'got:create-ot-from-ruta' ruta_id=ruta.code %}">Reportar</a></li>
+												{% if ruta.ot %}
+													<li><a class="dropdown-item" href="{% url 'got:report' ruta.ot.num_ot %}">Informe</a></li>
+												{% endif %}
+											</ul>
+										</div>
+									</td>
+								</tr>
+								<tr id="details{{ forloop.counter }}" class="detail-row" style="display:none;">
+									<td colspan="7">
+										<div>
+											<h4>
+												Actividades: {{ ruta.get_nivel_display }}
+												{% if perms.got.add_equipo %}
+													<a href="{% url 'got:task-create' ruta.code %}">
+														<i class="bi bi-clipboard2-plus-fill add-more"></i>
+													</a>
+												{% endif %}
+											</h4>
+
+											{% if ruta.dependencia %}
+												<p>Relación con rutina {{ ruta.dependencia.name }}</p>
 											{% endif %}
-                    </ul>
-                  </div>
-                </td>
-              </tr>
-              <tr id="details{{ forloop.counter }}" class="detail-row" style="display:none;">
-                <td colspan="7">
-                  <div>
-                    <h4>Actividades: {{ ruta.get_nivel_display }}</h4>
-                    {% if perms.got.add_equipo %}
-                      <a href="{% url 'got:task-create' ruta.code %}">
-                        <i class="bi bi-clipboard2-plus-fill add-more"></i>
-                      </a>
-                    {% endif %}
-                    {% if ruta.dependencia %}
-                      <p>Relación con rutina {{ ruta.dependencia.name }}</p>
-                    {% endif %}
-                    <p>Última Orden de trabajo: 
-                      {% if ruta.ot %}
-                        <a href="{{ ruta.ot.get_absolute_url }}"><i class="bi bi-pen"></i> OT-{{ ruta.ot.num_ot }}</a>
-                      {% else %}
-                        ---
-                      {% endif %}
-                    </p>
-                    {% if ruta.task_set.all %}
-                      <ul>
-                        {% for task in ruta.task_set.all %}
-                          <li style="margin-bottom: 5px; list-style-type: disc;">
-                            {{ task.description|linebreaksbr }} ({{ task.responsible.profile.cargo }})
-                            {% if perms.got.add_equipo %}
-                              <a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>
-                              <a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
-                            {% endif %}
-                          </li>
-                          <ul style="list-style-type: none;">
-                            {% if task.procedimiento %}
-                              <li><strong>Procedimiento:<br></strong>{{ task.procedimiento|linebreaksbr }}</li>
-                            {% endif %}
-                            {% if task.hse %}
-                              <li><strong>Precauciones de seguridad:<br></strong>{{ task.hse|linebreaksbr }}</li>
-                            {% endif %}
-                          </ul>
-                        {% endfor %}
-                      </ul>
-                      <hr>
-                    {% else %}
-                      <p>No hay actividades registradas.</p>
-                    {% endif %}
+											
+											<p>
+												Última Orden de trabajo: {% if ruta.ot %}<a href="{{ ruta.ot.get_absolute_url }}"><i class="bi bi-pen"></i> OT-{{ ruta.ot.num_ot }}</a>{% endif %}
+											</p>
+											{% if ruta.task_set.all %}
+												<ul>
+													{% for task in ruta.task_set.all %}
+														<li style="margin-bottom: 5px; list-style-type: disc;">
+															{{ task.description|linebreaksbr }} ({{ task.responsible.profile.cargo }})
+															{% if perms.got.add_equipo %}
+																<a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>
+																<a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
+															{% endif %}
+														</li>
+														<ul style="list-style-type: none;">
+															{% if task.procedimiento %}
+																<li><strong>Procedimiento:<br></strong>{{ task.procedimiento|linebreaksbr }}</li>
+															{% endif %}
+															{% if task.hse %}
+																<li><strong>Precauciones de seguridad:<br></strong>{{ task.hse|linebreaksbr }}</li>
+															{% endif %}
+														</ul>
+													{% endfor %}
+												</ul>
+												<hr>
+											{% else %}
+												<p>No hay actividades registradas.</p>
+											{% endif %}
                     
-                    {% if ruta.requisitos.all %}
-                      <h4>Requerimientos:</h4>
-                      <ul>
-                        {% for req in ruta.requisitos.all %}
-                          <li>
-                            {% if req.tipo == 'm' or req.tipo == 'h' %}
-                              {{ req.item }}
-                            {% elif req.tipo == 's' %}
-                              {% if req.service %}
-                                {{ req.service.description }}
-                              {% else %}
-                                Servicio sin nombre
-                              {% endif %}
-                            {% else %}
-                              Requerimiento sin tipo definido
-                            {% endif %} - {{ req.cantidad }}
-                            {% if req.tipo in material_types and req.item %}
-                              {{ req.item.presentacion }}
-                            {% endif %}
-                            {% if req.tipo == 's' %} servicios{% endif %}
-                          </li>
-                        {% endfor %}
-                      </ul>
-                    {% else %}
-                      <p>No hay requerimientos registrados.</p>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
+											{% if ruta.requisitos.all %}
+												<h4>Requerimientos:</h4>
+												<ul>
+													{% for req in ruta.requisitos.all %}
+														<li>
+                            								{% if req.tipo == 'm' or req.tipo == 'h' %}
+                          										{{ req.item }}
+                        									{% elif req.tipo == 's' %}
+                          										{{ req.service.description }}
+                          									{% else %}
+                          										Requerimiento sin tipo definido
+                        									{% endif %} - {{ req.cantidad }}
+                        									{% if req.tipo in material_types and req.item %}
+                            									{{ req.item.presentacion }}
+                            								{% endif %}
+                            								{% if req.tipo == 's' %} servicios{% endif %}
+                          								</li>
+                        							{% endfor %}
+                      							</ul>
+											{% else %}
+												<p>No hay requerimientos registrados.</p>
+											{% endif %}
+										</div>
+									</td>
+								</tr>
 
-              <!-- Modal para Crear OT -->
-              <div class="modal fade" id="crearOtModal{{ ruta.code }}" tabindex="-1" aria-labelledby="crearOtModalLabel{{ ruta.code }}" aria-hidden="true">
-                <div class="modal-dialog">
-                  <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="crearOtModalLabel{{ ruta.code }}">Crear Orden de Trabajo</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                    </div>
-                    <div class="modal-body">
-                      ¿Desea crear una orden de trabajo para la rutina <strong>{{ ruta.name }}</strong>?
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                      <a href="{% url 'got:crear_ot_desde_ruta' ruta.code %}" class="btn btn-success">Crear OT</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+								<!-- Modal para Crear OT -->
+								<div class="modal fade" id="crearOtModal{{ ruta.code }}" tabindex="-1" aria-labelledby="crearOtModalLabel{{ ruta.code }}" aria-hidden="true">
+									<div class="modal-dialog">
+										<div class="modal-content">
+											<div class="modal-header">
+												<h5 class="modal-title" id="crearOtModalLabel{{ ruta.code }}">Crear Orden de Trabajo</h5>
+												<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+											</div>
+											<div class="modal-body">
+												¿Desea crear una orden de trabajo para la rutina <strong>{{ ruta.name }}</strong>?
+											</div>
+											<div class="modal-footer">
+												<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+												<a href="{% url 'got:crear_ot_desde_ruta' ruta.code %}" class="btn btn-success">Crear OT</a>
+											</div>
+										</div>
+									</div>
+								</div>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
 
-      <!-- SECCIÓN DE TRANSFERENCIAS -->
-      <div class="transferencias-section mb-4">
-        <h2>Transferencias</h2>
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Responsable</th>
-              <th>Sistema Origen</th>
-              <th>Sistema Destino</th>
-              <th>Observaciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for transferencia in transferencias %}
-              <tr>
-                <td>{{ transferencia.fecha|date:"d M, Y" }}</td>
-                <td>{{ transferencia.responsable }}</td>
-                <td>{{ transferencia.origen.asset }}</td>
-                <td>{{ transferencia.destino.asset }}</td>
-                <td>{{ transferencia.observaciones }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5">No hay transferencias registradas para este equipo.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
+				<!-- SECCIÓN DE TRANSFERENCIAS -->
+				<div class="transferencias-section mb-4">
+					<table class="table-list table-detail">
+						<thead>
+							<tr>
+								<th colspan="7">Transferencias</th>
+							</tr>
+							<tr>
+								<th>Fecha</th>
+								<th>Responsable</th>
+								<th>Sistema Origen</th>
+								<th>Sistema Destino</th>
+								<th>Observaciones</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for transferencia in transferencias %}
+								<tr>
+									<td>{{ transferencia.fecha|date:"d M, Y" }}</td>
+									<td>{{ transferencia.responsable }}</td>
+									<td>{{ transferencia.origen.asset }}</td>
+									<td>{{ transferencia.destino.asset }}</td>
+									<td>{{ transferencia.observaciones }}</td>
+								</tr>
+							{% empty %}
+								<tr>
+									<td colspan="5">No hay transferencias registradas para este equipo.</td>
+								</tr>
+							{% endfor %}
+          				</tbody>
+        			</table>
+      			</div>
+    		</div>
+  		</div>
+	</div>
 
-<!-- Estilos personalizados para la vista de detalle de equipo -->
-<style>
-  /* Sombra para el contenedor */
-  .shadow-custom {
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
-  /* Estilos para la tabla de equipos en el menú lateral */
-  .equipment-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: 'Poppins', sans-serif;
-      margin-bottom: 1rem;
-      border: 1px solid #7D8B84;
-  }
+
+	<!-- Estilos personalizados para la vista de detalle de equipo -->
+	<style>
+		/* Sombra para el contenedor */
+		.shadow-custom {
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+		}
+
+  	/* Estilos para la tabla de equipos en el menú lateral */
+  	.equipment-table {
+    	width: 100%;
+      	border-collapse: collapse;
+      	font-family: 'Poppins', sans-serif;
+      	margin-bottom: 1rem;
+      	border: 1px solid #7D8B84;
+  	}
   .equipment-table th, .equipment-table td {
       padding: 0.75rem;
       text-align: left;

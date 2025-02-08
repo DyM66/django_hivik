@@ -432,7 +432,7 @@ class Ruta(models.Model):
         return reverse('got:sys-detail', args=[str(self.system.id)])
 
     class Meta:
-        ordering = ['frecuency']
+        ordering = ['equipo__name', 'control', 'frecuency']
 
 
 # Model 8: Requerimientos para realizar rutina de mantenimiento

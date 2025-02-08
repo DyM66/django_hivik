@@ -52,13 +52,37 @@
                         </ul>
                     </div>
                 {% endif %}
-
+                <div class="btn-group-vertical w-100 mb-2" role="group">
+                    <!-- Opción: Mostrar pendientes (por defecto) -->
+                    <a href="{% url 'got:my-tasks' %}?{% if request.GET.asset_id %}asset_id={{ request.GET.asset_id }}&{% endif %}{% if request.GET.worker %}worker={{ request.GET.worker }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}finalizados=0" 
+                       class="btn btn-primary w-100">
+                        Mostrar pendientes
+                    </a>
+                </div>
+                <div class="btn-group-vertical w-100 mb-2" role="group">
+                    <!-- Opción: Mostrar solo finalizadas -->
+                    <a href="{% url 'got:my-tasks' %}?{% if request.GET.asset_id %}asset_id={{ request.GET.asset_id }}&{% endif %}{% if request.GET.worker %}worker={{ request.GET.worker }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}finalizados=1" 
+                       class="btn btn-primary w-100">
+                        Mostrar finalizadas
+                    </a>
+                </div>
+                <div class="btn-group-vertical w-100 mb-2" role="group">
+                    <!-- Opción: Mostrar ambas -->
+                    <a href="{% url 'got:my-tasks' %}?{% if request.GET.asset_id %}asset_id={{ request.GET.asset_id }}&{% endif %}{% if request.GET.worker %}worker={{ request.GET.worker }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}finalizados=2" 
+                       class="btn btn-primary w-100">
+                        Mostrar ambas
+                    </a>
+                </div>
+                <div class="btn-group-vertical w-100 mb-2" role="group">
+                    <a href="{% url 'got:assigned-tasks-excel' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="btn-outline-primary btn w-100">
+                        Generar Excel
+                    </a>
+                </div>
                 <div class="btn-group-vertical w-100 mb-2" role="group">
                     <a href="{% url 'got:assigned-tasks-pdf' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="btn-outline-primary btn w-100">
                         Generar PDF
                     </a>
                 </div>
-
                 <div class="btn-group-vertical w-100 mb-2" role="group">
                     <!-- Formulario de filtro por rango de fechas -->
                     <form method="get" class="row g-3">
@@ -104,8 +128,14 @@
                     <td data-cell="Tiempo de ejecución">{{ act.start_date|date:"d/m/Y" }}-{{ act.final_date|date:"d/m/Y" }}</td>
                     <td data-cell="Estado">
                         <div class="dropdown">
-                            <button class="btn status {% if act.is_overdue %}close{% else %}pending{% endif %} btn-sm dropdown-toggle" type="button" id="dropdown-{{ act.id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                {% if act.is_overdue %}Retrasado{% else %}En progreso{% endif %}
+                            <button class="btn status 
+                                {% if act.finished %}finished
+                                {% elif act.is_overdue %}close
+                                {% else %}pending{% endif %} btn-sm dropdown-toggle" 
+                                type="button" id="dropdown-{{ act.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% if act.finished %}Finalizada
+                                {% elif act.is_overdue %}Retrasado
+                                {% else %}En progreso{% endif %}
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="dropdown-{{ act.id }}">
                                 <li><a class="dropdown-item" href="{% url 'got:ot-detail' act.ot.num_ot %}">Ver detalle</a></li>

@@ -19,6 +19,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.http import urlencode
 from django.utils.timezone import localdate
 from django.utils.translation import gettext as _
 from django.views import generic, View
@@ -40,16 +41,9 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
     template_name = 'got/assets/asset_list.html'
 
     def dispatch(self, request, *args, **kwargs):
-        """
-        Redirige a:
-          - El primer asset supervisado (maq_members).
-          - Las tareas si es serport_members.
-          - Caso contrario => mostrar la lista normal.
-        """
         user = request.user
         if user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
             asset = Asset.objects.filter(models.Q(supervisor=request.user) | models.Q(capitan=request.user)).first()
-
             if asset:
                 return redirect('got:asset-detail', pk=asset.abbreviation)
         elif user.groups.filter(name='serport_members').exists():
@@ -98,7 +92,6 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
             capitan.last_name = last_name
             capitan.save()
             messages.success(request, "Capitán actualizado correctamente.")
-
         else:
             messages.error(request, "Acción no reconocida.")
         return redirect('got:asset-list')
@@ -159,84 +152,6 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
 
         context['open_failures_dict'] = open_failures_dict
         return context
-
-
-@login_required
-# @csrf_exempt
-def AssetSummaryPDFView(request):
-    """
-    Genera un PDF que contiene:
-      - Una primera página (resumen) con un “card” por cada activo seleccionado (de la lista del modal). Cada card muestra:
-          • Nombre, código, supervisor, capitán, ubicación, indicador de cumplimiento y cantidad de reportes de falla abiertos.
-          • Se dispondrán en 3 columnas (la plantilla se encargará de ello).
-      - A continuación, para cada activo se listarán, en páginas siguientes, las órdenes de trabajo en ejecución (estado "x").
-        Para cada OT se mostrarán las actividades (tareas) abiertas y las cerradas, así como, debajo, si existe un reporte de falla o una rutina asociada.
-      - Finalmente, se listarán también los reportes de falla abiertos del activo, indicando si son críticos y el usuario que los generó.
-      
-    Toda la lógica se procesa en la vista para que la plantilla no tenga lógica.
-    Se espera que el formulario del modal envíe, vía POST, una lista de activos seleccionados (por su “abbreviation”).
-    """
-    if request.method == "POST":
-        # Obtenemos la lista de activos seleccionados (por ejemplo, enviados en el input name="assets")
-        selected_asset_ids = request.POST.getlist("assets")
-    else:
-        selected_asset_ids = []
-
-    # Filtramos los activos que se mostrarán (solo los seleccionados y que estén activos)
-    assets = Asset.objects.filter(abbreviation__in=selected_asset_ids, show=True).order_by('name')
-
-    asset_details = []
-    for asset in assets:
-        # Información básica
-        supervisor_name = asset.supervisor.get_full_name() if asset.supervisor else "---"
-        captain_name = asset.capitan.get_full_name() if asset.capitan else "---"
-        location = asset.place.name if asset.place else "---"
-        compliance = asset.maintenance_compliance_cache if asset.maintenance_compliance_cache is not None else 0
-
-        # Reportes de falla abiertos (para este activo)
-        open_failures = FailureReport.objects.filter(
-            equipo__system__asset=asset,
-            closed=False
-        )
-
-        failures_count = open_failures.count()
-        failures_data = list(open_failures.values("id", "critico", "report", "description"))
-
-        # Órdenes de trabajo en ejecución (estado "x")
-        ots = Ot.objects.filter(system__asset=asset, state='x').order_by('creation_date')
-
-        ot_details = []
-        for ot in ots:
-            tasks_open = list(ot.task_set.filter(finished=False).order_by('start_date'))
-            tasks_closed = list(ot.task_set.filter(finished=True).order_by('start_date'))
-            # Verificamos si la OT tiene un reporte de falla asociado (opcional, según tu modelo)
-            ot_failure = ot.failure_report.filter(closed=False).first()
-            # Verificamos si la OT tiene una rutina de mantenimiento asociada (esto puede variar según la relación)
-            ot_rutina = ot.ruta_set.first()
-            ot_details.append({
-                "ot": ot,
-                "tasks_open": tasks_open,
-                "tasks_closed": tasks_closed,
-                "failure": ot_failure,
-                "rutina": ot_rutina,
-            })
-
-        asset_details.append({
-            "asset": asset,
-            "supervisor_name": supervisor_name,
-            "captain_name": captain_name,
-            "location": location,
-            "compliance": compliance,
-            "failures_count": failures_count,
-            "failures_data": failures_data,
-            "ots": ot_details,
-        })
-
-    context = {
-        "selected_assets": asset_details,
-        "today": date.today(),
-    }
-    return render_to_pdf("got/mantenimiento/asset_summary.html", context)
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
@@ -490,7 +405,7 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
             equipos_con_dependientes.append({'principal': eq, 'dependientes': dependientes,})
         context['equipos_con_dependientes'] = equipos_con_dependientes
 
-        rutinas = Ruta.objects.filter(system=system).order_by('-nivel', 'frecuency')
+        rutinas = Ruta.objects.filter(system=system)
         context['rutinas'] = rutinas
         # context['items'] = Item.objects.all()
         return context
@@ -532,8 +447,6 @@ class EquipoDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         equipo = self.get_object()
         system = equipo.system
-        
-        # Menú lateral de equipos: todos los equipos principales del sistema y sus dependientes
         main_equipos = Equipo.objects.filter(system=system, related__isnull=True)
         equipos_con_dependientes = []
         for eq in main_equipos:
@@ -547,10 +460,226 @@ class EquipoDetailView(LoginRequiredMixin, generic.DetailView):
         context['suministros'] = Suministro.objects.filter(equipo=equipo)
         context['rutinas'] = Ruta.objects.filter(equipo=equipo)
         context['transferencias'] = Transferencia.objects.filter(equipo=equipo)
+
+        previous_url = self.request.GET.get('previous_url') or self.request.META.get('HTTP_REFERER', '/')
+        context['previous_url'] = previous_url
         return context
 
+
+class EquipoCreateView(LoginRequiredMixin, CreateView):
+    model = Equipo
+    form_class = EquipoForm
+    template_name = 'got/systems/equipo_form.html'
+    http_method_names = ['get', 'post']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Guarda la URL previa si está presente para redirigir luego
+        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_system(self):
+        # Recupera el sistema utilizando el parámetro 'pk' de la URL
+        return get_object_or_404(System, pk=self.kwargs['pk'])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Se inyecta el objeto system en los argumentos del formulario
+        kwargs['system'] = self.get_system()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Se instancia el formulario de carga de imágenes
+        if self.request.POST:
+            context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
+        else:
+            context['upload_form'] = UploadImages()
+        context['sys'] = self.get_system()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = None  # Asegurarse de que self.object esté inicializado
+        form = self.get_form()
+        upload_form = UploadImages(request.POST, request.FILES)
+        # Se validan ambos formularios
+        if form.is_valid() and upload_form.is_valid():
+            return self.form_valid(form, upload_form)
+        else:
+            return self.form_invalid(form, upload_form)
+
+    def form_valid(self, form, upload_form):
+        system = self.get_system()
+        form.instance.system = system
+        asset_abbreviation = system.asset.abbreviation
+        # Convertir el tipo a mayúsculas (suponiendo que es requerido)
+        tipo = form.cleaned_data['tipo'].upper()
+
+        try:
+            with transaction.atomic():
+                # Generar código único para el equipo
+                form.instance.code = generate_equipo_code(asset_abbreviation, tipo)
+                form.instance.modified_by = self.request.user
+                # Guarda el registro del equipo; esto asigna self.object
+                response = super().form_valid(form)
+        except IntegrityError:
+            form.add_error('code', 'Error al generar un código único. Por favor, inténtalo de nuevo.')
+            return self.form_invalid(form, upload_form)
+
+        # Una vez guardado el equipo, se procesan las imágenes
+        for file in self.request.FILES.getlist('file_field'):
+            Image.objects.create(image=file, equipo=self.object)
+        messages.success(self.request, "Equipo creado exitosamente.")
+        return response
+
+    def form_invalid(self, form, upload_form):
+        context = self.get_context_data(form=form, upload_form=upload_form)
+        return self.render_to_response(context)
+
     def get_success_url(self):
-        return reverse('got:equipo-detail', args=[self.object.code])
+        """
+        Redirige a la URL 'next' si está presente; de lo contrario redirige a la vista de detalle del sistema.
+        """
+        if self.next_url:
+            return self.next_url
+        else:
+            return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
+
+
+class EquipoUpdate(UpdateView):
+    model = Equipo
+    form_class = EquipoForm
+    template_name = 'got/systems/equipo_form.html'
+    http_method_names = ['get', 'post']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Guardar la URL previa en self.next_url, si la hay
+        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
+        self.next_to = request.GET.get('next_to') or request.POST.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        equipo = Equipo.objects.get(pk=self.kwargs['pk'])
+        kwargs['system'] = get_object_or_404(System, equipos=equipo)
+        return kwargs
+    
+    def get_object(self, queryset=None):
+        """
+        Sobrescribimos get_object para almacenar el tipo y code ANTES de que el form 
+        actualice la instancia.
+        """
+        obj = super().get_object(queryset)
+        # Guardar en atributos de la vista (self) los valores "viejos"
+        self.old_tipo = obj.tipo  
+        self.old_code = obj.code
+        return obj
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Formulario para carga de imágenes
+        if self.request.POST:
+            context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
+        else:
+            context['upload_form'] = UploadImages()
+        # Formset para mostrar las imágenes ya asociadas al equipo
+        ImageFormset = modelformset_factory(Image, fields=('image',), extra=0)
+        context['image_formset'] = ImageFormset(queryset=self.object.images.all())
+        # Agregar la cantidad de imágenes
+        context['image_count'] = self.object.images.count()
+        context['next_url'] = self.next_url
+        context['next_to'] = self.next_to
+        return context
+    
+    def form_valid(self, form):
+        form.instance.modified_by = self.request.user
+        response = super().form_valid(form)
+
+        new_tipo = self.object.tipo  # el "tipo" que el usuario seleccionó 
+        new_code = self.object.code 
+
+        if new_tipo != self.old_tipo:
+            # Llamar a la función update_equipo_code con el code viejo
+            update_equipo_code(self.old_code)
+            messages.info(
+                self.request, 
+                f"El tipo cambió de '{self.old_tipo}' a '{new_tipo}'. Se actualizó el código del equipo."
+            )
+        
+        upload_form = self.get_context_data()['upload_form']
+        if upload_form.is_valid():
+            for file in self.request.FILES.getlist('file_field'):
+                Image.objects.create(image=file, equipo=self.object)
+                print(file)
+        return response
+    
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        # Opción para eliminar imagen vía formulario tradicional (fallback)
+        if "delete_image" in request.POST:
+            image_id = request.POST.get("delete_image")
+            Image.objects.filter(id=image_id, equipo=self.object).delete()
+            return redirect(self.get_success_url())
+        return super().post(request, *args, **kwargs)
+    
+    def get_success_url(self):
+        # Construir la URL de la vista de detalle y agregarle el parámetro previous_url
+        url = reverse('got:equipo-detail', kwargs={'pk': self.object.pk})
+        if self.next_to:
+            params = {'previous_url': self.next_to}
+            url = f"{url}?{urlencode(params)}"
+        elif self.next_url:
+            # Si no se especificó next_to, puedes usar next_url o un fallback
+            return self.next_url
+        return url
+
+
+class EquipoDeleteImageView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        # Obtener el Equipo
+        equipo = get_object_or_404(Equipo, pk=pk)
+        # Obtener el ID de la imagen desde el POST
+        image_id = request.POST.get('image_id')
+        if not image_id:
+            return JsonResponse({'error': 'No se proporcionó el ID de la imagen.'}, status=400)
+        
+        # Obtener la imagen y asegurarse de que pertenece al equipo
+        image = get_object_or_404(Image, id=image_id, equipo=equipo)
+        
+        # Eliminar la imagen
+        image.delete()
+        
+        # Devolver la cantidad actualizada de imágenes
+        image_count = equipo.images.count()
+        return JsonResponse({'success': True, 'image_count': image_count})
+
+
+class EquipoDelete(DeleteView):
+    model = Equipo
+    template_name = 'got/systems/equipo_confirm_delete.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Capturar la next_url
+        self.next_url = request.GET.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_success_url(self):
+        # Redirigir a next si existe
+        if self.next_url:
+            return self.next_url
+        # fallback
+        sys_code = self.object.system.id
+        return reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
+
+
+def add_supply_to_equipment(request, code):
+    equipo = get_object_or_404(Equipo, code=code)
+    if request.method == 'POST':
+        form = SuministrosEquipoForm(request.POST)
+        if form.is_valid():
+            suministro = form.save(commit=False)
+            suministro.equipo = equipo
+            suministro.save()
+            return redirect(reverse('got:sys-detail', args=[equipo.system.id, equipo.code]))
 
 
 @login_required
@@ -651,9 +780,7 @@ def reportHoursAsset(request, asset_id):
         for reg in registros:
             if reg.report_date in horas_reportadas:
                 horas_reportadas[reg.report_date]['hour'] = reg.hour
-                horas_reportadas[reg.report_date]['reporter'] = (
-                    reg.reporter.username if reg.reporter else None
-                )
+                horas_reportadas[reg.report_date]['reporter'] = (reg.reporter.username if reg.reporter else None)
                 horas_reportadas[reg.report_date]['hist_id'] = reg.id
 
         # Crear lista en el mismo orden que `dates`
@@ -674,12 +801,8 @@ def reportHoursAsset(request, asset_id):
         for data in equipos_data:
             fila['valores'].append(data['horas'][i])
         transposed_data.append(fila)
-
-    # --------------------------------------------------------------------------
-    # 3. Renderizar la plantilla
-    # --------------------------------------------------------------------------
     context = {
-        'form': form,  # el formulario tradicional, sea vacío o con errores
+        'form': form,
         'horas': hours,
         'asset': asset,
         'equipos_data': equipos_data,
@@ -922,222 +1045,6 @@ def asset_maintenance_pdf(request, asset_id):
     }
 
     return render_to_pdf('got/systems/asset_pdf_template.html', context)
-
-
-class EquipoCreateView(LoginRequiredMixin, CreateView):
-    model = Equipo
-    form_class = EquipoForm
-    template_name = 'got/systems/equipo_form.html'
-    http_method_names = ['get', 'post']
-
-    def dispatch(self, request, *args, **kwargs):
-        # Guarda la URL previa si está presente para redirigir luego
-        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_system(self):
-        # Recupera el sistema utilizando el parámetro 'pk' de la URL
-        return get_object_or_404(System, pk=self.kwargs['pk'])
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        # Se inyecta el objeto system en los argumentos del formulario
-        kwargs['system'] = self.get_system()
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Se instancia el formulario de carga de imágenes
-        if self.request.POST:
-            context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
-        else:
-            context['upload_form'] = UploadImages()
-        context['sys'] = self.get_system()
-        return context
-
-    def post(self, request, *args, **kwargs):
-        self.object = None  # Asegurarse de que self.object esté inicializado
-        form = self.get_form()
-        upload_form = UploadImages(request.POST, request.FILES)
-        # Se validan ambos formularios
-        if form.is_valid() and upload_form.is_valid():
-            return self.form_valid(form, upload_form)
-        else:
-            return self.form_invalid(form, upload_form)
-
-    def form_valid(self, form, upload_form):
-        system = self.get_system()
-        form.instance.system = system
-        asset_abbreviation = system.asset.abbreviation
-        # Convertir el tipo a mayúsculas (suponiendo que es requerido)
-        tipo = form.cleaned_data['tipo'].upper()
-
-        try:
-            with transaction.atomic():
-                # Generar código único para el equipo
-                form.instance.code = generate_equipo_code(asset_abbreviation, tipo)
-                form.instance.modified_by = self.request.user
-                # Guarda el registro del equipo; esto asigna self.object
-                response = super().form_valid(form)
-        except IntegrityError:
-            form.add_error('code', 'Error al generar un código único. Por favor, inténtalo de nuevo.')
-            return self.form_invalid(form, upload_form)
-
-        # Una vez guardado el equipo, se procesan las imágenes
-        for file in self.request.FILES.getlist('file_field'):
-            Image.objects.create(image=file, equipo=self.object)
-        messages.success(self.request, "Equipo creado exitosamente.")
-        return response
-
-    def form_invalid(self, form, upload_form):
-        context = self.get_context_data(form=form, upload_form=upload_form)
-        return self.render_to_response(context)
-
-    def get_success_url(self):
-        """
-        Redirige a la URL 'next' si está presente; de lo contrario redirige a la vista de detalle del sistema.
-        """
-        if self.next_url:
-            return self.next_url
-        else:
-            return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
-
-
-class EquipoUpdate(UpdateView):
-    model = Equipo
-    form_class = EquipoForm
-    template_name = 'got/systems/equipo_form.html'
-    http_method_names = ['get', 'post']
-
-    def dispatch(self, request, *args, **kwargs):
-        # Guardar la URL previa en self.next_url, si la hay
-        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        equipo = Equipo.objects.get(pk=self.kwargs['pk'])
-        kwargs['system'] = get_object_or_404(System, equipos=equipo)
-        return kwargs
-    
-    def get_object(self, queryset=None):
-        """
-        Sobrescribimos get_object para almacenar el tipo y code ANTES de que el form 
-        actualice la instancia.
-        """
-        obj = super().get_object(queryset)
-        # Guardar en atributos de la vista (self) los valores "viejos"
-        self.old_tipo = obj.tipo  
-        self.old_code = obj.code
-        return obj
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Formulario para carga de imágenes
-        if self.request.POST:
-            context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
-        else:
-            context['upload_form'] = UploadImages()
-        # Formset para mostrar las imágenes ya asociadas al equipo
-        ImageFormset = modelformset_factory(Image, fields=('image',), extra=0)
-        context['image_formset'] = ImageFormset(queryset=self.object.images.all())
-        # Agregar la cantidad de imágenes
-        context['image_count'] = self.object.images.count()
-        context['next_url'] = self.next_url
-        return context
-    
-    def form_valid(self, form):
-
-        form.instance.modified_by = self.request.user
-        response = super().form_valid(form)
-
-        new_tipo = self.object.tipo  # el "tipo" que el usuario seleccionó 
-        new_code = self.object.code 
-
-        if new_tipo != self.old_tipo:
-            # Llamar a la función update_equipo_code con el code viejo
-            update_equipo_code(self.old_code)
-            messages.info(
-                self.request, 
-                f"El tipo cambió de '{self.old_tipo}' a '{new_tipo}'. Se actualizó el código del equipo."
-            )
-        
-        upload_form = self.get_context_data()['upload_form']
-        if upload_form.is_valid():
-            for file in self.request.FILES.getlist('file_field'):
-                Image.objects.create(image=file, equipo=self.object)
-                print(file)
-        return response
-    
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        # Opción para eliminar imagen vía formulario tradicional (fallback)
-        if "delete_image" in request.POST:
-            image_id = request.POST.get("delete_image")
-            Image.objects.filter(id=image_id, equipo=self.object).delete()
-            return redirect(self.get_success_url())
-        return super().post(request, *args, **kwargs)
-    
-    def get_success_url(self):
-        """
-        Si existe la self.next_url, redirige allí.
-        De lo contrario, comportarse como antes (por ejemplo, al System detail).
-        """
-        if self.next_url:
-            return self.next_url
-        else:
-            # fallback
-            sys_code = self.object.system.id
-            return reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
-
-
-class EquipoDeleteImageView(LoginRequiredMixin, View):
-    def post(self, request, pk):
-        # Obtener el Equipo
-        equipo = get_object_or_404(Equipo, pk=pk)
-        # Obtener el ID de la imagen desde el POST
-        image_id = request.POST.get('image_id')
-        if not image_id:
-            return JsonResponse({'error': 'No se proporcionó el ID de la imagen.'}, status=400)
-        
-        # Obtener la imagen y asegurarse de que pertenece al equipo
-        image = get_object_or_404(Image, id=image_id, equipo=equipo)
-        
-        # Eliminar la imagen
-        image.delete()
-        
-        # Devolver la cantidad actualizada de imágenes
-        image_count = equipo.images.count()
-        return JsonResponse({'success': True, 'image_count': image_count})
-
-
-class EquipoDelete(DeleteView):
-    model = Equipo
-    template_name = 'got/systems/equipo_confirm_delete.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        # Capturar la next_url
-        self.next_url = request.GET.get('next') or ''
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get_success_url(self):
-        # Redirigir a next si existe
-        if self.next_url:
-            return self.next_url
-        # fallback
-        sys_code = self.object.system.id
-        return reverse_lazy('got:sys-detail', kwargs={'pk': sys_code})
-
-
-def add_supply_to_equipment(request, code):
-    equipo = get_object_or_404(Equipo, code=code)
-    if request.method == 'POST':
-        form = SuministrosEquipoForm(request.POST)
-        if form.is_valid():
-            suministro = form.save(commit=False)
-            suministro.equipo = equipo
-            suministro.save()
-            return redirect(reverse('got:sys-detail', args=[equipo.system.id, equipo.code]))
 
 
 'FAILURE REPORTS VIEW'
@@ -1687,12 +1594,6 @@ def ot_pdf(request, num_ot):
     return response
 
 
-from django.db.models import Func
-
-class DayInterval(Func):
-    template = "(%(expressions)s * interval '1 day')"
-
-
 'TASKS VIEW'
 class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
     model = Task
@@ -1708,10 +1609,12 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         # Incluimos los parámetros de fecha para poder construir el enlace al PDF
         context['start_date'] = self.request.GET.get('start_date', '')
         context['end_date'] = self.request.GET.get('end_date', '')
+        context['finalizados'] = self.request.GET.get('finalizados', '0')
         return context
 
     def get_queryset(self):
-        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('start_date')
+        finished_filter = self.request.GET.get('finalizados', '0') 
+        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False).order_by('start_date')
         current_user = self.request.user
 
         asset_id = self.request.GET.get('asset_id')
@@ -1737,6 +1640,14 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
             except ValueError:
                 pass  # Si hay error en el formato, no filtramos por fecha
 
+        # Filtrado por estado (finished)
+        finalizados_param = self.request.GET.get('finalizados', '0')
+        if finalizados_param == '0':
+            queryset = queryset.filter(finished=False)
+        elif finalizados_param == '1':
+            queryset = queryset.filter(finished=True)
+        # Si es "2", no se aplica filtro alguno
+
         if current_user.groups.filter(name='serport_members').exists():
             return queryset.filter(responsible=current_user)
         elif current_user.groups.filter(name='super_members').exists():
@@ -1748,7 +1659,72 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 
 @login_required
 def assignedTasks_pdf(request):
-    queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('ot__system__asset__name', 'start_date')
+    queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False).order_by('ot__system__asset__name', 'start_date')
+
+    asset_id = request.GET.get('asset_id')
+    if asset_id:
+        queryset = queryset.filter(ot__system__asset_id=asset_id)
+
+    responsable_id = request.GET.get('worker')
+    if responsable_id:
+        queryset = queryset.filter(responsible=responsable_id)
+
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            queryset = queryset.annotate(
+                calc_final_date=ExpressionWrapper(
+                    F('start_date') + DayInterval(F('men_time')),
+                    output_field=DateField()
+                )
+            ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
+        except ValueError:
+            pass
+
+    # Filtrar por finalizados (0: pendientes, 1: finalizadas, 2: ambas)
+    finalizados_param = request.GET.get('finalizados', '0')
+    if finalizados_param == '0':
+        queryset = queryset.filter(finished=False)
+    elif finalizados_param == '1':
+        queryset = queryset.filter(finished=True)
+
+    current_user = request.user
+    if current_user.groups.filter(name='serport_members').exists():
+        queryset = queryset.filter(responsible=current_user)
+    elif current_user.groups.filter(name='super_members').exists():
+        pass
+    elif current_user.groups.filter(name='maq_members').exists():
+        queryset = queryset.filter(ot__system__asset__supervisor=current_user)
+    elif current_user.groups.filter(name='buzos_members').exists():
+        user_station = current_user.profile.station
+        if user_station:
+            queryset = queryset.filter(ot__system__asset__area='b', ot__system__location__in=user_station)
+        else:
+            queryset = queryset.filter(ot__system__asset__area='b')
+    else:
+        queryset = queryset.none()
+
+    context = {
+        'tasks': queryset,
+        'start': start_date_str,
+        'end': end_date_str,
+        'finalizados': finalizados_param
+    }
+    return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
+
+import io
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.utils import get_column_letter
+import requests
+
+@login_required
+def assignedTasks_excel(request):
+    queryset = Task.objects.filter(ot__isnull=False, ot__state='x', start_date__isnull=False, finished=False).order_by('ot__system__asset__name', 'start_date')
 
     asset_id = request.GET.get('asset_id')
     if asset_id:
@@ -1780,17 +1756,145 @@ def assignedTasks_pdf(request):
         pass
     elif current_user.groups.filter(name='maq_members').exists():
         queryset = queryset.filter(ot__system__asset__supervisor=current_user)
-    elif current_user.groups.filter(name='buzos_members').exists():
-        user_station = current_user.profile.station
-        if user_station:
-            queryset = queryset.filter(ot__system__asset__area='b', ot__system__location__in=user_station)
-        else:
-            queryset = queryset.filter(ot__system__asset__area='b')
     else:
         queryset = queryset.none()
 
-    context = {'tasks': queryset, 'start': start_date, 'end': end_date}
-    return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
+    # Construimos las filas con la información de cada equipo
+    data = []
+    counter = 1
+    for task in queryset:
+        row = [
+            counter,
+            str(task.ot),
+            task.ot.system.asset.name,
+            task.description,
+            task.responsible.get_full_name(),
+            task.start_date,
+            task.men_time,
+        ]
+        data.append(row)
+        counter += 1
+
+    # 4. Crear el workbook y las hojas
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Actividades"
+
+    # Definir un borde delgado en color negro
+    thin_border = Border(
+        left=Side(style='thin', color="000000"),
+        right=Side(style='thin', color="000000"),
+        top=Side(style='thin', color="000000"),
+        bottom=Side(style='thin', color="000000")
+    )
+
+    # Fila 1: Título
+    # ws.merge_cells('A1:E1')
+    ws.merge_cells('A1:B3')
+    ws.merge_cells('C1:E3')
+    ws['C1'] = "ACTIVIDADES PROGRAMADAS"
+    ws['C1'].font = Font(bold=True, size=16, name='Arial')
+    ws['C1'].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 20
+
+    # Fila 2: Formato, versión y fecha de actualización
+    ws.merge_cells('F1:G1')
+    ws['F1'] = "FORMATO:"
+    ws['F1'].font = Font(bold=True, name='Arial')
+    ws['F1'].alignment = Alignment(horizontal="center")
+
+    # Fila 2: Formato, versión y fecha de actualización
+    ws.merge_cells('F2:G2')
+    ws['F2'] = "VERSION: 001"
+    ws['F2'].font = Font(bold=True, name='Arial')
+    ws['F2'].alignment = Alignment(horizontal="center")
+
+    # Fila 2: Formato, versión y fecha de actualización
+    ws.merge_cells('F3:G3')
+    ws['F3'] = "FECHA DE ACTUALIZACIÓN:"
+    ws['F3'].font = Font(bold=True, name='Arial')
+    ws['F3'].alignment = Alignment(horizontal="center")
+
+    ws.row_dimensions[1].height = 20
+    ws.row_dimensions[2].height = 20
+    ws.row_dimensions[3].height = 20
+
+    # Fila 4-5: Datos del acta (por ejemplo, NRO DE ACTA, FECHA/HORA INICIO, CIUDAD, DEPENDENCIA)
+    ws.merge_cells('A4:B4')
+    ws['A4'] = "FECHA:"
+    ws['A4'].font = Font(bold=True, name='Arial')
+    
+    ws.merge_cells('C4:G4')
+    ws['C4'] = start_date
+    ws['C4'].font = Font(bold=True, name='Arial')
+    ws['F3'].alignment = Alignment(horizontal="left")
+
+    header_ranges = ["A1:B3", "C1:E3", "F1:G1", "F2:G2", "F3:G3", "A4:B4", "C4:G4"]
+    for merged_range in header_ranges:
+        for row in ws[merged_range]:
+            for cell in row:
+                cell.border = thin_border
+
+    # Encabezados originales para Equipos
+    headers = [
+        'ITEM', 'OT', 'EQUIPO', 'ACTIVIDAD', 'RESPONSABLE', 'FECHA INICIO', 'TIEMPO EJECUCIÓN (DÍAS)'
+    ]
+    start_row = 5  # Ajusta según lo necesites
+    # Escribir encabezados con fondo azul (color 4d93d9) y texto blanco
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=start_row, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True, color="ffffff", name='Arial')
+        cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    # Escribir los datos y asignar el borde negro a cada celda de la tabla
+    current_row = start_row + 1
+    for row_data in data:
+        for col_num, cell_value in enumerate(row_data, 1):
+            cell = ws.cell(row=current_row, column=col_num)
+            cell.value = cell_value
+            cell.font = Font(name='Arial')
+            cell.border = thin_border
+        current_row += 1
+
+    # Ajuste de anchos para la hoja de Equipos
+    for idx, column_cells in enumerate(ws.columns, 1):
+        length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in column_cells)
+        col_letter = get_column_letter(idx)
+        ws.column_dimensions[col_letter].width = length + 2
+
+    # === Insertar la imagen desde la URL ===
+    url = "https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png"
+    img_response = requests.get(url)
+    if img_response.status_code == 200:
+        image_data = BytesIO(img_response.content)
+        from openpyxl.drawing.image import Image  # Asegúrate de tener este import
+        img = Image(image_data)
+        # Asignar dimensiones a la imagen para evitar el error
+        img.width = 300   # Ajusta según tus necesidades
+        img.height = 80   # Ajusta según tus necesidades
+        # Insertar la imagen en la hoja de Equipos, por ejemplo en la celda A1
+        ws.add_image(img, "A1")
+        # ws_equips.row_dimensions[1].height = 30
+        print(ws.row_dimensions[1].height)
+
+    else:
+        print("No se pudo descargar la imagen.")
+
+    # Exportar a HttpResponse
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"{start_date}_actividades.xlsx"
+    response = HttpResponse(
+        output,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename={filename}'
+    return response
 
 
 class TaskCreate(CreateView):
@@ -2853,53 +2957,6 @@ def edit_item(request, item_id):
         form = ItemForm(instance=item)
 
     return render(request, 'got/solicitud/edit_item.html', {'form': form, 'item': item})
-
-
-def export_asset_system_equipo_excel(request):
-    # Crear un nuevo libro de trabajo (Excel)
-    workbook = openpyxl.Workbook()
-    worksheet = workbook.active
-    worksheet.title = 'Asset-System-Equipo'
-
-    # Definir los encabezados de la hoja de Excel
-    headers = ['Asset', 'System', 'System Code', 'Equipo', 'Equipo Code']
-    worksheet.append(headers)
-
-    # Obtener los datos de los Assets, Systems y Equipos
-    assets = Asset.objects.prefetch_related('system_set__equipos')
-
-    for asset in assets:
-        for system in asset.system_set.all():
-            for equipo in system.equipos.all():
-                # Agregar una fila para cada Asset, System, Equipo y Equipo Code
-                worksheet.append([asset.name, system.name, equipo.name, equipo.code])
-
-    # Establecer el tipo de contenido de la respuesta HTTP
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=Asset_System_Equipo.xlsx'
-    workbook.save(response)
-    return response
-
-
-
-class CustomPasswordResetView(PasswordResetView):
-    email_template_name = 'registration/password_reset_email.txt'  # Plantilla de texto plano
-    html_email_template_name = 'registration/password_reset_email.html'  # Plantilla HTML
-    subject_template_name = 'registration/password_reset_subject.txt'  # Plantilla para el asunto
-    domain_override = settings.MY_SITE_DOMAIN  # Establece el dominio
-
-    def get_extra_email_context(self):
-        # Determinar el protocolo
-        protocol = 'https' if self.request.is_secure() else 'http'
-
-        # Obtener el nombre del sitio
-        site_name = settings.MY_SITE_NAME  # Define esto en settings.py
-
-        return {
-            'protocol': protocol,
-            'domain': self.domain_override,
-            'site_name': site_name,
-        }
     
 
 class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
@@ -3045,283 +3102,6 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
         if not alerta_reports.exists() and not novedades_reports.exists():
             if not requires_maintenance and all_up_to_date:
                 states.append(('Ok', '#86e49d'))  # Verde
-
-        return states, state_data
-
-
-class BuceoMttoView(LoginRequiredMixin, TemplateView):
-    template_name = 'got/mantenimiento/buceomtto.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        location_filter = self.request.GET.get('location', None)
-        buceo_assets = Asset.objects.filter(area='b', show=True)
-
-        all_rutinas = Ruta.objects.filter(system__asset__in=buceo_assets).exclude(system__state__in=['x', 's'])
-        if location_filter:
-            all_rutinas = all_rutinas.filter(system__location=location_filter)
-        rutina_names = set(all_rutinas.values_list('name', flat=True))
-        rutina_names = sorted(rutina_names)
-
-        buceo_data = []
-        for asset in buceo_assets:
-            asset_rutinas = Ruta.objects.filter(system__asset=asset).exclude(system__state__in=['x', 's'])
-            if location_filter:
-                asset_rutinas = asset_rutinas.filter(system__location=location_filter)
-
-            rutina_status = {}
-            for rutina_name in rutina_names:
-                rutinas = asset_rutinas.filter(name=rutina_name)
-                status = self.evaluate_rutina_status(rutinas)
-                rutina_status[rutina_name] = status
-        
-            general_states, state_data = self.evaluate_general_state(asset)
-
-            buceo_data.append({
-                'asset': asset,
-                'general_states': general_states,
-                'state_data': state_data,
-                'rutina_status': rutina_status,
-            })
-
-        context['buceo_data'] = buceo_data
-        context['rutina_names'] = rutina_names
-
-        # Obtener las ubicaciones únicas para el filtro
-        locations = System.objects.filter(asset__in=buceo_assets).values_list('location', flat=True).distinct()
-        unique_locations = sorted(set(location.strip() for location in locations if location))
-        context['locations'] = unique_locations
-        context['current_location'] = location_filter
-
-        return context
-
-    def evaluate_rutina_status(self, rutinas):
-        if not rutinas.exists():
-            return None
-        today = date.today()
-        requires_maintenance = False
-        all_up_to_date = True
-        has_planeacion = False
-        overdue_rutinas = []
-        planeacion_rutinas = []
-
-        for ruta in rutinas:
-            next_date = ruta.next_date
-            if next_date and next_date < today:
-                requires_maintenance = True
-                all_up_to_date = False
-                overdue_rutinas.append(ruta)
-            elif not next_date:
-                requires_maintenance = True
-                all_up_to_date = False
-                overdue_rutinas.append(ruta)
-            percentage = ruta.percentage_remaining
-            if percentage and 0 < percentage < 15:
-                has_planeacion = True
-                planeacion_rutinas.append(ruta)
-
-        if requires_maintenance:
-            return ('Requiere', '#FF00FF', overdue_rutinas)  # Rojo
-        elif has_planeacion:
-            return ('Planeación', '#ffff00', planeacion_rutinas)  # Amarillo
-        elif all_up_to_date:
-            return ('Ok', '#86e49d', [])  # Verde
-        else:
-            return ('---', '#ffffff', [])  # Sin estado
-
-    def evaluate_general_state(self, asset):
-        failure_reports = FailureReport.objects.filter(
-            equipo__system__asset=asset,
-            equipo__system__state__in=['m', 'o'],
-            closed=False
-        ).select_related('equipo', 'related_ot').prefetch_related(
-            Prefetch(
-                'related_ot__task_set',
-                queryset=Task.objects.filter(finished=False),
-                to_attr='tasks_in_execution'
-            )
-        )
-
-        ots = Ot.objects.filter(system__asset=asset, state='x').prefetch_related(
-            Prefetch(
-                'task_set',
-                queryset=Task.objects.filter(finished=False),
-                to_attr='tasks_in_execution'
-            )
-        )
-
-        ots_with_tasks_in_execution = []
-        ots_without_tasks_in_execution = []
-
-        for ot in ots:
-            if ot.tasks_in_execution:
-                ots_with_tasks_in_execution.append(ot)
-            else:
-                ots_without_tasks_in_execution.append(ot)
-
-        states = []
-        state_data = {}
-
-        # Estado "Alerta"
-        alerta_reports = failure_reports.filter(critico=True)
-        if alerta_reports.exists():
-            states.append(('Alerta', '#cc0000'))  # Rojo intenso
-            state_data['Alerta'] = alerta_reports
-
-        # Estado "Novedades"
-        novedades_reports = failure_reports.filter(critico=False)
-        if novedades_reports.exists():
-            states.append(('Novedades', '#ffa500'))  # Naranja
-            state_data['Novedades'] = novedades_reports
-
-        # Estado "Trabajando"
-        if ots_with_tasks_in_execution:
-            states.append(('Trabajando', '#800080'))  # Morado
-            state_data['Trabajando'] = ots_with_tasks_in_execution
-
-        # Estado "Pendientes"
-        if ots_without_tasks_in_execution:
-            states.append(('Pendientes', '#025669'))  # Azul oscuro
-            state_data['Pendientes'] = ots_without_tasks_in_execution
-
-        return states, state_data
-
-
-class VehiculosMttoView(LoginRequiredMixin, TemplateView):
-    template_name = 'got/mantenimiento/vehiculosmtto.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        veh_asset = get_object_or_404(Asset, abbreviation='VEH')
-
-        # Obtenemos todos los sistemas asociados a este asset que estén en estado 'm' o 'o' (mantenimiento u operativo)
-        systems = System.objects.filter(asset=veh_asset).exclude(state__in=['x', 's'])
-
-        # Filtramos todas las rutinas de todos los sistemas
-        all_rutinas = Ruta.objects.filter(system__in=systems)
-        # Extraemos los nombres únicos de rutinas
-        rutina_names = set(all_rutinas.values_list('name', flat=True))
-        rutina_names = sorted(rutina_names)
-
-        veh_data = []
-        for system in systems:
-            # Rutinas de este sistema
-            system_rutinas = Ruta.objects.filter(system=system).exclude(system__state__in=['x', 's'])
-
-            rutina_status = {}
-            for rutina_name in rutina_names:
-                rutinas = system_rutinas.filter(name=rutina_name)
-                status = self.evaluate_rutina_status(rutinas)
-                rutina_status[rutina_name] = status
-
-            general_states, state_data = self.evaluate_general_state(system)
-
-            veh_data.append({
-                'system': system,  # Sistema que representa el vehiculo
-                'general_states': general_states,
-                'state_data': state_data,
-                'rutina_status': rutina_status,
-            })
-
-        context['veh_data'] = veh_data
-        context['rutina_names'] = rutina_names
-
-        return context
-
-    def evaluate_rutina_status(self, rutinas):
-        if not rutinas.exists():
-            return None
-        today = date.today()
-        requires_maintenance = False
-        all_up_to_date = True
-        has_planeacion = False
-        overdue_rutinas = []
-        planeacion_rutinas = []
-
-        for ruta in rutinas:
-            next_date = ruta.next_date
-            if next_date and next_date < today:
-                requires_maintenance = True
-                all_up_to_date = False
-                overdue_rutinas.append(ruta)
-            elif not next_date:
-                requires_maintenance = True
-                all_up_to_date = False
-                overdue_rutinas.append(ruta)
-            percentage = ruta.percentage_remaining
-            if percentage and 0 < percentage < 15:
-                has_planeacion = True
-                planeacion_rutinas.append(ruta)
-
-        if requires_maintenance:
-            return ('Requiere', '#cc0000', overdue_rutinas)  # Rojo
-        elif has_planeacion:
-            return ('Planeación', '#ffff00', planeacion_rutinas)  # Amarillo
-        elif all_up_to_date:
-            return ('Ok', '#86e49d', [])  # Verde
-        else:
-            return ('---', '#ffffff', [])  # Sin estado
-
-    def evaluate_general_state(self, system):
-        # Evaluamos el estado general del sistema: fallas y OTs
-        equipos = system.equipos.all()
-        failure_reports = FailureReport.objects.filter(
-            equipo__in=equipos,
-            closed=False
-        ).select_related('equipo', 'related_ot').prefetch_related(
-            Prefetch(
-                'related_ot__task_set',
-                queryset=Task.objects.filter(finished=False),
-                to_attr='tasks_in_execution'
-            )
-        )
-
-        ots = Ot.objects.filter(system=system, state='x').prefetch_related(
-            Prefetch(
-                'task_set',
-                queryset=Task.objects.filter(finished=False),
-                to_attr='tasks_in_execution'
-            )
-        )
-
-        ots_with_tasks_in_execution = []
-        ots_without_tasks_in_execution = []
-
-        for ot in ots:
-            if ot.tasks_in_execution:
-                ots_with_tasks_in_execution.append(ot)
-            else:
-                ots_without_tasks_in_execution.append(ot)
-
-        states = []
-        state_data = {}
-
-        # Estado "Alerta"
-        alerta_reports = failure_reports.filter(critico=True)
-        if alerta_reports.exists():
-            states.append(('Alerta', '#cc0000')) 
-            state_data['Alerta'] = alerta_reports
-
-        # Estado "Novedades"
-        novedades_reports = failure_reports.filter(critico=False)
-        if novedades_reports.exists():
-            states.append(('Novedades', '#ffa500')) 
-            state_data['Novedades'] = novedades_reports
-
-        # Estado "Trabajando"
-        if ots_with_tasks_in_execution:
-            states.append(('Trabajando', '#800080')) 
-            state_data['Trabajando'] = ots_with_tasks_in_execution
-
-        # Estado "Pendientes"
-        if ots_without_tasks_in_execution:
-            states.append(('Pendientes', '#025669'))
-            state_data['Pendientes'] = ots_without_tasks_in_execution
-
-        # Si no hay alertas ni novedades y no entra en las otras categorías, entonces está OK
-        if not alerta_reports.exists() and not novedades_reports.exists():
-            if not states:
-                states.append(('Ok', '#86e49d'))
 
         return states, state_data
 
@@ -3645,7 +3425,6 @@ class BudgetView(TemplateView):
             messages.error(request, 'Acción no reconocida.')
             return redirect('got:budget_view')
 
-from django.db.models import Q
 
 class BudgetSummaryByAssetView(TemplateView):
     template_name = 'got/mantenimiento/budget_summary_view.html'
@@ -3844,3 +3623,22 @@ def managerial_asset_report_pdf(request, abbreviation):
     }
 
     return render_to_pdf('got/systems/managerial_asset_report.html', context)
+
+class CustomPasswordResetView(PasswordResetView):
+    email_template_name = 'registration/password_reset_email.txt'  # Plantilla de texto plano
+    html_email_template_name = 'registration/password_reset_email.html'  # Plantilla HTML
+    subject_template_name = 'registration/password_reset_subject.txt'  # Plantilla para el asunto
+    domain_override = settings.MY_SITE_DOMAIN  # Establece el dominio
+
+    def get_extra_email_context(self):
+        # Determinar el protocolo
+        protocol = 'https' if self.request.is_secure() else 'http'
+
+        # Obtener el nombre del sitio
+        site_name = settings.MY_SITE_NAME  # Define esto en settings.py
+
+        return {
+            'protocol': protocol,
+            'domain': self.domain_override,
+            'site_name': site_name,
+        }

@@ -127,18 +127,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="container-fluid p-3 d-flex flex-wrap">
                             <!-- Ejemplo de “columnas” dentro del mega-menu -->
                         
-                            <!-- <div class="flex-fill me-4">
+                            <div class="flex-fill me-4">
                                 <ul class="list-unstyled">
                                 {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
                                     <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'got:vehiculosmtto' %}">Vehiculos</a></li>
-                                {% endif %}
-                                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" or request.user|has_group:"buzos_members" %}
-                                    <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
                                 {% endif %}
                                 </ul>
-                            </div> -->
+                            </div>
 
                             <div class="flex-fill me-4">
                                 <h5 class="text-white">OT y Fallas</h5>
@@ -165,10 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             <ul class="list-unstyled">
                                 {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
                                 <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
-                                <li><a class="dropdown-item" href="{% url 'got:vehiculosmtto' %}">Vehiculos</a></li>
-                                {% endif %}
-                                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" or request.user|has_group:"buzos_members" %}
-                                <li><a class="dropdown-item" href="{% url 'got:buceomtto' %}">Buceo</a></li>
                                 <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
                                 {% endif %}
                             </ul>
