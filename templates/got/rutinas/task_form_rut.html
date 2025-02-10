@@ -1,0 +1,15 @@
+{% extends "got/base/base_generic.html" %}
+
+{% block content %}
+<div class="container mt-2">
+    <h1>Actividades</h1>
+    <hr>
+    <form method="post">{% csrf_token %}
+        {{ form }}
+
+        <div class="form-group">
+            <input type="submit" value="Guardar cambios" class="btn btn-success mt-2"/>
+        </div>
+    </form>
+</div>
+{% endblock %}

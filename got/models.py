@@ -8,11 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from taggit.managers import TaggableManager
 from .paths import *
-from preoperacionales.models import Preoperacional, PreoperacionalDiario
 from outbound.models import Place
-from got.models_group.Item_model import Item
-from got.models_group.Service_model import Service
-from got.models_group.ActivityLog_model import ActivityLog
 
 import qrcode
 from io import BytesIO
@@ -65,16 +61,6 @@ class Asset(models.Model):
         for ruta in all_rutas:
             if ruta.next_date >= date.today():
                 compliant_weight += ruta.nivel
-
-            # elif ruta.control in ['h', 'k']:
-            #     accumulated_hours = ruta.equipo.hours.filter(
-            #         report_date__gte=ruta.intervention_date,
-            #         report_date__lte=date.today()
-            #     ).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
-
-            #     if accumulated_hours <= ruta.frecuency:
-            #         compliant_weight += ruta.nivel
-            #         print(ruta.nivel)
 
         compliance_percentage = (compliant_weight / total_niveles) * 100
         return round(compliance_percentage, 2)
@@ -432,7 +418,37 @@ class Ruta(models.Model):
         return reverse('got:sys-detail', args=[str(self.system.id)])
 
     class Meta:
-        ordering = ['equipo__name', 'control', 'frecuency']
+        ordering = ['control', 'frecuency', 'equipo__name']
+
+
+class Item(models.Model):
+    SECCION = (('c', 'Consumibles'), ('h', 'Herramientas y Elementos'), ('r', 'Repuestos'))
+    name = models.CharField(max_length=50)
+    reference = models.CharField(max_length=100, null=True, blank=True)
+    imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
+    presentacion = models.CharField(max_length=10)
+    code = models.CharField(max_length=50, null=True, blank=True)
+    seccion = models.CharField(max_length=1, choices=SECCION, default='c')
+    unit_price = models.DecimalField(max_digits=15, decimal_places=2, default=0.00) 
+    modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return f"{self.name} {self.reference}"
+
+    class Meta:
+        ordering = ['name', 'reference']
+
+
+# Model 4: Servicios
+class Service(models.Model):
+    description = models.CharField(max_length=200, unique=True)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return self.description
+
+    class Meta:
+        ordering = ['description']
 
 
 # Model 8: Requerimientos para realizar rutina de mantenimiento
@@ -492,7 +508,7 @@ class Task(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True) #En prueba
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True)
     responsible = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    user = models.CharField(max_length=50, blank=True, null=True)
+    user = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField()
     procedimiento = models.TextField(default="", blank=True, null=True)
     hse = models.TextField(default="", blank=True, null=True)
@@ -741,3 +757,18 @@ class Document(models.Model):
     def clean(self):
         if not (self.asset or self.ot or self.equipo):
             raise ValidationError('El documento debe estar asociado a un asset, OT o equipo.')
+        
+
+# Model 1: Registro de actividades
+class ActivityLog(models.Model):
+    user_name = models.CharField(max_length=100)
+    action = models.CharField(max_length=100)
+    model_name = models.CharField(max_length=100)
+    object_id = models.CharField(max_length=100, null=True, blank=True)
+    field_name = models.CharField(max_length=100, null=True, blank=True)
+    old_value = models.TextField(null=True, blank=True)
+    new_value = models.TextField(null=True, blank=True)
+    timestamp = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.user_name} {self.action} {self.model_name} {self.field_name} at {self.timestamp}"

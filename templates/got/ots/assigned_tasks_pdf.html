@@ -30,7 +30,9 @@
             <li><strong>Novedades: </strong>{{ act.news }}</li></li>
         </ul>
         <br>
-
+        {% for img in act.images.all %}
+            <img src="{{ img.image.url }}" alt="Imagen de la actividad" style="width: 100px;">
+        {% endfor %}
     {% endfor %}
 {% endfor %}
 {% endblock %}

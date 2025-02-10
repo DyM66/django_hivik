@@ -1,25 +1,10 @@
-{% extends "got/base_generic.html" %}
-
-{% block headtag %}
-<style>
-    .field-container {
-        margin-bottom: 20px;
-    }
-    .signature-pad {
-        border: 1px solid #000;
-        border-radius: 4px;
-        touch-action: none;
-    }
-</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/5.0.2/signature_pad.umd.min.js"></script>
-{% endblock %}
+{% extends "got/base/base_generic.html" %}
 
 {% block content %}
     <hr>
     <div class="container">
         <h1>Nueva orden de trabajo</h1>
-        <form method="post" enctype="multipart/form-data" id="ot-form">
-            {% csrf_token %}
+        <form method="post" enctype="multipart/form-data" id="ot-form">{% csrf_token %}
             {% for field in form %}
                 <div class="field-container">
                     {{ field.label_tag }}
@@ -28,35 +13,7 @@
                     {{ field.help_text }}
                 </div>
             {% endfor %}
-            
-            <!-- <div class="field-container">
-                <label for="signature-pad">Firma del Supervisor:</label>
-                <canvas id="signature-pad" class="signature-pad" width="400" height="200"></canvas>
-            </div>
-            <input type="hidden" id="signature-data" name="sign_supervisor"> -->
-            <input type="submit" value="Generar" class="btn btn-primary" />
+            <input type="submit" value="Generar" class="btn btn-primary mt-2" />
         </form>
     </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var canvas = document.getElementById('signature-pad');
-            var signaturePad = new SignaturePad(canvas, {
-                backgroundColor: 'rgb(255, 255, 255)',
-            });
-
-            var form = document.getElementById('ot-form');
-            form.addEventListener('submit', function(event) {
-                if (signaturePad.isEmpty()) {
-                    alert("Por favor, proporciona una firma primero.");
-                    event.preventDefault();  // Prevent form submission
-                } else {
-                    var dataURL = signaturePad.toDataURL("image/png");
-                    console.log("DataURL:", dataURL);
-                    document.getElementById('signature-data').value = dataURL;
-                    alert('Firma capturada correctamente.');
-                }
-            });
-        });
-    </script>
 {% endblock %}

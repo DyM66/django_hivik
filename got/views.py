@@ -20,7 +20,6 @@ from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.http import urlencode
-from django.utils.timezone import localdate
 from django.utils.translation import gettext as _
 from django.views import generic, View
 from django.views.decorators.cache import never_cache, cache_control
@@ -34,6 +33,105 @@ from .forms import *
 from django.db import transaction, IntegrityError
 
 logger = logging.getLogger(__name__)
+
+AREAS = {
+    'a': 'Motonave',
+    'c': 'Barcazas',
+    'o': 'Oceanografía',
+    'l': 'Locativo',
+    'v': 'Vehiculos',
+    'x': 'Apoyo',
+}
+
+class DashbordView(TemplateView):
+    template_name = 'got/mantenimiento/main.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+        try:
+            month = int(self.request.GET.get('month', today.month))
+        except ValueError:
+            month = today.month
+        try:
+            year = int(self.request.GET.get('year', today.year))
+        except ValueError:
+            year = today.year
+
+        period_start = date(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        period_end = date(year, month, last_day)
+
+        context['period_start'] = period_start
+        context['period_end'] = period_end
+        context['selected_month'] = month
+        context['selected_year'] = year
+
+        # Crear un "breadcrumb" o menú de meses para el año actual
+        months = []
+        for m in range(1, 13):
+            # Puedes personalizar los nombres usando un diccionario o la localización.
+            month_name = calendar.month_name[m]  # Por defecto en inglés; si deseas en español, puedes usar un diccionario
+            months.append({'number': m, 'name': month_name})
+        context['months'] = months
+
+        # Filtrar las rutinas cuyo "next_date" esté dentro del período
+        all_rutas = Ruta.objects.all()
+        grouped_by_asset = defaultdict(list)
+        for ruta in all_rutas:
+            # Obtener la fecha calculada para la siguiente ejecución
+            next_date = ruta.next_date
+            if next_date and period_start <= next_date <= period_end:
+                # Agrupar por activo (se obtiene a través de ruta.system.asset)
+                asset = ruta.system.asset
+                grouped_by_asset[asset].append(ruta)
+        rutas_by_asset = list(grouped_by_asset.items())
+
+        # Agrupar por área
+        grouped_by_area = defaultdict(list)
+        for asset, rutas in rutas_by_asset:
+            grouped_by_area[asset.area].append((asset, rutas))
+        context['grouped_by_area'] = list(grouped_by_area.items())
+        context['areas'] = AREAS
+        
+        # --- Agregar requerimientos agregados para cada asset ---
+        requirements_by_asset = {}
+        for asset, rutas in rutas_by_asset:
+            agg = {}
+            for ruta in rutas:
+                # Calcular la cantidad de ejecuciones de la rutina en el período
+                executions = calculate_executions(ruta, period_start, period_end)
+                # Obtener los requerimientos asociados a esta ruta
+                reqs = MaintenanceRequirement.objects.filter(ruta=ruta)
+                for req in reqs:
+                    # Calculamos el total requerido para esa ruta
+                    total = req.cantidad * executions
+                    # Determinar la clave de agrupación:
+                    if req.tipo in ['m', 'h']:
+                        if req.item:
+                            key = ('item', req.item.id)
+                            label = req.item.name
+                        else:
+                            key = ('desc', req.descripcion)
+                            label = req.descripcion
+                    elif req.tipo == 's':
+                        if req.service:
+                            key = ('service', req.service.id)
+                            label = req.service.description
+                        else:
+                            key = ('desc', req.descripcion)
+                            label = req.descripcion
+                    else:
+                        key = ('desc', req.descripcion)
+                        label = req.descripcion
+                    if key in agg:
+                        agg[key]['total'] += total
+                    else:
+                        agg[key] = {'label': label, 'total': total}
+            # Convertir el agregado a lista para ese asset
+            requirements_by_asset[asset] = list(agg.values())
+        context['requirements_by_asset'] = requirements_by_asset
+        return context
 
 
 'ASSETS VIEWS'
@@ -691,12 +789,7 @@ def reportHoursAsset(request, asset_id):
     equipos_rotativos = Equipo.objects.filter(system__in=systems, tipo='r')
     rotativos = equipos_rotativos.exists()
 
-    # --------------------------------------------------------------------------------------
-    # 1. Verificar si es un POST del "modal" o el "formulario tradicional"
-    # --------------------------------------------------------------------------------------
     if request.method == 'POST':
-        # Si en el POST vienen "equipo_id" y "report_date" y "hour",
-        # asumimos que es el envío desde el modal de actualización.
         if "equipo_id" in request.POST and "report_date" in request.POST and "hour" in request.POST:
             equipo_id = request.POST.get('equipo_id')
             report_date = request.POST.get('report_date')
@@ -1293,7 +1386,6 @@ class OtListView(LoginRequiredMixin, generic.ListView):
         queryset = self.get_queryset()
         total_ots_en_ejecucion = queryset.filter(state='x').count()
         context['total_ots_en_ejecucion'] = total_ots_en_ejecucion
-
         return context
 
     def get_queryset(self):
@@ -1362,7 +1454,6 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         context['state_form'] = FinishOtForm()
         context['image_form'] = UploadImages()
-
         context['doc_form'] = DocumentForm()
 
         if self.request.user.groups.filter(name='super_members').exists():
@@ -1393,11 +1484,12 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         ot = self.get_object()
         
         if 'add-doc' in request.POST:
-            doc_form = DocumentForm(request.POST, request.FILES)
-            document = doc_form.save(commit=False)
-            document.ot = get_object_or_404(Ot, pk=ot.num_ot)
-            document.save()
-            return redirect(ot.get_absolute_url()) 
+            doc_form = DocumentForm(request.POST, request.FILES, ot=ot)
+            if doc_form.is_valid():
+                doc_form.save()
+                return redirect(ot.get_absolute_url()) 
+            else:
+                print(doc_form.errors)
 
         if 'delete_task' in request.POST:
             task_id = request.POST.get('delete_task_id')
@@ -1414,14 +1506,14 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         if task_form.is_valid() and image_form.is_valid():
             task = task_form.save(commit=False)
             task.ot = ot
+            task.user = task.responsible.get_full_name()
             task.modified_by = request.user 
             task.save()
 
             for file in request.FILES.getlist('file_field'):
                 Image.objects.create(task=task, image=file)
-
+        
         state_form = FinishOtForm(request.POST)
-
         if 'finish_ot' in request.POST and state_form.is_valid():
             self.object.state = 'f'
             self.object.modified_by = request.user
@@ -1450,17 +1542,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
             self.object.save()
             return redirect(ot.get_absolute_url())
 
-        elif 'submit_task' in request.POST and task_form.is_valid():
-            act = task_form.save(commit=False)
-            act.ot = ot
-            if isinstance(task_form, ActFormNoSup):
-                act.responsible = request.user
-            act.modified_by = request.user
-            act.save()
-            return redirect(ot.get_absolute_url())
-
         context = {'ot': ot, 'task_form': task_form, 'state_form': state_form}
-
         return render(request, self.template_name, context)
 
 
@@ -1613,53 +1695,34 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         return context
 
     def get_queryset(self):
-        finished_filter = self.request.GET.get('finalizados', '0') 
-        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False).order_by('start_date')
-        current_user = self.request.user
-
-        asset_id = self.request.GET.get('asset_id')
-        if asset_id:
-            queryset = queryset.filter(ot__system__asset_id=asset_id)
-        responsable_id = self.request.GET.get('worker')
-        if responsable_id:
-            queryset = queryset.filter(responsible=responsable_id)
-
-        # Filtrado por rango de fechas (solapamiento)
-        start_date_str = self.request.GET.get('start_date')
-        end_date_str = self.request.GET.get('end_date')
-        if start_date_str and end_date_str:
-            try:
-                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-                queryset = queryset.annotate(
-                    calc_final_date=ExpressionWrapper(
-                        F('start_date') + DayInterval(F('men_time')),
-                        output_field=DateField()
-                    )
-                ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
-            except ValueError:
-                pass  # Si hay error en el formato, no filtramos por fecha
-
-        # Filtrado por estado (finished)
-        finalizados_param = self.request.GET.get('finalizados', '0')
-        if finalizados_param == '0':
-            queryset = queryset.filter(finished=False)
-        elif finalizados_param == '1':
-            queryset = queryset.filter(finished=True)
-        # Si es "2", no se aplica filtro alguno
-
-        if current_user.groups.filter(name='serport_members').exists():
-            return queryset.filter(responsible=current_user)
-        elif current_user.groups.filter(name='super_members').exists():
-            return queryset
-        elif current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
-            return queryset.filter(ot__system__asset__supervisor=current_user)
-        return queryset.none() 
+        return filter_tasks_queryset(self.request)
     
 
 @login_required
 def assignedTasks_pdf(request):
-    queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False).order_by('ot__system__asset__name', 'start_date')
+    queryset = filter_tasks_queryset(request)
+    # Si deseas un orden diferente para el PDF, puedes encadenar un order_by aquí:
+    queryset = queryset.order_by('ot__system__asset__name', 'start_date')
+    
+    context = {
+        'tasks': queryset,
+        'start': request.GET.get('start_date', ''),
+        'end': request.GET.get('end_date', ''),
+        'finalizados': request.GET.get('show_finalizadas', '0')
+    }
+    return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
+
+
+import io
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.utils import get_column_letter
+import requests
+
+@login_required
+def assignedTasks_excel(request):
+    queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('ot__system__asset__name', 'start_date')
 
     asset_id = request.GET.get('asset_id')
     if asset_id:
@@ -1685,69 +1748,11 @@ def assignedTasks_pdf(request):
             pass
 
     # Filtrar por finalizados (0: pendientes, 1: finalizadas, 2: ambas)
-    finalizados_param = request.GET.get('finalizados', '0')
-    if finalizados_param == '0':
-        queryset = queryset.filter(finished=False)
-    elif finalizados_param == '1':
-        queryset = queryset.filter(finished=True)
-
-    current_user = request.user
-    if current_user.groups.filter(name='serport_members').exists():
-        queryset = queryset.filter(responsible=current_user)
-    elif current_user.groups.filter(name='super_members').exists():
-        pass
-    elif current_user.groups.filter(name='maq_members').exists():
-        queryset = queryset.filter(ot__system__asset__supervisor=current_user)
-    elif current_user.groups.filter(name='buzos_members').exists():
-        user_station = current_user.profile.station
-        if user_station:
-            queryset = queryset.filter(ot__system__asset__area='b', ot__system__location__in=user_station)
-        else:
-            queryset = queryset.filter(ot__system__asset__area='b')
-    else:
-        queryset = queryset.none()
-
-    context = {
-        'tasks': queryset,
-        'start': start_date_str,
-        'end': end_date_str,
-        'finalizados': finalizados_param
-    }
-    return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
-
-import io
-from io import BytesIO
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-from openpyxl.utils import get_column_letter
-import requests
-
-@login_required
-def assignedTasks_excel(request):
-    queryset = Task.objects.filter(ot__isnull=False, ot__state='x', start_date__isnull=False, finished=False).order_by('ot__system__asset__name', 'start_date')
-
-    asset_id = request.GET.get('asset_id')
-    if asset_id:
-        queryset = queryset.filter(ot__system__asset_id=asset_id)
-
-    responsable_id = request.GET.get('worker')
-    if responsable_id:
-        queryset = queryset.filter(responsible=responsable_id)
-
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
-    if start_date_str and end_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            queryset = queryset.annotate(
-                calc_final_date=ExpressionWrapper(
-                    F('start_date') + DayInterval(F('men_time')),
-                    output_field=DateField()
-                )
-            ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
-        except ValueError:
-            pass
+    # finalizados_param = request.GET.get('finalizados', '0')
+    # if finalizados_param == '0':
+    #     queryset = queryset.filter(finished=False)
+    # elif finalizados_param == '1':
+    #     queryset = queryset.filter(finished=True)
 
     current_user = request.user
     if current_user.groups.filter(name='serport_members').exists():
@@ -1769,8 +1774,9 @@ def assignedTasks_excel(request):
             task.ot.system.asset.name,
             task.description,
             task.responsible.get_full_name(),
+            task.news,
             task.start_date,
-            task.men_time,
+            # task.men_time,
         ]
         data.append(row)
         counter += 1
@@ -1837,7 +1843,7 @@ def assignedTasks_excel(request):
 
     # Encabezados originales para Equipos
     headers = [
-        'ITEM', 'OT', 'EQUIPO', 'ACTIVIDAD', 'RESPONSABLE', 'FECHA INICIO', 'TIEMPO EJECUCIÓN (DÍAS)'
+        'ITEM', 'OT', 'BARCOS', 'ACTIVIDAD', 'RESPONSABLE', 'OBSERVACIONES', 'FECHA INICIO'
     ]
     start_row = 5  # Ajusta según lo necesites
     # Escribir encabezados con fondo azul (color 4d93d9) y texto blanco
@@ -1901,12 +1907,11 @@ class TaskCreate(CreateView):
     model = Task
     http_method_names = ['get', 'post']
     form_class = RutActForm
-    template_name = 'got/ots/task_form.html'
+    template_name = 'got/rutinas/task_form_rut.html'
 
     def form_valid(self, form):
         pk = self.kwargs['pk']
         ruta = get_object_or_404(Ruta, pk=pk)
-
         form.instance.ruta = ruta
         form.instance.finished = False
         form.instance.modified_by = self.request.user
@@ -1927,44 +1932,83 @@ class TaskCreate(CreateView):
 
 class TaskUpdate(UpdateView):
     model = Task
-    template_name = 'got/ots/task_form.html'
-    form_class = ActForm
+    http_method_names = ['get', 'post']
     second_form_class = UploadImages
+
+    def get_template_names(self):
+        """
+        Devuelve la plantilla a utilizar según la asociación de la tarea:
+         - Para tareas con OT se utiliza 'got/ots/task_form_ot.html'
+         - Para tareas con Ruta se utiliza 'got/ots/task_form_rut.html'
+        """
+        task = self.get_object()
+        if task.ot:
+            return ['got/ots/task_form_ot.html']
+        elif task.ruta:
+            return ['got/rutinas/task_form_rut.html']
+        else:
+            raise ValueError("La tarea debe estar asociada a una OT o a una Ruta.")
+
+    def get_form_class(self):
+        task = self.get_object()
+        if task.ot:
+            return ActForm
+        elif task.ruta:
+            return RutActForm
+        else:
+            raise ValueError("La tarea debe estar asociada a una OT o a una Ruta.")
+        
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        task = self.get_object()
+        if task.ruta:
+            kwargs['asset'] = task.ruta.system.asset
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if 'image_form' not in context:
-            context['image_form'] = self.second_form_class()
-        context['images'] = Image.objects.filter(task=self.get_object())
+        task = self.get_object()
+        if task.ot:
+            if 'image_form' not in context:
+                context['image_form'] = self.second_form_class()
+            context['images'] = Image.objects.filter(task=self.get_object())
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
-        image_form = self.second_form_class(request.POST, request.FILES)
-        if form.is_valid() and image_form.is_valid():
-            response = super().form_valid(form)
-            if form.cleaned_data.get('delete_images'):
-                self.object.images.all().delete()
-            for img in request.FILES.getlist('file_field'):
-                Image.objects.create(task=self.object, image=img)
-            return response
-        else:
-            return self.form_invalid(form)
 
+        if self.object.ot:
+            image_form = self.second_form_class(request.POST, request.FILES)
+            if form.is_valid() and image_form.is_valid():
+                response = self.form_valid(form)
+
+                for img in request.FILES.getlist('file_field'):
+                    Image.objects.create(task=self.object, image=img)
+                return response
+            else:
+                return self.form_invalid(form)
+        else:
+            if form.is_valid():
+                return self.form_valid(form)
+            else:
+                return self.form_invalid(form)
+            
     def form_valid(self, form):
         form.instance.modified_by = self.request.user
+        if form.instance.ot and 'responsible' in form.changed_data:
+            responsible = form.cleaned_data.get('responsible')
+            form.instance.user = responsible.get_full_name()
         return super().form_valid(form)
 
-    def form_invalid(self, form, **kwargs):
-        return self.render_to_response(self.get_context_data(form=form, **kwargs))
+    def form_invalid(self, form):
+        print("Errores en el formulario:", form.errors)
+        return super().form_invalid(form)
     
     def get_success_url(self):
-        task = self.object
-        if task.ot:
-            return reverse('got:ot-detail', kwargs={'pk': task.ot.num_ot})
-        else:
-            return reverse('got:my-tasks')
+        referer = self.request.META.get('HTTP_REFERER')
+        if referer:
+            return referer
 
 
 class TaskDelete(DeleteView):
@@ -1972,28 +2016,6 @@ class TaskDelete(DeleteView):
     success_url = reverse_lazy('got:ot-list')
     template_name = 'got/ots/task_confirm_delete.html'
 
-
-class TaskUpdaterut(UpdateView):
-    model = Task
-    form_class = RutActForm
-    template_name = 'got/ots/task_form.html'
-    http_method_names = ['get', 'post']
-
-    def form_valid(self, form):
-        form.instance.modified_by = self.request.user  # Asignar el usuario que modifica la tarea
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        sys_id = self.object.ruta.system.id
-        return reverse_lazy('got:sys-detail', kwargs={'pk': sys_id})
-    
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        task = get_object_or_404(Task, pk=self.kwargs['pk'])
-        asset = task.ruta.system.asset
-        kwargs['asset'] = asset
-        return kwargs
-    
 
 class TaskDeleterut(DeleteView):
     model = Task
@@ -2921,49 +2943,12 @@ def indicadores(request):
         'combustible_data': combustible_data,
     }
     return render(request, 'got/assets/indicadores.html', context)
-
-
-'EXPERIMENTAL VIEWS'
-class ItemManagementView(generic.TemplateView):
-    template_name = 'got/item_management.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['items'] = Item.objects.all()
-        context['form'] = ItemForm()
-        return context
-
-    def post(self, request, *args, **kwargs):
-        form = ItemForm(request.POST, request.FILES)
-        if form.is_valid():
-            item = form.save(commit=False)
-            item.modified_by = request.user
-            form.save()
-            return redirect(reverse('got:item_management'))
-
-        context = self.get_context_data(**kwargs)
-        context['form'] = form
-        return self.render_to_response(context)
-
-
-def edit_item(request, item_id):
-    item = get_object_or_404(Item, id=item_id)
-    if request.method == 'POST':
-        form = ItemForm(request.POST, request.FILES, instance=item)
-        if form.is_valid():
-            form.save()
-            return redirect(reverse('got:item_management'))
-    else:
-        form = ItemForm(instance=item)
-
-    return render(request, 'got/solicitud/edit_item.html', {'form': form, 'item': item})
     
 
 class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'got/mantenimiento/maintenance_dashboard.html'
 
     def test_func(self):
-        # Verificar si el usuario pertenece al grupo 'super_members'
         return self.request.user.groups.filter(name='super_members').exists()
 
     def get_context_data(self, **kwargs):
@@ -3104,112 +3089,6 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
                 states.append(('Ok', '#86e49d'))  # Verde
 
         return states, state_data
-
-
-class ManagerialReportView(View):
-    def get(self, request, *args, **kwargs):
-        # Obtener todos los activos en el área de barcos ('a' corresponde a 'Motonave')
-        assets = Asset.objects.filter(area='a', show=True)
-        
-        # Preparar datos para cada activo
-        assets_data = []
-        for asset in assets:
-            # Información del activo
-            asset_info = {
-                'name': asset.name,
-                'abbreviation': asset.abbreviation,
-                'supervisor': asset.supervisor.get_full_name() if asset.supervisor else '',
-                'maintenance_compliance': asset.maintenance_compliance,
-            }
-
-            # Obtener todos los sistemas del activo
-            systems = asset.system_set.all()
-
-            # Obtener todas las rutas de los sistemas
-            rutas = Ruta.objects.filter(system__in=systems)
-
-            # Filtrar rutas vencidas o próximas a vencer
-            rutas_filtered = []
-            for ruta in rutas:
-                percentage_remaining = ruta.percentage_remaining
-                if percentage_remaining < 15:
-                    # Determinar tiempo restante
-                    if ruta.control == 'd':
-                        tiempo_restante = ruta.daysleft
-                        unidad = 'días'
-                    elif ruta.control == 'h' or ruta.control == 'k':
-                        accumulated_hours = ruta.equipo.hours.filter(
-                            report_date__gte=ruta.intervention_date,
-                            report_date__lte=date.today()
-                        ).aggregate(total_hours=Sum('hour'))['total_hours'] or 0
-                        tiempo_restante = ruta.frecuency - accumulated_hours
-                        unidad = 'horas'
-                    else:
-                        tiempo_restante = ''
-                        unidad = ''
-
-                    # Recopilar la información requerida
-                    ruta_info = {
-                        'equipo': ruta.equipo.name if ruta.equipo else '',
-                        'name': ruta.name,
-                        'frecuencia': ruta.frecuency,
-                        'tiempo_restante': tiempo_restante,
-                        'unidad': unidad,
-                        'fecha_ultima_intervencion': ruta.intervention_date,
-                        'fecha_proxima_intervencion': ruta.next_date,
-                        'overdue': percentage_remaining <= 0,
-                    }
-                    rutas_filtered.append(ruta_info)
-            equipos = Equipo.objects.filter(system__in=systems)
-            failure_reports = FailureReport.objects.filter(
-                equipo__in=equipos,
-                closed=False
-            )
-
-            failure_reports_data = []
-            for report in failure_reports:
-                report_data = {
-                    'id': report.id,
-                    'description': report.description,
-                    'equipo': report.equipo.name if report.equipo else '',
-                    'ot': None,
-                    'tasks': [],
-                }
-
-                if report.related_ot:
-                    ot = report.related_ot
-                    ot_info = {
-                        'num_ot': ot.num_ot,
-                        'description': ot.description,
-                        'state': ot.get_state_display(),
-                    }
-                    report_data['ot'] = ot_info
-
-                    # Obtener actividades en ejecución relacionadas con la OT
-                    tasks_in_execution = Task.objects.filter(ot=ot, finished=False)
-                    tasks_data = []
-                    for task in tasks_in_execution:
-                        task_info = {
-                            'description': task.description,
-                            'start_date': task.start_date,
-                            'responsible': task.responsible.get_full_name() if task.responsible else '',
-                        }
-                        tasks_data.append(task_info)
-                    report_data['tasks'] = tasks_data
-
-                failure_reports_data.append(report_data)
-
-            asset_info['rutas'] = rutas_filtered
-            asset_info['failure_reports'] = failure_reports_data
-
-            assets_data.append(asset_info)
-
-        context = {
-            'assets': assets_data,
-            'today': date.today(),
-        }
-
-        return render_to_pdf('got/managerial_report.html', context)
 
     
 class BudgetView(TemplateView):
@@ -3642,3 +3521,5 @@ class CustomPasswordResetView(PasswordResetView):
             'domain': self.domain_override,
             'site_name': site_name,
         }
+    
+

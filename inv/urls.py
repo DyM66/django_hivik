@@ -20,4 +20,7 @@ urlpatterns = [
     path('asset/<str:abbreviation>/historial/pdf/', export_historial_pdf, name='export_historial_pdf'),
     path('transferir/<str:equipo_id>/', transferir_equipo, name='transferir_equipo'),
 
+    path('items/', ItemManagementView.as_view(), name='item_management'),
+    path('items/edit/<int:item_id>/', edit_item, name='edit_item'),
+
 ]

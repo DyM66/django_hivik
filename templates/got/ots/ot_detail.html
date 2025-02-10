@@ -71,7 +71,7 @@
                         <td>{{ot.description}}</td>
                     </tr>
                     <tr>
-                        <th>Fecha de creación</th>
+                        <th>Creación</th>
                         <td>{{ot.creation_date}}</td>
                     </tr>
                     <tr>
@@ -266,7 +266,7 @@
                             <tr>
                                 <th scope="row">{{forloop.counter}}</th>
                                 <td>{{ act.description|linebreaksbr }}</td>
-                                <td>{{act.responsible.first_name}} {{act.responsible.last_name}}</td>
+                                <td>{{ act.user }}</td>
                                 <td>{{act.start_date|date:"d/m/Y"}}-{{act.final_date|date:"d/m/Y"}}</td>
                                 <td class="nowrap">
                                     <div class="btn-group">

@@ -24,6 +24,7 @@ from django.db.models import Prefetch, Sum
 from django.core.management.base import BaseCommand
 from inv.models import EquipoCodeCounter
 from django.db import transaction
+from preoperacionales.models import *
 
 from .models import *
 from inv.models import DarBaja, Transferencia
@@ -936,3 +937,70 @@ def get_cargo(full_name):
         return ''
 
 
+from django.db.models import F, ExpressionWrapper, DateField
+def filter_tasks_queryset(request, base_queryset=None):
+    """
+    Aplica el mismo filtrado de tareas que la vista AssignedTaskByUserListView y
+    la vista assignedTasks_pdf.
+    Se leen los siguientes parámetros GET:
+      - asset_id
+      - worker
+      - start_date y end_date (para filtrar por rango de fechas)
+      - show_finalizadas: si es "1" se muestran ambas (pendientes y finalizadas), 
+        si no, se filtran las pendientes (finished=False)
+    Devuelve el queryset filtrado.
+    """
+    if base_queryset is None:
+        # Por defecto, solo tareas con OT y start_date definido
+        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False)
+    else:
+        queryset = base_queryset
+
+    # Ordenar: en la ListView se ordena por start_date, en la PDF se ordena por asset y start_date.
+    # Puedes definir un orden común; en este ejemplo, usaremos 'start_date'
+    queryset = queryset.order_by('start_date')
+
+    # Filtrar por asset
+    asset_id = request.GET.get('asset_id')
+    if asset_id:
+        queryset = queryset.filter(ot__system__asset_id=asset_id)
+
+    # Filtrar por responsable
+    responsable_id = request.GET.get('worker')
+    if responsable_id:
+        queryset = queryset.filter(responsible=responsable_id)
+
+    # Filtrado por rango de fechas (solapamiento)
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            queryset = queryset.annotate(
+                calc_final_date=ExpressionWrapper(
+                    F('start_date') + DayInterval(F('men_time')),
+                    output_field=DateField()
+                )
+            ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
+        except ValueError:
+            pass  # Si hay error en el formato, no filtramos por fecha
+
+    # Filtrado por estado utilizando el checkbox de finalizadas
+    # Por defecto, se muestran pendientes (finished=False) y el parámetro a usar es "show_finalizadas"
+    show_finalizadas = request.GET.get('show_finalizadas')
+    if show_finalizadas != "1":
+        queryset = queryset.filter(finished=False)
+
+    # Filtrado adicional según el grupo del usuario
+    current_user = request.user
+    if current_user.groups.filter(name='serport_members').exists():
+        queryset = queryset.filter(responsible=current_user)
+    elif current_user.groups.filter(name='super_members').exists():
+        pass  # Sin filtro adicional
+    elif current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
+        queryset = queryset.filter(ot__system__asset__supervisor=current_user)
+    else:
+        queryset = queryset.none()
+
+    return queryset

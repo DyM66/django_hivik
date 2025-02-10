@@ -48,17 +48,15 @@ urlpatterns = [
     path("report_pdf/<int:num_ot>/", views.ot_pdf, name='report'),
 
     path("tasks/", views.AssignedTaskByUserListView.as_view(), name="my-tasks"),
-    path('tasks/pdf/', views.assignedTasks_excel, name='assigned-tasks-excel'),
+    path('tasks/excel/', views.assignedTasks_excel, name='assigned-tasks-excel'),
     path('tasks/pdf/', views.assignedTasks_pdf, name='assigned-tasks-pdf'),
     path('task/<str:pk>/create/', views.TaskCreate.as_view(), name='task-create'),
     path('task/<int:pk>/update/', views.TaskUpdate.as_view(), name='task-update'),
     path('task/<int:pk>/delete/', views.TaskDelete.as_view(), name='task-delete'),
-    path('task-rut/<int:pk>/update/', views.TaskUpdaterut.as_view(), name='update-task'),
     path('delete_task/<int:pk>/', views.TaskDeleterut.as_view(), name='delete-task'),
     path('task/<int:pk>/finish/', views.Finish_task.as_view(), name='finish-task'),
     path('task/<int:pk>/finish-ot/', views.Finish_task_ot.as_view(), name='finish-task-ot'),
     path("task/<int:pk>/reschedule/", views.Reschedule_task.as_view(), name='reschedule-task'),
-
 
     path('rutas/', views.RutaListView, name="ruta-list"), # No se esta usando
 
@@ -86,17 +84,15 @@ urlpatterns = [
     path('solicitud/transfer/<int:pk>/', views.TransferSolicitudView.as_view(), name='transfer-solicitud'),
 
     path("dash/", views.indicadores, name='dashboard'),
-    path('items/', views.ItemManagementView.as_view(), name='item_management'),
-    path('items/edit/<int:item_id>/', views.edit_item, name='edit_item'),
 
     path('mantenimiento/', views.MaintenanceDashboardView.as_view(), name='maintenance_dashboard'),
-    path('reporte-gerencial/', views.ManagerialReportView.as_view(), name='managerial_report'),
     path('budget/', views.BudgetView.as_view(), name='budget_view'),
     path('budget/summary/assets/', views.BudgetSummaryByAssetView.as_view(), name='budget_summary_by_asset'),
 
     path('managerial-report/<str:abbreviation>/', views.managerial_asset_report_pdf, name='managerial_asset_report'),
-
     path('manifest.json', pwa.manifest, name='manifest'),
     path('service-worker.js', pwa.service_worker, name='service_worker'),
     path('api/unapproved_requests_count/', pwa.get_unapproved_requests_count, name='unapproved_requests_count_api'),
+
+    path('main/', views.DashbordView.as_view(), name="main")
 ]

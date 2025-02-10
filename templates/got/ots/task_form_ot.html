@@ -1,0 +1,168 @@
+{% extends "got/base/base_generic.html" %}
+
+{% block content %}
+<div class="container mt-2">
+    <h1>Editar Actividad</h1>
+    <hr>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+
+        <div class="form-group">
+            <label for="{{ form.responsible.id_for_label }}">Responsable</label>
+            {{ form.responsible }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.description.id_for_label }}">Descripción de la actividad</label>
+            {{ form.description }}
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="{{ form.start_date.id_for_label }}">Fecha de inicio</label>
+                    {{ form.start_date }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.men_time.id_for_label }}">Tiempo de ejecución (Días)</label>
+                    {{ form.men_time }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.finished.id_for_label }}">Finalizado</label>
+                    {{ form.finished }}
+                </div>
+            </div>
+
+            <!-- Segunda columna: Calendario interactivo inline -->
+            <div class="col-md-6">
+                <div id="activity-calendar"></div>
+            </div>
+        </div>
+
+
+        <div class="form-group">
+            <label for="{{ form.news.id_for_label }}">Hallazgos</label>
+            {{ form.news }}
+        </div>
+
+
+        {{ image_form }}
+
+        <div class="form-group">
+            <input type="submit" value="Guardar cambios" class="btn btn-success mt-2"/>
+        </div>
+    </form>
+
+    {% for image in images %}
+        <img src="{{ image.image.url }}" alt="Imagen asociada" style="width: 100px; height: auto;">
+    {% endfor %}
+</div>
+
+<!-- Regla CSS para ocultar el icono del calendario en el input start_date -->
+<style>
+    /* Para navegadores basados en WebKit (Chrome, Edge, Safari) */
+    input[name="start_date"]::-webkit-calendar-picker-indicator {
+        display: none;
+    }
+    /* Opcional: En Firefox se podría aplicar si fuera necesario, aunque normalmente no muestra un icono */
+    input[name="start_date"]::-moz-calendar-picker-indicator {
+        display: none;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtén los inputs de start_date y men_time (estos ya vienen poblados con los datos del registro)
+        const startDateInput = document.querySelector('[name="start_date"]');
+        const menTimeInput = document.querySelector('[name="men_time"]');
+    
+        // Si el input start_date ya tiene un flatpickr (popup) inicializado, destrúyelo para evitar conflicto
+        if (startDateInput && startDateInput._flatpickr) {
+            startDateInput._flatpickr.destroy();
+        }
+        
+        // Solo continuamos si ambos campos existen
+        if (!startDateInput || !menTimeInput) return;
+    
+        // Contenedor para el calendario inline
+        const calendarContainer = document.getElementById('activity-calendar');
+    
+        // Función para convertir una cadena de fecha (YYYY-MM-DD) a objeto Date
+        function parseDate(dateStr) {
+            const parts = dateStr.split('-');
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+    
+        // Función para formatear una fecha en "YYYY-MM-DD"
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = ("0" + (date.getMonth() + 1)).slice(-2);
+            const day = ("0" + date.getDate()).slice(-2);
+            return `${year}-${month}-${day}`;
+        }
+    
+        // Función para calcular la fecha final a partir de start_date y men_time (días)
+        function computeEndDate(startDateStr, menTimeDays) {
+            if (!startDateStr) return null;
+            const startDate = parseDate(startDateStr);
+            // Si men_time está vacío, lo tomamos como 0
+            const days = menTimeDays.trim() === "" ? 0 : parseInt(menTimeDays, 10);
+            if (isNaN(days)) return startDate;
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + days);
+            return endDate;
+        }
+    
+        // Función para actualizar el calendario en función de los valores actuales
+        function updateCalendar() {
+            const startDateVal = startDateInput.value;
+            const menTimeVal = menTimeInput.value;
+            const endDateObj = computeEndDate(startDateVal, menTimeVal);
+        
+            if (!startDateVal || !endDateObj) {
+                fp.clear();
+                return;
+            }
+            // Actualiza el rango seleccionado en el calendario
+            fp.setDate([startDateVal, formatDate(endDateObj)], true);
+        }
+    
+        // Inicializa flatpickr en el contenedor con modo "range" e inline
+        const fp = flatpickr(calendarContainer, {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            inline: true,
+            locale: "es",
+            // Calcula el rango inicial basado en los valores almacenados
+            defaultDate: (function(){
+                const startDateVal = startDateInput.value;
+                // Si men_time está vacío, lo tomamos como 0
+                const menTimeVal = menTimeInput.value.trim() === "" ? "0" : menTimeInput.value;
+                const endDateObj = computeEndDate(startDateVal, menTimeVal);
+                if (startDateVal && endDateObj) {
+                    return [startDateVal, formatDate(endDateObj)];
+                }
+                return null;
+            })(),
+            // Cuando el usuario interactúa con el calendario, se actualizan los inputs
+            onChange: function(selectedDates) {
+                if (selectedDates.length > 0) {
+                    // Actualiza el campo start_date con la primera fecha seleccionada
+                    const newStart = selectedDates[0];
+                    startDateInput.value = formatDate(newStart);
+                    // Si se selecciona también la segunda fecha, calcula la diferencia y actualiza men_time
+                    if (selectedDates.length === 2) {
+                        const newEnd = selectedDates[1];
+                        const diffTime = Math.abs(newEnd - newStart);
+                        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                        menTimeInput.value = diffDays;
+                    }
+                }
+            }
+        });
+        
+        // Actualiza el calendario en tiempo real si se modifican manualmente start_date o men_time
+        startDateInput.addEventListener('change', updateCalendar);
+        menTimeInput.addEventListener('input', updateCalendar);
+    });
+</script>
+{% endblock %}

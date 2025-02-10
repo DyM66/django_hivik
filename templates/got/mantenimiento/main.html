@@ -1,0 +1,119 @@
+{% extends 'got/base/base_generic.html' %}
+{% load my_tags %}
+
+{% block content %}
+<style>
+/* Reducir el tamaño de las tarjetas y el texto */
+.small-card {
+    font-size: 0.8em;
+}
+.small-card .card-header {
+    font-size: 1em;
+    padding: 0.5rem 1rem;
+}
+.small-card .card-body {
+    padding: 0.5rem 1rem;
+}
+.small-card table {
+    font-size: 0.8em;
+}
+.area-group {
+    border: 2px solid #ccc;
+    background-color: #f7f7f7;
+    margin-bottom: 20px;
+    padding: 10px;
+}
+.area-group h2 {
+    margin-top: 0;
+}
+.breadcrumb-months {
+    margin-bottom: 20px;
+}
+.breadcrumb-months a {
+    margin-right: 5px;
+    text-decoration: none;
+    padding: 4px 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+}
+.breadcrumb-months a.active {
+    background-color: #007bff;
+    color: #fff;
+}
+</style>
+
+<div class="container">
+    <h1>Plan de Mantenimiento</h1>
+    <p>Desde: {{ period_start }} hasta {{ period_end }}</p>
+
+    <!-- Breadcrumb de meses para el año actual -->
+    <div class="breadcrumb-months">
+        {% for m in months %}
+            {% if m.number == selected_month %}
+                <a href="?month={{ m.number }}&year={{ selected_year }}" class="active">{{ m.name }}</a>
+            {% else %}
+                <a href="?month={{ m.number }}&year={{ selected_year }}">{{ m.name }}</a>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    {% for area_code, assets_group in grouped_by_area %}
+        <div class="area-group">
+            <h2>{{ areas|dict_get:area_code }}</h2>
+            <div class="row">
+                {% for asset, rutas in assets_group %}
+                    <div class="col-md-4">
+                        <div class="card small-card mb-3">
+                            <div class="card-header">
+                                {{ asset.name }}
+                            </div>
+                            <div class="card-body">
+                                <h6>Rutinas para {{ selected_month }}/{{ selected_year }}</h6>
+                                {% if rutas %}
+                                    <ul class="list-group mb-2">
+                                        {% for ruta in rutas %}
+                                            <li class="list-group-item p-1">
+                                                <strong>{{ ruta.name }}</strong><br>
+                                                Próxima: {{ ruta.next_date }}<br>
+                                                Frecuencia: {{ ruta.frecuency }} ({{ ruta.get_control_display }})
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p>No hay rutinas.</p>
+                                {% endif %}
+
+                                <h6>Requerimientos Totales</h6>
+                                {% with reqs=requirements_by_asset|dict_get:asset %}
+                                    {% if reqs %}
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Requerimiento</th>
+                                                    <th>Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for req in reqs %}
+                                                    <tr>
+                                                        <td>{{ req.label }}</td>
+                                                        <td>{{ req.total }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <p>No hay requerimientos.</p>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% empty %}
+        <p>No se encontraron rutinas para el período seleccionado.</p>
+    {% endfor %}
+</div>
+{% endblock %}

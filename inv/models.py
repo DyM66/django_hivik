@@ -3,6 +3,7 @@ from django.db import models
 from got.paths import *
 from got.models import Equipo, System
 
+
 class DarBaja(models.Model):
     MOTIVO = (
         ('o', 'Obsoleto'),

@@ -52,58 +52,67 @@
                         </ul>
                     </div>
                 {% endif %}
-                <div class="btn-group-vertical w-100 mb-2" role="group">
-                    <!-- Opción: Mostrar pendientes (por defecto) -->
-                    <a href="{% url 'got:my-tasks' %}?{% if request.GET.asset_id %}asset_id={{ request.GET.asset_id }}&{% endif %}{% if request.GET.worker %}worker={{ request.GET.worker }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}finalizados=0" 
-                       class="btn btn-primary w-100">
-                        Mostrar pendientes
-                    </a>
-                </div>
-                <div class="btn-group-vertical w-100 mb-2" role="group">
-                    <!-- Opción: Mostrar solo finalizadas -->
-                    <a href="{% url 'got:my-tasks' %}?{% if request.GET.asset_id %}asset_id={{ request.GET.asset_id }}&{% endif %}{% if request.GET.worker %}worker={{ request.GET.worker }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}finalizados=1" 
-                       class="btn btn-primary w-100">
-                        Mostrar finalizadas
-                    </a>
-                </div>
-                <div class="btn-group-vertical w-100 mb-2" role="group">
-                    <!-- Opción: Mostrar ambas -->
-                    <a href="{% url 'got:my-tasks' %}?{% if request.GET.asset_id %}asset_id={{ request.GET.asset_id }}&{% endif %}{% if request.GET.worker %}worker={{ request.GET.worker }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}finalizados=2" 
-                       class="btn btn-primary w-100">
-                        Mostrar ambas
-                    </a>
-                </div>
-                <div class="btn-group-vertical w-100 mb-2" role="group">
-                    <a href="{% url 'got:assigned-tasks-excel' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="btn-outline-primary btn w-100">
-                        Generar Excel
-                    </a>
-                </div>
-                <div class="btn-group-vertical w-100 mb-2" role="group">
-                    <a href="{% url 'got:assigned-tasks-pdf' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="btn-outline-primary btn w-100">
-                        Generar PDF
-                    </a>
-                </div>
-                <div class="btn-group-vertical w-100 mb-2" role="group">
-                    <!-- Formulario de filtro por rango de fechas -->
-                    <form method="get" class="row g-3">
-                        <div class="col-auto">
-                            <label for="start_date" class="visually-hidden">Desde</label>
-                            <input type="date" name="start_date" id="start_date" class="form-control"
-                                   value="{{ request.GET.start_date }}">
+                {% if not request.user|has_group:"serport_members" %}
+                    <form method="get" class="mb-3">
+                        {% comment %} Incluir otros filtros ocultos si los tienes {% endcomment %}
+                        {% if request.GET.asset_id %}
+                            <input type="hidden" name="asset_id" value="{{ request.GET.asset_id }}">
+                        {% endif %}
+                        {% if request.GET.worker %}
+                            <input type="hidden" name="worker" value="{{ request.GET.worker }}">
+                        {% endif %}
+                        {% if request.GET.start_date %}
+                            <input type="hidden" name="start_date" value="{{ request.GET.start_date }}">
+                        {% endif %}
+                        {% if request.GET.end_date %}
+                            <input type="hidden" name="end_date" value="{{ request.GET.end_date }}">
+                        {% endif %}
+                    
+                        <!-- Checkbox de pendientes (siempre activo, por defecto marcado) -->
+                        <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="showPendientes" name="show_pendientes" value="1" checked disabled>
+                        <label class="form-check-label" for="showPendientes">Pendientes</label>
                         </div>
-                        <div class="col-auto">
-                            <label for="end_date" class="visually-hidden">Hasta</label>
-                            <input type="date" name="end_date" id="end_date" class="form-control"
-                                   value="{{ request.GET.end_date }}">
+                        <!-- Checkbox de finalizadas (opcional) -->
+                        <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="showFinalizadas" name="show_finalizadas" value="1"
+                                {% if request.GET.show_finalizadas == "1" %}checked{% endif %}>
+                        <label class="form-check-label" for="showFinalizadas">Finalizadas</label>
                         </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-primary mb-3">Filtrar</button>
-                        </div>
+                        <button type="submit" class="btn btn-primary">Filtrar</button>
                     </form>
-                </div>
-
-                  
+                {% endif %}                  
             </aside>
+        </div>
+        <div class="col-md-4">
+            <div class="btn-group-vertical w-100 mb-2" role="group">
+                <a href="{% url 'got:assigned-tasks-excel' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}{% if request.GET.finalizados %}finalizados={{ request.GET.finalizados }}{% endif %}" class="btn-outline-primary btn w-100">
+                    Generar Excel
+                </a>
+            </div>
+            <div class="btn-group-vertical w-100 mb-2" role="group">
+                <a href="{% url 'got:assigned-tasks-pdf' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}&show_finalizadas={{ request.GET.show_finalizadas }}" class="btn-outline-primary btn w-100">
+                    Generar PDF
+                </a>
+            </div>
+            <div class="btn-group-vertical w-100 mb-2" role="group">
+                <!-- Formulario de filtro por rango de fechas -->
+                <form method="get" class="row g-3">
+                    <div class="col-auto">
+                        <label for="start_date" class="visually-hidden">Desde</label>
+                        <input type="date" name="start_date" id="start_date" class="form-control"
+                               value="{{ request.GET.start_date }}">
+                    </div>
+                    <div class="col-auto">
+                        <label for="end_date" class="visually-hidden">Hasta</label>
+                        <input type="date" name="end_date" id="end_date" class="form-control"
+                               value="{{ request.GET.end_date }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary mb-3">Filtrar</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 

@@ -11,6 +11,7 @@ from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWra
 from django.forms.widgets import ClearableFileInput
 from taggit.forms import TagWidget
 from django.forms import formset_factory
+from django.utils.text import get_valid_filename 
 
 # ---------------- Widgets ------------------- #
 class UserChoiceField(forms.ModelChoiceField):
@@ -365,7 +366,7 @@ class FinishTask(forms.ModelForm):
 
 
 class ActForm(forms.ModelForm):
-    delete_images = forms.BooleanField(required=False, label='Eliminar imágenes')
+    # delete_images = forms.BooleanField(required=False, label='Eliminar imágenes')
     responsible = UserChoiceField(queryset=User.objects.all(), label='Responsable', widget=forms.Select(attrs={'class': 'form-control'}),)
 
     finished = forms.ChoiceField(
@@ -398,8 +399,6 @@ class ActForm(forms.ModelForm):
         group_names = ['serport_members', 'super_members', 'maq_members', 'buzos_members']
         groups = Group.objects.filter(name__in=group_names)
         users = User.objects.filter(groups__in=groups).distinct()
-        print("Usuarios disponibles para responsible:", users)
-
         self.fields['responsible'].queryset = users
 
 
@@ -728,6 +727,19 @@ class DocumentForm(forms.ModelForm):
             'tags': 'Etiquetas'
         }
 
+    def __init__(self, *args, **kwargs):
+        ot = kwargs.pop('ot', None)
+        super().__init__(*args, **kwargs)
+        if ot:
+            self.instance.ot = ot
+
+    def clean_file(self):
+        file = self.cleaned_data.get('file')
+        if file:
+            # Esto asegura que el nombre del archivo tenga solo caracteres válidos
+            file.name = get_valid_filename(file.name)
+        return file
+
 
 class DocumentEditForm(forms.ModelForm):
     class Meta:
@@ -790,45 +802,6 @@ SuministroFormset = modelformset_factory(
         'cantidad': forms.NumberInput(attrs={'class': 'form-control'}),
     }
 )
-
-
-class PreoperacionalForm(forms.ModelForm):
-
-    vehiculo = forms.ModelChoiceField(queryset=System.objects.filter(asset__area='v'), empty_label="Seleccione un Vehículo", widget=forms.Select(attrs={'class': 'form-control'}))
-    nuevo_kilometraje = forms.IntegerField(label="Kilometraje Actual", required=True, widget=forms.NumberInput(attrs={'class': 'form-control'}))
-
-    class Meta:
-        model = Preoperacional
-        fields = ['nombre_no_registrado', 'cedula', 'motivo', 'salida', 'destino', 'tipo_ruta', 'autorizado', 'observaciones', 'vehiculo', 'nuevo_kilometraje']
-        labels = {
-            'nombre_no_registrado': 'Nombre y apellido del solicitante',
-            'cedula': 'Cédula del solicitante',
-            'motivo': 'Motivo del desplazamiento',
-            'salida': 'Punto de salida',
-            'destino': 'Destino',
-            'tipo_ruta': 'Tipo de ruta',
-            'autorizado': 'Autorizado por',
-            'Observaciones': 'HALLAZGOS ENCONTRADOS EN EL VEHÍCULO ANTES DE LA SALIDA (En esta sección se deberá remitir evidencia de inconsistencias encontradas en el vehículo antes de la salida de las instalaciones de SERPORT).',
-        }
-        widgets = {
-                'nombre_no_registrado' : forms.TextInput(attrs={'class': 'form-control'}), 
-                'cedula' : forms.TextInput(attrs={'class': 'form-control'}),
-                'motivo' : forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-                'salida' : forms.TextInput(attrs={'class': 'form-control'}), 
-                'destino' : forms.TextInput(attrs={'class': 'form-control'}), 
-                'tipo_ruta': forms.Select(attrs={'class': 'form-control'}),
-                'autorizado': forms.Select(attrs={'class': 'form-control'}),
-                'observaciones' : forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
-        super(PreoperacionalForm, self).__init__(*args, **kwargs)
-        if user and user.is_authenticated:
-            self.fields['nombre_no_registrado'].widget = forms.HiddenInput()
-        else:
-            self.fields['nombre_no_registrado'].required = True
-        self.fields['vehiculo'].queryset = System.objects.filter(asset__area='v')
 
 
 class ItemForm(forms.ModelForm):

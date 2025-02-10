@@ -2,9 +2,9 @@
 {% load ruta_extras %}
 
 {% block content %}
-<div class="mt-4">
+<div class="mt-4 px-3">
 
-    <div class="px-3">
+    <div class="">
         <h1>
 			<a href="{{ previous_url }}"><i class="fa-solid fa-square-caret-left"></i></a>
             {{ object.system.asset }}/{{ object.system.name }}
@@ -260,7 +260,7 @@
 														<li style="margin-bottom: 5px; list-style-type: disc;">
 															{{ task.description|linebreaksbr }} ({{ task.responsible.profile.cargo }})
 															{% if perms.got.add_equipo %}
-																<a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>
+																<a href="{% url 'got:task-update' task.id %}"><i class="bi bi-pen"></i></a>
 																<a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
 															{% endif %}
 														</li>

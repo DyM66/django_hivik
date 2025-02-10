@@ -2,7 +2,7 @@
 {% load ruta_extras %}
 
 {% block content %}
-	<main>
+	<main class="px-3">
 		<div>
 			<h1>
 				<a href="{{ next_url }}"><i class="bi bi-arrow-90deg-left"></i></a>
@@ -141,14 +141,14 @@
 											{% endif %}
 											Ultima Orden de trabajo: <a href="{{  ruta.ot.get_absolute_url }}"><i class="bi bi-pen">OT - {{ ruta.ot.num_ot }}</i></a><br>
 											{% if ruta.equipo.tipo == 'r' %}
-												Promedio de horas del motor: {{ ruta.ot.prom_hours }} Horas
+												Promedio de horas del motor: {{ ruta.equipo.prom_hours }} Horas
 											{% endif %}
 											{% if ruta.task_set.all %}
 												<ul>
 													{% for task in ruta.task_set.all %}
 														<li style="margin-bottom: 5px; list-style-type: disc;">{{ task.description|linebreaksbr }} ({{ task.responsible.profile.cargo }})
 															{% if perms.got.add_equipo %}
-																<a href="{% url 'got:update-task' task.id %}"><i class="bi bi-pen"></i></a>
+																<a href="{% url 'got:task-update' task.id %}"><i class="bi bi-pen"></i></a>
 																<a href="{% url 'got:delete-task' task.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
 															{% endif %}
 														</li>
