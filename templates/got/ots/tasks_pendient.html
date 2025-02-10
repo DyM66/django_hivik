@@ -86,7 +86,7 @@
         </div>
         <div class="col-md-4">
             <div class="btn-group-vertical w-100 mb-2" role="group">
-                <a href="{% url 'got:assigned-tasks-excel' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}{% if request.GET.finalizados %}finalizados={{ request.GET.finalizados }}{% endif %}" class="btn-outline-primary btn w-100">
+                <a href="{% url 'got:assigned-tasks-excel' %}?asset_id={{ request.GET.asset_id }}&worker={{ request.GET.worker }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}&show_finalizadas={{ request.GET.show_finalizadas }}" class="btn-outline-primary btn w-100">
                     Generar Excel
                 </a>
             </div>

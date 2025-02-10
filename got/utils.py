@@ -936,28 +936,24 @@ def get_cargo(full_name):
     except (User.DoesNotExist, ValueError, UserProfile.DoesNotExist):
         return ''
 
-
 from django.db.models import F, ExpressionWrapper, DateField
 def filter_tasks_queryset(request, base_queryset=None):
     """
-    Aplica el mismo filtrado de tareas que la vista AssignedTaskByUserListView y
-    la vista assignedTasks_pdf.
+    Aplica el mismo filtrado de tareas que usan AssignedTaskByUserListView y assignedTasks_pdf.
     Se leen los siguientes parámetros GET:
       - asset_id
       - worker
       - start_date y end_date (para filtrar por rango de fechas)
-      - show_finalizadas: si es "1" se muestran ambas (pendientes y finalizadas), 
-        si no, se filtran las pendientes (finished=False)
+      - El estado: se intentará leer 'show_finalizadas' y si no está, se usará 'finalizados'.
+         Por defecto (valor distinto de "1") se muestran solo pendientes (finished=False).
     Devuelve el queryset filtrado.
     """
     if base_queryset is None:
-        # Por defecto, solo tareas con OT y start_date definido
         queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False)
     else:
         queryset = base_queryset
 
-    # Ordenar: en la ListView se ordena por start_date, en la PDF se ordena por asset y start_date.
-    # Puedes definir un orden común; en este ejemplo, usaremos 'start_date'
+    # Ordenar por start_date (o puedes encadenar order_by en la vista que llama a esta función)
     queryset = queryset.order_by('start_date')
 
     # Filtrar por asset
@@ -984,11 +980,10 @@ def filter_tasks_queryset(request, base_queryset=None):
                 )
             ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
         except ValueError:
-            pass  # Si hay error en el formato, no filtramos por fecha
+            pass
 
-    # Filtrado por estado utilizando el checkbox de finalizadas
-    # Por defecto, se muestran pendientes (finished=False) y el parámetro a usar es "show_finalizadas"
-    show_finalizadas = request.GET.get('show_finalizadas')
+    # Leer el parámetro para el estado. Primero intentamos 'show_finalizadas' y si no, 'finalizados'
+    show_finalizadas = request.GET.get('show_finalizadas') or request.GET.get('finalizados', '0')
     if show_finalizadas != "1":
         queryset = queryset.filter(finished=False)
 

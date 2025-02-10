@@ -32,6 +32,13 @@ from .models import *
 from .forms import *
 from django.db import transaction, IntegrityError
 
+import io
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.utils import get_column_letter
+import requests
+
 logger = logging.getLogger(__name__)
 
 AREAS = {
@@ -1713,188 +1720,120 @@ def assignedTasks_pdf(request):
     return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
 
 
-import io
-from io import BytesIO
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-from openpyxl.utils import get_column_letter
-import requests
-
 @login_required
 def assignedTasks_excel(request):
-    queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, finished=False).order_by('ot__system__asset__name', 'start_date')
-
-    asset_id = request.GET.get('asset_id')
-    if asset_id:
-        queryset = queryset.filter(ot__system__asset_id=asset_id)
-
-    responsable_id = request.GET.get('worker')
-    if responsable_id:
-        queryset = queryset.filter(responsible=responsable_id)
-
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
-    if start_date_str and end_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            queryset = queryset.annotate(
-                calc_final_date=ExpressionWrapper(
-                    F('start_date') + DayInterval(F('men_time')),
-                    output_field=DateField()
-                )
-            ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
-        except ValueError:
-            pass
-
-    # Filtrar por finalizados (0: pendientes, 1: finalizadas, 2: ambas)
-    # finalizados_param = request.GET.get('finalizados', '0')
-    # if finalizados_param == '0':
-    #     queryset = queryset.filter(finished=False)
-    # elif finalizados_param == '1':
-    #     queryset = queryset.filter(finished=True)
-
-    current_user = request.user
-    if current_user.groups.filter(name='serport_members').exists():
-        queryset = queryset.filter(responsible=current_user)
-    elif current_user.groups.filter(name='super_members').exists():
-        pass
-    elif current_user.groups.filter(name='maq_members').exists():
-        queryset = queryset.filter(ot__system__asset__supervisor=current_user)
-    else:
-        queryset = queryset.none()
-
-    # Construimos las filas con la información de cada equipo
-    data = []
-    counter = 1
+    # Usar el mismo queryset filtrado
+    queryset = filter_tasks_queryset(request)
+    # Ordenar por asset, OT y start_date (la misma lógica que en la vista PDF)
+    queryset = queryset.order_by('ot__system__asset__name', 'ot__num_ot', 'start_date')
+    
+    # Agrupar las tareas: grouped[asset][ot] = lista de tareas
+    grouped = defaultdict(lambda: defaultdict(list))
     for task in queryset:
-        row = [
-            counter,
-            str(task.ot),
-            task.ot.system.asset.name,
-            task.description,
-            task.responsible.get_full_name(),
-            task.news,
-            task.start_date,
-            # task.men_time,
-        ]
-        data.append(row)
-        counter += 1
-
-    # 4. Crear el workbook y las hojas
+        asset = task.ot.system.asset
+        ot = task.ot
+        grouped[asset][ot].append(task)
+    
+    # Crear el workbook y la hoja de cálculo
     wb = Workbook()
     ws = wb.active
     ws.title = "Actividades"
-
-    # Definir un borde delgado en color negro
+    
+    # Definir un borde delgado para las celdas
     thin_border = Border(
         left=Side(style='thin', color="000000"),
         right=Side(style='thin', color="000000"),
         top=Side(style='thin', color="000000"),
         bottom=Side(style='thin', color="000000")
     )
-
-    # Fila 1: Título
-    # ws.merge_cells('A1:E1')
-    ws.merge_cells('A1:B3')
-    ws.merge_cells('C1:E3')
-    ws['C1'] = "ACTIVIDADES PROGRAMADAS"
-    ws['C1'].font = Font(bold=True, size=16, name='Arial')
-    ws['C1'].alignment = Alignment(horizontal="center", vertical="center")
-    ws.row_dimensions[1].height = 20
-
-    # Fila 2: Formato, versión y fecha de actualización
-    ws.merge_cells('F1:G1')
-    ws['F1'] = "FORMATO:"
-    ws['F1'].font = Font(bold=True, name='Arial')
-    ws['F1'].alignment = Alignment(horizontal="center")
-
-    # Fila 2: Formato, versión y fecha de actualización
-    ws.merge_cells('F2:G2')
-    ws['F2'] = "VERSION: 001"
-    ws['F2'].font = Font(bold=True, name='Arial')
-    ws['F2'].alignment = Alignment(horizontal="center")
-
-    # Fila 2: Formato, versión y fecha de actualización
-    ws.merge_cells('F3:G3')
-    ws['F3'] = "FECHA DE ACTUALIZACIÓN:"
-    ws['F3'].font = Font(bold=True, name='Arial')
-    ws['F3'].alignment = Alignment(horizontal="center")
-
-    ws.row_dimensions[1].height = 20
-    ws.row_dimensions[2].height = 20
-    ws.row_dimensions[3].height = 20
-
-    # Fila 4-5: Datos del acta (por ejemplo, NRO DE ACTA, FECHA/HORA INICIO, CIUDAD, DEPENDENCIA)
-    ws.merge_cells('A4:B4')
-    ws['A4'] = "FECHA:"
-    ws['A4'].font = Font(bold=True, name='Arial')
     
-    ws.merge_cells('C4:G4')
-    ws['C4'] = start_date
-    ws['C4'].font = Font(bold=True, name='Arial')
-    ws['F3'].alignment = Alignment(horizontal="left")
-
-    header_ranges = ["A1:B3", "C1:E3", "F1:G1", "F2:G2", "F3:G3", "A4:B4", "C4:G4"]
-    for merged_range in header_ranges:
-        for row in ws[merged_range]:
-            for cell in row:
-                cell.border = thin_border
-
-    # Encabezados originales para Equipos
-    headers = [
-        'ITEM', 'OT', 'BARCOS', 'ACTIVIDAD', 'RESPONSABLE', 'OBSERVACIONES', 'FECHA INICIO'
-    ]
-    start_row = 5  # Ajusta según lo necesites
-    # Escribir encabezados con fondo azul (color 4d93d9) y texto blanco
-    for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=start_row, column=col_num)
-        cell.value = header
-        cell.font = Font(bold=True, color="ffffff", name='Arial')
-        cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = thin_border
-
-    # Escribir los datos y asignar el borde negro a cada celda de la tabla
-    current_row = start_row + 1
-    for row_data in data:
-        for col_num, cell_value in enumerate(row_data, 1):
-            cell = ws.cell(row=current_row, column=col_num)
-            cell.value = cell_value
-            cell.font = Font(name='Arial')
-            cell.border = thin_border
-        current_row += 1
-
-    # Ajuste de anchos para la hoja de Equipos
-    for idx, column_cells in enumerate(ws.columns, 1):
-        length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in column_cells)
-        col_letter = get_column_letter(idx)
-        ws.column_dimensions[col_letter].width = length + 2
-
-    # === Insertar la imagen desde la URL ===
+    # === Insertar el logo de la empresa ===
     url = "https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png"
     img_response = requests.get(url)
     if img_response.status_code == 200:
         image_data = BytesIO(img_response.content)
-        from openpyxl.drawing.image import Image  # Asegúrate de tener este import
-        img = Image(image_data)
-        # Asignar dimensiones a la imagen para evitar el error
+        from openpyxl.drawing.image import Image as XLImage
+        img = XLImage(image_data)
         img.width = 300   # Ajusta según tus necesidades
         img.height = 80   # Ajusta según tus necesidades
-        # Insertar la imagen en la hoja de Equipos, por ejemplo en la celda A1
         ws.add_image(img, "A1")
-        # ws_equips.row_dimensions[1].height = 30
-        print(ws.row_dimensions[1].height)
-
     else:
         print("No se pudo descargar la imagen.")
+    
+    # --- Fusionar las primeras 4 filas para el título ---
+    ws.merge_cells('A1:E4')
+    title_cell = ws['A1']
+    title_cell.value = "LISTADO DE ACTIVIDADES PROGRAMADAS"
+    title_cell.font = Font(bold=True, size=20, color="FFFFFF")
+    title_cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    for row in range(1, 5):
+        ws.row_dimensions[row].height = 30
+    
+    current_row = 5  # Comenzamos el contenido a partir de la fila 5
+    
+    # Recorrer cada asset (ordenado por nombre)
+    for asset in sorted(grouped.keys(), key=lambda a: a.name):
+        # Encabezado del asset: fusionar columnas 1 a 5
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
+        cell_asset = ws.cell(row=current_row, column=1, value=f"Asset: {asset.name} ({asset.abbreviation})")
+        cell_asset.font = Font(bold=True, size=14)
+        cell_asset.alignment = Alignment(horizontal="left")
+        # Aplicar borde a todas las celdas del rango fusionado
+        for row_cells in ws.iter_rows(min_row=current_row, max_row=current_row, min_col=1, max_col=5):
+            for cell in row_cells:
+                cell.border = thin_border
+        current_row += 1
+        
+        # Recorrer cada OT dentro del asset (ordenado por num_ot)
+        for ot in sorted(grouped[asset].keys(), key=lambda ot: ot.num_ot):
+            ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
+            cell_ot = ws.cell(row=current_row, column=1, value=f"OT-{ot.num_ot}: {ot.description}")
+            cell_ot.font = Font(bold=True, size=12)
+            cell_ot.alignment = Alignment(horizontal="left")
+            for row_cells in ws.iter_rows(min_row=current_row, max_row=current_row, min_col=1, max_col=5):
+                for cell in row_cells:
+                    cell.border = thin_border
+            current_row += 1
+            
+            # Encabezados para las actividades
+            headers = ['Actividad', 'Responsable', 'Inicio', 'Fin', 'Novedades']
+            for col_num, header in enumerate(headers, start=1):
+                cell = ws.cell(row=current_row, column=col_num, value=header)
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
+                cell.alignment = Alignment(horizontal="center")
+                cell.border = thin_border
+            current_row += 1
+            
+            # Escribir cada actividad de esta OT
+            for task in grouped[asset][ot]:
+                ws.cell(row=current_row, column=1, value=task.description).border = thin_border
+                responsable = f"{task.responsible.first_name} {task.responsible.last_name}" if task.responsible else ""
+                ws.cell(row=current_row, column=2, value=responsable).border = thin_border
+                ws.cell(row=current_row, column=3, value=task.start_date.strftime('%d/%m/%Y') if task.start_date else "").border = thin_border
+                ws.cell(row=current_row, column=4, value=task.final_date.strftime('%d/%m/%Y') if task.final_date else "").border = thin_border
+                ws.cell(row=current_row, column=5, value=task.news).border = thin_border
+                current_row += 1
+            # Espacio en blanco entre OT
+            current_row += 1
+        # Espacio en blanco entre assets
+        current_row += 1
 
-    # Exportar a HttpResponse
-    output = io.BytesIO()
+    # Ajustar el ancho de las columnas (evitando errores con celdas fusionadas)
+    for i in range(1, ws.max_column + 1):
+        col_letter = get_column_letter(i)
+        max_length = 0
+        for cell in ws[col_letter]:
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        ws.column_dimensions[col_letter].width = max_length + 2
+
+    # Exportar el workbook a BytesIO y retornar la respuesta
+    output = BytesIO()
     wb.save(output)
     output.seek(0)
-
-    filename = f"{start_date}_actividades.xlsx"
+    filename = "actividades.xlsx"
     response = HttpResponse(
         output,
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
