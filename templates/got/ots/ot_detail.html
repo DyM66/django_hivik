@@ -276,7 +276,7 @@
                                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ forloop.counter }}">
                                             <li><a class="dropdown-item" href="{{ act.get_absolute_url }}">Ver detalle</a></li>
                                             <li><a class="dropdown-item {% if not request.user|can_edit_task:act %}disabled{% endif %}" href="{% url 'got:finish-task-ot' act.id %}">Finalizar</a></li>
-                                            <li><a class="dropdown-item {% if not perms.got.change_task %}disabled{% endif %}" href="{% url 'got:task-update' act.id %}">Editar</a></li>                                  
+                                            <li><a class="dropdown-item {% if not perms.got.change_task %}disabled{% endif %}" href="{% url 'got:task-update' act.id %}?next={{ request.path }}">Editar</a></li>                                  
                                             <li><button class="dropdown-item {% if not perms.got.delete_task %}disabled{% endif %}" type="button" data-bs-toggle="modal" data-bs-target="#delete{{ act.id }}">Eliminar</button></li>                                  
                                             <li><a class="dropdown-item {% if not perms.got.can_reschedule_task %}disabled{% endif %}" href="{% url 'got:reschedule-task' act.id %}">Reprogramar</a></li>
                                         </ul>

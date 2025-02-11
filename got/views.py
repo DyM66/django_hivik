@@ -305,7 +305,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         user = self.request.user
         filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, self.request.GET)
 
-        # 2) Separamos rutinas con "ejecución"
         executing_rutas = []
         normal_rutas = []
         for r in filtered_rutas:
@@ -314,21 +313,17 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
             else:
                 normal_rutas.append(r)
 
-        # 3) Guardamos en contexto
         context['rotativos'] = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
         context['view_type'] = 'rutas'
         context['asset'] = asset
         context['mes'] = current_month_name_es
 
-        # Rutinas "no en ejecución"
         context['page_obj_rutas'] = normal_rutas
 
-        # Rutinas en ejecución
         context['exec_rutas'] = executing_rutas
         context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
         context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
 
-        # Ubicaciones => definimos r.ubic_label, etc.
         ubicaciones = set()
         for r in filtered_rutas:
             if r.equipo and r.equipo.ubicacion:
@@ -1874,6 +1869,11 @@ class TaskUpdate(UpdateView):
     http_method_names = ['get', 'post']
     second_form_class = UploadImages
 
+    def dispatch(self, request, *args, **kwargs):
+        # Guarda la URL previa si está presente para redirigir luego
+        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
+
     def get_template_names(self):
         """
         Devuelve la plantilla a utilizar según la asociación de la tarea:
@@ -1946,7 +1946,9 @@ class TaskUpdate(UpdateView):
     
     def get_success_url(self):
         referer = self.request.META.get('HTTP_REFERER')
-        if referer:
+        if self.next_url:
+            return self.next_url
+        else:    
             return referer
 
 
