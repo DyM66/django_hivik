@@ -27,12 +27,14 @@
     {% for ot_group in tasks_by_ot %}
         <h3>OT-{{ ot_group.grouper.num_ot }}: {{ ot_group.grouper.description }}</h3>
         {% for task in ot_group.list %}
+        <br>
             <ul>
                 <li><strong>Actividad:</strong> {{ task.description }}</li>
                 <li><strong>Responsable:</strong> {{ task.responsible.first_name }} {{ task.responsible.last_name }}</li>
                 <li><strong>Tiempo de ejecución:</strong> {{ task.start_date|date:"d/m/Y" }} - {{ task.final_date|date:"d/m/Y" }}</li>
                 <li><strong>Novedades:</strong> {{ task.news }}</li>
             </ul>
+            <br>
             {% if task.images.all %}
                 {% for img in task.images.all %}
                     <img src="{{ img.image.url }}" alt="Imagen de la actividad" style="width: 200px;">
