@@ -144,7 +144,7 @@ class Migration(migrations.Migration):
                 ('finished', models.BooleanField()),
                 ('ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.ot')),
                 ('responsible', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-                ('user', models.CharField(blank=True, max_length=50, null=True)),
+                ('user', models.CharField(blank=True, max_length=100, null=True)),
                 ('priority', models.IntegerField(blank=True, default=0, null=True)),
                 ('ruta', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.ruta')),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_tasks', to=settings.AUTH_USER_MODEL)),
@@ -174,7 +174,7 @@ class Migration(migrations.Migration):
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('clase_date', models.DateField(blank=True, help_text='(Opcional) Fecha en que se renovó el certificado de clase, si es un dique de clase.', null=True)),
             ],
-            options={'ordering': ['frecuency']},
+            options={'ordering': ['control', 'frecuency', 'equipo__name']},
         ),
         
     ]
