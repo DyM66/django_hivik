@@ -30,7 +30,7 @@ def update_solicitud_dates(sender, instance, **kwargs):
 @receiver(post_delete, sender=HistoryHour)
 def update_equipo_horometro(sender, instance, **kwargs):
     equipo = instance.component
-    ultimos_10_registros = HistoryHour.objects.filter(component=equipo).order_by('-report_date')[:10]
+    ultimos_10_registros = HistoryHour.objects.filter(component=equipo).order_by('-report_date')[:15]
     promedio_horas = ultimos_10_registros.aggregate(promedio_horas=Avg('hour'))['promedio_horas']
     equipo.prom_hours = promedio_horas or 0
     equipo.horometro = equipo.calculate_horometro()

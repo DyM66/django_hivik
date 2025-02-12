@@ -354,18 +354,22 @@ class Ruta(models.Model):
         
         if (self.control == 'h') and not self.ot:
             inv = self.frecuency - self.equipo.horometro
-            try:
+            if self.equipo.prom_hours < 2:
+                ndays = int(inv/2)
+            else:
                 ndays = int(inv/self.equipo.prom_hours)
-            except (ZeroDivisionError, AttributeError):
-                ndays = int(inv/12)
         
         elif self.control == 'h' or self.control == 'k':
             period = self.equipo.hours.filter(report_date__gte=self.intervention_date, report_date__lte=date.today()).aggregate(total_hours=models.Sum('hour'))['total_hours'] or 0
             inv = self.frecuency - period
-            try:
+            if self.equipo.prom_hours < 2:
+                ndays = int(inv/2)
+            else:
                 ndays = int(inv/self.equipo.prom_hours)
-            except (ZeroDivisionError, AttributeError):
-                ndays = int(inv/12)
+            # try:
+            #     ndays = int(inv/self.equipo.prom_hours)
+            # except (ZeroDivisionError, AttributeError):
+            #     ndays = int(inv/12)
         MAX_DAYS = 365 * 10
         if ndays > MAX_DAYS:
             ndays = MAX_DAYS

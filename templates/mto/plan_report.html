@@ -1,0 +1,49 @@
+{% extends "got/base/base_generic.html" %}
+{% load my_tags %}
+
+{% block content %}
+
+<style>
+    /* Reducir la fuente de la tabla */
+    table {
+        font-size: 0.8em;
+    }
+    table th, table td {
+        padding: 5px;
+    }
+</style>
+
+<div class="container">
+    <h1>Reporte de Plan de Mantenimiento para {{ asset.name }} ({{ asset.abbreviation }})</h1>
+    {% if plan_rows %}
+        <p>Periodo: {{ period_start }} - {{ period_end }}</p>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Rutina</th>
+                    {% for year, month, label in months %}
+                        <th>{{ label }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in plan_rows %}
+                    <tr>
+                        <td>{{ row.routine_name }}</td>
+                        {% for exec in row.executions %}
+                            {# Cada 'exec' es una tupla: (planned, actual) #}
+                            {% with total=exec.0|add:exec.1 %}
+                                <td class="text-center" style="{% if total > 0 %}background-color: #c8e6c9;{% endif %}">
+                                    {{ exec.0 }} / {{ exec.1 }}
+                                </td>
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No se encontraron planes de mantenimiento para este asset.</p>
+    {% endif %}
+</div>
+{% endblock %}

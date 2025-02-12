@@ -38,6 +38,7 @@ urlpatterns = [
     path('megger/', include('megger_app.urls')),
     path('inv/', include('inv.urls')),
     path('dth/', include('dth.urls', namespace='dth')),
+    path('mto/', include('mto.urls', namespace='mto')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
     
     # path('', include(router.urls)),

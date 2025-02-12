@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'megger_app.apps.MeggerAppConfig',
     'inv.apps.InvConfig',
     'dth.apps.DthConfig', 
+    'mto.apps.MtoConfig', 
     'taggit',
 ]
 
