@@ -44,14 +44,15 @@ class OvertimeListView(LoginRequiredMixin, ListView):
 
         today = date.today()
 
-        if today.day < 24:
-            start_date = (today - relativedelta(months=1)).replace(day=24)
-            end_date = today.replace(day=24)
-        else:
-            start_date = today.replace(day=24)
-            end_date = (today + relativedelta(months=1)).replace(day=24)
+        # if today.day < 24:
+        #     start_date = (today - relativedelta(months=1)).replace(day=24)
+        #     end_date = today.replace(day=24)
+        # else:
+        #     start_date = today.replace(day=24)
+        #     end_date = (today + relativedelta(months=1)).replace(day=24)
 
-        overtime_entries = Overtime.objects.filter(fecha__gte=start_date, fecha__lt=end_date)
+        # overtime_entries = Overtime.objects.filter(fecha__gte=start_date, fecha__lt=end_date)
+        overtime_entries = Overtime.objects.all()
 
         if user.groups.filter(name='maq_members').exists():
             asset = Asset.objects.filter(models.Q(supervisor=user) | models.Q(capitan=user)).first()

@@ -32,7 +32,6 @@ from .models import *
 from .forms import *
 from django.db import transaction, IntegrityError
 
-import io
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
