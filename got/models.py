@@ -1,3 +1,6 @@
+# got/models.py
+import base64
+from dirtyfields import DirtyFieldsMixin
 from datetime import date, timedelta
 from decimal import Decimal
 from django.contrib.auth.models import User
@@ -6,28 +9,16 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
-from taggit.managers import TaggableManager
-from .paths import *
-from outbound.models import Place
-
-import qrcode
 from io import BytesIO
-import base64
-from dirtyfields import DirtyFieldsMixin
+import qrcode
+from taggit.managers import TaggableManager
+from outbound.models import Place
+from .paths import *
 
 
 # Model 1: Activos (Centro de costos)
 class Asset(models.Model):
-    AREA = (
-        ('a', 'Motonave'),
-        ('b', 'Buceo'),
-        ('c', 'Barcazas'),
-        ('o', 'Oceanografía'),
-        ('l', 'Locativo'),
-        ('v', 'Vehiculos'),
-        ('x', 'Apoyo'),
-    )
-
+    AREA = (('a', 'Motonave'), ('c', 'Barcazas'), ('o', 'Oceanografía'), ('l', 'Locativo'), ('v', 'Vehiculos'), ('x', 'Apoyo'),)
     abbreviation = models.CharField(max_length=3, unique=True, primary_key=True)
     name = models.CharField(max_length=50)
     area = models.CharField(max_length=1, choices=AREA, default='a')
@@ -35,6 +26,9 @@ class Asset(models.Model):
     imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     show = models.BooleanField(default=True)
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_assets')
+    maintenance_compliance_cache = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Valor cacheado de mantenimiento (%)")
+    place = models.ForeignKey(Place, on_delete=models.SET_NULL, null=True, blank=True, related_name='assets', help_text='Ubicación asociada (opcional).')
+
     # Campos para Barcos
     capitan = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='Capitanes')
     bandera = models.CharField(default='Colombia', max_length=50, null=True, blank=True)
@@ -45,9 +39,6 @@ class Asset(models.Model):
     deadweight = models.IntegerField(default=0, null=True, blank=True)
     arqueo_bruto = models.IntegerField(default=0, null=True, blank=True)
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
-
-    maintenance_compliance_cache = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Valor cacheado de mantenimiento (%)")
-    place = models.ForeignKey(Place, on_delete=models.SET_NULL, null=True, blank=True, related_name='assets', help_text='Ubicación asociada (opcional).')
 
     def calculate_maintenance_compliance(self):
         systems = self.system_set.all()
@@ -89,9 +80,8 @@ class Asset(models.Model):
 class System(models.Model):
     STATUS = (('m', 'Mantenimiento'), ('o', 'Operativo'), ('x', 'Fuera de servicio'), ('s', 'Stand by'))
     name = models.CharField(max_length=50)
-    # group = models.IntegerField()
     location = models.CharField(max_length=50, default="Cartagena", null=True, blank=True)
-    state = models.CharField(choices=STATUS, default='m', max_length=1)
+    state = models.CharField(choices=STATUS, default='o', max_length=1)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     
@@ -107,13 +97,7 @@ class System(models.Model):
 
 # Model 3: Ordenes de trabajo
 class Ot(models.Model):
-    STATUS = (
-        ('a', 'Abierto'),
-        ('x', 'En ejecución'),
-        ('f', 'Finalizado'),
-        ('c', 'Cancelado'),
-    )
-
+    STATUS = (('a', 'Abierto'), ('x', 'En ejecución'), ('f', 'Finalizado'), ('c', 'Cancelado'),)
     TIPO_MTTO = (('p', 'Preventivo'), ('c', 'Correctivo'), ('m', 'Modificativo'),)
     creation_date = models.DateField(auto_now_add=True)
     num_ot = models.AutoField(primary_key=True)
@@ -172,12 +156,7 @@ class Equipo(DirtyFieldsMixin, models.Model):
         ('z', 'Banco de baterias'),
     )
 
-    ESTADO = (
-        ('b', 'BUEN ESTADO'),
-        ('m', 'MAL ESTADO'),
-        ('f', 'FUERA DE SERVICIO'),
-    )
-
+    ESTADO = (('b', 'BUEN ESTADO'), ('m', 'MAL ESTADO'), ('f', 'FUERA DE SERVICIO'),)
     code = models.CharField(primary_key=True, max_length=50)
     name = models.CharField(max_length=100)
     date_inv = models.DateField(auto_now_add=True)
@@ -189,11 +168,13 @@ class Equipo(DirtyFieldsMixin, models.Model):
     tipo = models.CharField(choices=TIPO, default='nr', max_length=2)
     estado = models.CharField(choices=ESTADO, default='b', max_length=1)
     system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='equipos')
-    subsystem = models.CharField(max_length=100, null=True, blank=True)
     ubicacion = models.CharField(max_length=150, null=True, blank=True)
     critico = models.BooleanField(default=False)
     recomendaciones = models.TextField(null=True, blank=True)
-    manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True)
+    related = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='related_with')
+    qr_code_url = models.URLField(max_length=1000, blank=True, null=True)
+    manual_pdf = models.FileField(upload_to=get_upload_pdfs, null=True, blank=True) # Obsoleto
+    subsystem = models.CharField(max_length=100, null=True, blank=True) # Obsoleto
 
     'Motores'
     potencia  = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -206,13 +187,7 @@ class Equipo(DirtyFieldsMixin, models.Model):
     volumen = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
-    related = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='related_with')
-    qr_code_url = models.URLField(max_length=1000, blank=True, null=True)
-
     def generate_qr_code(self):
-        """
-        Genera el código QR basado en el código único del equipo y lo almacena en `qr_code_url`.
-        """
         domain = "https://got.serport.co"
         public_url = f"{domain}/inv/public/equipo/{self.code}/"
         qr = qrcode.QRCode(version=1, box_size=4, border=2)
@@ -225,16 +200,12 @@ class Equipo(DirtyFieldsMixin, models.Model):
         self.qr_code_url = f"data:image/png;base64,{qr_base64}"
 
     def save(self, *args, **kwargs):
-        """
-        Sobrescribe el método save para generar y almacenar el código QR si no existe o si el código ha cambiado.
-        """
-        # Verificar si el código ha cambiado o si `qr_code_url` está vacío
         if not self.qr_code_url or 'code' in self.get_dirty_fields():
             self.generate_qr_code()
         super().save(*args, **kwargs)
 
     @property
-    def consumo_promedio_por_hora(self):
+    def consumo_promedio_por_hora(self): # No funciona correctamente
         '''
         Para equipos de tipo 'r' (motores a combustión) calcula consumo de combustible (articulo con
         ID 132), comparando la fecha de reportes de consumo con la fecha de reporte de horas.
@@ -275,8 +246,8 @@ class Equipo(DirtyFieldsMixin, models.Model):
         return reverse('got:equipo-detail', args=[self.code])
 
 
-# Model 6: Historial de horas de equipos/ Kilometros
-class HistoryHour(models.Model):
+# Model 5: Historial de horas de equipos/ Kilometros
+class HistoryHour(models.Model): # Agregar un campo para llevar el registro del total
     report_date = models.DateField()
     hour = models.DecimalField(max_digits=10, decimal_places=2)
     reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -291,17 +262,10 @@ class HistoryHour(models.Model):
         unique_together = ('component', 'report_date')
 
 
-# Model 7: Rutinas de mantenimiento
+# Model 6: Rutinas de mantenimiento
 class Ruta(models.Model):
     CONTROL = (('d', 'Días'), ('h', 'Horas'), ('k', 'Kilómetros'))
-
-    NIVEL = (
-        (1, 'Nivel 1 - Operadores'),
-        (2, 'Nivel 2 - Técnico'),
-        (3, 'Nivel 3 - Proveedor especializado'),
-        (4, 'Nivel 4 - Fabricante')
-    )
-
+    NIVEL = ((1, 'Nivel 1 - Operadores'), (2, 'Nivel 2 - Técnico'), (3, 'Nivel 3 - Proveedor especializado'))
     code = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
     control = models.CharField(choices=CONTROL, max_length=1)
@@ -384,7 +348,6 @@ class Ruta(models.Model):
 
     @property
     def percentage_remaining(self):
-        
         if self.control == 'd':
             time_remaining = (self.next_date - date.today()).days
 
@@ -398,23 +361,6 @@ class Ruta(models.Model):
 
         return int((time_remaining / self.frecuency) * 100)
 
-    @property
-    def maintenance_status(self):
-        percentage = self.percentage_remaining
-        if not self.ot:
-            return 'e'
-        elif percentage <= 10 and not self.ot:
-            return 'p'
-        elif self.ot.state=='x':
-            return 'x'
-        else:
-            if 25 <= percentage <= 100:
-                return 'c'
-            elif 5 <= percentage <= 24:
-                return 'p'
-            else:
-                return 'v'
-
     def __str__(self):
         return '%s - %s' % (self.system, self.name)
 
@@ -425,6 +371,7 @@ class Ruta(models.Model):
         ordering = ['control', 'frecuency', 'equipo__name']
 
 
+# Model 7: Servicios
 class Item(models.Model):
     SECCION = (('c', 'Consumibles'), ('h', 'Herramientas y Elementos'), ('r', 'Repuestos'))
     name = models.CharField(max_length=50)
@@ -443,7 +390,7 @@ class Item(models.Model):
         ordering = ['name', 'reference']
 
 
-# Model 4: Servicios
+# Model 8: Servicios
 class Service(models.Model):
     description = models.CharField(max_length=200, unique=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -455,14 +402,9 @@ class Service(models.Model):
         ordering = ['description']
 
 
-# Model 8: Requerimientos para realizar rutina de mantenimiento
+# Model 9: Requerimientos para realizar rutina de mantenimiento
 class MaintenanceRequirement(models.Model):
-    TIPO_REQUISITO = (
-        ('m', 'Material'),
-        ('h', 'Herramienta/Equipo'),
-        ('s', 'Servicio'),
-    )
-
+    TIPO_REQUISITO = (('m', 'Material'), ('h', 'Herramienta/Equipo'), ('s', 'Servicio'),)
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, related_name='requisitos')
     item = models.ForeignKey(Item, on_delete=models.SET_NULL, null=True, blank=True)
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='maintenance_requirements')
@@ -481,7 +423,6 @@ class MaintenanceRequirement(models.Model):
             return f"Requerimiento: {self.descripcion} - Cantidad: {self.cantidad}"
 
     def clean(self):
-        # Asegurar que solo se asocie un Item o un Service según el tipo
         if self.tipo in ['m', 'h']:
             if not self.item:
                 raise ValidationError('Para tipo Material/Herramienta, debe asociarse a un Item.')
@@ -506,11 +447,11 @@ class MaintenanceRequirement(models.Model):
         return reverse('got:ruta_detail', args=[str(self.pk)])
 
 
-# Model 9: Actividades (para OT o Rutinas de mantenimiento)
+# Model 10: Actividades (para OT o Rutinas de mantenimiento)
 class Task(models.Model):
     ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True) #En prueba
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True)
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True) #En prueba
     responsible = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     user = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField()
@@ -542,14 +483,7 @@ class Task(models.Model):
 
 # Model 10: Reportes de falla
 class FailureReport(models.Model):
-    IMPACT = (
-        ('s', 'La seguridad personal'),
-        ('m', 'El medio ambiente'),
-        ('i', 'Integridad del equipo/sistema'),
-        ('o', 'El desarrollo normal de las operaciones'),
-    )
-
-    reporter = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    IMPACT = (('s', 'La seguridad personal'), ('m', 'El medio ambiente'), ('i', 'Integridad del equipo/sistema'), ('o', 'El desarrollo normal de las operaciones'),)
     report = models.CharField(max_length=100, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True)
     moment = models.DateTimeField(auto_now_add=True)
@@ -557,7 +491,6 @@ class FailureReport(models.Model):
     causas = models.TextField()
     suggest_repair = models.TextField(null=True, blank=True)
     critico = models.BooleanField()
-    evidence = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     closed = models.BooleanField(default=False)
     impact = ArrayField(models.CharField(max_length=1, choices=IMPACT), default=list, blank=True)
     related_ot = models.ForeignKey('Ot', on_delete=models.SET_NULL, null=True, blank=True, related_name='failure_report')
@@ -580,7 +513,6 @@ class FailureReport(models.Model):
 
 # Model 11: Proyectos/operaciones para barcos
 class Operation(models.Model):
-
     start = models.DateField()
     end = models.DateField()
     proyecto = models.CharField(max_length=100)
@@ -609,10 +541,7 @@ class Requirement(models.Model):
     responsable = models.CharField(max_length=100, null=True, blank=True)
 
     class Meta:
-        permissions = [
-            ('can_create_requirement', 'Can create requirement'),
-            ('can_delete_requirement', 'Can delete requirement'),
-        ]
+        permissions = [('can_create_requirement', 'Can create requirement'), ('can_delete_requirement', 'Can delete requirement'),]
 
 
 # Model 13: Solicitudes de compra $app
@@ -678,13 +607,7 @@ class Suministro(models.Model):
 
 # Model 15: Registro de movimientos de suminsitros realizados en los barcos o bodegas locativas
 class Transaction(models.Model):
-    TIPO = (
-        ('i', 'Ingreso'),
-        ('c', 'Consumo'),
-        ('t', 'Transferencia'),
-        ('e', 'Ingreso externo'),
-    )
-
+    TIPO = (('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo'),)
     suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
     cant = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     fecha = models.DateField()
@@ -722,6 +645,7 @@ class DailyFuelConsumption(models.Model):
 # Model 17: Imagenes
 class Image(models.Model):
     image = models.ImageField(upload_to=get_upload_path)
+    creation = models.DateField(auto_now_add=True)
     failure = models.ForeignKey(FailureReport, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)

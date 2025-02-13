@@ -35,11 +35,23 @@
                 <li><strong>Novedades:</strong> {{ task.news }}</li>
             </ul>
             <br>
-            {% if task.images.all %}
-                {% for img in task.images.all %}
-                    <img src="{{ img.image.url }}" alt="Imagen de la actividad" style="width: 200px;">
-                {% endfor %}
-            {% endif %}
+            {% with filtered_images=task.images.all|filter_by_date_range:date_range %}
+                {% if filtered_images %}
+                    <table style="width:100%; border:none;">
+                        <tr>
+                        {% for img in filtered_images %}
+                            <td style="padding:5px;">
+                                <img src="{{ img.image.url }}" alt="Imagen de la actividad" style="width: 200px;">
+                            </td>
+                            {% if forloop.counter|divisibleby:"3" and not forloop.last %}
+                        </tr>
+                        <tr>
+                            {% endif %}
+                        {% endfor %}
+                        </tr>
+                    </table>
+                {% endif %}
+            {% endwith %}
             <br>
         {% endfor %}
     {% endfor %}

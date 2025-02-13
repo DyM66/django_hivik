@@ -1,7 +1,9 @@
 import base64
 import logging
-import uuid
 import json
+import requests
+import uuid
+
 from datetime import timedelta, date, datetime
 from decimal import Decimal
 from django.conf import settings
@@ -13,7 +15,8 @@ from django.contrib.auth.views import PasswordResetView
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, Case, When, IntegerField, BooleanField, Value
+from django.db import transaction, IntegrityError
+from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Case, When, IntegerField, BooleanField, Value
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -22,124 +25,30 @@ from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import gettext as _
 from django.views import generic, View
-from django.views.decorators.cache import never_cache, cache_control
 from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from megger_app.models import Megger
-from taggit.models import Tag 
-from .utils import *
-from mto.utils import record_execution
-from .models import *
-from .forms import *
-from django.db import transaction, IntegrityError
-
 from io import BytesIO
+from megger_app.models import Megger
+from mto.utils import record_execution
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
-import requests
+from taggit.models import Tag 
+from .utils import *
+from .models import *
+from .forms import *
+
 
 logger = logging.getLogger(__name__)
 
 AREAS = {
-    'a': 'Motonave',
+    'a': 'Barcos',
     'c': 'Barcazas',
     'o': 'Oceanografía',
     'l': 'Locativo',
     'v': 'Vehiculos',
     'x': 'Apoyo',
 }
-
-class DashbordView(TemplateView):
-    template_name = 'got/mantenimiento/main.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        today = date.today()
-        try:
-            month = int(self.request.GET.get('month', today.month))
-        except ValueError:
-            month = today.month
-        try:
-            year = int(self.request.GET.get('year', today.year))
-        except ValueError:
-            year = today.year
-
-        period_start = date(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        period_end = date(year, month, last_day)
-
-        context['period_start'] = period_start
-        context['period_end'] = period_end
-        context['selected_month'] = month
-        context['selected_year'] = year
-
-        # Crear un "breadcrumb" o menú de meses para el año actual
-        months = []
-        for m in range(1, 13):
-            # Puedes personalizar los nombres usando un diccionario o la localización.
-            month_name = calendar.month_name[m]  # Por defecto en inglés; si deseas en español, puedes usar un diccionario
-            months.append({'number': m, 'name': month_name})
-        context['months'] = months
-
-        # Filtrar las rutinas cuyo "next_date" esté dentro del período
-        all_rutas = Ruta.objects.all()
-        grouped_by_asset = defaultdict(list)
-        for ruta in all_rutas:
-            # Obtener la fecha calculada para la siguiente ejecución
-            next_date = ruta.next_date
-            if next_date and period_start <= next_date <= period_end:
-                # Agrupar por activo (se obtiene a través de ruta.system.asset)
-                asset = ruta.system.asset
-                grouped_by_asset[asset].append(ruta)
-        rutas_by_asset = list(grouped_by_asset.items())
-
-        # Agrupar por área
-        grouped_by_area = defaultdict(list)
-        for asset, rutas in rutas_by_asset:
-            grouped_by_area[asset.area].append((asset, rutas))
-        context['grouped_by_area'] = list(grouped_by_area.items())
-        context['areas'] = AREAS
-        
-        # --- Agregar requerimientos agregados para cada asset ---
-        requirements_by_asset = {}
-        for asset, rutas in rutas_by_asset:
-            agg = {}
-            for ruta in rutas:
-                # Calcular la cantidad de ejecuciones de la rutina en el período
-                executions = calculate_executions(ruta, period_start, period_end)
-                # Obtener los requerimientos asociados a esta ruta
-                reqs = MaintenanceRequirement.objects.filter(ruta=ruta)
-                for req in reqs:
-                    # Calculamos el total requerido para esa ruta
-                    total = req.cantidad * executions
-                    # Determinar la clave de agrupación:
-                    if req.tipo in ['m', 'h']:
-                        if req.item:
-                            key = ('item', req.item.id)
-                            label = req.item.name
-                        else:
-                            key = ('desc', req.descripcion)
-                            label = req.descripcion
-                    elif req.tipo == 's':
-                        if req.service:
-                            key = ('service', req.service.id)
-                            label = req.service.description
-                        else:
-                            key = ('desc', req.descripcion)
-                            label = req.descripcion
-                    else:
-                        key = ('desc', req.descripcion)
-                        label = req.descripcion
-                    if key in agg:
-                        agg[key]['total'] += total
-                    else:
-                        agg[key] = {'label': label, 'total': total}
-            # Convertir el agregado a lista para ese asset
-            requirements_by_asset[asset] = list(agg.values())
-        context['requirements_by_asset'] = requirements_by_asset
-        return context
-
 
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, TemplateView):
@@ -203,38 +112,19 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        areas = {
-            'a': 'Motonave',
-            'c': 'Barcazas',
-            'o': 'Oceanografía',
-            'l': 'Locativo',
-            'v': 'Vehiculos',
-            'x': 'Apoyo'
-        }
         assets = Asset.objects.filter(show=True)
         context['all_assets'] = Asset.objects.filter(show=True).order_by('name')
-        context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in areas.items()}
-
-        context['area_icons'] = {
-            'a': 'fa-ship',            # Motonave
-            'c': 'fa-solid fa-ferry',
-            'o': 'fa-water',           # Oceanografía
-            'l': 'fa-building',        # Locativo
-            'v': 'fa-car',             # Vehículos
-            'x': 'fa-cogs',            # Apoyo
-        }
-
+        context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in AREAS.items()}
+        context['area_icons'] = {'a': 'fa-ship', 'c': 'fa-solid fa-ferry', 'o': 'fa-water', 'l': 'fa-building', 'v': 'fa-car', 'x': 'fa-cogs'}
         context['places'] = Place.objects.all()
         context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'super_members'])
         context['capitanes'] = User.objects.filter(groups__name='maq_members')
 
         open_failures_dict = {}
         for asset in assets:
-            # Filtramos las fallas abiertas de este asset
             fr_qs = FailureReport.objects.filter(closed=False, equipo__system__asset=asset)
             crit_qs = fr_qs.filter(critico=True)
             no_crit_qs = fr_qs.filter(critico=False)
-
             crit_count = crit_qs.count()
             no_crit_count = no_crit_qs.count()
 
@@ -319,7 +209,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         context['mes'] = current_month_name_es
 
         context['page_obj_rutas'] = normal_rutas
-
         context['exec_rutas'] = executing_rutas
         context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
         context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
@@ -334,7 +223,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
                 r.ubic_label = r.equipo.ubicacion
             else:
                 r.ubic_label = "(sin)"
-
         context['ubicaciones_unicas'] = sorted(ubicaciones)
         return context
 
@@ -393,7 +281,7 @@ class AssetDocumentsView(View):
         if keyword:
             all_docs = all_docs.filter(description__icontains=keyword)
 
-        paginator = Paginator(all_docs, 30)
+        paginator = Paginator(all_docs, 50)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
 
@@ -490,7 +378,6 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         system = self.get_object()
 
-        # Aquí se añade la lógica para el parámetro de retorno ("next")
         next_url = self.request.GET.get('next')
         if not next_url:
             # Si no se pasó, se redirige por defecto a la vista de detalle del asset del sistema
@@ -507,7 +394,6 @@ class SysDetailView(LoginRequiredMixin, generic.DetailView):
 
         rutinas = Ruta.objects.filter(system=system)
         context['rutinas'] = rutinas
-        # context['items'] = Item.objects.all()
         return context
 
 
@@ -573,7 +459,6 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
     http_method_names = ['get', 'post']
 
     def dispatch(self, request, *args, **kwargs):
-        # Guarda la URL previa si está presente para redirigir luego
         self.next_url = request.GET.get('next') or request.POST.get('next') or ''
         return super().dispatch(request, *args, **kwargs)
 
@@ -1392,7 +1277,6 @@ class OtListView(LoginRequiredMixin, generic.ListView):
 
     def get_queryset(self):
         queryset = Ot.objects.all().select_related('system', 'system__asset')
-
         user = self.request.user
         user_groups = user.groups.values_list('name', flat=True)
 
@@ -1478,7 +1362,6 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         context['electric_motors'] = system.equipos.filter(Q(tipo='e') | Q(tipo='g'))
         context['has_electric_motors'] = system.equipos.filter(Q(tipo='e') | Q(tipo='g')).exists()
         context['megger_tests'] = Megger.objects.filter(ot=self.get_object())
-
         return context
 
     def post(self, request, *args, **kwargs):
@@ -1542,8 +1425,6 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
                 self.object.sign_supervision.save(filename, data, save=True)
             
             self.object.save()
-
-            # Aquí se define la fecha de cierre; en este ejemplo usamos la fecha actual
             closed_date = timezone.now().date()
 
             # Para cada ruta asociada a la OT, se intenta registrar la ejecución en el plan de mantenimiento
@@ -1716,14 +1597,20 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 @login_required
 def assignedTasks_pdf(request):
     queryset = filter_tasks_queryset(request)
-    # Si deseas un orden diferente para el PDF, puedes encadenar un order_by aquí:
     queryset = queryset.order_by('ot__system__asset__name', 'start_date')
     
+    # Obtener los parámetros de fecha
+    start = request.GET.get('start_date', '')
+    end = request.GET.get('end_date', '')
+    # Formar el string con el rango de fechas (separado por coma)
+    date_range = f"{start},{end}" if start and end else ""
+
     context = {
         'tasks': queryset,
-        'start': request.GET.get('start_date', ''),
-        'end': request.GET.get('end_date', ''),
-        'finalizados': request.GET.get('show_finalizadas', '0')
+        'start': start,
+        'end': end,
+        'finalizados': request.GET.get('show_finalizadas', '0'),
+        'date_range': date_range,
     }
     return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
 

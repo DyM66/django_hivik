@@ -261,3 +261,22 @@ def filter_queryset(queryset, args):
         return queryset.filter(**{key: value})
     except Exception:
         return queryset
+    
+from datetime import datetime
+@register.filter
+def filter_by_date_range(images, date_range):
+    """
+    Filtra un queryset de imágenes (o una lista) para devolver solo aquellas cuya
+    fecha 'creation' esté entre las fechas dadas.
+    
+    Se espera que `date_range` sea una cadena del tipo "YYYY-MM-DD,YYYY-MM-DD".
+    Si el parámetro no cumple el formato, se retorna el queryset sin filtrar.
+    """
+    try:
+        start_str, end_str = date_range.split(',')
+        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
+    except Exception:
+        return images
+    # Suponiendo que 'images' es un QuerySet; si es una lista, podemos usar una lista por comprensión.
+    return images.filter(creation__gte=start_date, creation__lte=end_date)

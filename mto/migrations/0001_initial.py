@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('got', '0004_equipo_estado'),
+        ('got', '0003_remove_task_ruta_delete_ruta'),
     ]
 
     operations = [

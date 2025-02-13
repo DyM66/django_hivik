@@ -126,6 +126,7 @@ class Migration(migrations.Migration):
                 ('recomendaciones', models.TextField(blank=True, null=True)),
                 ('related', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='related_with', to='got.equipo')),
                 ('qr_code_url', models.URLField(blank=True, max_length=1000, null=True)),
+                ('estado', models.CharField(choices=[('b', 'BUEN ESTADO'), ('m', 'MAL ESTADO'), ('f', 'FUERA DE SERVICIO')], default='b', max_length=1)),
             ],
             options={
                 'ordering': ['name', 'code'],

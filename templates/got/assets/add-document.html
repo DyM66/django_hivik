@@ -1,5 +1,4 @@
 <!-- got/templates/got/assets/add-document.html -->
-
 {% extends "got/base/base_generic.html" %}
 
 {% block content %}
@@ -167,43 +166,6 @@
             </tbody>
         </table>
     </div>
-
-    <!-- Paginación (si es necesario) -->
-    {% if is_paginated %}
-        <div class="px-3 mt-2" style="overflow-x: auto;">
-            <nav aria-label="Page navigation">
-                <ul class="pagination">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page=1">Primera</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page={{ page_obj.previous_page_number }}"><i class="bi bi-caret-left-fill"></i></a>
-                        </li>
-                    {% endif %}
-
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            {% if page_obj.number == num %}
-                                <li class="page-item active" aria-current="page"><a class="page-link" href="#">{{ num }}</a></li>
-                            {% else %}
-                                <li class="page-item"><a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page={{ num }}">{{ num }}</a></li>
-                            {% endif %}
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page={{ page_obj.next_page_number }}"><i class="bi bi-caret-right-fill"></i></a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?{% if request.GET.keyword %}keyword={{ request.GET.keyword }}&{% endif %}page={{ page_obj.paginator.num_pages }}">Última</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    {% endif %}
 </div>
 
 <!-- Modal Agregar Documento -->
