@@ -28,7 +28,7 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from megger_app.models import Megger
 from taggit.models import Tag 
 from .utils import *
-from mto.utils import update_plan_executions
+from mto.utils import record_execution
 from .models import *
 from .forms import *
 from django.db import transaction, IntegrityError
@@ -1543,13 +1543,18 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
             
             self.object.save()
 
-            # --- NUEVA PARTE: Actualizar los registros del plan de mantenimiento ---
-            # Tomamos la fecha de ejecución; en este ejemplo usamos la fecha actual.
+            # Aquí se define la fecha de cierre; en este ejemplo usamos la fecha actual
             closed_date = timezone.now().date()
-            # Para cada ruta asociada a la OT (incluyendo las dependientes, si es que la función actualizar_rutas_dependientes
-            # ya actualiza la intervención de la ruta de forma recursiva), actualizamos el plan.
+
+            # Para cada ruta asociada a la OT, se intenta registrar la ejecución en el plan de mantenimiento
             for ruta in rutas_relacionadas:
-                update_plan_executions(ruta, closed_date)
+                # Si la ruta tiene un plan de mantenimiento para el período actual, se actualiza
+                plan = ruta.maintenance_plans.filter(period_start__lte=closed_date, period_end__gte=closed_date).first()
+                if plan:
+                    success = record_execution(plan, closed_date)
+                    if not success:
+                        self.stdout.write(f"No se pudo registrar la ejecución para la ruta {ruta.name} en la fecha {closed_date}")
+            
             return redirect(ot.get_absolute_url())
 
         context = {'ot': ot, 'task_form': task_form, 'state_form': state_form}

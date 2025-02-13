@@ -132,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
                                     <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'got:main' %}">Proyección</a></li>
                                 {% endif %}
                                 </ul>
                             </div>

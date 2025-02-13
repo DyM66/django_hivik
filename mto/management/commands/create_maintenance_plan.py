@@ -1,6 +1,4 @@
 # mto/management/commands/create_maintenance_plans_asset.py
-
-import calendar
 from datetime import date, timedelta
 from collections import defaultdict
 
@@ -40,6 +38,11 @@ class Command(BaseCommand):
         # Iterar por cada ruta para crear el plan
         for ruta in rutas:
             self.stdout.write(f"Procesando ruta: {ruta.name} (Control: {ruta.control}, Frecuencia: {ruta.frecuency})")
+
+            # Verificar si ya existe un plan que se solape con el periodo especificado para esta ruta.
+            if MaintenancePlan.objects.filter(ruta=ruta, period_start__lte=period_end, period_end__gte=period_start).exists():
+                self.stdout.write(self.style.WARNING(f"Ya existe un plan de mantenimiento para la ruta '{ruta.name}' en el periodo especificado."))
+                continue
             
             # Creamos el plan de mantenimiento. El campo start_count_date se fija a la fecha de intervención
             # en el momento de crear el plan, y a partir de ahí se calcularán las ejecuciones.

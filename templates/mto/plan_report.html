@@ -17,12 +17,18 @@
     <h1>Reporte de Plan de Mantenimiento para {{ asset.name }} ({{ asset.abbreviation }})</h1>
     {% if plan_rows %}
         <p>Periodo: {{ period_start }} - {{ period_end }}</p>
-        <table class="table table-bordered table-striped">
+        <table class="table table-bordered table-striped" style="font-size:0.8em;">
             <thead>
                 <tr>
                     <th>Rutina</th>
                     {% for year, month, label in months %}
-                        <th>{{ label }}</th>
+                        {% if forloop.counter0 == current_month_index %}
+                            <th style="background-color: #dc9090; font-weight:bold; border-left: 3px solid #000; border-right: 3px solid #000;">
+                                {{ label }}
+                            </th>
+                        {% else %}
+                            <th>{{ label }}</th>
+                        {% endif %}
                     {% endfor %}
                 </tr>
             </thead>
@@ -31,11 +37,16 @@
                     <tr>
                         <td>{{ row.routine_name }}</td>
                         {% for exec in row.executions %}
-                            {# Cada 'exec' es una tupla: (planned, actual) #}
                             {% with total=exec.0|add:exec.1 %}
-                                <td class="text-center" style="{% if total > 0 %}background-color: #c8e6c9;{% endif %}">
-                                    {{ exec.0 }} / {{ exec.1 }}
-                                </td>
+                                {% if forloop.counter0 == current_month_index %}
+                                    <td class="text-center" style="border-left: 3px solid #000; border-right: 3px solid #000; {% if total > 0 %}background-color: #e0f7fa;{% endif %}">
+                                        {{ exec.0 }} / {{ exec.1 }}
+                                    </td>
+                                {% else %}
+                                    <td class="text-center" style="{% if total > 0 %}background-color: #e0f7fa;{% endif %}">
+                                        {{ exec.0 }} / {{ exec.1 }}
+                                    </td>
+                                {% endif %}
                             {% endwith %}
                         {% endfor %}
                     </tr>
