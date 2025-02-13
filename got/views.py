@@ -1619,6 +1619,7 @@ def assignedTasks_pdf(request):
 def assignedTasks_excel(request):
     # Usar el mismo queryset filtrado
     queryset = filter_tasks_queryset(request)
+    start = request.GET.get('start_date', '')
     # Ordenar por asset, OT y start_date (la misma lógica que en la vista PDF)
     queryset = queryset.order_by('ot__system__asset__name', 'ot__num_ot', 'start_date')
     
@@ -1658,7 +1659,7 @@ def assignedTasks_excel(request):
     # --- Fusionar las primeras 4 filas para el título ---
     ws.merge_cells('A1:E4')
     title_cell = ws['A1']
-    title_cell.value = "LISTADO DE ACTIVIDADES PROGRAMADAS"
+    title_cell.value = "LISTADO DE ACTIVIDADES PROGRAMADAS" + (f" ({start})" if start else "")
     title_cell.font = Font(bold=True, size=20, color="FFFFFF")
     title_cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -1671,7 +1672,7 @@ def assignedTasks_excel(request):
     for asset in sorted(grouped.keys(), key=lambda a: a.name):
         # Encabezado del asset: fusionar columnas 1 a 5
         ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
-        cell_asset = ws.cell(row=current_row, column=1, value=f"Asset: {asset.name} ({asset.abbreviation})")
+        cell_asset = ws.cell(row=current_row, column=1, value=f"{asset.name} ({asset.abbreviation})")
         cell_asset.font = Font(bold=True, size=14)
         cell_asset.alignment = Alignment(horizontal="left")
         # Aplicar borde a todas las celdas del rango fusionado
@@ -1711,9 +1712,9 @@ def assignedTasks_excel(request):
                 ws.cell(row=current_row, column=5, value=task.news).border = thin_border
                 current_row += 1
             # Espacio en blanco entre OT
-            current_row += 1
+            # current_row += 1
         # Espacio en blanco entre assets
-        current_row += 1
+        # current_row += 1
 
     # Ajustar el ancho de las columnas (evitando errores con celdas fusionadas)
     for i in range(1, ws.max_column + 1):

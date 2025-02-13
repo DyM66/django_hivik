@@ -189,39 +189,52 @@ class MaintenancePlanDashboardView(TemplateView):
         finished = [r for r in routine_rows if r["finished"]]
         context["routine_rows"] = unfinished + finished
 
+        # Resumen de Requerimientos (ÚNICAMENTE el total requerido)
+        # Se suma para cada requerimiento de cada plan:
+        #    total_required = (cantidad) x (ejecuciones pendientes) 
+        # donde ejecuciones pendientes = (planificado - ejecutado) para el plan
         reqs_dict = {}
         for plan in plans:
             if filter_year and filter_month:
                 entry = plan.entries.filter(year=filter_year, month=filter_month).first()
-                planned_multiplier = entry.planned_executions if entry else 0
+                remaining_for_plan = (entry.planned_executions - entry.actual_executions) if entry else 0
             else:
-                planned_multiplier = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
+                total_planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
+                total_actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
+                remaining_for_plan = total_planned - total_actual
 
-            if planned_multiplier:
-                for req in plan.ruta.requisitos.all():
-                    if req.item:
-                        key = f"item_{req.item.id}"
-                        req_name = str(req.item)
-                        suministro = Suministro.objects.filter(asset=asset, item=req.item).first()
-                    elif req.service:
-                        key = f"service_{req.service.id}"
-                        req_name = req.service.description
-                        suministro = None
-                    else:
-                        key = f"desc_{req.descripcion}"
-                        req_name = req.descripcion
-                        suministro = None
-                    if key in reqs_dict:
-                        reqs_dict[key]["total_required_for_month"] += req.cantidad * planned_multiplier
-                    else:
-                        reqs_dict[key] = {
-                            "name": req_name,
-                            "total_required_for_month": req.cantidad * planned_multiplier,
-                            "suministro_quantity": suministro.cantidad if suministro else None,
-                        }
-        # Incluir solo aquellos requerimientos con cantidad mayor a cero
+            # Solo consideramos planes con ejecuciones pendientes (diferencia mayor a cero)
+            if remaining_for_plan <= 0:
+                continue
+
+            for req in plan.ruta.requisitos.all():
+                # Se agrupa por el artículo (o servicio) usado en el requerimiento
+                if req.item:
+                    key = f"item_{req.item.id}"
+                    req_name = str(req.item)
+                    suministro = Suministro.objects.filter(asset=asset, item=req.item).first()
+                elif req.service:
+                    key = f"service_{req.service.id}"
+                    req_name = req.service.description
+                    suministro = None
+                else:
+                    key = f"desc_{req.descripcion}"
+                    req_name = req.descripcion
+                    suministro = None
+
+                effective_required = req.cantidad * remaining_for_plan
+
+                if key in reqs_dict:
+                    reqs_dict[key]["total_required"] += effective_required
+                else:
+                    reqs_dict[key] = {
+                        "name": req_name,
+                        "total_required": effective_required,
+                        "suministro_quantity": suministro.cantidad if suministro else None,
+                    }
+        # Solo incluir requerimientos cuyo total requerido sea mayor a cero
         context["requirements_summary"] = [
-            req for req in reqs_dict.values() if req["total_required_for_month"] > 0
+            req for req in reqs_dict.values() if req["total_required"] > 0
         ]
 
         return context

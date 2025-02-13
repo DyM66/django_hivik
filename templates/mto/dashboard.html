@@ -34,6 +34,28 @@
 		background-color: #4d93d9;
 		color: #fff;
 	}
+		.finished-row {
+		background-color: #e0e0e0;
+		text-decoration: underline;
+	}
+	/* Migaja de pan para el filtro de meses */
+	.month-filter {
+		margin-bottom: 15px;
+	}
+	.month-filter ul {
+		list-style: none;
+		padding: 0;
+		display: flex;
+		gap: 10px;
+	}
+	.month-filter a {
+		text-decoration: none;
+		color: #333;
+	}
+	.month-filter a.active {
+		font-weight: bold;
+		color: #4d93d9;
+	}
 </style>
 
 <div class="dashboard-container">
@@ -79,7 +101,7 @@
 					</thead>
 					<tbody>
 						{% for row in routine_rows %}
-							<tr>
+							<tr {% if row.finished %}class="finished-row"{% endif %}>
 								<td>{{ row.routine_name }}</td>
 								<td>{{ row.level }}</td>
 								<td>{{ row.planned }}</td>
@@ -103,7 +125,7 @@
 					<thead>
 						<tr>
 							<th>Requerimiento</th>
-							<th>Total Requerido (Mes)</th>
+							<th>Total Requerido</th>
 							<th>Inventario</th>
 						</tr>
 					</thead>
@@ -111,7 +133,7 @@
 						{% for req in requirements_summary %}
 							<tr>
 								<td>{{ req.name }}</td>
-								<td>{{ req.total_required_for_month }}</td>
+								<td>{{ req.total_required }}</td>
 								<td>
 									{% if req.suministro_quantity %}
 									{{ req.suministro_quantity }}
