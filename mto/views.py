@@ -118,6 +118,11 @@ class MaintenancePlanDashboardView(TemplateView):
 
         # Generar lista de meses según el período del primer plan (si existe)
         months = []
+        spanish_months = {
+            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+        }
         if plans.exists():
             plan0 = plans.first()
             period_start = plan0.period_start
@@ -129,7 +134,7 @@ class MaintenancePlanDashboardView(TemplateView):
             i = 0
             today = date.today()
             while current <= period_end:
-                label = f"{calendar.month_name[current.month]} {current.year}"
+                label = f"{spanish_months.get(current.month, current.month)} {current.year}"
                 month_param = f"{current.year}-{current.month:02d}"
                 months.append((current.year, current.month, label, month_param))
                 if current.year == today.year and current.month == today.month:
@@ -155,71 +160,66 @@ class MaintenancePlanDashboardView(TemplateView):
                 if planned_for_month == 0:
                     continue
                 remaining = planned_for_month - actual_for_month
+                finished_flag = planned_for_month <= actual_for_month
                 routine_rows.append({
                     "routine_name": plan.ruta.name,
                     "level": plan.ruta.nivel,
                     "planned": planned_for_month,
                     "actual": actual_for_month,
                     "remaining": remaining,
+                    "finished": finished_flag,
                 })
-                multiplier = remaining
             else:
                 total_planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
                 total_actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
                 if total_planned == 0:
                     continue
                 remaining = total_planned - total_actual
+                finished_flag = total_planned <= total_actual
                 routine_rows.append({
                     "routine_name": plan.ruta.name,
                     "level": plan.ruta.nivel,
                     "planned": total_planned,
                     "actual": total_actual,
                     "remaining": remaining,
+                    "finished": finished_flag,
                 })
-                multiplier = remaining
-        context["routine_rows"] = routine_rows
+        # Reordenar: primero las rutinas sin terminar y luego las terminadas
+        unfinished = [r for r in routine_rows if not r["finished"]]
+        finished = [r for r in routine_rows if r["finished"]]
+        context["routine_rows"] = unfinished + finished
 
-        # Resumen de requerimientos para todas las rutinas del asset
-        # Se acumula para cada requerimiento (agrupado por item o service) la cantidad:
-        #   total_required_for_month = (cantidad del requerimiento) x (suma de "remaining" de los planes donde aparezca)
         reqs_dict = {}
         for plan in plans:
             if filter_year and filter_month:
                 entry = plan.entries.filter(year=filter_year, month=filter_month).first()
-                remaining_for_plan = entry.planned_executions - entry.actual_executions if entry else 0
+                planned_multiplier = entry.planned_executions if entry else 0
             else:
-                total_planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
-                total_actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
-                remaining_for_plan = total_planned - total_actual
+                planned_multiplier = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
 
-            # Solo consideramos planes con al menos una ejecución pendiente
-            if remaining_for_plan <= 0:
-                continue
-
-            for req in plan.ruta.requisitos.all():
-                # Para agrupar, si el requerimiento tiene un item se usa su ID, de lo contrario se usa la descripción
-                if req.item:
-                    key = f"item_{req.item.id}"
-                    req_name = str(req.item)
-                    suministro = Suministro.objects.filter(asset=asset, item=req.item).first()
-                elif req.service:
-                    key = f"service_{req.service.id}"
-                    req_name = req.service.description
-                    suministro = None
-                else:
-                    key = f"desc_{req.descripcion}"
-                    req_name = req.descripcion
-                    suministro = None
-
-                if key in reqs_dict:
-                    reqs_dict[key]["total_required_for_month"] += req.cantidad * remaining_for_plan
-                else:
-                    reqs_dict[key] = {
-                        "name": req_name,
-                        "total_required_for_month": req.cantidad * remaining_for_plan,
-                        "suministro_quantity": suministro.cantidad if suministro else None,
-                    }
-        # Solo incluir aquellos requerimientos cuyo total requerido sea mayor a cero
+            if planned_multiplier:
+                for req in plan.ruta.requisitos.all():
+                    if req.item:
+                        key = f"item_{req.item.id}"
+                        req_name = str(req.item)
+                        suministro = Suministro.objects.filter(asset=asset, item=req.item).first()
+                    elif req.service:
+                        key = f"service_{req.service.id}"
+                        req_name = req.service.description
+                        suministro = None
+                    else:
+                        key = f"desc_{req.descripcion}"
+                        req_name = req.descripcion
+                        suministro = None
+                    if key in reqs_dict:
+                        reqs_dict[key]["total_required_for_month"] += req.cantidad * planned_multiplier
+                    else:
+                        reqs_dict[key] = {
+                            "name": req_name,
+                            "total_required_for_month": req.cantidad * planned_multiplier,
+                            "suministro_quantity": suministro.cantidad if suministro else None,
+                        }
+        # Incluir solo aquellos requerimientos con cantidad mayor a cero
         context["requirements_summary"] = [
             req for req in reqs_dict.values() if req["total_required_for_month"] > 0
         ]

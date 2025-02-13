@@ -2,134 +2,133 @@
 {% load my_tags %}
 {% block content %}
 <style>
-  .dashboard-container {
-      margin: 20px;
-  }
-  .dashboard-columns {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-  }
-  .dashboard-column {
-      flex: 1;
-      min-width: 300px;
-  }
-  .dashboard-box {
-      border: 2px solid #4d93d9;
-      background-color: #f1f8ff;
-      padding: 15px;
-      margin-bottom: 20px;
-  }
-  table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9em;
-  }
-  th, td {
-      border: 1px solid #ccc;
-      padding: 5px;
-      text-align: center;
-  }
-  th {
-      background-color: #4d93d9;
-      color: #fff;
-  }
+	.dashboard-container {
+		margin: 20px;
+	}
+	.dashboard-columns {
+		display: flex;
+		gap: 20px;
+		flex-wrap: wrap;
+	}
+	.dashboard-column {
+		flex: 1;
+		min-width: 300px;
+	}
+	.dashboard-box {
+		border: 2px solid #4d93d9;
+		background-color: #f1f8ff;
+		padding: 15px;
+		margin-bottom: 20px;
+	}
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.9em;
+	}
+	th, td {
+		border: 1px solid #ccc;
+		padding: 5px;
+		text-align: center;
+	}
+	th {
+		background-color: #4d93d9;
+		color: #fff;
+	}
 </style>
 
 <div class="dashboard-container">
-  <h1>
+  	<h1>Plan de Mantenimiento - {{ asset.name }} ({{ asset.abbreviation }})</h1>
+  	{% if filter_year and filter_month %}
+    	<h4>{{ filter_month }}/ {{ filter_year }}</h4>
+  	{% else %}
+		<h4>Resumen del Período: {{ plans.first.period_start }} a {{ plans.first.period_end }}</h3>
+	{% endif %}
+  	<p><a href="{% url 'mto:plan-report' asset.abbreviation %}">Ver detalle</a></p>
 
-	Dashboard de Mantenimiento para {{ asset.name }} ({{ asset.abbreviation }})</h1>
-  {% if filter_year and filter_month %}
-    <h4>Mes Filtrado: {{ filter_month }} / {{ filter_year }}</h4>
-  {% else %}
-    <h3>Resumen del Período: {{ plans.first.period_start }} a {{ plans.first.period_end }}</h3>
-  {% endif %}
-  <p><a href="{% url 'mto:plan-report' asset.abbreviation %}">Ver detalle</a></p>
+  	<div class="dashboard-columns dashboard-box">
 
-  <div class="dashboard-columns">
-    <!-- Columna para Resumen de Rutinas -->
-    <div class="dashboard-column">
-      <div class="dashboard-box">
-        <h3>Resumen de Rutinas</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Rutina</th>
-              <th>Nivel</th>
-              <th>Planificado</th>
-              <th>Ejecutado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in routine_rows %}
-              <tr>
-                <td>{{ row.routine_name }}</td>
-                <td>{{ row.level }}</td>
-                <td>{{ row.planned }}</td>
-                <td>{{ row.actual }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="4">No se encontraron rutinas para el período.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <!-- Columna para Resumen de Requerimientos -->
-    <div class="dashboard-column">
-		<div class="dashboard-box">
-		  <h3>Resumen de Requerimientos</h3>
-		  <table>
-			<thead>
-			  <tr>
-				<th>Requerimiento</th>
-				<th>Total Requerido (Mes)</th>
-				<th>Inventario</th>
-			  </tr>
-			</thead>
-			<tbody>
-			  {% for req in requirements_summary %}
-				<tr>
-				  <td>{{ req.name }}</td>
-				  <td>{{ req.total_required_for_month }}</td>
-				  <td>
-					{% if req.suministro_quantity %}
-					  {{ req.suministro_quantity }}
-					{% else %}
-					  -
-					{% endif %}
-				  </td>
-				</tr>
-			  {% empty %}
-				<tr>
-				  <td colspan="4">No se encontraron requerimientos para el período.</td>
-				</tr>
-			  {% endfor %}
-			</tbody>
-		  </table>
-      </div>
-    </div>
-  </div>
 
-  <!-- Migaja de pan para filtrar por mes -->
-  <div class="dashboard-box">
-    <h3>Filtrar por mes</h3>
-    <nav>
-      <ul style="list-style: none; padding: 0; display: flex; gap: 10px;">
-        <li><a href="?">Todos</a></li>
-        {% for y, m, label, param in months %}
-          <li>
-            <a href="?month={{ param }}"
-               {% if filter_year == y and filter_month == m %} style="font-weight:bold; color:#4d93d9;" {% endif %}>
-              {{ label }}
-            </a>
-          </li>
-        {% endfor %}
-      </ul>
-    </nav>
-  </div>
+		<!-- Migaja de pan para filtrar por mes -->
+		<div class="">
+			<nav>
+				<ul style="list-style: none; padding: 0; display: flex; gap: 10px;">
+					<li><a href="?">Todos</a></li>
+					{% for y, m, label, param in months %}
+					<li>
+						<a href="?month={{ param }}" {% if filter_year == y and filter_month == m %} style="font-weight:bold; color:#4d93d9;" {% endif %}>
+							{{ label }}
+						</a>
+					</li>
+					{% endfor %}
+				</ul>
+			</nav>
+		</div>
+
+    	<!-- Columna para Resumen de Rutinas -->
+    	<div class="dashboard-column">
+      		<div class="">
+        		<h3>Resumen de Rutinas</h3>
+				<table>
+					<thead>
+						<tr>
+							<th>Rutina</th>
+							<th>Nivel</th>
+							<th>Planificado</th>
+							<th>Ejecutado</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for row in routine_rows %}
+							<tr>
+								<td>{{ row.routine_name }}</td>
+								<td>{{ row.level }}</td>
+								<td>{{ row.planned }}</td>
+								<td>{{ row.actual }}</td>
+							</tr>
+						{% empty %}
+							<tr>
+								<td colspan="4">No se encontraron rutinas para el período.</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+    	
+		<!-- Columna para Resumen de Requerimientos -->
+    	<div class="dashboard-column">
+			<div class="">
+				<h3>Resumen de Requerimientos</h3>
+				<table>
+					<thead>
+						<tr>
+							<th>Requerimiento</th>
+							<th>Total Requerido (Mes)</th>
+							<th>Inventario</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for req in requirements_summary %}
+							<tr>
+								<td>{{ req.name }}</td>
+								<td>{{ req.total_required_for_month }}</td>
+								<td>
+									{% if req.suministro_quantity %}
+									{{ req.suministro_quantity }}
+									{% else %}
+									-
+									{% endif %}
+								</td>
+							</tr>
+						{% empty %}
+							<tr>
+								<td colspan="4">No se encontraron requerimientos para el período.</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+		  		</table>
+      		</div>
+    	</div>
+  	</div>
 </div>
 {% endblock %}
