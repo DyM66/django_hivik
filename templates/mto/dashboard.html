@@ -37,12 +37,15 @@
 </style>
 
 <div class="dashboard-container">
-  <h1>Dashboard de Mantenimiento para {{ asset.name }} ({{ asset.abbreviation }})</h1>
+  <h1>
+
+	Dashboard de Mantenimiento para {{ asset.name }} ({{ asset.abbreviation }})</h1>
   {% if filter_year and filter_month %}
-    <h2>Mes Filtrado: {{ filter_month }} / {{ filter_year }}</h2>
+    <h4>Mes Filtrado: {{ filter_month }} / {{ filter_year }}</h4>
   {% else %}
-    <h2>Resumen del Período: {{ plans.first.period_start }} a {{ plans.first.period_end }}</h2>
+    <h3>Resumen del Período: {{ plans.first.period_start }} a {{ plans.first.period_end }}</h3>
   {% endif %}
+  <p><a href="{% url 'mto:plan-report' asset.abbreviation %}">Ver detalle</a></p>
 
   <div class="dashboard-columns">
     <!-- Columna para Resumen de Rutinas -->

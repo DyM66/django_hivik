@@ -14,7 +14,11 @@
 </style>
 
 <div class="container">
-    <h1>Reporte de Plan de Mantenimiento para {{ asset.name }} ({{ asset.abbreviation }})</h1>
+    <h1>
+        <a href="{% url 'mto:dashboard' asset.abbreviation %}">
+            <i class="bi bi-arrow-90deg-left add-more"></i>
+        </a>
+        Reporte de Plan de Mantenimiento para {{ asset.name }} ({{ asset.abbreviation }})</h1>
     {% if plan_rows %}
         <p>Periodo: {{ period_start }} - {{ period_end }}</p>
         <table class="table table-bordered table-striped" style="font-size:0.8em;">
