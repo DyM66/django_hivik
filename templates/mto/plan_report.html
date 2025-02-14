@@ -53,6 +53,9 @@
                                 {% endif %}
                             {% endwith %}
                         {% endfor %}
+                        <td class="text-center" style="font-weight:bold; background-color: #f0f0f0;">
+                            {{ row.total.0 }} / {{ row.total.1 }}
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>

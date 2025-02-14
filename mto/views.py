@@ -75,10 +75,14 @@ class MaintenancePlanReportView(TemplateView):
                     for entry in entries
                 }
                 executions = [entry_dict.get((year, month), (0, 0)) for (year, month, _) in months]
+                # Calcular totales acumulados sobre el período:
+                total_planned = sum(x[0] for x in executions)
+                total_actual = sum(x[1] for x in executions)
                 plan_rows.append({
                     "routine_name": plan.ruta.name,
                     "plan": plan,
                     "executions": executions,
+                    "total": (total_planned, total_actual),
                 })
             context["plan_rows"] = plan_rows
         else:

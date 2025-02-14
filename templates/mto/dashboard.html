@@ -2,60 +2,61 @@
 {% load my_tags %}
 {% block content %}
 <style>
-	.dashboard-container {
-		margin: 20px;
-	}
-	.dashboard-columns {
-		display: flex;
-		gap: 20px;
-		flex-wrap: wrap;
-	}
-	.dashboard-column {
-		flex: 1;
-		min-width: 300px;
-	}
-	.dashboard-box {
-		border: 2px solid #4d93d9;
-		background-color: #f1f8ff;
-		padding: 15px;
-		margin-bottom: 20px;
-	}
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 0.9em;
-	}
-	th, td {
-		border: 1px solid #ccc;
-		padding: 5px;
-		text-align: center;
-	}
-	th {
-		background-color: #4d93d9;
-		color: #fff;
-	}
-		.finished-row {
-		background-color: #e0e0e0;
-		text-decoration: underline;
-	}
-	/* Migaja de pan para el filtro de meses */
-	.month-filter {
-		margin-bottom: 15px;
-	}
-	.month-filter ul {
-		list-style: none;
-		padding: 0;
-		display: flex;
-		gap: 10px;
-	}
-	.month-filter a {
-		text-decoration: none;
-		color: #333;
-	}
-	.month-filter a.active {
-		font-weight: bold;
-		color: #4d93d9;
-	}
+    .dashboard-container {
+        margin: 20px;
+    }
+    .dashboard-columns {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .dashboard-column {
+        flex: 1;
+        min-width: 300px;
+    }
+    .dashboard-box {
+        border: 2px solid #4d93d9;
+        background-color: #f1f8ff;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+    }
+    th, td {
+        border: 1px solid #ccc;
+        padding: 5px;
+        text-align: center;
+    }
+    th {
+        background-color: #4d93d9;
+        color: #fff;
+    }
+    .finished-row {
+        background-color: #e0e0e0;
+        text-decoration: line-through;  /* Cambio: tachado */
+        color: #777;
+    }
+    /* Migaja de pan para el filtro de meses */
+    .month-filter {
+        margin-bottom: 15px;
+    }
+    .month-filter ul {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        gap: 10px;
+    }
+    .month-filter a {
+        text-decoration: none;
+        color: #333;
+    }
+    .month-filter a.active {
+        font-weight: bold;
+        color: #4d93d9;
+    }
 </style>
 
 <div class="dashboard-container">
