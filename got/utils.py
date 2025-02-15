@@ -1,3 +1,7 @@
+import calendar
+import openpyxl
+import pandas as pd
+
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from django.apps import apps
@@ -6,7 +10,6 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import get_template
 from django.utils import timezone
-import calendar
 from io import BytesIO
 from xhtml2pdf import pisa
 from django.http import HttpResponse
@@ -14,26 +17,60 @@ from .forms import RutinaFilterForm
 from django.db.models import Sum
 from collections import defaultdict
 from datetime import date
-import openpyxl
 from openpyxl.styles import Alignment, Font
 from django.contrib.auth.models import Group
-import pandas as pd
 from openpyxl.utils import get_column_letter
 from megger_app.models import Megger
 from django.db.models import Prefetch, Sum
-from django.core.management.base import BaseCommand
 from inv.models import EquipoCodeCounter
 from django.db import transaction
 from preoperacionales.models import *
-
 from .models import *
 from inv.models import DarBaja, Transferencia
 from dth.models import UserProfile
-
+from mto.utils import record_execution
 from django.db.models import Func
 
 class DayInterval(Func):
     template = "(%(expressions)s * interval '1 day')"
+
+def actualizar_rutas(ruta, fecha=timezone.now(), ot=None):
+    '''
+    Utilizada en: 
+    got/views/OtDetailView
+    got/views/rutina_form_view
+    '''
+    ruta.intervention_date = fecha
+    if ot:
+        ruta.ot = ot
+    ruta.save()
+
+    plan = ruta.maintenance_plans.filter(period_start__lte=fecha, period_end__gte=fecha).first()
+    if plan:
+        record_execution(plan, fecha)
+
+    if ruta.dependencia is not None:
+        actualizar_rutas(ruta.dependencia, fecha, ot)
+
+
+def procesar_tasks_y_dependencias(request, ruta, formset_data):
+    tasks = Task.objects.filter(ruta=ruta)
+    for task in tasks:
+        realizado = request.POST.get(f'realizado_{task.id}') == 'on'
+        observaciones = request.POST.get(f'observaciones_{task.id}')
+        evidencias = request.FILES.getlist(f'evidencias_{task.id}')
+        user = request.POST.get(f'user_{task.id}')
+            
+        formset_data.append({
+            'task': task,
+            'realizado': realizado,
+            'observaciones': observaciones,
+            'evidencias': evidencias,
+            'user': user,
+        })
+        
+    if ruta.dependencia:
+        procesar_tasks_y_dependencias(request, ruta.dependencia, formset_data)
 
 
 def update_compliance_all():
@@ -47,16 +84,6 @@ def update_compliance_all():
     for asset in assets:
         asset.update_maintenance_compliance_cache()
     print("Proceso completado. Se ha actualizado el compliance de todos los Assets.")
-
-
-def actualizar_rutas_dependientes(ruta):
-    '''
-    Utilizada en: views/OtDetailView
-    '''
-    ruta.intervention_date = timezone.now()
-    ruta.save()
-    if ruta.dependencia is not None:
-        actualizar_rutas_dependientes(ruta.dependencia)
 
 
 def render_to_pdf(template_src, context_dict={}):

@@ -50,6 +50,8 @@ AREAS = {
     'x': 'Apoyo',
 }
 
+TODAY = timezone.now().date()
+
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, TemplateView):
     template_name = 'got/assets/asset_list.html'
@@ -1400,21 +1402,13 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         
         state_form = FinishOtForm(request.POST)
         if 'finish_ot' in request.POST and state_form.is_valid():
+            # Cerrar la OT
             self.object.state = 'f'
             self.object.modified_by = request.user
             signature_image = request.FILES.get('signature_image', None)
             signature_data = request.POST.get('sign_supervisor', None)
 
-            rutas_relacionadas = Ruta.objects.filter(ot=ot)
-            for ruta in rutas_relacionadas:
-                actualizar_rutas_dependientes(ruta)
-
-            fallas_relacionadas = FailureReport.objects.filter(related_ot=ot)
-            for fail in fallas_relacionadas:
-                fail.closed = True
-                fail.modified_by = request.user
-                fail.save()
-
+            # Guardar firma del supervisor
             if signature_image:
                 self.object.sign_supervision = signature_image
             elif signature_data:
@@ -1425,17 +1419,24 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
                 self.object.sign_supervision.save(filename, data, save=True)
             
             self.object.save()
-            closed_date = timezone.now().date()
 
-            # Para cada ruta asociada a la OT, se intenta registrar la ejecución en el plan de mantenimiento
-            for ruta in rutas_relacionadas:
-                # Si la ruta tiene un plan de mantenimiento para el período actual, se actualiza
-                plan = ruta.maintenance_plans.filter(period_start__lte=closed_date, period_end__gte=closed_date).first()
+            # Actualizar rutinas de mantenimiento relacionadas y registrar ejecuciones en el PM
+            rutas = Ruta.objects.filter(ot=ot)
+            for ruta in rutas:
+                actualizar_rutas(ruta)
+                plan = ruta.maintenance_plans.filter(period_start__lte=TODAY, period_end__gte=TODAY).first()
                 if plan:
-                    success = record_execution(plan, closed_date)
+                    success = record_execution(plan, TODAY)
                     if not success:
-                        self.stdout.write(f"No se pudo registrar la ejecución para la ruta {ruta.name} en la fecha {closed_date}")
-            
+                        self.stdout.write(f"No se pudo registrar la ejecución para la ruta {ruta.name} en la fecha {TODAY}")
+
+            # Cerrar reportes de averias relacionados
+            fallas = FailureReport.objects.filter(related_ot=ot)
+            for fail in fallas:
+                fail.closed = True
+                fail.modified_by = request.user
+                fail.save()
+
             return redirect(ot.get_absolute_url())
 
         context = {'ot': ot, 'task_form': task_form, 'state_form': state_form}
@@ -2130,41 +2131,18 @@ def crear_ot_desde_ruta(request, ruta_id):
 
 def rutina_form_view(request, ruta_id):
     ruta = get_object_or_404(Ruta, code=ruta_id)
-
     tasks_ruta_principal = Task.objects.filter(ruta=ruta)
     fecha_actual = timezone.now().date()
     fecha_seleccionada = request.POST.get('fecha', fecha_actual)
-    ot_state = 'f' 
-
-    def procesar_tasks_y_dependencias(ruta, formset_data):
-        tasks = Task.objects.filter(ruta=ruta)
-        for task in tasks:
-            realizado = request.POST.get(f'realizado_{task.id}') == 'on'
-            observaciones = request.POST.get(f'observaciones_{task.id}')
-            evidencias = request.FILES.getlist(f'evidencias_{task.id}')
-            
-            if not realizado:
-                ot_state = 'x'  # Si alguna tarea no está realizada, la OT no estará finalizada
-            
-            formset_data.append({
-                'task': task,
-                'realizado': realizado,
-                'observaciones': observaciones,
-                'evidencias': evidencias
-            })
-
-        
-        if ruta.dependencia:
-            procesar_tasks_y_dependencias(ruta.dependencia, formset_data)
-
 
     if request.method == 'POST':
         formset_data = []
-        procesar_tasks_y_dependencias(ruta, formset_data)
+        procesar_tasks_y_dependencias(request, ruta, formset_data)
 
+        # Crear OT finalizada
+        # Guardar firma del supervisor
         signature_image = request.FILES.get('signature_image')
         signature_data = request.POST.get('signature')
-        signature_file = None
         if signature_image:
             signature_file = signature_image
         if signature_data:
@@ -2173,48 +2151,40 @@ def rutina_form_view(request, ruta_id):
             filename = f'signature_{uuid.uuid4()}.{ext}'
             signature_file = ContentFile(base64.b64decode(imgstr), name=filename)
 
+        # Datos de nueva OT a crear y cerrar
         new_ot = Ot.objects.create(
-            system=ruta.system,
-            description=f"Rutina de mantenimiento con código {ruta.name}",
-            supervisor=request.user.get_full_name(),
-            state=ot_state,
-            tipo_mtto='p',
-            sign_supervision=signature_file,
-            modified_by=request.user
+            system = ruta.system,
+            description = f"Rutina de mantenimiento: {ruta.name}",
+            supervisor = request.user.get_full_name(),
+            state = 'f',
+            tipo_mtto = 'p',
+            sign_supervision = signature_file,
+            modified_by = request.user
         )
             
+        # Asignar tareas a la nueva OT
         for form_data in formset_data:
             new_task = Task.objects.create(
-                ot=new_ot,
-                description=form_data['task'].description,
-                responsible=request.user,
-                news=form_data['observaciones'],
-                finished=form_data['realizado'],
-                start_date=fecha_seleccionada,
-                modified_by=request.user
+                ot = new_ot,
+                description = form_data['task'].description,
+                responsible = request.user,
+                user = form_data['user'],
+                news = form_data['observaciones'],
+                finished = form_data['realizado'],
+                start_date = fecha_seleccionada,
+                modified_by = request.user
             )
             # Guardar evidencias si las hay
             for evidencia in form_data['evidencias']:
                 Image.objects.create(task=new_task, image=evidencia)
 
-        def actualizar_ruta_y_dependencias(ruta, ot, fecha):
-            ruta.intervention_date = fecha
-            ruta.ot = ot
-            ruta.save()
-            if ruta.dependencia:
-                actualizar_ruta_y_dependencias(ruta.dependencia, ot, fecha)
-        actualizar_ruta_y_dependencias(ruta, new_ot, fecha_seleccionada)
-
-
-        print("Nueva OT creada con éxito:", new_ot)
+        actualizar_rutas(ruta, fecha_seleccionada, new_ot)
         return redirect(reverse('got:sys-detail', args=[ruta.system.id]))
 
     else:
         formset_data = [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages()} for task in tasks_ruta_principal]
         dependencias = []
-        
         # Agregar las tareas de las rutas dependientes
-        print(f'Hola{ruta.dependencia}')
         if ruta.dependencia:
             dependencias = [ruta.dependencia]
             while dependencias[-1].dependencia:
@@ -2224,9 +2194,13 @@ def rutina_form_view(request, ruta_id):
                 tasks_dependencia = Task.objects.filter(ruta=dependencia)
                 formset_data += [{'task': task, 'form': ActivityForm(), 'upload_form': UploadImages(), 'dependencia': dependencia.name} for task in tasks_dependencia]
 
-    return render(request, 'got/rutinas/ruta_ot_form.html', 
-                  {'formset_data': formset_data, 'ruta': ruta, 'dependencias': dependencias, 'fecha_seleccionada': fecha_seleccionada}
-                  )
+    context = {
+        'formset_data': formset_data,
+        'ruta': ruta, 
+        'dependencias': dependencias, 
+        'fecha_seleccionada': fecha_seleccionada
+    }
+    return render(request, 'got/rutinas/ruta_ot_form.html', context)
 
 
 'OPERATIONS VIEW'

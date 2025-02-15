@@ -18,26 +18,26 @@ def record_execution(plan, execution_date):
     """
     # Obtener las entradas del plan ordenadas por año y mes
     entries = plan.entries.all().order_by('year', 'month')
-    total_planned = sum(entry.planned_executions for entry in entries)
-    total_actual = sum(entry.actual_executions for entry in entries)
     
-    if total_actual < total_planned:
-        # Asignar la ejecución a la primera entrada que no haya alcanzado el planificado
-        for entry in entries:
-            if entry.actual_executions < entry.planned_executions:
-                entry.actual_executions += 1
-                entry.save()
-                return True
-    else:
-        # Si se han cumplido (o superado) lo planificado, asignar la ejecución al mes de la fecha real
-        try:
-            entry = entries.get(year=execution_date.year, month=execution_date.month)
-            entry.actual_executions += 1
-            entry.save()
-            return True
-        except entries.model.DoesNotExist:
-            # No existe entrada para el mes de execution_date; se podría registrar la ejecución "extra" o retornar False.
-            return False
+    # Si se han cumplido (o superado) lo planificado, asignar la ejecución al mes de la fecha real
+    try:
+        entry = entries.get(year=execution_date.year, month=execution_date.month)
+        entry.actual_executions += 1
+        entry.save()
+        return True
+    except entries.model.DoesNotExist:
+        # No existe entrada para el mes de execution_date; se podría registrar la ejecución "extra" o retornar False.
+        return False
+    
+    # total_planned = sum(entry.planned_executions for entry in entries)
+    # total_actual = sum(entry.actual_executions for entry in entries)
+    # if total_actual < total_planned:
+    #     for entry in entries:
+    #         if entry.actual_executions < entry.planned_executions:
+    #             entry.actual_executions += 1
+    #             entry.save()
+    #             return True
+    # else:
 
 
 def calculate_execution_dates(ruta, plan_start_date, period_end):
