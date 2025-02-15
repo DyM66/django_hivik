@@ -3339,3 +3339,39 @@ class CustomPasswordResetView(PasswordResetView):
         }
     
 
+# got/views.py
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML, CSS
+from django.utils import timezone
+from .models import Equipo
+
+def equipos_pdf_view(request):
+    # Obtener todos los equipos ordenados por nombre
+    equipos = Equipo.objects.all().order_by('name')
+    current_date = timezone.now().strftime("%d/%m/%Y")
+    
+    # Renderizar la plantilla a un string HTML
+    html_string = render_to_string('test.html', {
+        'equipos': equipos,
+        'current_date': current_date,
+    })
+    
+    # Definir estilos CSS (puedes ajustarlos o incluir otros archivos)
+    css_string = '''
+        @page { size: A4; margin: 1cm; }
+        body { font-family: Arial, sans-serif; font-size: 0.9em; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #4d93d9; color: #fff; }
+    '''
+    css = CSS(string=css_string)
+    
+    # Convertir el HTML a PDF
+    html = HTML(string=html_string)
+    pdf = html.write_pdf(stylesheets=[css])
+    
+    # Crear la respuesta HTTP con el PDF
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="equipos_report.pdf"'
+    return response

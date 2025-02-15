@@ -130,12 +130,76 @@ class RutinaFilterForm(forms.Form):
             )
 
 
+
+from django.utils.safestring import mark_safe
+
+class CustomMultipleFileInput(forms.FileInput):
+    allow_multiple_selected = True
+
+    def render(self, name, value, attrs=None, renderer=None):
+        if attrs is None:
+            attrs = {}
+        # Construir atributos sin pasar 'name'
+        final_attrs = self.build_attrs(attrs)
+        # Añadir manualmente el atributo name
+        final_attrs['name'] = name
+        # Asegurarse de que el input tenga un id para vincularlo con el label
+        if 'id' not in final_attrs:
+            final_attrs['id'] = f'id_{name}'
+
+        # Ocultar el input real
+        final_attrs['style'] = 'display:none;'
+
+        # Renderizamos el input usando el método del widget padre
+        input_html = super().render(name, value, final_attrs, renderer)
+        
+        # Creamos el HTML personalizado con label y span para mostrar el nombre del archivo
+        html = f'''
+        <div class="custom-file-input-wrapper" style="position: relative; display: inline-block;">
+          {input_html}
+          <label for="{final_attrs['id']}" style="display: inline-block; padding: 8px 12px; background-color: var(--primary-color, #191645); color: var(--secondary-color, #E5E5EA); border-radius: 4px; cursor: pointer; transition: background-color 0.3s, color 0.3s;">
+            Elegir archivos
+          </label>
+          <span id="{final_attrs['id']}_filename" style="margin-left: 10px; padding: 8px 12px; background-color: var(--input-bg-color, #CCCBD6); border: 1px solid var(--input-border-color, #191645); border-radius: 4px;">
+            No se ha seleccionado ningún archivo
+          </span>
+        </div>
+        <script>
+        document.addEventListener("DOMContentLoaded", function() {{
+            var fileInput = document.getElementById("{final_attrs['id']}");
+            var fileNameSpan = document.getElementById("{final_attrs['id']}_filename");
+            fileInput.addEventListener("change", function(){{
+                var fileName = "No se ha seleccionado ningún archivo";
+                if(fileInput.files.length > 0){{
+                    fileName = fileInput.files[0].name;
+                    if(fileInput.files.length > 1){{
+                        fileName = fileInput.files.length + " archivos seleccionados";
+                    }}
+                }}
+                fileNameSpan.textContent = fileName;
+            }});
+        }});
+        </script>
+        '''
+        return mark_safe(html)
+
 class UploadImages(forms.Form):
     file_field = MultipleFileField(label='Evidencias', required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['file_field'].widget.attrs.update({'multiple': True})
+
+# class UploadImages(forms.Form):
+#     file_field = MultipleFileField(
+#         label='Evidencias', 
+#         required=False, 
+#         widget=CustomMultipleFileInput()
+#     )
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.fields['file_field'].widget.attrs.update({'multiple': True})
 
 
 class Rq_Info(forms.Form):
@@ -182,7 +246,7 @@ class EquipoForm(forms.ModelForm):
 
     class Meta:
         model = Equipo
-        exclude = ['system', 'horometro', 'prom_hours', 'code', 'modified_by']
+        exclude = ['system', 'horometro', 'prom_hours', 'code', 'modified_by', 'manual_pdf']
         labels = {
             'name': 'Nombre del equipo',
             'model': 'Modelo',
@@ -190,7 +254,7 @@ class EquipoForm(forms.ModelForm):
             'marca': 'Marca',
             'fabricante': 'Fabricante',
             'feature': 'Características',
-            'manual_pdf': 'Manual',
+            # 'manual_pdf': 'Manual',
             'tipo': 'Tipo de equipo:',
             'estado': 'Estado:',
             'initial_hours': 'Horas iniciales (Motores)',
@@ -212,7 +276,7 @@ class EquipoForm(forms.ModelForm):
             'volumen': forms.NumberInput(attrs={'class': 'form-control'}),
             'potencia': forms.NumberInput(attrs={'class': 'form-control'}),
             'feature': forms.Textarea(attrs={'rows': 10, 'class': 'form-control'}),
-            'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
+            # 'manual_pdf': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
             'estado': forms.Select(attrs={'class': 'form-control'}),
             'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),

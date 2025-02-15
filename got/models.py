@@ -481,6 +481,26 @@ class Task(models.Model):
         ordering = ['-priority', '-start_date'] 
 
 
+
+class ActivityHistory(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='history_notes')
+    note = models.TextField(help_text="Descripción de la novedad o incidencia registrada")
+    created_at = models.DateField(auto_now_add=True, help_text="Fecha en la que se registró la novedad")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='activity_history', help_text="Usuario que registró la novedad")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Registro de Novedad"
+        verbose_name_plural = "Registros de Novedades"
+
+    def __str__(self):
+        # Muestra la actividad, la fecha y los primeros 50 caracteres de la nota
+        return f"Novedad en '{self.task}' el {self.created_at}: {self.note[:50]}..."
+        
+    def get_absolute_url(self):
+        return reverse('mto:activity-history-detail', args=[str(self.id)])
+
+
 # Model 10: Reportes de falla
 class FailureReport(models.Model):
     IMPACT = (('s', 'La seguridad personal'), ('m', 'El medio ambiente'), ('i', 'Integridad del equipo/sistema'), ('o', 'El desarrollo normal de las operaciones'),)

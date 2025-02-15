@@ -62,7 +62,7 @@
         <br>
         <h3 class="mt-4">Actividades de rutina {{ ruta.name }}</h3>
 
-        <table class="table">
+        <table class="table-list table-detail">
             <thead>
                 <tr>
                     <th>Actividad</th>
@@ -77,7 +77,7 @@
                         <tr>
                             <td>{{ item.task.description }}</td>
                             <td class="realizado-checkbox">
-                                <input type="checkbox" name="realizado_{{ item.task.id }}" class="form-check-input" style="width: 20px; height: 20px; border-bottom: none;">
+                                <input type="checkbox" name="realizado_{{ item.task.id }}" class="form-check-input" style="width: 20px; height: 20px;">
                             </td>
                             <td>
                                 <textarea name="observaciones_{{ item.task.id }}" class="form-control observaciones-textarea" placeholder="Añadir observaciones..."></textarea>
@@ -95,10 +95,10 @@
         <br>
         {% for dependencia in dependencias %}
             <h3 class="mt-4">Actividades rutina secundaria {{ dependencia.name }}</h3>
-            <table class="table table-bordered">
-                <thead class="thead-light">
+            <table class="table-list table-detail">
+                <thead>
                     <tr>
-                        <th">Actividad</th>
+                        <th>Actividad</th>
                         <th>Realizado</th>
                         <th>Observaciones</th>
                         <th>Evidencias</th>

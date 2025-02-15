@@ -93,4 +93,7 @@ urlpatterns = [
     path('manifest.json', pwa.manifest, name='manifest'),
     path('service-worker.js', pwa.service_worker, name='service_worker'),
     path('api/unapproved_requests_count/', pwa.get_unapproved_requests_count, name='unapproved_requests_count_api'),
+
+
+    path('equipos/report/', views.equipos_pdf_view, name='equipos_report'),
 ]
