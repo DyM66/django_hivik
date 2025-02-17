@@ -58,7 +58,7 @@ class EquipoCodeCounter(models.Model):
 class Transferencia(models.Model):
     fecha = models.DateField(auto_now_add=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
-    responsable = models.CharField(max_length=100)
+    responsable = models.CharField(max_length=150)
     receptor = models.CharField(max_length=150)
     origen = models.ForeignKey(System, on_delete=models.CASCADE, related_name='origen')
     destino = models.ForeignKey(System, on_delete=models.CASCADE, related_name='destino')
@@ -66,7 +66,7 @@ class Transferencia(models.Model):
 
     class Meta:
         ordering = ['-fecha']
-        db_table = 'got_transferencia'
+        # db_table = 'got_transferencia'
 
     def __str__(self):
         return f"{self.equipo} - {self.origen} -> {self.destino}"
@@ -93,3 +93,4 @@ class Transaction(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['suministro', 'fecha', 'tipo'], name='unique_suministro_fecha_tipo')
         ]
+        db_table = 'got_transaction'
