@@ -37,6 +37,7 @@ from taggit.models import Tag
 from .utils import *
 from .models import *
 from .forms import *
+from inv.models import Transaction
 
 
 logger = logging.getLogger(__name__)
@@ -167,7 +168,7 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['page_obj'] = systems.order_by('name')
         context['items_by_subsystem'] = consumibles_summary(asset)
         context['fechas'] = fechas_range()
-        context['consumos_grafica'] = consumos_combustible_asset(asset)
+        # context['consumos_grafica'] = consumos_combustible_asset(asset)
         context['horas_grafica'] = horas_total_asset(asset)
         context['sys_form'] = SysForm()
         return context
