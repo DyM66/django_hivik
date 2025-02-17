@@ -1,12 +1,142 @@
+<!-- dth/overtime_list.html -->
 {% extends 'got/base/base_generic.html' %}
 
+{% block headtag %}
+    <style>
+        .main-menu {
+            background-color: var(--secondary-color);
+            padding: 20px;
+            border: 2px solid #191645; /* Contorno fino y notable */
+            border-radius: 10px;
+            box-shadow: 0 8px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header-container {
+            /* Asegura que el contenedor ocupe todo el ancho y separe el título de los cuadros */
+            width: 100%;
+        }
+        .info-cards .card {
+            /* Puedes ajustar márgenes, fuente o colores según tu diseño */
+            background-color: #fff;
+            border: 1px solid #ccc;
+        }
+    </style>
+{% endblock %}
 {% block content %}
-<h1>Solicitudes de Horas Extras</h1>
+<div class="px-3">
 
-<div class="row">
-    <div class="col-md-9 mb-2">
+    <div class="main-menu mt-4">
+        <div class="header-container d-flex justify-content-between align-items-center mb-4">
+            <h1>Reportes Horas Extras</h1>
+            <div class="info-cards d-none d-lg-flex">
+                <div class="card shadow rounded me-2" style="min-width: 200px;">
+                    <div class="card-body p-2">
+                        <h6 class="card-title mb-1">Horas Reportadas</h6>
+                        <p class="mb-0 fs-5">{{ total_hours_hhmm }}</p>
+                    </div>
+                </div>
+                <div class="card shadow rounded" style="min-width: 200px;">
+                    <div class="card-body p-2">
+                        <h6 class="card-title mb-1">Horas dominicales y festivos</h6>
+                        <p class="mb-0 fs-5">{{ total_sunday_holiday_hours }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <table class="table-list deta mt-2">
+        <div class="row mb-3">
+            <form method="get" class="g-2">
+                <div class="row">
+                    <div class="col-md-1"></div>
+                    <div class="col-md-4">
+                        <label for="date_range" class="form-label">Rango de Fechas</label>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="date_range" name="date_range" placeholder="Selecciona un rango de fechas">
+                        </div>
+                    </div>
+
+                    <div class="col-md-3"></div>
+        
+                    <div class="col-md-4" style="border-left: 1px #191645 solid;">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ name }}" placeholder="Buscar por nombre">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cedula" class="form-label">Cedula</label>
+                            <input type="text" class="form-control" id="cedula" name="cedula" value="{{ cedula }}" placeholder="Buscar por Cedula">
+                        </div>
+                        <div class="mb-3">
+                            <label for="asset" class="form-label">Barco/Taller</label>
+                            <select class="form-select" id="asset" name="asset">
+                                <option value="">Todos</option>
+                                {% for asset in assets %}
+                                    <option value="{{ asset.name }}" {% if asset_filter == asset.name %}selected{% endif %}>
+                                        {{ asset.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" name="estado">
+                                <option value="all" {% if estado == "all" %}selected{% endif %}>Todos</option>
+                                <option value="approved" {% if estado == "approved" %}selected{% endif %}>Aprobados</option>
+                                <option value="no_aprobado" {% if estado == "no_aprobado" %}selected{% endif %}>No Aprobados</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-2 text-end">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{% url 'dth:export_overtime_excel' %}?name={{ name }}&cedula={{ cedula }}&asset={{ asset_filter }}&estado={{ estado }}&date_range={{ date_range }}" class="btn btn-secondary ms-2">Descargar Excel</a>
+
+                    <!-- <a href="#?person_name={{ person_name }}&asset={{ asset_filter }}&start_date={{ start_date }}&end_date={{ end_date }}&estado={{ estado }}" class="btn btn-outline-primary ms-2">Generar PDF</a> -->
+                </div>      
+            </form>
+        </div>
+    </div>
+
+<style>
+    /* Estilos para marcar los días festivos */
+    .flatpickr-day.holiday {
+        background-color: #ffcccc;  /* Fondo rojo claro */
+        border: 1px solid #ff0000;  /* Borde rojo */
+        color: #ff0000;             /* Texto rojo */
+    }
+
+</style>
+
+<!-- Inclusión de Flatpickr en modo "range", en español, siempre visible -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script>
+    var holiday_dates = {{ holiday_dates|safe }};
+    flatpickr("#date_range", {
+        mode: "range",
+        inline: true, // Muestra el calendario siempre visible
+        altInput: true,
+        altFormat: "d/m/Y",
+        dateFormat: "Y-m-d",
+        locale: "es",
+        defaultDate: ["{{ start_date }}", "{{ end_date }}"],
+        onDayCreate: function(dObj, dStr, fp, dayElem) {
+            // Convertir la fecha del día a string en formato YYYY-MM-DD
+            var dateStr = dayElem.dateObj.toISOString().slice(0, 10);
+            if (holiday_dates.indexOf(dateStr) !== -1) {
+                dayElem.classList.add('holiday');
+            }
+        },
+        onReady: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length > 1) {
+                // Salta al mes del segundo (fecha final) del rango
+                instance.jumpToDate(selectedDates[1]);
+            }
+        }
+    });
+</script>
+
+    <table class="table-list deta mt-2">
             <thead>
                 <tr>
                     <th>Solicitud</th>
@@ -43,15 +173,15 @@
                                             {% endif %}
                                         
                                             Cédula: {{ entry.cedula }}<br>
-                                            Horario: {{ entry.hora_inicio|time:"h:i A" }} - {{ entry.hora_fin|time:"h:i A" }}<br>
+                                            Horario: {{ entry.hora_inicio|time:"h:i A" }} - {{ entry.hora_fin|time:"h:i A" }}
                                             {% if entry.approved %}
                                                 <span class="status aprobado">Aprobado</span>
                                             {% else %}
                                                 <span class="status no-aprobado">No aprobado</span>
                                             {% endif %}
-        
+                                            <br>
                                             {% if perms.got.can_approve_overtime %}
-                                            <form method="post" action="{% url 'overtime:approve_overtime' entry.id %}" style="display:inline;">
+                                            <form method="post" action="{% url 'dth:approve_overtime' entry.id %}" style="display:inline;">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                                 {% if not entry.approved %}
@@ -68,8 +198,7 @@
                                         <div class="modal fade" id="editEntryModal{{ entry.id }}" tabindex="-1" aria-labelledby="editEntryModalLabel{{ entry.id }}" aria-hidden="true">
                                             <div class="modal-dialog">
                                                 <div class="modal-content">
-                                                    <form method="post" action="{% url 'overtime:edit_overtime' entry.id %}">
-                                                        {% csrf_token %}
+                                                    <form method="post" action="{% url 'dth:edit_overtime' entry.id %}">{% csrf_token %}
                                                         <div class="modal-header">
                                                             <h5 class="modal-title" id="editEntryModalLabel{{ entry.id }}">Editar Registro de Horas Extras</h5>
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -103,7 +232,7 @@
                                                         </div>
                                                     </form>
                                                     <!-- Formulario oculto para eliminar el registro -->
-                                                    <form method="post" action="{% url 'overtime:delete_overtime' entry.id %}" id="deleteForm{{ entry.id }}" style="display:none;">
+                                                    <form method="post" action="{% url 'dth:delete_overtime' entry.id %}" id="deleteForm{{ entry.id }}" style="display:none;">
                                                         {% csrf_token %}
                                                     </form>
                                                 </div>
@@ -132,46 +261,7 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
 
-
-    <div class="col-md-3">
-
-        <form method="get" action="{% url 'overtime:export_overtime_excel' %}" class="mb-3">
-            <input type="hidden" name="person_name" value="{{ request.GET.person_name }}">
-            <input type="hidden" name="asset" value="{{ request.GET.asset }}">
-            <input type="hidden" name="date" value="{{ request.GET.date }}">
-            <button type="submit" class="btn btn-primary">Descargar Excel</button>
-        </form>
-
-        <form method="get" class="form-inline mb-3">
-            <div class="form-group me-2">
-                <input type="text" name="person_name" class="form-control" placeholder="Nombre de la persona" value="{{ request.GET.person_name }}">
-            </div>
-            <div class="form-group me-2">
-                <input type="text" name="asset" class="form-control" placeholder="Barco" value="{{ request.GET.asset }}">
-            </div>
-            <div class="form-group me-2">
-                <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
-            </div>
-
-            <div>
-                <label>
-                    <input type="radio" name="aprobado" value="all" {% if aprobado_filter == 'all' %}checked{% endif %}>
-                    Todos
-                </label>
-                <label>
-                    <input type="radio" name="aprobado" value="aprobado" {% if aprobado_filter == 'aprobado' %}checked{% endif %}>
-                    Aprobado
-                </label>
-                <label>
-                    <input type="radio" name="aprobado" value="no_aprobado" {% if aprobado_filter == 'no_aprobado' %}checked{% endif %}>
-                    No Aprobado
-                </label>
-            </div>        
-            <button type="submit" class="btn btn-primary mt-3">Buscar</button>
-        </form>
-    </div>
 
 </div>
 

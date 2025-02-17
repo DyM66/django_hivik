@@ -11,57 +11,207 @@
     table th, table td {
         padding: 5px;
     }
+    table th, table td {
+        padding: 5px;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+    }
+    .close-modal {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
 </style>
 
 <div class="container">
     <h1>
-        <a href="{% url 'mto:dashboard' asset.abbreviation %}">
-            <i class="bi bi-arrow-90deg-left add-more"></i>
-        </a>
+        <a href="{% url 'mto:dashboard' asset.abbreviation %}"><i class="bi bi-arrow-90deg-left add-more"></i></a>
         Reporte de Plan de Mantenimiento para {{ asset.name }} ({{ asset.abbreviation }})</h1>
-    {% if plan_rows %}
-        <p>Periodo: {{ period_start }} - {{ period_end }}</p>
-        <table class="table table-bordered table-striped" style="font-size:0.8em;">
+        {% if plan_rows %}
+            <p>Periodo: {{ period_start }} - {{ period_end }}</p>
+            <table class="table table-bordered table-striped" style="font-size:0.8em;">
+                <thead>
+                    <tr>
+                        <th>Rutina</th>
+                        {% for year, month, label in months %}
+                            {% if forloop.counter0 == current_month_index %}
+                                <th style="background-color: #dc9090; font-weight:bold; border-left: 3px solid #000; border-right: 3px solid #000;">
+                                    {{ label }}
+                                </th>
+                            {% else %}
+                                <th>{{ label }}</th>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in plan_rows %}
+                        <tr>
+                            <td>{{ row.routine_name }}</td>
+                            {% for exec in row.executions %}
+                                {% with total=exec.0|add:exec.1 %}
+                                    {% if forloop.counter0 == current_month_index %}
+                                        <td class="text-center" style="border-left: 3px solid #000; border-right: 3px solid #000; {% if total > 0 %}background-color: #e0f7fa;{% endif %}">
+                                            {{ exec.0 }} / {{ exec.1 }}
+                                        </td>
+                                    {% else %}
+                                        <td class="text-center" style="{% if total > 0 %}background-color: #e0f7fa;{% endif %}">
+                                            {{ exec.0 }} / {{ exec.1 }}
+                                        </td>
+                                    {% endif %}
+                                {% endwith %}
+                            {% endfor %}
+                            <td class="text-center" style="font-weight:bold; background-color: #f0f0f0;">
+                                {{ row.total.0 }} / {{ row.total.1 }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        <!-- Sección: Resumen de Requerimientos -->
+        <h3>Resumen de Requerimientos</h3>
+        <table class="table table-bordered table-striped">
             <thead>
                 <tr>
-                    <th>Rutina</th>
-                    {% for year, month, label in months %}
-                        {% if forloop.counter0 == current_month_index %}
-                            <th style="background-color: #dc9090; font-weight:bold; border-left: 3px solid #000; border-right: 3px solid #000;">
-                                {{ label }}
-                            </th>
-                        {% else %}
-                            <th>{{ label }}</th>
-                        {% endif %}
-                    {% endfor %}
+                    <th>Requerimiento</th>
+                    <th>Total Requerido</th>
+                    <th>Total Ejecutado</th>
+                    <th>Inventario</th>
+                    <th>Valor Unitario</th>
+                    <th>Total ($)</th>
                 </tr>
             </thead>
             <tbody>
-                {% for row in plan_rows %}
+                {% for req in requirements_summary %}
                     <tr>
-                        <td>{{ row.routine_name }}</td>
-                        {% for exec in row.executions %}
-                            {% with total=exec.0|add:exec.1 %}
-                                {% if forloop.counter0 == current_month_index %}
-                                    <td class="text-center" style="border-left: 3px solid #000; border-right: 3px solid #000; {% if total > 0 %}background-color: #e0f7fa;{% endif %}">
-                                        {{ exec.0 }} / {{ exec.1 }}
-                                    </td>
-                                {% else %}
-                                    <td class="text-center" style="{% if total > 0 %}background-color: #e0f7fa;{% endif %}">
-                                        {{ exec.0 }} / {{ exec.1 }}
-                                    </td>
-                                {% endif %}
-                            {% endwith %}
-                        {% endfor %}
-                        <td class="text-center" style="font-weight:bold; background-color: #f0f0f0;">
-                            {{ row.total.0 }} / {{ row.total.1 }}
+                        <td>{{ req.name }}</td>
+                        <td>{{ req.total_required }}</td>
+                        <td>{{ req.total_executed }}</td>
+                        <td>
+                            {% if req.suministro_quantity %}
+                                {{ req.suministro_quantity }}
+                            {% else %}
+                                -
+                            {% endif %}
                         </td>
+                        <td>{{ req.unit_price|currency }}</td>
+                        <td>{{ req.line_total_required|currency }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6">No se encontraron requerimientos para el período.</td>
+                    </tr>
+                {% endfor %}
+                <tr style="font-weight:bold; background-color:#f0f0f0;">
+                    <td colspan="5">Total General</td>
+                    <td>{{ grand_total_required|currency }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Sección: Rutinas Ejecutadas -->
+        <h3>Rutinas Ejecutadas</h3>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Fecha de Ejecución</th>
+                    <th>Código de Rutina</th>
+                    <th>Costo Total ($)</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rut in executed_routines %}
+                    <tr>
+                        <td>{{ rut.execution_date }}</td>
+                        <td>{{ rut.routine_code }}</td>
+                        <td>{{ rut.routine_cost|currency }}</td>
+                        <td>
+                            <button type="button" onclick="openModal('modal-{{ rut.routine_code }}')">Ver detalle</button>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4">No se encontraron rutinas ejecutadas para el período.</td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+
     {% else %}
         <p>No se encontraron planes de mantenimiento para este asset.</p>
     {% endif %}
 </div>
+
+<!-- Modales para detalle de cada rutina ejecutada -->
+{% for rut in executed_routines %}
+    <div id="modal-{{ rut.routine_code }}" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('modal-{{ rut.routine_code }}')">&times;</span>
+            <h3>Detalle de Requerimientos para la rutina {{ rut.routine_code }}</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Requerimiento</th>
+                        <th>Cantidad</th>
+                        <th>Valor Unitario</th>
+                        <th>Total (por requerimiento)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for det in rut.req_details %}
+                        <tr>
+                            <td>{{ det.name }}</td>
+                            <td>{{ det.quantity }}</td>
+                            <td>{{ det.unit_cost|currency }}</td>
+                            <td>{{ det.line_total|currency }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">No hay requerimientos asociados.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endfor %}
+
+<script>
+    function openModal(id) {
+        document.getElementById(id).style.display = "block";
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+    }
+    // Cerrar modal al hacer click fuera del contenido
+    window.onclick = function(event) {
+        var modals = document.getElementsByClassName('modal');
+        for (var i = 0; i < modals.length; i++) {
+            if (event.target == modals[i]) {
+                modals[i].style.display = "none";
+            }
+        }
+    }
+</script>
+
 {% endblock %}

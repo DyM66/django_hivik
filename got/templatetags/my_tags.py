@@ -10,6 +10,15 @@ from decimal import Decimal
 
 register = template.Library()
 
+@register.filter
+def currency(value):
+    try:
+        val = Decimal(value)
+    except:
+        val = Decimal('0.00')
+    # Formatear con separador de miles y 2 decimales
+    return f"COP {val:,.2f}"
+
 @register.filter(name='endswith')
 def endswith(value, arg):
     """
@@ -198,14 +207,7 @@ def dict_key(d, key):
 def obtener_vehiculos():
     return Equipo.objects.filter(system__asset__abbreviation='VEH').order_by('name')
 
-@register.filter
-def currency(value):
-    try:
-        val = Decimal(value)
-    except:
-        val = Decimal('0.00')
-    # Formatear con separador de miles y 2 decimales
-    return f"COP {val:,.2f}"
+
 
 @register.filter
 def index(sequence, position):

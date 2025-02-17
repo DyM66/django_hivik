@@ -1147,45 +1147,27 @@ def export_historial_pdf(request, abbreviation):
             asset=asset
         )
 
-
         # 7) Calcular resúmenes por suministro
         suministros_summary = []
         for suministro in suministros_seleccionados:
-            # Cantidad inicial: latest 'cant_report' before 'fecha_inicio'
             if fecha_inicio:
-                trans_before_start = Transaction.objects.filter(
-                    suministro=suministro,
-                    fecha__lte=fecha_inicio
-                ).order_by('-fecha').first()
+                trans_before_start = Transaction.objects.filter(suministro=suministro, fecha__lte=fecha_inicio).order_by('-fecha').first()
                 cantidad_inicial = trans_before_start.cant_report if trans_before_start and trans_before_start.cant_report else Decimal('0.00')
             else:
                 cantidad_inicial = Decimal('0.00')
 
-            # Total consumido: sum of 'c' transactions in the period
-            total_consumido = transacciones.filter(
-                suministro=suministro,
-                tipo='c'
-            ).aggregate(total=Sum('cant'))['total'] or Decimal('0.00')
+            total_consumido = transacciones.filter(suministro=suministro, tipo='c').aggregate(total=Sum('cant'))['total'] or Decimal('0.00') # Total consumido: sum of 'c' transactions in the period
+            total_ingresado_base = transacciones.filter(suministro=suministro, tipo='i').aggregate(total=Sum('cant'))['total'] or Decimal('0.00') # Total ingresado: suma de transacciones de tipo 'i'
+            incoming_transfer = transacciones.filter(suministro_transf=suministro, tipo='t').aggregate(total=Sum('cant'))['total'] or Decimal('0.00') # Sumar también las transferencias entrantes (donde este suministro es el destino)
+            total_ingresado = total_ingresado_base + incoming_transfer
+            total_transfer_out = transacciones.filter(suministro=suministro, tipo='t').aggregate(total=Sum('cant'))['total'] or Decimal('0.00') # Total transferido a otros: suma de transferencias salientes (donde este suministro es el emisor)
 
-            # Total ingresado: sum of 'i' transactions in the period
-            total_ingresado = transacciones.filter(
-                suministro=suministro,
-                tipo='i'
-            ).aggregate(total=Sum('cant'))['total'] or Decimal('0.00')
-
-            # Cantidad final: latest 'cant_report' before 'fecha_fin'
-            if fecha_fin:
-                trans_before_end = Transaction.objects.filter(
-                    suministro=suministro,
-                    fecha__lte=fecha_fin
-                ).order_by('-fecha').first()
+            if fecha_fin: # Cantidad final: latest 'cant_report' before 'fecha_fin'
+                trans_before_end = Transaction.objects.filter(suministro=suministro, fecha__lte=fecha_fin).order_by('-fecha').first()
                 cantidad_final = trans_before_end.cant_report if trans_before_end and trans_before_end.cant_report else Decimal('0.00')
             else:
                 # Si no hay fecha_fin, usar la última cantidad reportada hasta hoy
-                trans_before_end = Transaction.objects.filter(
-                    suministro=suministro,
-                    fecha__lte=date.today()
-                ).order_by('-fecha').first()
+                trans_before_end = Transaction.objects.filter(suministro=suministro, fecha__lte=date.today()).order_by('-fecha').first()
                 cantidad_final = trans_before_end.cant_report if trans_before_end and trans_before_end.cant_report else Decimal('0.00')
 
             suministros_summary.append({
@@ -1193,6 +1175,7 @@ def export_historial_pdf(request, abbreviation):
                 'cantidad_inicial': cantidad_inicial,
                 'total_consumido': total_consumido,
                 'total_ingresado': total_ingresado,
+                'total_transfer_out': total_transfer_out,
                 'cantidad_final': cantidad_final,
             })
 

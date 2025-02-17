@@ -225,13 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             Horas extras
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="overtimeDropdown">
-                            <li><a class="dropdown-item" href="{% url 'overtime:overtime_report' %}">Reportar horas extras</a></li>
-                            <li><a class="dropdown-item" href="{% url 'overtime:overtime_list' %}">Mis reportes</a></li>
+                            <li><a class="dropdown-item" href="{% url 'dth:overtime_report' %}">Reportar horas extras</a></li>
+                            <li><a class="dropdown-item" href="{% url 'dth:overtime_list' %}">Mis reportes</a></li>
                         </ul>
                     </li>
                 {% elif perms.got.view_overtime %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'overtime_list' %}active{% endif %}" href="{% url 'overtime:overtime_list' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'overtime_list' %}active{% endif %}" href="{% url 'dth:overtime_list' %}">
                             Horas extras
                         </a>
                     </li>

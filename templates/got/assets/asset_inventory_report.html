@@ -321,17 +321,25 @@
                         {% endif %}
                         <td>{{ transaccion.cant }}</td>
                         <td>
-                            {{ transaccion.get_tipo_display }} 
-                            {% if transaccion.tipo == 'i' %}
-                                <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
-                            {% elif transaccion.tipo == 'c' %}
-                                <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #a00e32;"></i>
+                            {% if transaccion.tipo == 't' %}
+                                {% if transaccion.suministro.asset == asset %}
+                                    <i class="fa-solid fa-hand-holding-hand" style="color:#ff5722;"></i> Enviado
+                                {% elif transaccion.suministro_transf.asset == asset %}
+                                    <i class="fa-solid fa-hand-holding-hand" style="color:#4caf50;"></i> Recibido
+                                {% endif %}
                             {% else %}
-                                <i class="fa-solid fa-hand-holding-hand"></i>
+                                {{ transaccion.get_tipo_display }} 
+                                {% if transaccion.tipo == 'i' %}
+                                    <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
+                                {% elif transaccion.tipo == 'c' %}
+                                    <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #a00e32;"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-hand-holding-hand"></i>
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td>
-                            {% if transaccion.tipo == 't' %}
+                            {% if transaccion.tipo == 't' %}     
                                 {% if transaccion.suministro.asset == asset %}
                                     {{ transaccion.cant_report|default:"---" }}
                                 {% elif transaccion.suministro_transf.asset == asset %}

@@ -34,7 +34,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'debug_toolbar',
-    'overtime.apps.OvertimeConfig',
     'preoperacionales.apps.PreoperacionalesConfig',
     'outbound.apps.OutboundConfig',
     'megger_app.apps.MeggerAppConfig',

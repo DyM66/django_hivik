@@ -21,7 +21,7 @@
 						<tbody>
 							{% for grupo in equipos_con_dependientes %}
 								{% with principal=grupo.principal dependientes=grupo.dependientes %}
-									<tr class="equipment-row" data-update-url="{% url 'got:equipo-detail' principal.code %}">
+									<tr class="equipment-row" data-update-url="{% url 'got:equipo-detail' principal.code %}?previous_url={{ previous_url|urlencode }}">
 										<td>
 											{% if dependientes %}
 												<span class="expand-icon" data-target="#dependents-{{ principal.code }}">
@@ -47,7 +47,7 @@
 												<ul class="dependents-list">
 													{% for dep in dependientes %}
 														<li data-update-url="{% url 'got:equipo-detail' dep.code %}">
-															<a href="{% url 'got:equipo-detail' dep.code %}" style="text-decoration: none; color: inherit;">
+															<a href="{% url 'got:equipo-detail' dep.code %}?previous_url={{ previous_url|urlencode }}" style="text-decoration: none; color: inherit;">
 															{{ dep.name }}
 															</a>
 														</li>

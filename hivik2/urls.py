@@ -32,7 +32,6 @@ router.register(r'groups', views.GroupViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('got/', include('got.urls')),
-    path('overtime/', include('overtime.urls')),
     path('got/preoperacional/', include('preoperacionales.urls')),
     path('outbound/', include('outbound.urls')),
     path('megger/', include('megger_app.urls')),

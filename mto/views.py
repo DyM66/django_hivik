@@ -26,7 +26,6 @@ class MaintenancePlanReportView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Suponemos que la URL envía el asset_abbr, por ejemplo: /mto/report/<asset_abbr>/
         asset_abbr = self.kwargs.get("asset_abbr")
         asset = get_object_or_404(Asset, abbreviation=asset_abbr)
         context["asset"] = asset
@@ -36,8 +35,6 @@ class MaintenancePlanReportView(TemplateView):
         context["plans"] = plans
 
         if plans.exists():
-            # Asumiremos que para el asset se está usando un mismo período para todos los planes.
-            # Tomamos el período del primer plan.
             plan0 = plans.first()
             period_start = plan0.period_start
             period_end = plan0.period_end
@@ -85,10 +82,121 @@ class MaintenancePlanReportView(TemplateView):
                     "total": (total_planned, total_actual),
                 })
             context["plan_rows"] = plan_rows
+            
+            reqs_dict = {}
+            for plan in plans:
+                # Si se filtra por mes, se toma la entrada de ese mes; de lo contrario se agregan todos
+                if self.request.GET.get("month"):
+                    entry = plan.entries.filter(
+                        year=datetime.strptime(self.request.GET.get("month"), "%Y-%m").year,
+                        month=datetime.strptime(self.request.GET.get("month"), "%Y-%m").month
+                    ).first()
+                    remaining_for_plan = (entry.planned_executions - entry.actual_executions) if entry else 0
+                    executed_for_plan = entry.actual_executions if entry else 0
+                else:
+                    total_planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
+                    total_actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
+                    remaining_for_plan = total_planned - total_actual
+                    executed_for_plan = total_actual
+
+                # Solo se procesan los planes que tengan alguna ejecución (pendiente o realizada)
+                if remaining_for_plan <= 0 and executed_for_plan <= 0:
+                    continue
+
+                for req in plan.ruta.requisitos.all():
+                    if req.item:
+                        key = f"item_{req.item.id}"
+                        req_name = str(req.item)
+                        unit_price = req.item.unit_price  # Tomamos el valor del campo unit_price
+                        suministro = Suministro.objects.filter(asset=asset, item=req.item).first()
+                    elif req.service:
+                        key = f"service_{req.service.id}"
+                        req_name = req.service.description
+                        unit_price = req.service.unit_price
+                        suministro = None
+                    else:
+                        key = f"desc_{req.descripcion}"
+                        req_name = req.descripcion
+                        unit_price = 0
+                        suministro = None
+
+                    effective_required = req.cantidad * remaining_for_plan
+                    effective_executed = req.cantidad * executed_for_plan
+
+                    if key in reqs_dict:
+                        reqs_dict[key]["total_required"] += effective_required
+                        reqs_dict[key]["total_executed"] += effective_executed
+                    else:
+                        reqs_dict[key] = {
+                            "name": req_name,
+                            "total_required": effective_required,
+                            "total_executed": effective_executed,
+                            "suministro_quantity": suministro.cantidad if suministro else None,
+                            "unit_price": unit_price,
+                        }
+            requirements_summary = []
+            grand_total_required = 0
+            grand_total_executed = 0
+            for req in reqs_dict.values():
+                line_total_required = req["unit_price"] * req["total_required"]
+                line_total_executed = req["unit_price"] * req["total_executed"]
+                req["line_total_required"] = line_total_required
+                req["line_total_executed"] = line_total_executed
+                grand_total_required += line_total_required
+                grand_total_executed += line_total_executed
+                requirements_summary.append(req)
+            context["requirements_summary"] = requirements_summary
+            context["grand_total_required"] = grand_total_required
+            context["grand_total_executed"] = grand_total_executed
+
+            # --- Rutinas Ejecutadas ---
+            executed_routines = []
+            for plan in plans:
+                for entry in plan.entries.all():
+                    # Si se filtra por mes, considerar solo la entrada correspondiente
+                    if self.request.GET.get("month"):
+                        filter_date = datetime.strptime(self.request.GET.get("month"), "%Y-%m").date()
+                        if entry.year != filter_date.year or entry.month != filter_date.month:
+                            continue
+                    if entry.actual_executions <= 0:
+                        continue
+                    routine_cost = 0
+                    req_details = []
+                    for req in plan.ruta.requisitos.all():
+                        # Se usa req.costo si es distinto de 0; de lo contrario, se usa el unit_price del item o servicio.
+                        if req.item:
+                            unit_cost = req.costo if req.costo != 0 else req.item.unit_price
+                            req_name = str(req.item)
+                        elif req.service:
+                            unit_cost = req.costo if req.costo != 0 else req.service.unit_price
+                            req_name = req.service.description
+                        else:
+                            unit_cost = req.costo if req.costo != 0 else 0
+                            req_name = req.descripcion
+                        cost_for_req = unit_cost * req.cantidad * entry.actual_executions
+                        routine_cost += cost_for_req
+                        req_details.append({
+                            "name": req_name,
+                            "quantity": req.cantidad,
+                            "unit_cost": unit_cost,
+                            "line_total": unit_cost * req.cantidad,
+                        })
+                    execution_date = date(entry.year, entry.month, 1)
+                    executed_routines.append({
+                        "execution_date": execution_date,
+                        "routine_code": plan.ruta.code,
+                        "routine_cost": routine_cost,
+                        "actual_executions": entry.actual_executions,
+                        "req_details": req_details,
+                    })
+            context["executed_routines"] = executed_routines
+
         else:
             context["months"] = []
             context["plan_rows"] = []
             context["current_month_index"] = None
+            context["requirements_summary"] = []
+            context["executed_routines"] = []
         return context
 
 
@@ -97,30 +205,46 @@ class MaintenancePlanDashboardView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # ===============================
+        # 1. Obtener el asset a partir del parámetro 'asset_abbr'
+        # ===============================
         asset_abbr = self.kwargs.get("asset_abbr")
         asset = get_object_or_404(Asset, abbreviation=asset_abbr)
         context["asset"] = asset
 
-        # Parámetro opcional "month" en formato "YYYY-MM"
+        # ===============================
+        # 2. Procesar el parámetro opcional "month" (formato "YYYY-MM")
+        # ===============================
         month_filter = self.request.GET.get("month")
         if month_filter:
-            try:
-                filter_date = datetime.strptime(month_filter, "%Y-%m").date()
-                filter_year = filter_date.year
-                filter_month = filter_date.month
-            except ValueError:
-                filter_year = filter_month = None
+            if month_filter == "all":
+                filter_year = None
+                filter_month = None
+            else:
+                try:
+                    filter_date = datetime.strptime(month_filter, "%Y-%m").date()
+                    filter_year = filter_date.year
+                    filter_month = filter_date.month
+                except ValueError:
+                    filter_year = filter_month = None
         else:
-            filter_year = None
-            filter_month = None
+            # Por defecto, se muestra el mes actual
+            today = date.today()
+            filter_year = today.year
+            filter_month = today.month
         context["filter_year"] = filter_year
         context["filter_month"] = filter_month
 
-        # Obtener planes de mantenimiento para este asset (ya filtrados por asset)
+        # ===============================
+        # 3. Obtener los planes de mantenimiento asociados al asset
+        # ===============================
         plans = MaintenancePlan.objects.filter(ruta__system__asset=asset).order_by("ruta__name")
         context["plans"] = plans
 
-        # Generar lista de meses según el período del primer plan (si existe)
+        # ===============================
+        # 4. Generar la lista de meses del período (usando el primer plan)
+        # ===============================
         months = []
         spanish_months = {
             1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
@@ -154,91 +278,165 @@ class MaintenancePlanDashboardView(TemplateView):
             context["months"] = []
             context["current_month_index"] = None
 
-        # Resumen de rutinas (sin cambios respecto a lo anterior)
+        # ===============================
+        # 5. Calcular el "Resumen de Rutinas"
+        #
+        # Se recorre cada plan y se obtiene, ya sea para el mes filtrado o en total:
+        # - Planificado y ejecutado.
+        # Solo se incluyen aquellos planes con planificado > 0.
+        # ===============================
         routine_rows = []
+        grand_total_routine_cost = 0
+
         for plan in plans:
             if filter_year and filter_month:
                 entry = plan.entries.filter(year=filter_year, month=filter_month).first()
-                planned_for_month = entry.planned_executions if entry else 0
-                actual_for_month = entry.actual_executions if entry else 0
-                if planned_for_month == 0:
-                    continue
-                remaining = planned_for_month - actual_for_month
-                finished_flag = planned_for_month <= actual_for_month
-                routine_rows.append({
-                    "routine_name": plan.ruta.name,
-                    "level": plan.ruta.nivel,
-                    "planned": planned_for_month,
-                    "actual": actual_for_month,
-                    "remaining": remaining,
-                    "finished": finished_flag,
-                })
+                planned = entry.planned_executions if entry else 0
+                actual = entry.actual_executions if entry else 0
             else:
-                total_planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
-                total_actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
-                if total_planned == 0:
-                    continue
-                remaining = total_planned - total_actual
-                finished_flag = total_planned <= total_actual
-                routine_rows.append({
-                    "routine_name": plan.ruta.name,
-                    "level": plan.ruta.nivel,
-                    "planned": total_planned,
-                    "actual": total_actual,
-                    "remaining": remaining,
-                    "finished": finished_flag,
+                planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
+                actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
+                
+            if planned == 0:
+                continue
+
+            pending = planned - actual
+            finished_flag = planned <= actual
+
+            # Calcular costo pendiente de la rutina:
+            routine_cost = 0
+            req_details = []
+            for req in plan.ruta.requisitos.all():
+                if req.item:
+                    unit_cost = req.costo if req.costo != 0 else req.item.unit_price
+                    req_name = str(req.item)
+                elif req.service:
+                    unit_cost = req.costo if req.costo != 0 else req.service.unit_price
+                    req_name = req.service.description
+                else:
+                    unit_cost = req.costo if req.costo != 0 else 0
+                    req_name = req.descripcion
+                
+                cost_for_req = unit_cost * req.cantidad * pending
+                routine_cost += cost_for_req
+
+                # Detalle para el modal
+                req_details.append({
+                    "name": req_name,
+                    "quantity": req.cantidad,
+                    "unit_cost": unit_cost,
+                    "line_total": unit_cost * req.cantidad * pending,
                 })
+
+            grand_total_routine_cost += routine_cost
+
+            routine_rows.append({
+                "routine_name": plan.ruta.name,
+                "level": plan.ruta.nivel,
+                "planned": planned,
+                "actual": actual,
+                "pending": pending,
+                "finished": finished_flag,
+                "routine_cost": routine_cost,  # Costo pendiente de esta rutina
+                "req_details": req_details,    # Detalle para el modal
+                "routine_code": plan.ruta.code,
+            })
         # Reordenar: primero las rutinas sin terminar y luego las terminadas
         unfinished = [r for r in routine_rows if not r["finished"]]
         finished = [r for r in routine_rows if r["finished"]]
         context["routine_rows"] = unfinished + finished
+        context["grand_total_routine_cost"] = grand_total_routine_cost
 
-        # Resumen de Requerimientos (ÚNICAMENTE el total requerido)
-        # Se suma para cada requerimiento de cada plan:
-        #    total_required = (cantidad) x (ejecuciones pendientes) 
-        # donde ejecuciones pendientes = (planificado - ejecutado) para el plan
-        reqs_dict = {}
+        # ===============================
+        # 6. Calcular "Rutinas Ejecutadas"
+        #
+        # Se recorren todas las entradas de cada plan. Si se especifica un filtro por mes,
+        # se consideran únicamente las entradas del mes indicado.
+        # Para cada entrada con ejecuciones (actual_executions > 0) se calcula:
+        # - El costo total de la rutina, usando:
+        #      unit_cost = req.costo (si distinto de 0) o, de lo contrario, el unit_price del item o service.
+        # - Se arma una lista de detalles (para mostrar en el modal).
+        #
+        # La fecha de ejecución se guarda como el primer día del mes y se mostrará solo mes y año.
+        # ===============================
+        executed_routines = []
+        for plan in plans:
+            for entry in plan.entries.all():
+                if filter_year and filter_month:
+                    if entry.year != filter_year or entry.month != filter_month:
+                        continue
+                if entry.actual_executions <= 0:
+                    continue
+                # Para cada requerimiento de la rutina:
+                # Si el campo costo es distinto de 0 se usa ese valor; de lo contrario se toma unit_price del artículo o servicio.
+                routine_cost = 0
+                req_details = []
+                for req in plan.ruta.requisitos.all():
+                    if req.item:
+                        unit_cost = req.costo if req.costo != 0 else req.item.unit_price
+                        req_name = str(req.item)
+                    elif req.service:
+                        unit_cost = req.costo if req.costo != 0 else req.service.unit_price
+                        req_name = req.service.description
+                    else:
+                        unit_cost = req.costo if req.costo != 0 else 0
+                        req_name = req.descripcion
+                    cost_for_req = unit_cost * req.cantidad * entry.actual_executions
+                    routine_cost += cost_for_req
+                    req_details.append({
+                        "name": req_name,
+                        "quantity": req.cantidad,
+                        "unit_cost": unit_cost,
+                        "line_total": unit_cost * req.cantidad,
+                    })
+                # Se asume que la fecha de ejecución es el primer día del mes de la entrada
+                execution_date = date(entry.year, entry.month, 1)
+                executed_routines.append({
+                    "execution_date": execution_date,
+                    "routine_code": plan.ruta.name,
+                    "routine_cost": routine_cost,
+                    "actual_executions": entry.actual_executions,
+                    "req_details": req_details,
+                })
+        context["executed_routines"] = executed_routines
+
+
+        # ===============================
+        # 7. Calcular desglose de requerimientos planificados por categoría
+        #
+        # Se agrupan los requerimientos (cantidad planificada = req.cantidad * (planificado - ejecutado))
+        # en tres categorías:
+        #    - "Consumibles": Items con seccion "c"
+        #    - "Materiales/Repuestos": Items con seccion "h" o "r"
+        #    - "Servicios": Requerimientos asociados a un Service.
+        # ===============================
+        requirements_breakdown = {
+            "Consumibles": 0,
+            "Materiales/Repuestos": 0,
+            "Servicios": 0,
+        }
         for plan in plans:
             if filter_year and filter_month:
                 entry = plan.entries.filter(year=filter_year, month=filter_month).first()
-                remaining_for_plan = (entry.planned_executions - entry.actual_executions) if entry else 0
+                pending = (entry.planned_executions - entry.actual_executions) if entry else 0
             else:
                 total_planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
                 total_actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
-                remaining_for_plan = total_planned - total_actual
-
-            # Solo consideramos planes con ejecuciones pendientes (diferencia mayor a cero)
-            if remaining_for_plan <= 0:
+                pending = total_planned - total_actual
+            if pending <= 0:
                 continue
-
             for req in plan.ruta.requisitos.all():
-                # Se agrupa por el artículo (o servicio) usado en el requerimiento
                 if req.item:
-                    key = f"item_{req.item.id}"
-                    req_name = str(req.item)
-                    suministro = Suministro.objects.filter(asset=asset, item=req.item).first()
+                    unit_cost = req.costo if req.costo != 0 else req.item.unit_price
+                    cost_for_req = unit_cost * req.cantidad * pending
+                    if req.item.seccion == "c":
+                        requirements_breakdown["Consumibles"] += cost_for_req
+                    elif req.item.seccion in ["h", "r"]:
+                        requirements_breakdown["Materiales/Repuestos"] += cost_for_req
                 elif req.service:
-                    key = f"service_{req.service.id}"
-                    req_name = req.service.description
-                    suministro = None
-                else:
-                    key = f"desc_{req.descripcion}"
-                    req_name = req.descripcion
-                    suministro = None
-
-                effective_required = req.cantidad * remaining_for_plan
-
-                if key in reqs_dict:
-                    reqs_dict[key]["total_required"] += effective_required
-                else:
-                    reqs_dict[key] = {
-                        "name": req_name,
-                        "total_required": effective_required,
-                        "suministro_quantity": suministro.cantidad if suministro else None,
-                    }
-        # Solo incluir requerimientos cuyo total requerido sea mayor a cero
-        context["requirements_summary"] = [
-            req for req in reqs_dict.values() if req["total_required"] > 0
-        ]
+                    unit_cost = req.costo if req.costo != 0 else req.service.unit_price
+                    cost_for_req = unit_cost * req.cantidad * pending
+                    requirements_breakdown["Servicios"] += cost_for_req
+        context["requirements_breakdown"] = requirements_breakdown
 
         return context

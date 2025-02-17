@@ -380,7 +380,7 @@ class Item(models.Model):
     presentacion = models.CharField(max_length=10)
     code = models.CharField(max_length=50, null=True, blank=True)
     seccion = models.CharField(max_length=1, choices=SECCION, default='c')
-    unit_price = models.DecimalField(max_digits=15, decimal_places=2, default=0.00) 
+    unit_price = models.DecimalField(max_digits=18, decimal_places=2, default=0.00) 
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
@@ -411,6 +411,8 @@ class MaintenanceRequirement(models.Model):
     descripcion = models.CharField(max_length=200, null=True, blank=True)
     tipo = models.CharField(max_length=1, choices=TIPO_REQUISITO)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    costo = models.DecimalField(max_digits=19, decimal_places=2, default=0.00) 
 
     def __str__(self):
         if self.tipo == 'm' and self.item:
@@ -482,23 +484,23 @@ class Task(models.Model):
 
 
 
-class ActivityHistory(models.Model):
-    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='history_notes')
-    note = models.TextField(help_text="Descripción de la novedad o incidencia registrada")
-    created_at = models.DateField(auto_now_add=True, help_text="Fecha en la que se registró la novedad")
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='activity_history', help_text="Usuario que registró la novedad")
+# class ActivityHistory(models.Model):
+#     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='history_notes')
+#     note = models.TextField(help_text="Descripción de la novedad o incidencia registrada")
+#     created_at = models.DateField(auto_now_add=True, help_text="Fecha en la que se registró la novedad")
+#     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='activity_history', help_text="Usuario que registró la novedad")
 
-    class Meta:
-        ordering = ['-created_at']
-        verbose_name = "Registro de Novedad"
-        verbose_name_plural = "Registros de Novedades"
+#     class Meta:
+#         ordering = ['-created_at']
+#         verbose_name = "Registro de Novedad"
+#         verbose_name_plural = "Registros de Novedades"
 
-    def __str__(self):
-        # Muestra la actividad, la fecha y los primeros 50 caracteres de la nota
-        return f"Novedad en '{self.task}' el {self.created_at}: {self.note[:50]}..."
+#     def __str__(self):
+#         # Muestra la actividad, la fecha y los primeros 50 caracteres de la nota
+#         return f"Novedad en '{self.task}' el {self.created_at}: {self.note[:50]}..."
         
-    def get_absolute_url(self):
-        return reverse('mto:activity-history-detail', args=[str(self.id)])
+#     def get_absolute_url(self):
+#         return reverse('mto:activity-history-detail', args=[str(self.id)])
 
 
 # Model 10: Reportes de falla
@@ -626,26 +628,26 @@ class Suministro(models.Model):
 
 
 # Model 15: Registro de movimientos de suminsitros realizados en los barcos o bodegas locativas
-class Transaction(models.Model):
-    TIPO = (('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo'),)
-    suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
-    cant = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    fecha = models.DateField()
-    user = models.CharField(max_length=100)
-    motivo = models.TextField(null=True, blank=True)
-    tipo = models.CharField(max_length=1, choices=TIPO, default='i')
-    cant_report = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
-    suministro_transf = models.ForeignKey(Suministro, on_delete=models.CASCADE, null=True, blank=True)
-    cant_report_transf = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
+# class Transaction(models.Model):
+#     TIPO = (('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo'),)
+#     suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
+#     cant = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+#     fecha = models.DateField()
+#     user = models.CharField(max_length=100)
+#     motivo = models.TextField(null=True, blank=True)
+#     tipo = models.CharField(max_length=1, choices=TIPO, default='i')
+#     cant_report = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
+#     suministro_transf = models.ForeignKey(Suministro, on_delete=models.CASCADE, null=True, blank=True)
+#     cant_report_transf = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
 
-    def __str__(self):
-        return f"{self.suministro.item.name}: {self.cant}/{self.tipo} el {self.fecha.strftime('%Y-%m-%d')}"
+#     def __str__(self):
+#         return f"{self.suministro.item.name}: {self.cant}/{self.tipo} el {self.fecha.strftime('%Y-%m-%d')}"
 
-    class Meta:
-        permissions = (('can_add_supply', 'Puede añadir suministros'),)
-        constraints = [
-            models.UniqueConstraint(fields=['suministro', 'fecha', 'tipo'], name='unique_suministro_fecha_tipo')
-        ]
+#     class Meta:
+#         permissions = (('can_add_supply', 'Puede añadir suministros'),)
+#         constraints = [
+#             models.UniqueConstraint(fields=['suministro', 'fecha', 'tipo'], name='unique_suministro_fecha_tipo')
+#         ]
 
 
 # Model 16: Registro estimado de reportes de combustible

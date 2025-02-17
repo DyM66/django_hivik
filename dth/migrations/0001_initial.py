@@ -29,4 +29,24 @@ class Migration(migrations.Migration):
             name='userprofile',
             table='got_userprofile',
         ),
+        migrations.CreateModel(
+            name='Overtime',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('fecha', models.DateField()),
+                ('hora_inicio', models.TimeField()),
+                ('hora_fin', models.TimeField()),
+                ('justificacion', models.TextField()),
+                ('nombre_completo', models.CharField(default='', max_length=200)),
+                ('cedula', models.CharField(default='', max_length=20)),
+                ('cargo', models.CharField(choices=[('a', 'Capitán'), ('b', 'Primer Oficial de Puente'), ('c', 'Marino'), ('d', 'Jefe de Máquinas'), ('e', 'Primer Oficial de Máquinas'), ('f', 'Maquinista'), ('g', 'Otro')], max_length=1)),
+                ('approved', models.BooleanField(default=False)),
+                ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.asset')),
+                ('reportado_por', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'db_table': 'got_overtime',
+                'permissions': [('can_approve_overtime', 'Puede aprobar horas extras')],
+            },
+        ),
     ]
