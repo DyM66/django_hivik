@@ -256,32 +256,47 @@
     }
   </style>
   
-  <script>
+<script>
     document.addEventListener("DOMContentLoaded", function() {
-      // Obtenemos el input real a través de su id; usamos el id del campo del formulario
-      const fileInput = document.getElementById("{{ upload_form.file_field.id_for_label }}");
-      const fileList = document.getElementById("custom-file-list");
-      const customBox = document.getElementById("custom-file-box");
-  
-      // Al hacer click en el recuadro visual, se activa el input oculto
-      customBox.addEventListener("click", function() {
-        fileInput.click();
-      });
-  
-      // Al cambiar la selección de archivos, se actualiza la lista
-      fileInput.addEventListener("change", function() {
-        fileList.innerHTML = ""; // Limpiar lista
-        if (fileInput.files.length === 0) {
-          fileList.innerHTML = "<p>No se ha seleccionado ningún archivo</p>";
-        } else {
-          for (let i = 0; i < fileInput.files.length; i++) {
-            const p = document.createElement("p");
-            p.textContent = fileInput.files[i].name;
-            fileList.appendChild(p);
-          }
-        }
-      });
+        const fileInput = document.getElementById("{{ upload_form.file_field.id_for_label }}");
+        const fileList = document.getElementById("custom-file-list");
+        const customBox = document.getElementById("custom-file-box");
+
+        // Remover tabindex para que no sea accesible vía teclado
+        fileInput.setAttribute("tabindex", "-1");
+
+        // Forzar que si se recibe focus se desenfoque inmediatamente
+        fileInput.addEventListener("focus", function() {
+            this.blur();
+        });
+
+        // Al hacer click en el recuadro visual, se activa el input oculto
+        customBox.addEventListener("click", function() {
+            fileInput.click();
+        });
+
+        // Al cambiar la selección de archivos, se actualiza la lista
+        fileInput.addEventListener("change", function() {
+            fileList.innerHTML = ""; // Limpiar lista
+            if (fileInput.files.length === 0) {
+                fileList.innerHTML = "<p>No se ha seleccionado ningún archivo</p>";
+            } else {
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    const p = document.createElement("p");
+                    p.textContent = fileInput.files[i].name;
+                    fileList.appendChild(p);
+                }
+            }
+            // Desenfocar el input
+            fileInput.blur();
+            // Desactivar temporalmente el input para evitar que se active al presionar Enter
+            fileInput.disabled = true;
+            setTimeout(function() {
+                fileInput.disabled = false;
+            }, 200); // Ajusta el tiempo según convenga (200 ms suele ser suficiente)
+        });
+
     });
-  </script>
+</script>
 
 {% endblock %}

@@ -1,0 +1,115 @@
+{% extends "got/base/base_generic.html" %}
+{% load my_tags %}
+{% block content %}
+<style>
+    .combined-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        font-size: 0.9em;
+    }
+    .combined-table th, .combined-table td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+    }
+    .combined-table th {
+        background-color: #4d93d9;
+        color: #fff;
+    }
+    .group-row {
+        background-color: #d9edf7;
+        font-weight: bold;
+    }
+    .sub-table {
+        width: 90%;
+        margin: 10px auto;
+        border-collapse: collapse;
+        font-size: 0.85em;
+    }
+    .sub-table th, .sub-table td {
+        border: 1px solid #aaa;
+        padding: 6px;
+        text-align: center;
+    }
+    .sub-table th {
+        background-color: #6c8ebf;
+        color: #fff;
+    }
+</style>
+
+<div class="dashboard-container">
+    <h1>Plan de Mantenimiento Global - Barcos (Rutinas Nivel 3)</h1>
+    <p>
+        Filtro:
+        {% if filter_year and filter_month %}
+            Mes: {{ filter_month }}/{{ filter_year }}
+        {% else %}
+            Todos
+        {% endif %}
+    </p>
+    <table class="combined-table">
+        <thead>
+            <tr>
+                <th>Asset / Rutina</th>
+                <th>Nivel</th>
+                <th>Planificado</th>
+                <th>Ejecutado</th>
+                <th>Costo Pendiente</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset_data in assets_data %}
+                <!-- Fila de grupo para el asset -->
+                <tr class="group-row">
+                    <td colspan="5">
+                        Asset: {{ asset_data.asset.name }} ({{ asset_data.asset.abbreviation }}) - Total: {{ asset_data.grand_total_routine_cost|currency }}
+                    </td>
+                </tr>
+                <!-- Filas de rutinas para el asset -->
+                {% for row in asset_data.routine_rows %}
+                    <tr>
+                        <td>{{ row.routine_name }}</td>
+                        <td>{{ row.level }}</td>
+                        <td>{{ row.planned }}</td>
+                        <td>{{ row.actual }}</td>
+                        <td>{{ row.cost|currency }}</td>
+                    </tr>
+                {% endfor %}
+                <!-- Reporte de Plan de Mantenimiento para el asset -->
+                <tr>
+                    <td colspan="5">
+                        <strong>Reporte de Plan de Mantenimiento para {{ asset_data.asset.name }} ({{ asset_data.asset.abbreviation }})</strong>
+                        <table class="sub-table">
+                            <thead>
+                                <tr>
+                                    <th>Rutina</th>
+                                    {% for year, month, label, param in asset_data.months %}
+                                        <th>{{ label }}</th>
+                                    {% endfor %}
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rep in asset_data.report_rows %}
+                                    <tr>
+                                        <td>{{ rep.routine_name }}</td>
+                                        {% for exec in rep.executions %}
+                                            {% with total=exec.0|add:exec.1 %}
+                                                <td>{{ exec.0 }} / {{ exec.1 }}</td>
+                                            {% endwith %}
+                                        {% endfor %}
+                                        <td>{{ rep.total.0 }} / {{ rep.total.1 }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <!-- Opcional: Separador -->
+                <tr><td colspan="5">&nbsp;</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

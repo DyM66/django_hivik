@@ -440,3 +440,180 @@ class MaintenancePlanDashboardView(TemplateView):
         context["requirements_breakdown"] = requirements_breakdown
 
         return context
+    
+import calendar
+from datetime import date, datetime
+from django.views.generic import TemplateView
+from django.db.models import Sum
+from got.models import Asset
+from mto.models import MaintenancePlan
+
+class MaintenancePlanAllAssetsView(TemplateView):
+    template_name = "mto/maintenance_plan_all_assets.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Filtrar assets que sean barcos (area = "a")
+        assets = Asset.objects.filter(area="a").order_by("name")
+        
+        # Procesar el parámetro opcional "month":
+        # Si se envía ?month=all se consideran TODOS los meses;
+        # de lo contrario, por defecto se usa el mes actual.
+        month_filter = self.request.GET.get("month")
+        if month_filter:
+            if month_filter == "all":
+                filter_year = None
+                filter_month = None
+            else:
+                try:
+                    filter_date = datetime.strptime(month_filter, "%Y-%m").date()
+                    filter_year = filter_date.year
+                    filter_month = filter_date.month
+                except ValueError:
+                    filter_year = filter_month = None
+        else:
+            today = date.today()
+            filter_year = today.year
+            filter_month = today.month
+        context["filter_year"] = filter_year
+        context["filter_month"] = filter_month
+
+        assets_data = []  # Lista para almacenar la información agrupada por asset
+        
+        # Para cada asset, obtener sus planes de mantenimiento CON rutinas de nivel 3
+        for asset in assets:
+            plans = MaintenancePlan.objects.filter(ruta__system__asset=asset, ruta__nivel=3).order_by("ruta__name")
+            if not plans.exists():
+                continue  # Omitir assets sin planes de mantenimiento (con nivel 3)
+            asset_dict = {"asset": asset}
+            
+            # --- Reporte de "Resumen de Rutinas" para este asset ---
+            routine_rows = []
+            grand_total_routine_cost = 0
+            for plan in plans:
+                # Si se filtra por mes, usamos la entrada de ese mes; de lo contrario, acumulamos en total.
+                if filter_year and filter_month:
+                    entry = plan.entries.filter(year=filter_year, month=filter_month).first()
+                    planned = entry.planned_executions if entry else 0
+                    actual = entry.actual_executions if entry else 0
+                else:
+                    planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
+                    actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
+                if planned == 0:
+                    continue
+                pending = planned - actual
+                # Calcular costo pendiente de la rutina
+                routine_cost = 0
+                for req in plan.ruta.requisitos.all():
+                    if req.item:
+                        unit_cost = req.costo if req.costo != 0 else req.item.unit_price
+                    elif req.service:
+                        unit_cost = req.costo if req.costo != 0 else req.service.unit_price
+                    else:
+                        unit_cost = req.costo if req.costo != 0 else 0
+                    routine_cost += unit_cost * req.cantidad * pending
+                grand_total_routine_cost += routine_cost
+                routine_rows.append({
+                    "routine_name": plan.ruta.name,
+                    "level": plan.ruta.nivel,
+                    "planned": planned,
+                    "actual": actual,
+                    "pending": pending,
+                    "cost": routine_cost,
+                    "routine_code": plan.ruta.code,
+                })
+            asset_dict["routine_rows"] = routine_rows
+            asset_dict["grand_total_routine_cost"] = grand_total_routine_cost
+
+            # --- Reporte de Plan de Mantenimiento (Cronograma) para este asset ---
+            report_rows = []
+            # Generar lista de meses usando el período del primer plan
+            plan0 = plans.first()
+            asset_months = []
+            current = plan0.period_start.replace(day=1)
+            while current <= plan0.period_end:
+                label = f"{calendar.month_name[current.month]} {current.year}"
+                month_param = f"{current.year}-{current.month:02d}"
+                asset_months.append((current.year, current.month, label, month_param))
+                if current.month == 12:
+                    current = date(current.year+1, 1, 1)
+                else:
+                    current = date(current.year, current.month+1, 1)
+            asset_dict["months"] = asset_months
+
+            for plan in plans:
+                entries = plan.entries.all()
+                entry_dict = { (entry.year, entry.month): (entry.planned_executions, entry.actual_executions)
+                               for entry in entries }
+                executions = [ entry_dict.get((year, month), (0, 0)) for (year, month, _, _) in asset_months ]
+                total_planned = sum(x[0] for x in executions)
+                total_actual = sum(x[1] for x in executions)
+                report_rows.append({
+                    "routine_name": plan.ruta.name,
+                    "executions": executions,
+                    "total": (total_planned, total_actual),
+                })
+            asset_dict["report_rows"] = report_rows
+
+            # --- Rutinas Ejecutadas para este asset ---
+            executed_routines = []
+            for plan in plans:
+                for entry in plan.entries.all():
+                    if filter_year and filter_month:
+                        if entry.year != filter_year or entry.month != filter_month:
+                            continue
+                    if entry.actual_executions <= 0:
+                        continue
+                    routine_cost = 0
+                    for req in plan.ruta.requisitos.all():
+                        if req.item:
+                            unit_cost = req.costo if req.costo != 0 else req.item.unit_price
+                        elif req.service:
+                            unit_cost = req.costo if req.costo != 0 else req.service.unit_price
+                        else:
+                            unit_cost = req.costo if req.costo != 0 else 0
+                        routine_cost += unit_cost * req.cantidad * entry.actual_executions
+                    executed_routines.append({
+                        "execution_date": date(entry.year, entry.month, 1),
+                        "routine_code": plan.ruta.code,
+                        "routine_cost": routine_cost,
+                        "actual_executions": entry.actual_executions,
+                    })
+            asset_dict["executed_routines"] = executed_routines
+
+            # --- Desglose de Requerimientos (por costos) para este asset ---
+            requirements_breakdown = {
+                "Consumibles": 0,
+                "Materiales/Repuestos": 0,
+                "Servicios": 0,
+            }
+            for plan in plans:
+                if filter_year and filter_month:
+                    entry = plan.entries.filter(year=filter_year, month=filter_month).first()
+                    pending = (entry.planned_executions - entry.actual_executions) if entry else 0
+                else:
+                    total_planned = plan.entries.aggregate(total=Sum('planned_executions'))["total"] or 0
+                    total_actual = plan.entries.aggregate(total=Sum('actual_executions'))["total"] or 0
+                    pending = total_planned - total_actual
+                if pending <= 0:
+                    continue
+                for req in plan.ruta.requisitos.all():
+                    if req.item:
+                        unit_cost = req.costo if req.costo != 0 else req.item.unit_price
+                        cost_for_req = unit_cost * req.cantidad * pending
+                        if req.item.seccion == "c":
+                            requirements_breakdown["Consumibles"] += cost_for_req
+                        elif req.item.seccion in ["h", "r"]:
+                            requirements_breakdown["Materiales/Repuestos"] += cost_for_req
+                    elif req.service:
+                        unit_cost = req.costo if req.costo != 0 else req.service.unit_price
+                        cost_for_req = unit_cost * req.cantidad * pending
+                        requirements_breakdown["Servicios"] += cost_for_req
+            asset_dict["requirements_breakdown"] = requirements_breakdown
+
+            assets_data.append(asset_dict)
+        context["assets_data"] = assets_data
+        return context
+
+
