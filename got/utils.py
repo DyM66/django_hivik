@@ -30,6 +30,7 @@ from inv.models import DarBaja, Transferencia
 from dth.models import UserProfile
 from mto.utils import record_execution
 from django.db.models import Func
+from inv.models import Transaction
 
 class DayInterval(Func):
     template = "(%(expressions)s * interval '1 day')"
