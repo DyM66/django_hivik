@@ -317,13 +317,13 @@ class MaintenancePlanExcelExportView(View):
         ws['A5'].fill = PatternFill(fill_type="solid", fgColor="92cddc")
         
         ws.merge_cells('A6:F6')
-        prev_locale = locale.getlocale(locale.LC_TIME)
-        # Cambiar a español para formatear la fecha
-        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
-        formatted_date = TODAY.strftime('%A, %d de %B de %Y')
-        # Restaurar el locale original
-        locale.setlocale(locale.LC_TIME, prev_locale)
-        ws['A6'] = f"FECHA: {formatted_date}"
+        # prev_locale = locale.getlocale(locale.LC_TIME)
+        # # Cambiar a español para formatear la fecha
+        # locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+        # formatted_date = TODAY.strftime('%A, %d de %B de %Y')
+        # # Restaurar el locale original
+        # locale.setlocale(locale.LC_TIME, prev_locale)
+        ws['A6'] = f"FECHA: {TODAY.strftime('%A, %d de %B de %Y')}"
         ws['A6'].font = Font(bold=True, name='Arial') # 
         ws['A6'].fill = PatternFill(fill_type="solid", fgColor="92cddc")
 
