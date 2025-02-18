@@ -2,66 +2,323 @@
 {% load my_tags %}
 {% block content %}
 <style>
-    .combined-table {
+    .dashboard-container {
+        margin: 20px;
+    }
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .dashboard-columns {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .dashboard-column {
+        flex: 1;
+        min-width: 300px;
+    }
+    .dashboard-box {
+        border: 2px solid #4d93d9;
+        background-color: #f1f8ff;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    /* Tablas */
+    table {
         width: 100%;
         border-collapse: collapse;
         margin-bottom: 20px;
         font-size: 0.9em;
     }
-    .combined-table th, .combined-table td {
+    table th, table td {
         border: 1px solid #ccc;
         padding: 8px;
         text-align: center;
     }
-    .combined-table th {
+    table th {
         background-color: #4d93d9;
         color: #fff;
     }
-    .group-row {
-        background-color: #d9edf7;
+    tbody tr:nth-child(even) {
+        background-color: #f5f5f5;
+    }
+    .finished-row {
+        background-color: #e0e0e0;
+        text-decoration: line-through;
+        color: #777;
+    }
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+        background-color: #fff;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #4d93d9;
+        width: 80%;
+        max-width: 600px;
+        border-radius: 8px;
+    }
+    .close-modal {
+        float: right;
+        font-size: 1.2em;
         font-weight: bold;
+        cursor: pointer;
+        color: #4d93d9;
+    }
+    /* Migaja de pan para el filtro de meses */
+    .month-filter {
+        margin-bottom: 15px;
+    }
+    .month-filter ul {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        gap: 10px;
+    }
+    .month-filter a {
+        text-decoration: none;
+        color: #333;
+    }
+    .month-filter a.active {
+        font-weight: bold;
+        color: #4d93d9;
     }
 </style>
 
 <div class="dashboard-container">
-    <h1>Plan de Mantenimiento Global - Barcos (Rutinas Nivel 3)</h1>
-    <p>
-        Filtro:
+    <div class="dashboard-header">
+        <h1>Plan de Mantenimiento - {{ asset.name }} ({{ asset.abbreviation }})</h1>
         {% if filter_year and filter_month %}
-            Mes: {{ filter_month }}/{{ filter_year }}
+          <h4>{{ filter_month }}/ {{ filter_year }}</h4>
         {% else %}
-            Todos
+          <h4>Resumen del Período: {{ plans.first.period_start }} a {{ plans.first.period_end }}</h4>
         {% endif %}
-    </p>
-    <table class="combined-table">
-        <thead>
-            <tr>
-                <th>Asset / Rutina</th>
-                <th>Nivel</th>
-                <th>Planificado</th>
-                <th>Ejecutado</th>
-                <th>Costo Pendiente</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in combined_rows %}
-                {% if row.group %}
-                    <tr class="group-row">
-                        <td colspan="5">
-                            Asset: {{ row.asset.name }} ({{ row.asset.abbreviation }}) - Total: {{ row.grand_total|currency }}
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td>{{ row.routine_name }}</td>
-                        <td>{{ row.level }}</td>
-                        <td>{{ row.planned }}</td>
-                        <td>{{ row.actual }}</td>
-                        <td>{{ row.cost|currency }}</td>
-                    </tr>
-                {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
+        <p><a href="{% url 'mto:plan-report' asset.abbreviation %}">Ver detalle</a></p>
+    </div>
+
+    <!-- Sección: Filtro de Mes y Diagrama Circular -->
+    <div class="dashboard-box">
+        <div class="month-filter">
+            <nav>
+                <ul>
+                    <li><a href="?month=all">Todos</a></li>
+                    {% for y, m, label, param in months %}
+                        <li>
+                            <a href="?month={{ param }}" {% if filter_year == y and filter_month == m %} style="font-weight:bold; color:#4d93d9;" {% endif %}>
+                                {{ label }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="dashboard-columns dashboard-box">
+        <!-- Columna: Resumen de Rutinas -->
+        <div class="dashboard-column">
+            <div>
+                <h3>Resumen de Rutinas</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rutina</th>
+                            <th>Nivel</th>
+                            <th>Planificado</th>
+                            <th>Ejecutado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in routine_rows %}
+                            <tr {% if row.finished %}class="finished-row"{% endif %}>
+                                <td>
+                                    <a href="javascript:void(0);" onclick="openModal('modal-{{ row.routine_code }}')">
+                                        {{ row.routine_name }}
+                                    </a>
+                                </td>
+                                <td>{{ row.level }}</td>
+                                <td>{{ row.planned }}</td>
+                                <td>{{ row.actual }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5">No se encontraron rutinas para el período.</td>
+                            </tr>
+                        {% endfor %}
+                        <!-- Fila final con el costo total de todas las rutinas pendientes -->
+                        <tr style="font-weight:bold; background-color:#f0f0f0;">
+                            <td colspan="2">Total General</td>
+                            <td colspan="2">{{ grand_total_routine_cost|currency }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Columna: Rutinas Ejecutadas -->
+        <div class="dashboard-column">
+            <div>
+                <h3>Rutinas Ejecutadas</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha de Ejecución</th>
+                            <th>Código de Rutina</th>
+                            <th>Costo Total</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rut in executed_routines %}
+                            <tr>
+                                <td>{{ rut.execution_date|date:"F Y" }}</td>
+                                <td>{{ rut.routine_code }}</td>
+                                <td>{{ rut.routine_cost|currency }}</td>
+                                <td>
+                                    <button type="button" onclick="openModal('modal-exec-{{ rut.routine_code }}')">Ver detalle</button>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4">No se encontraron rutinas ejecutadas para el período.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div>
+                            <!-- Canvas para el diagrama circular (tamaño fijo) -->
+                            <canvas id="requirementsPieChart" width="300" height="300" style="width:300px; height:3}00px;"></canvas>
+    </div>
 </div>
+
+
+
+<!-- Modales para detalle de cada rutina (Resumen de Rutinas) -->
+{% for row in routine_rows %}
+    <div id="modal-{{ row.routine_code }}" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('modal-{{ row.routine_code }}')">&times;</span>
+            <h3>Detalle de Requerimientos para la rutina {{ row.routine_name }}</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Requerimiento</th>
+                        <th>Cantidad</th>
+                        <th>Valor Unitario</th>
+                        <th>Total (por requerimiento)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for det in row.req_details %}
+                        <tr>
+                            <td>{{ det.name }}</td>
+                            <td>{{ det.quantity }}</td>
+                            <td>{{ det.unit_cost|currency }}</td>
+                            <td>{{ det.line_total|currency }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">No hay requerimientos asociados.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endfor %}
+
+<!-- Modales para detalle de cada rutina ejecutada -->
+{% for rut in executed_routines %}
+    <div id="modal-exec-{{ rut.routine_code }}" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('modal-exec-{{ rut.routine_code }}')">&times;</span>
+            <h3>Detalle de Requerimientos para la rutina {{ rut.routine_code }}</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Requerimiento</th>
+                        <th>Cantidad</th>
+                        <th>Valor Unitario</th>
+                        <th>Total (por requerimiento)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for det in rut.req_details %}
+                        <tr>
+                            <td>{{ det.name }}</td>
+                            <td>{{ det.quantity }}</td>
+                            <td>{{ det.unit_cost|currency }}</td>
+                            <td>{{ det.line_total|currency }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">No hay requerimientos asociados.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endfor %}
+
+<!-- Incluir ChartJS desde CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Configuración y renderizado del diagrama circular (pie chart)
+    var breakdownData = {
+        labels: ["Consumibles", "Materiales/Repuestos", "Servicios"],
+        datasets: [{
+            data: [
+                {{ requirements_breakdown.Consumibles }},
+                {{ requirements_breakdown|get_item:"Materiales/Repuestos" }},
+                {{ requirements_breakdown.Servicios }}
+            ],
+            backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+            hoverBackgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"]
+        }]
+    };
+
+    var ctx = document.getElementById("requirementsPieChart").getContext("2d");
+    var myPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: breakdownData,
+        options: {
+            responsive: false,
+            title: {
+                display: true,
+                text: 'Desglose de Costos de Requerimientos Planificados'
+            }
+        }
+    });
+
+    function openModal(id) {
+        document.getElementById(id).style.display = "block";
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+    }
+    // Cerrar modal al hacer click fuera del contenido
+    window.onclick = function(event) {
+        var modals = document.getElementsByClassName('modal');
+        for (var i = 0; i < modals.length; i++) {
+            if (event.target == modals[i]) {
+                modals[i].style.display = "none";
+            }
+        }
+    }
+</script>
 {% endblock %}
