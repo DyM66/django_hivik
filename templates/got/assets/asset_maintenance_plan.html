@@ -315,6 +315,11 @@
             {% endfor %}
             <button type="submit" class="btn btn-info">Descargar Rutinas como Excel</button>
         </form>
+
+        <a href="{% url 'got:maintenance_plan_excel_export' asset.abbreviation %}" class="btn btn-info mt-2">
+            Descargar Rutinas Excel (2)
+        </a>
+        
     </div>
 </div>
 

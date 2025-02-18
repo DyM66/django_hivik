@@ -38,9 +38,10 @@ from .utils import *
 from .models import *
 from .forms import *
 from inv.models import Transaction
-
+import locale
 
 logger = logging.getLogger(__name__)
+# locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8') 
 TODAY = timezone.now().date()
 
 AREAS = {
@@ -268,6 +269,281 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         filename = 'rutinas.xlsx'
         table_title = 'Reporte de Rutinas'
         return pro_export_to_excel(model=Ruta, headers=headers, data=data, filename=filename, table_title=table_title)
+
+
+class MaintenancePlanExcelExportView(View):
+
+    def get(self, request, asset_abbr):
+        asset = get_object_or_404(Asset, abbreviation=asset_abbr)
+        # Usamos la función get_filtered_rutas para obtener las rutinas filtradas
+        filtered_rutas, _ = get_filtered_rutas(asset, request.user, request.GET)
+        # Llamamos a la función especializada para generar el Excel
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Rutinas de Mantenimiento"
+
+        # Definir un borde delgado en color negro
+        thin_border = Border(left=Side(style='thin', color="000000"), right=Side(style='thin', color="000000"), top=Side(style='thin', color="000000"), bottom=Side(style='thin', color="000000"))
+
+        # Fila 1: Título
+        ws.merge_cells('A1:B4')
+        ws.merge_cells('C1:F2')
+        ws['C1'] = "PROGRAMACIÓN RUTINAS DE MANTENIMIENTO"
+        ws['C1'].font = Font(bold=True, size=16, name='Arial')
+        ws['C1'].alignment = Alignment(horizontal="center", vertical="center")
+
+        ws.merge_cells('C3:C4')
+        ws['C3'] = "FORMATO:"
+        ws['C3'].font = Font(bold=True, size=11, name='Arial')
+        ws['C3'].alignment = Alignment(horizontal="center", vertical="center")
+
+        ws.merge_cells('D3:D4')
+        ws['D3'] = "VERSION 001"
+        ws['D3'].font = Font(bold=True, size=11, name='Arial')
+        ws['D3'].alignment = Alignment(horizontal="center", vertical="center")
+
+        ws.merge_cells('E3:F4')
+        ws['E3'] = "FECHA DE ACTUALIZACIÓN: 18/02/2025"
+        ws['E3'].font = Font(bold=True, size=11, name='Arial')
+        ws['E3'].alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        ws.row_dimensions[1].height = 25
+        ws.row_dimensions[2].height = 20
+
+        ws.merge_cells('A5:F5')
+        ws['A5'] = f"AREA: {asset.name}"
+        ws['A5'].font = Font(bold=True, name='Arial')
+        ws['A5'].fill = PatternFill(fill_type="solid", fgColor="92cddc")
+        
+        ws.merge_cells('A6:F6')
+        prev_locale = locale.getlocale(locale.LC_TIME)
+        # Cambiar a español para formatear la fecha
+        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+        formatted_date = TODAY.strftime('%A, %d de %B de %Y')
+        # Restaurar el locale original
+        locale.setlocale(locale.LC_TIME, prev_locale)
+        ws['A6'] = f"FECHA: {formatted_date}"
+        ws['A6'].font = Font(bold=True, name='Arial') # 
+        ws['A6'].fill = PatternFill(fill_type="solid", fgColor="92cddc")
+
+        # --- Agregar bordes al área de cabecera (título y datos generales) ---
+        header_ranges = ["A1:B4", "C1:F2", "C3:C4", "D3:D4", "E3:F4", "A5:F5", "A6:F6"]
+        for merged_range in header_ranges:
+            for row in ws[merged_range]:
+                for cell in row:
+                    cell.border = thin_border
+
+        start_row = 7
+        headers = [
+            "ITEM", "EQUIPO", "CÓDIGO", "FRECUENCIA", "TIEMPO RESTANTE", "PRÓXIMA INTERVENCIÓN"
+        ]
+        ws.append(headers)
+
+        # Estilos para el encabezado
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=start_row, column=col_num)
+            cell.value = header
+            cell.font = Font(bold=True, color="ffffff", name='Arial')
+            cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = thin_border
+
+        # Construimos las filas con la información de cada equipo
+        rutas_data = []
+        counter = 1
+        for ruta in filtered_rutas:
+            equipo = ruta.equipo.name if ruta.equipo else ruta.system.name
+            row = [
+                counter,
+                equipo,
+                ruta.name,
+                f"{ruta.frecuency} {ruta.get_control_display()}",
+                f"{ruta.daysleft} {ruta.get_control_display()}",
+                ruta.next_date,
+            ]
+            rutas_data.append(row)
+            counter += 1
+
+        # Escribir los datos y asignar el borde negro a cada celda de la tabla
+        current_row = start_row + 1
+        for i, row_data in enumerate(rutas_data):
+            for col_num, cell_value in enumerate(row_data, 1):
+                cell = ws.cell(row=current_row, column=col_num)
+                cell.value = cell_value
+                cell.font = Font(name='Arial')
+                cell.border = thin_border
+            current_row += 1
+            
+            ruta = filtered_rutas[i]
+            for j, task in enumerate(Task.objects.filter(ruta=ruta), 1):
+                task_data = [
+                    float(f"{row_data[0]}.{j}"),
+                    task.description
+                ]
+                cell = ws.cell(row=current_row, column=1)
+                cell.value = task_data[0]
+                cell.font = Font(name='Arial')
+                cell.border = thin_border
+
+                ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=6)
+                cell = ws.cell(row=current_row, column=2)
+                cell.value = task_data[1]
+                cell.font = Font(name='Arial', italic=True)
+                cell.fill = PatternFill(fill_type="solid", fgColor="eeece1")
+                cell.border = thin_border
+                
+                # Obtener la referencia del rango fusionado, por ejemplo "B{current_row}:F{current_row}"
+                merged_range = f"{get_column_letter(2)}{current_row}:{get_column_letter(6)}{current_row}"
+
+                # Iterar sobre cada celda en el rango fusionado y asignar el borde
+                for row in ws[merged_range]:
+                    for cell in row:
+                        cell.border = thin_border
+
+                current_row += 1
+
+
+        for column in ws.columns:
+            max_length = 0
+            column_letter = openpyxl.utils.get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except Exception:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+        # === Sección de Observaciones y Cierre ===
+        current_row = ws.max_row + 1
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=6)
+        cell = ws.cell(row=current_row, column=1)
+        cell.value = "¿DURANTE LA INSPECCIÓN SE PRESENTARON INCONSISTENCIAS?"
+        cell.font = Font(bold=True, name='Arial')
+
+        for col in range(1, 7):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        current_row += 1
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=6)
+        cell = ws.cell(row=current_row, column=1)
+        cell.value = "DESCRIPCIÓN DE LAS INCONSISTENCIAS ENCONTRADAS (SI APLICA):"
+        cell.alignment = Alignment(horizontal="left", vertical="top")
+        cell.font = Font(bold=True, name='Arial')
+        ws.row_dimensions[current_row].height = 90
+
+        for col in range(1, 7):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+
+        current_row += 1
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=6)
+        cell = ws.cell(row=current_row, column=1)
+        cell.value = "RESPONSABLES"
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
+        cell.font = Font(bold=True, name='Arial')
+
+        for col in range(1, 7):
+            ws.cell(row=current_row, column=col).border = thin_border
+        
+        # Sección de firmas
+        current_row = ws.max_row + 1
+        ws.row_dimensions[current_row].height = 90
+
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+        cell = ws.cell(row=current_row, column=1)
+        cell.value = "Firma de receptor"
+        cell.alignment = Alignment(horizontal="center", vertical="bottom")
+        cell.font = Font(bold=True, name='Arial')
+
+        ws.merge_cells(start_row=current_row, start_column=4, end_row=current_row, end_column=6)
+        cell = ws.cell(row=current_row, column=4)
+        cell.value = "Firma de supervisor de Mantenimiento"
+        cell.alignment = Alignment(horizontal="center", vertical="bottom")
+        cell.font = Font(bold=True, name='Arial')
+
+        for col in range(1, 3):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        for col in range(4, 7):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        current_row = ws.max_row + 1
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+        cell = ws.cell(row=current_row, column=1)
+        cell.value = "Nombre Completo"
+        cell.alignment = Alignment(horizontal="left")
+        cell.font = Font(bold=True, name='Arial')
+
+        ws.merge_cells(start_row=current_row, start_column=4, end_row=current_row, end_column=6)
+        cell = ws.cell(row=current_row, column=4)
+        cell.value = "Nombre Completo"
+        cell.alignment = Alignment(horizontal="left")
+        cell.font = Font(bold=True, name='Arial')
+
+        for col in range(1, 4):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        for col in range(4, 7):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        current_row = ws.max_row + 1
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+        cell = ws.cell(row=current_row, column=1)
+        cell.value = "Cédula No."
+        cell.alignment = Alignment(horizontal="left")
+        cell.font = Font(bold=True, name='Arial')
+
+        ws.merge_cells(start_row=current_row, start_column=4, end_row=current_row, end_column=6)
+        cell = ws.cell(row=current_row, column=4)
+        cell.value = "Cédula No."
+        cell.alignment = Alignment(horizontal="left")
+        cell.font = Font(bold=True, name='Arial')
+
+        for col in range(1, 4):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        for col in range(4, 7):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        current_row += 1
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=6)
+        cell = ws.cell(row=current_row, column=1)
+        cell.value = '“Este documento es propiedad de "SERPORT S.A.S" Se prohíbe su reproducción parcial o total.”'
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
+        cell.font = Font(name='Arial', italic=True, size=10)
+
+        for col in range(1, 7):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        # === Insertar la imagen desde la URL ===
+        url = "https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png"
+        img_response = requests.get(url)
+        if img_response.status_code == 200:
+            image_data = BytesIO(img_response.content)
+            from openpyxl.drawing.image import Image  # Asegúrate de tener este import
+            img = Image(image_data)
+            # Asignar dimensiones a la imagen para evitar el error
+            img.width = 300   # Ajusta según tus necesidades
+            img.height = 80   # Ajusta según tus necesidades
+            # Insertar la imagen en la hoja de Equipos, por ejemplo en la celda A1
+            ws.add_image(img, "A1")
+            # ws_equips.row_dimensions[1].height = 30
+            print(ws.row_dimensions[1].height)
+
+        else:
+            print("No se pudo descargar la imagen.")
+
+        # Configurar respuesta
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        filename = f"rutinas_{asset.abbreviation}_{date.today().strftime('%Y%m%d')}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        wb.save(response)
+        return response
 
 
 class AssetDocumentsView(View):
