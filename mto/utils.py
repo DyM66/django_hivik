@@ -92,7 +92,7 @@ def update_future_plan_entries_for_asset(asset):
             # Ahora, para cada entrada del plan, si es de un mes futuro, actualizar el valor
             for entry in plan.entries.all():
                 # Consideramos "futuro" si (entry.year, entry.month) es mayor que (current_year, current_month)
-                if (entry.year > current_year) or (entry.year == current_year and entry.month > current_month):
+                if (entry.year > current_year) or (entry.year == current_year and entry.month >= current_month):
                     new_planned = planned_by_month.get((entry.year, entry.month), 0)
                     if new_planned != entry.planned_executions:
                         entry.planned_executions = new_planned

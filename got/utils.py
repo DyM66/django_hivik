@@ -977,7 +977,7 @@ def filter_tasks_queryset(request, base_queryset=None):
     Devuelve el queryset filtrado.
     """
     if base_queryset is None:
-        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, ot__system__asset__area__in=['a', 'x'])
+        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, ot__system__asset__area__in=['a', 'x', 'c'])
     else:
         queryset = base_queryset
 
