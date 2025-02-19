@@ -53,6 +53,36 @@ AREAS = {
     'x': 'Apoyo',
 }
 
+@login_required
+def get_notifications(request):
+    user = request.user
+    notifications = user.notifications.filter(seen=False)
+    data = [
+        {
+            "id": n.id,
+            "message": n.message,
+            "created_at": n.created_at.strftime("%d/%m/%Y %H:%M"),
+        }
+        for n in notifications
+    ]
+    return JsonResponse({"notifications": data})
+
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt 
+
+@login_required
+@require_POST
+@csrf_exempt
+def mark_notification_seen(request):    
+    notification_id = request.POST.get("notification_id")
+    try:
+        notification = request.user.notifications.get(id=notification_id)
+        notification.seen = True
+        notification.save()
+        return JsonResponse({"success": True})
+    except Notification.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Notificación no encontrada"})
+
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, TemplateView):
     template_name = 'got/assets/asset_list.html'

@@ -25,7 +25,6 @@ class Migration(migrations.Migration):
                 ('description', models.TextField()),
                 ('causas', models.TextField()),
                 ('suggest_repair', models.TextField(blank=True, null=True)),
-                ('evidence', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
                 ('reporter', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('related_ot', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='failure_report', to='got.ot')),

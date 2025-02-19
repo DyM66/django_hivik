@@ -722,3 +722,14 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user_name} {self.action} {self.model_name} {self.field_name} at {self.timestamp}"
+    
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    seen = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Notificación para {self.user.username}: {self.message[:50]}"

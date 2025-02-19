@@ -169,6 +169,28 @@ def track_model_changes_post_save(sender, instance, **kwargs):
                             new_value=str(new_value),
                             timestamp=timezone.now()
                         )
+
+                        # --- NOTIFICACIÓN ---
+                        # Sólo para OT y Task
+                        # if sender.__name__ == "Ot":
+                        #     # Notificar, por ejemplo, al supervisor del activo
+                        #     try:
+                        #         recipient = 1
+                        #     except AttributeError:
+                        #         recipient = instance.modified_by
+                        # elif sender.__name__ == "Task":
+                        #     # Notificar al responsable de la tarea (si existe) o al modificador
+                        #     recipient = instance.responsible if instance.responsible else instance.modified_by
+                        #     # recipient = instance.responsible if instance.responsible else instance.modified_by
+                        # else:
+                        #     recipient = instance.modified_by
+
+                        # # Crear el mensaje de notificación
+                        # message = f"{instance.modified_by.username} modificó '{field_name}' y estableció: {new_value}"
+                        # Notification.objects.create(
+                        #     user=recipient,
+                        #     message=message
+                        # )
             else:
                 # Si es una creación
                 ActivityLog.objects.create(

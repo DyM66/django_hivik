@@ -95,4 +95,7 @@ urlpatterns = [
     path('api/unapproved_requests_count/', pwa.get_unapproved_requests_count, name='unapproved_requests_count_api'),
 
     path('maintenance-plan/export/<str:asset_abbr>/', views.MaintenancePlanExcelExportView.as_view(), name='maintenance_plan_excel_export'),
+
+    path('notifications/', views.get_notifications, name='get_notifications'),
+    path('notifications/mark_seen/', views.mark_notification_seen, name='mark_notification_seen'),
 ]
