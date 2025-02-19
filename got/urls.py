@@ -98,4 +98,6 @@ urlpatterns = [
 
     path('notifications/', views.get_notifications, name='get_notifications'),
     path('notifications/mark_seen/', views.mark_notification_seen, name='mark_notification_seen'),
+
+    path('assets/report/pdf/', views.GenerateAssetReportPDFView.as_view(), name='asset_report_pdf'),
 ]

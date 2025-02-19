@@ -180,6 +180,80 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
 
         context['open_failures_dict'] = open_failures_dict
         return context
+    
+
+from weasyprint import HTML, CSS
+class GenerateAssetReportPDFView(LoginRequiredMixin, View):
+    """
+    Vista que genera un informe PDF para el departamento de mantenimiento.
+    Muestra los activos (barcos, area = "a") en un formato de cards, similar a asset_list,
+    pero adaptado para impresión en tamaño A4 y visualización en línea.
+    """
+    def get(self, request, *args, **kwargs):
+        # Obtener activos que se muestran (por ejemplo, show=True)
+        assets = Asset.objects.filter(show=True).order_by('name')
+        
+        # Agrupar activos por área usando la variable AREAS
+        assets_by_area = {
+            area_code: [asset for asset in assets if asset.area == area_code]
+            for area_code in AREAS.keys()
+        }
+        
+        # Definir iconos para cada área (los mismos que usas en asset_list)
+        area_icons = {
+            'a': 'fa-ship',
+            'c': 'fa-solid fa-ferry',
+            'o': 'fa-water',
+            'l': 'fa-building',
+            'v': 'fa-car',
+            'x': 'fa-cogs'
+        }
+        
+        # Otros datos que puedas necesitar (puedes ampliar según tus requerimientos)
+        places = Place.objects.all()
+        supervisors = User.objects.filter(groups__name__in=['maq_members', 'super_members'])
+        capitanes = User.objects.filter(groups__name='maq_members')
+        
+        # Crear un diccionario para las fallas abiertas (si lo requieres)
+        open_failures_dict = {}
+        for asset in assets:
+            fr_qs = FailureReport.objects.filter(closed=False, equipo__system__asset=asset)
+            crit_qs = fr_qs.filter(critico=True)
+            no_crit_qs = fr_qs.filter(critico=False)
+            crit_count = crit_qs.count()
+            no_crit_count = no_crit_qs.count()
+            single_crit_id = crit_qs.first().pk if crit_count == 1 else None
+            single_no_crit_id = no_crit_qs.first().pk if no_crit_count == 1 else None
+            open_failures_dict[asset.pk] = {
+                'crit_count': crit_count,
+                'no_crit_count': no_crit_count,
+                'single_crit_id': single_crit_id,
+                'single_no_crit_id': single_no_crit_id,
+            }
+        
+        context = {
+            'all_assets': assets,
+            'assets_by_area': assets_by_area,
+            'area_icons': area_icons,
+            'places': places,
+            'supervisors': supervisors,
+            'capitanes': capitanes,
+            'open_failures_dict': open_failures_dict,
+            'today': datetime.now(),  # Para mostrar la fecha
+            'request': request,  # Para que WeasyPrint resuelva URLs absolutas
+        }
+        
+        # Renderizar la plantilla para el informe PDF
+        html_string = render_to_string("asset_report.html", context)
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        css = CSS(string='@page { size: A4; margin: 2cm; }')
+        pdf_file = html.write_pdf(stylesheets=[css])
+        
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        # Mostrar el PDF en el navegador (Content-Disposition inline)
+        filename = f"informe_activos_{datetime.now().strftime('%Y%m%d')}.pdf"
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
@@ -1959,7 +2033,7 @@ def assignedTasks_excel(request):
         print("No se pudo descargar la imagen.")
     
     # --- Fusionar las primeras 4 filas para el título ---
-    ws.merge_cells('A1:E4')
+    ws.merge_cells('A1:D4')
     title_cell = ws['A1']
     title_cell.value = "LISTADO DE ACTIVIDADES PROGRAMADAS" + (f" ({start})" if start else "")
     title_cell.font = Font(bold=True, size=20, color="FFFFFF")
@@ -1973,29 +2047,30 @@ def assignedTasks_excel(request):
     # Recorrer cada asset (ordenado por nombre)
     for asset in sorted(grouped.keys(), key=lambda a: a.name):
         # Encabezado del asset: fusionar columnas 1 a 5
-        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=4)
         cell_asset = ws.cell(row=current_row, column=1, value=f"{asset.name} ({asset.abbreviation})")
+        ws.row_dimensions[current_row].height = 20
         cell_asset.font = Font(bold=True, size=14)
         cell_asset.alignment = Alignment(horizontal="left")
         # Aplicar borde a todas las celdas del rango fusionado
-        for row_cells in ws.iter_rows(min_row=current_row, max_row=current_row, min_col=1, max_col=5):
+        for row_cells in ws.iter_rows(min_row=current_row, max_row=current_row, min_col=1, max_col=4):
             for cell in row_cells:
                 cell.border = thin_border
         current_row += 1
         
         # Recorrer cada OT dentro del asset (ordenado por num_ot)
         for ot in sorted(grouped[asset].keys(), key=lambda ot: ot.num_ot):
-            ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
+            ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=4)
             cell_ot = ws.cell(row=current_row, column=1, value=f"OT-{ot.num_ot}: {ot.description}")
             cell_ot.font = Font(bold=True, size=12)
             cell_ot.alignment = Alignment(horizontal="left")
-            for row_cells in ws.iter_rows(min_row=current_row, max_row=current_row, min_col=1, max_col=5):
+            for row_cells in ws.iter_rows(min_row=current_row, max_row=current_row, min_col=1, max_col=4):
                 for cell in row_cells:
                     cell.border = thin_border
             current_row += 1
             
             # Encabezados para las actividades
-            headers = ['Actividad', 'Responsable', 'Inicio', 'Fin', 'Novedades']
+            headers = ['Actividad', 'Responsable', 'Inicio', 'Fin']
             for col_num, header in enumerate(headers, start=1):
                 cell = ws.cell(row=current_row, column=col_num, value=header)
                 cell.font = Font(bold=True, color="FFFFFF")
@@ -2011,8 +2086,13 @@ def assignedTasks_excel(request):
                 ws.cell(row=current_row, column=2, value=responsable).border = thin_border
                 ws.cell(row=current_row, column=3, value=task.start_date.strftime('%d/%m/%Y') if task.start_date else "").border = thin_border
                 ws.cell(row=current_row, column=4, value=task.final_date.strftime('%d/%m/%Y') if task.final_date else "").border = thin_border
-                ws.cell(row=current_row, column=5, value=task.news).border = thin_border
                 current_row += 1
+
+                # ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
+                # ws.cell(row=current_row, column=1, value=task.news).border = thin_border
+                # cell.font = Font(name='Arial', italic=True)
+                # cell.fill = PatternFill(fill_type="solid", fgColor="eeece1")
+                # cell.border = thin_border
             # Espacio en blanco entre OT
             # current_row += 1
         # Espacio en blanco entre assets
