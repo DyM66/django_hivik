@@ -7,7 +7,6 @@ app_name = 'got'
 urlpatterns = [
     path("", views.AssetsListView.as_view(), name="asset-list"),
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
-    path("asset/<str:pk>/maintenance-plan/", views.AssetMaintenancePlanView.as_view(), name="asset-maintenance-plan"),
     path('asset/<str:abbreviation>/documents/', views.AssetDocumentsView.as_view(), name='asset-documents'),
     path('document/<int:pk>/edit/', views.edit_document, name='edit-document'),
     path('document/<int:pk>/delete/', views.delete_document, name='delete-document'),

@@ -22,7 +22,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'asset-maintenance-plan' %}active{% endif %}" aria-current="page" href="{% url 'got:asset-maintenance-plan' asset.abbreviation %}">
+                <a class="nav-link {% if request.resolver_match.url_name == 'asset-maintenance-plan' %}active{% endif %}" aria-current="page" href="{% url 'mto:asset-maintenance-plan' asset.abbreviation %}">
                     Plan de Mantenimiento
                 </a>
             </li>

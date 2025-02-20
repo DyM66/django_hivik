@@ -1,7 +1,51 @@
 # mto/utils.py
-from datetime import timedelta, date
+import calendar
+
+from datetime import timedelta, date, datetime
+from django.db.models import Q
+
 from got.models import Ruta
+from got.forms import RutinaFilterForm
 from mto.models import MaintenancePlan
+
+
+def get_filtered_rutas(asset, request_data=None):
+    month = datetime.now().month
+    year = datetime.now().year
+    
+    form = RutinaFilterForm(request_data, asset=asset)
+    extra_filter = False
+    if form.is_valid():
+        month = int(form.cleaned_data['month'])
+        year = int(form.cleaned_data['year'])
+        selected_locations = form.cleaned_data.get('locations', [])
+        extra_filter = True
+    else:
+        selected_locations = []
+    
+    rutas_qs = Ruta.objects.filter(system__asset=asset).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
+
+    if selected_locations:
+        rutas_qs = rutas_qs.filter(Q(equipo__ubicacion__in=selected_locations) | Q(equipo__isnull=True))
+
+    all_rutas = list(rutas_qs)
+
+    if extra_filter:  # Definir la función de filtrado
+        def match_criteria(r):  # Solo se incluyen rutas que tengan next_date y que cumplan la condición extra
+            if not r.next_date:
+                return False
+            print(r.next_date)
+            next_date_ok = (r.next_date.year < year) or (r.next_date.year == year and r.next_date.month <= month)
+            base_ok = r.percentage_remaining < 10 or (r.ot and r.ot.state == 'x')
+            return base_ok or next_date_ok
+    else:
+        def match_criteria(r):
+            return (r.percentage_remaining < 10 or (r.ot and r.ot.state == 'x'))
+
+    filtered_rutas = [ruta for ruta in all_rutas if match_criteria(ruta)]
+    current_month_name_es = calendar.month_name[month]
+    return filtered_rutas, current_month_name_es
+
 
 def record_execution(plan, execution_date):
     """
@@ -98,8 +142,6 @@ def update_future_plan_entries_for_asset(asset):
                         entry.planned_executions = new_planned
                         entry.save()
 
-
-# mto/utils.py (continuación)
 
 def create_maintenance_plan_for_ruta(ruta, period_start, period_end):
     """

@@ -1,3 +1,6 @@
+import locale
+import calendar
+
 from datetime import datetime
 from django import forms
 from django.contrib.auth.models import User, Group
@@ -47,23 +50,18 @@ class MultipleFileField(forms.FileField):
             else:
                 print("Archivo vacío detectado y omitido.")  # Opcional: Registrar o manejar archivos vacíos
         return cleaned_data
-    
-import locale
-import calendar
+
 
 class RutinaFilterForm(forms.Form):
     current_year = datetime.now().year
     max_year = current_year + 5
 
-    # Establecer el locale en español; asegúrate de que 'es_ES.UTF-8' esté instalado en el sistema
-    try:
+    try:  # Establecer el locale en español
         locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
     except locale.Error:
-        # Fallback: usa los nombres en inglés o una lista estática traducida
-        pass
+        pass  # Fallback: usa los nombres en inglés o una lista estática traducida
 
     MONTH_CHOICES = [(i, calendar.month_name[i].capitalize()) for i in range(1, 13)]
-    # MONTH_CHOICES = [(1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'), (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'), (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')]
     YEAR_CHOICES = [(i, str(i)) for i in range(current_year, max_year + 1)]
 
     month = forms.ChoiceField(choices=MONTH_CHOICES, initial=datetime.now().month, label="Mes", widget=forms.Select(attrs={'class': 'form-control'}),)
@@ -79,7 +77,6 @@ class RutinaFilterForm(forms.Form):
             other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset).distinct()
             full_systems = systems.union(other_asset_systems)
             locations = full_systems.values_list('location', flat=True)
-            
             unique_locations = list(set(locations))  # Eliminar duplicados
             location_choices = [(location, location) for location in unique_locations]
             self.fields['locations'] = forms.MultipleChoiceField(choices=location_choices, widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}), initial=[location for location in unique_locations], required=False, label="Ubicaciones")

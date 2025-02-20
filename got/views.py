@@ -40,6 +40,8 @@ from .forms import *
 from inv.models import Transaction
 import locale
 
+from mto.utils import get_filtered_rutas
+
 logger = logging.getLogger(__name__)
 # locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8') 
 TODAY = timezone.now().date()
@@ -292,95 +294,13 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             return render(request, self.template_name, context)
 
 
-class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
-    model = Asset
-    template_name = 'got/assets/asset_maintenance_plan.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        asset = self.get_object()
-        user = self.request.user
-        filtered_rutas, current_month_name_es = get_filtered_rutas(asset, user, self.request.GET)
-
-        executing_rutas = []
-        normal_rutas = []
-        for r in filtered_rutas:
-            if r.ot and r.ot.state == 'x':
-                executing_rutas.append(r)
-            else:
-                normal_rutas.append(r)
-
-        context['rotativos'] = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
-        context['view_type'] = 'rutas'
-        context['asset'] = asset
-        context['mes'] = current_month_name_es
-
-        context['page_obj_rutas'] = normal_rutas
-        context['exec_rutas'] = executing_rutas
-        context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
-        context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
-
-        ubicaciones = set()
-        for r in filtered_rutas:
-            if r.equipo and r.equipo.ubicacion:
-                ubicaciones.add(r.equipo.ubicacion)
-
-            # Asignar r.ubic_label = su ubicación o "(sin)"
-            if r.equipo and r.equipo.ubicacion:
-                r.ubic_label = r.equipo.ubicacion
-            else:
-                r.ubic_label = "(sin)"
-        context['ubicaciones_unicas'] = sorted(ubicaciones)
-        return context
-
-    def post(self, request, *args, **kwargs):
-        if 'download_excel' in request.POST:
-            return self.export_rutinas_to_excel(request.POST)
-        else:
-            return redirect(request.path)
-
-    def export_rutinas_to_excel(self, request_data):
-        asset = self.get_object()
-        user = self.request.user
-        filtered_rutas, _ = get_filtered_rutas(asset, user, request_data)
-        headers = [
-            'Equipo', 'Ubicación', 'Código', 'Frecuencia', 'Control', 'Tiempo Restante',
-            'Última Intervención', 'Próxima Intervención', 'Orden de Trabajo', 'Actividad', 'Responsable'
-        ]
-        data = []
-
-        for ruta in filtered_rutas:
-            days_left = (ruta.next_date - datetime.now().date()).days if ruta.next_date else '---'
-            data.append([
-                ruta.equipo.name if ruta.equipo else ruta.system.name,
-                ruta.equipo.system.location if ruta.equipo else ruta.system.location,
-                ruta.name,
-                ruta.frecuency,
-                ruta.get_control_display(),
-                days_left,
-                ruta.intervention_date.strftime('%d/%m/%Y') if ruta.intervention_date else '---',
-                ruta.next_date.strftime('%d/%m/%Y') if ruta.next_date else '---',
-                ruta.ot.num_ot if ruta.ot else '---',
-                '---',
-                ''
-            ])
-
-            tasks = Task.objects.filter(ruta=ruta)
-            for task in tasks:
-                responsable_name = task.responsible.get_full_name() if task.responsible else '---'
-                data.append(['', '', '', '', '', '', '', '', '', f'- {task.description}', responsable_name])
-
-        filename = 'rutinas.xlsx'
-        table_title = 'Reporte de Rutinas'
-        return pro_export_to_excel(model=Ruta, headers=headers, data=data, filename=filename, table_title=table_title)
-
 
 class MaintenancePlanExcelExportView(View):
 
     def get(self, request, asset_abbr):
         asset = get_object_or_404(Asset, abbreviation=asset_abbr)
         # Usamos la función get_filtered_rutas para obtener las rutinas filtradas
-        filtered_rutas, _ = get_filtered_rutas(asset, request.user, request.GET)
+        filtered_rutas, _ = get_filtered_rutas(asset, request.GET)
         # Llamamos a la función especializada para generar el Excel
 
         wb = openpyxl.Workbook()
@@ -421,13 +341,13 @@ class MaintenancePlanExcelExportView(View):
         ws['A5'].fill = PatternFill(fill_type="solid", fgColor="92cddc")
         
         ws.merge_cells('A6:F6')
-        # prev_locale = locale.getlocale(locale.LC_TIME)
-        # # Cambiar a español para formatear la fecha
-        # locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
-        # formatted_date = TODAY.strftime('%A, %d de %B de %Y')
-        # # Restaurar el locale original
-        # locale.setlocale(locale.LC_TIME, prev_locale)
-        ws['A6'] = f"FECHA: {TODAY.strftime('%A, %d de %B de %Y')}"
+        prev_locale = locale.getlocale(locale.LC_TIME)
+        # Cambiar a español para formatear la fecha
+        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+        formatted_date = TODAY.strftime('%A, %d de %B de %Y')
+        # Restaurar el locale original
+        locale.setlocale(locale.LC_TIME, prev_locale)
+        ws['A6'] = f"FECHA: {formatted_date}"
         ws['A6'].font = Font(bold=True, name='Arial') # 
         ws['A6'].fill = PatternFill(fill_type="solid", fgColor="92cddc")
 
@@ -948,7 +868,7 @@ class EquipoUpdate(UpdateView):
         else:
             context['upload_form'] = UploadImages()
         # Formset para mostrar las imágenes ya asociadas al equipo
-        ImageFormset = modelformset_factory(Image, fields=('image',), extra=0)
+        ImageFormset = forms.modelformset_factory(Image, fields=('image',), extra=0)
         context['image_formset'] = ImageFormset(queryset=self.object.images.all())
         # Agregar la cantidad de imágenes
         context['image_count'] = self.object.images.count()

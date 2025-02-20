@@ -227,3 +227,12 @@ REST_FRAMEWORK = {
 }
 
 DECIMAL_SEPARATOR = '.'
+
+
+ASGI_APPLICATION = "hivik2.asgi.application"
+
+
+
+
+
+

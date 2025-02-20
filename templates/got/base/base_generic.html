@@ -159,11 +159,15 @@
         });
     }
 
+    // Polling: llamar a fetchNotifications cada 30 segundos
+    document.addEventListener("DOMContentLoaded", function() {
+        fetchNotifications();
+        setInterval(fetchNotifications, 30000);
+    });
+
     // Llamar a fetchNotifications al cargar la página
-    document.addEventListener("DOMContentLoaded", fetchNotifications);
+    // document.addEventListener("DOMContentLoaded", fetchNotifications);
 </script>
-
-
 
 
 

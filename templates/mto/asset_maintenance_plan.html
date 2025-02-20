@@ -305,16 +305,6 @@
         </form>
     
         <hr>
-        <form method="POST" action="{% url 'got:asset-maintenance-plan' asset.abbreviation %}">{% csrf_token %}
-            <input type="hidden" name="download_excel" value="true">
-            <input type="hidden" name="month" value="{{ rutinas_filter_form.month.value }}">
-            <input type="hidden" name="year" value="{{ rutinas_filter_form.year.value }}">
-            <input type="hidden" name="execute" value="{{ rutinas_filter_form.execute.value }}">
-            {% for location in rutinas_filter_form.locations.value %}
-                <input type="hidden" name="locations" value="{{ location }}">
-            {% endfor %}
-            <button type="submit" class="btn btn-info">Descargar Rutinas como Excel</button>
-        </form>
 
         <a href="{% url 'got:maintenance_plan_excel_export' asset.abbreviation %}" class="btn btn-info mt-2">
             Descargar Rutinas Excel (2)

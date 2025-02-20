@@ -257,3 +257,47 @@ def update_asset_compliance_after_ot_save(sender, instance, **kwargs):
         # O recalcular siempre que se guarde
         if instance.state == 'f':
             system.asset.update_maintenance_compliance_cache()
+
+
+from django.utils.text import Truncator
+from django.contrib.auth.models import Group
+@receiver(post_save, sender=Solicitud)
+def create_solicitud_notification(sender, instance, created, **kwargs):
+    if created:
+        # Determinar el grupo de destino según el departamento:
+        # 'm' => mantenimiento => super_members
+        # 'o' => operaciones => operaciones
+        group_name = 'super_members' if instance.dpto == 'm' else 'operaciones'
+        
+        # Obtener el nombre completo del solicitante; si está vacío, usar el username
+        full_name = instance.solicitante.get_full_name() or instance.solicitante.username
+        
+        # Determinar el asset asociado: si instance.asset existe, usarlo; de lo contrario, si existe OT, obtener
+        # el asset a partir del sistema asociado a la OT.
+        if instance.asset:
+            asset_name = instance.asset.name
+        elif instance.ot and instance.ot.system and instance.ot.system.asset:
+            asset_name = instance.ot.system.asset.name
+        else:
+            asset_name = "N/D"  # No disponible
+        
+        # Truncar el texto de suministros a 100 caracteres (puedes ajustar el límite)
+        suministros_desc = instance.suministros or ""
+        suministros_truncated = Truncator(suministros_desc).chars(100)
+        
+        # Construir el mensaje de notificación
+        message = f"{full_name} ha generado una SC para {asset_name}.<br> {suministros_truncated}"
+        
+        # Obtener el grupo y los usuarios destinatarios
+        try:
+            group = Group.objects.get(name=group_name)
+            users = group.user_set.all()
+        except Group.DoesNotExist:
+            users = []
+        
+        # Crear la notificación para cada usuario del grupo
+        for user in users:
+            Notification.objects.create(
+                user=user,
+                message=message
+            )

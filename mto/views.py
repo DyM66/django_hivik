@@ -1,17 +1,60 @@
 # mto/views.py
 import calendar
-from calendar import month_name
+
 from datetime import date, datetime
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Sum
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from django.views.generic import TemplateView
-from got.models import Asset
-from mto.utils import update_future_plan_entries_for_asset
+from django.shortcuts import get_object_or_404, redirect
+from django.views import generic
+
+from got.models import Asset, Suministro, Equipo, Ruta
+from got.utils import get_full_systems_ids
+from got.forms import RutinaFilterForm
+from mto.utils import update_future_plan_entries_for_asset, get_filtered_rutas
 from .models import MaintenancePlan, MaintenancePlanEntry
-from collections import defaultdict
-from django.db.models import Sum, Q
-from got.models import Suministro
+
+
+class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
+    model = Asset
+    template_name = 'mto/asset_maintenance_plan.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        asset = self.get_object()
+        user = self.request.user
+        filtered_rutas, current_month_name_es = get_filtered_rutas(asset, self.request.GET)
+
+        executing_rutas = []
+        normal_rutas = []
+        for r in filtered_rutas:
+            if r.ot and r.ot.state == 'x':
+                executing_rutas.append(r)
+            else:
+                normal_rutas.append(r)
+
+        context['rotativos'] = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
+        context['view_type'] = 'rutas'
+        context['asset'] = asset
+        context['mes'] = current_month_name_es
+        context['page_obj_rutas'] = normal_rutas
+        context['exec_rutas'] = executing_rutas
+        context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
+        context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
+
+        ubicaciones = set()
+        for r in filtered_rutas:
+            if r.equipo and r.equipo.ubicacion:
+                ubicaciones.add(r.equipo.ubicacion)
+
+            if r.equipo and r.equipo.ubicacion: # Asignar r.ubic_label = su ubicación o "(sin)"
+                r.ubic_label = r.equipo.ubicacion
+            else:
+                r.ubic_label = "(sin)"
+        context['ubicaciones_unicas'] = sorted(ubicaciones)
+        return context
+
 
 
 @login_required
@@ -21,7 +64,7 @@ def update_plan_entries_view(request, asset_abbr):
     update_future_plan_entries_for_asset(asset)
     return HttpResponse("Plan entries actualizadas para el asset " + asset_abbr)
 
-class MaintenancePlanReportView(TemplateView):
+class MaintenancePlanReportView(generic.TemplateView):
     template_name = "mto/plan_report.html"
 
     def get_context_data(self, **kwargs):
@@ -200,7 +243,7 @@ class MaintenancePlanReportView(TemplateView):
         return context
 
 
-class MaintenancePlanDashboardView(TemplateView):
+class MaintenancePlanDashboardView(generic.TemplateView):
     template_name = "mto/dashboard.html"
 
     def get_context_data(self, **kwargs):
@@ -441,14 +484,8 @@ class MaintenancePlanDashboardView(TemplateView):
 
         return context
     
-import calendar
-from datetime import date, datetime
-from django.views.generic import TemplateView
-from django.db.models import Sum
-from got.models import Asset
-from mto.models import MaintenancePlan
 
-class MaintenancePlanAllAssetsView(TemplateView):
+class MaintenancePlanAllAssetsView(generic.TemplateView):
     template_name = "mto/maintenance_plan_all_assets.html"
 
     def get_context_data(self, **kwargs):

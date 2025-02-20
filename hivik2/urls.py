@@ -25,6 +25,7 @@ from django.contrib.auth import views as auth_views
 from rest_framework import routers
 from iot import views
 
+
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
@@ -39,6 +40,7 @@ urlpatterns = [
     path('dth/', include('dth.urls', namespace='dth')),
     path('mto/', include('mto.urls', namespace='mto')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
+
     
     # path('', include(router.urls)),
     # path('api-auth/', include('rest_framework.urls', namespace='rest_framework')), # probando api restframework django

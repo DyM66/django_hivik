@@ -1,8 +1,7 @@
-import calendar
 import openpyxl
 import pandas as pd
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from decimal import Decimal, InvalidOperation
 from django.apps import apps
 from django.db import transaction as db_transaction
@@ -13,10 +12,8 @@ from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
 from django.http import HttpResponse
-from .forms import RutinaFilterForm
 from django.db.models import Sum
 from collections import defaultdict
-from datetime import date
 from openpyxl.styles import Alignment, Font
 from django.contrib.auth.models import Group
 from openpyxl.utils import get_column_letter
@@ -118,67 +115,6 @@ def generate_equipo_code(asset_abbr, tipo):
         return f"{asset_abbr}-{tipo}-{seq_str}"
 
 
-def get_filtered_rutas(asset, user, request_data=None):
-    """
-    Retorna las rutas de mantenimiento filtradas.
-
-    - Por defecto: devuelve las rutas en que r.percentage_remaining < 10 
-      o (r.ot existe y r.ot.state == 'x').
-    - Si se utiliza el formulario (es decir, request_data es válido), se exige además que:
-         (r.next_date.year < year) or (r.next_date.year == year and r.next_date.month <= month)
-    
-    Devuelve además el nombre del mes en español.
-    """
-    # Valores por defecto: el mes y el año actual.
-    month = datetime.now().month
-    year = datetime.now().year
-    
-    # Instanciamos el formulario; se asume que RutinaFilterForm está importado.
-    form = RutinaFilterForm(request_data, asset=asset)
-    extra_filter = False
-    if form.is_valid():
-        month = int(form.cleaned_data['month'])
-        year = int(form.cleaned_data['year'])
-        selected_locations = form.cleaned_data.get('locations', [])
-        extra_filter = True
-        print('si')
-    else:
-        selected_locations = []
-        print('no')
-
-    print(extra_filter)
-
-    # Filtrar las rutas según los sistemas del asset (se asume que get_full_systems_ids está definida)
-    rutas_qs = Ruta.objects.filter(
-        system__in=get_full_systems_ids(asset, user)
-    ).exclude(system__state__in=['x', 's']).order_by('-nivel', 'frecuency')
-
-    if selected_locations:
-        rutas_qs = rutas_qs.filter(
-            models.Q(equipo__ubicacion__in=selected_locations) |
-            models.Q(equipo__isnull=True)
-        )
-
-    all_rutas = list(rutas_qs)
-
-    # Definir la función de filtrado
-    if extra_filter:
-        def match_criteria(r):
-            # Solo se incluyen rutas que tengan next_date y que cumplan la condición extra
-            if not r.next_date:
-                return False
-            print(r.next_date)
-            next_date_ok = (r.next_date.year < year) or (r.next_date.year == year and r.next_date.month <= month)
-            base_ok = r.percentage_remaining < 10 or (r.ot and r.ot.state == 'x')
-            return base_ok or next_date_ok
-    else:
-        def match_criteria(r):
-            return (r.percentage_remaining < 10 or (r.ot and r.ot.state == 'x'))
-
-    filtered_rutas = [ruta for ruta in all_rutas if match_criteria(ruta)]
-    # current_month_name_es = traductor(calendar.month_name[month])
-    current_month_name_es = calendar.month_name[month]
-    return filtered_rutas, current_month_name_es
 
 
 def pro_export_to_excel(model, headers, data, filename='export.xlsx', sheet_name=None, table_title=None):
