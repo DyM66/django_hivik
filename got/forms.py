@@ -1,40 +1,17 @@
-from django import forms
-from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User, Group
-from got.models import *
-from dth.models import UserProfile
 from datetime import datetime
-
-from django.forms import modelformset_factory
-from django.utils.timezone import localdate
-from django.db.models import Count, Q, Min, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum
+from django import forms
+from django.contrib.auth.models import User, Group
+from django.core.exceptions import ValidationError
 from django.forms.widgets import ClearableFileInput
-from taggit.forms import TagWidget
-from django.forms import formset_factory
 from django.utils.text import get_valid_filename 
+from django.utils.safestring import mark_safe
+from taggit.forms import TagWidget
 
-# ---------------- Widgets ------------------- #
-class UserChoiceField(forms.ModelChoiceField):
-
-    def label_from_instance(self, obj):
-        try:
-            cargo = obj.profile.cargo if obj.profile.cargo else "Sin cargo"
-        except UserProfile.DoesNotExist:
-            cargo = "Sin cargo"
-        
-        if obj.groups.filter(name="maq_members").exists():
-            try:
-                asset = Asset.objects.get(Q(supervisor=obj) | Q(capitan=obj))
-                asset_name = f" ({asset})"
-            except Asset.DoesNotExist:
-                asset_name = ""
-            return f"{obj.get_full_name()} - {cargo}{asset_name}"
-        else:
-            return f"{obj.get_full_name()} - {cargo}"
+from got.models import *
+from dth.forms import UserChoiceField
 
 
-class XYZ_DateInput(forms.DateInput):
-
+class XYZ_DateInput(forms.DateInput):  # Campo de fecha personalizado para el formato YYYY-MM-DD
     input_type = 'date'
 
     def __init__(self, **kwargs):
@@ -42,7 +19,7 @@ class XYZ_DateInput(forms.DateInput):
         super().__init__(**kwargs)
 
 
-class MultipleFileInput(forms.ClearableFileInput):
+class MultipleFileInput(forms.ClearableFileInput):  # Configuración de campos de archivo múltiple
     allow_multiple_selected = True
 
 
@@ -51,62 +28,47 @@ class MultipleFileField(forms.FileField):
         kwargs.setdefault("widget", MultipleFileInput())
         super().__init__(*args, **kwargs)
 
-    def clean(self, data, initial=None):
-        # Permitir datos vacíos si no son requeridos
+    def clean(self, data, initial=None):  # Permitir datos vacíos si no son requeridos
         if not data:
             return []
         
-        # Asegurarse de que data sea una lista
-        if not isinstance(data, (list, tuple)):
+        if not isinstance(data, (list, tuple)):  # Transformar data en una lista
             data = [data]
         
         cleaned_data = []
         for f in data:
             if f:
                 try:
-                    # Limpia cada archivo individualmente
-                    cleaned = super().clean(f, initial)
+                    cleaned = super().clean(f, initial)  # Limpia cada archivo individualmente
                     if cleaned:
                         cleaned_data.append(cleaned)
-                except forms.ValidationError as e:
-                    # Opcional: Manejar o registrar errores específicos
+                except forms.ValidationError as e:  # Opcional: Manejar o registrar errores específicos
                     pass
             else:
-                # Opcional: Registrar o manejar archivos vacíos
-                print("Archivo vacío detectado y omitido.")
+                print("Archivo vacío detectado y omitido.")  # Opcional: Registrar o manejar archivos vacíos
         return cleaned_data
     
-    
+import locale
+import calendar
+
 class RutinaFilterForm(forms.Form):
     current_year = datetime.now().year
     max_year = current_year + 5
 
-    MONTH_CHOICES = [
-        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
-        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
-        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
-    ]
+    # Establecer el locale en español; asegúrate de que 'es_ES.UTF-8' esté instalado en el sistema
+    try:
+        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+    except locale.Error:
+        # Fallback: usa los nombres en inglés o una lista estática traducida
+        pass
 
+    MONTH_CHOICES = [(i, calendar.month_name[i].capitalize()) for i in range(1, 13)]
+    # MONTH_CHOICES = [(1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'), (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'), (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')]
     YEAR_CHOICES = [(i, str(i)) for i in range(current_year, max_year + 1)]
 
-    month = forms.ChoiceField(
-        choices=MONTH_CHOICES,
-        initial=datetime.now().month,
-        label="Mes",
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
-    year = forms.ChoiceField(
-        choices=YEAR_CHOICES,
-        initial=datetime.now().year,
-        label="Año",
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
-    execute = forms.BooleanField(
-        required=False,
-        initial=False,
-        label="Mostrar rutinas en ejecución",
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-    )
+    month = forms.ChoiceField(choices=MONTH_CHOICES, initial=datetime.now().month, label="Mes", widget=forms.Select(attrs={'class': 'form-control'}),)
+    year = forms.ChoiceField(choices=YEAR_CHOICES, initial=datetime.now().year, label="Año", widget=forms.Select(attrs={'class': 'form-control'}),)
+    execute = forms.BooleanField(required=False, initial=False, label="Mostrar rutinas en ejecución", widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),)
 
     def __init__(self, *args, **kwargs):
         asset = kwargs.pop('asset', None)
@@ -115,23 +77,13 @@ class RutinaFilterForm(forms.Form):
         if asset:
             systems = asset.system_set.all().distinct()
             other_asset_systems = System.objects.filter(location=asset.name).exclude(asset=asset).distinct()
-
             full_systems = systems.union(other_asset_systems)
             locations = full_systems.values_list('location', flat=True)
             
             unique_locations = list(set(locations))  # Eliminar duplicados
             location_choices = [(location, location) for location in unique_locations]
-            self.fields['locations'] = forms.MultipleChoiceField(
-                choices=location_choices,
-                widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
-                initial=[location for location in unique_locations],
-                required=False,
-                label="Ubicaciones"
-            )
+            self.fields['locations'] = forms.MultipleChoiceField(choices=location_choices, widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}), initial=[location for location in unique_locations], required=False, label="Ubicaciones")
 
-
-
-from django.utils.safestring import mark_safe
 
 class CustomMultipleFileInput(forms.FileInput):
     allow_multiple_selected = True
@@ -857,7 +809,7 @@ class SuministrosEquipoForm(forms.ModelForm):
             'cantidad': 'Cantidad'
         }
 
-SuministroFormset = modelformset_factory(
+SuministroFormset = forms.modelformset_factory(
     Suministro,
     fields=('item', 'cantidad',),
     extra=1,

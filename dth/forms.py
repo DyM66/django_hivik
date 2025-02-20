@@ -1,8 +1,29 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.forms import formset_factory
-from dth.models import UserProfile, Overtime
 from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.forms import formset_factory
+
+from dth.models import UserProfile, Overtime
+from got.models import Asset
+
+class UserChoiceField(forms.ModelChoiceField):
+
+    def label_from_instance(self, obj):
+        try:
+            cargo = obj.profile.cargo if obj.profile.cargo else "Sin cargo"
+        except UserProfile.DoesNotExist:
+            cargo = "Sin cargo"
+        
+        if obj.groups.filter(name="maq_members").exists():
+            try:
+                asset = Asset.objects.get(Q(supervisor=obj) | Q(capitan=obj))
+                asset_name = f" ({asset})"
+            except Asset.DoesNotExist:
+                asset_name = ""
+            return f"{obj.get_full_name()} - {cargo}{asset_name}"
+        else:
+            return f"{obj.get_full_name()} - {cargo}"
 
 
 class UserProfileForm(forms.ModelForm):

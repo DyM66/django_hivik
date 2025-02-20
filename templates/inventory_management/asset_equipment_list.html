@@ -34,6 +34,7 @@
     	<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#selectSystemModal">
       		<i class="fa-solid fa-plus"></i> Nuevo Equipo
     	</button>
+		<a href="#suministrosTable" class="btn btn-primary">Suministros</a>
   	</div>
   	<input type="text" id="searchEquiposInput" class="form-control form-control-sm mb-3" placeholder="Filtrar por nombre de equipo...">
 
@@ -124,13 +125,122 @@
 	<hr>
 
 	<!-- 4. Sección de Suministros -->
-	<div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+	<div class="d-flex justify-content-between align-items-center mt-4 mb-2" id="suministrosTable">
 		<h4 style="font-size:1rem;" class="mb-0">Suministros del Activo {{ activo.name }}</h4>
 		<!-- Botón que abre un modal “Crear Suministro” -->
 		<button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createSupplyModal">
 			<i class="fa-solid fa-plus"></i> Nuevo Suministro
 		</button>
 	</div>
+
+	  	<!-- 2. Buscador + Botón Nuevo Equipo -->
+	<label for="searchInput" class="form-label mb-0" style="font-weight:500;">
+		Buscar por nombre:
+	</label>
+	<input type="text" id="searchInput" class="form-control form-control-sm mb-3" placeholder="Filtrar por nombre...">
+
+
+	<div class="table-responsive">
+		<table class="table table-sm align-middle" style="font-size:0.85rem;" id="SumiTable">
+			<thead>
+				<tr>
+					<th>Artículo</th>
+					<th>Tipo</th>
+					<th>Presentación</th>
+					<th>Cantidad</th>
+					<th class="text-end">Acciones</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% if suministros %}
+					{% for s in suministros %}
+						<tr>
+							<td class="name">
+								{% if s.item %}
+									{{ s.item.name }} ({{ s.item.reference|default_if_none:"-" }})
+								{% else %}
+									-
+								{% endif %}
+							</td>
+							<td>
+								{% if s.item %}
+									{{ s.item.get_seccion_display }}
+								{% else %}
+									-
+								{% endif %}
+							</td>
+							<td>
+								{% if s.item %}
+									{{ s.item.presentacion }}
+								{% else %}
+									-
+								{% endif %}
+							</td>
+							<td>{{ s.cantidad }}</td>
+							<td class="text-end">
+								{% if s.item %}
+									<!-- Ver detalle del artículo (modal) -->
+									<a href="#" class="text-primary me-2" data-bs-toggle="modal" data-bs-target="#itemDetailModal{{ s.item.id }}" title="Ver Detalle del Artículo">
+										<i class="fa-solid fa-eye"></i>
+									</a>
+
+                  					{% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
+										<!-- Link a AssetSuministrosReportView -->
+										<a href="{% url 'inv:asset-suministros' activo.abbreviation %}" class="text-info" title="Ver Reporte Suministros">
+											<i class="fa-solid fa-list"></i>
+										</a>
+									{% else %}
+										<!-- Link a AssetInventarioReportView -->
+										<a href="{% url 'inv:asset_inventario_report' activo.abbreviation %}" class="text-success" title="Ver Reporte Inventario">
+											<i class="fa-solid fa-clipboard-list"></i>
+										</a>
+									{% endif %}
+								{% endif %}
+							</td>
+						</tr>
+
+            			<!-- Modal para detalle del artículo -->
+            			{% if s.item %}
+              				<div class="modal fade" id="itemDetailModal{{ s.item.id }}" tabindex="-1" aria-hidden="true">
+                				<div class="modal-dialog">
+                  					<div class="modal-content" style="font-size:0.9rem;">
+                    					<div class="modal-header">
+                      						<h5 class="modal-title">
+                        						Detalle: {{ s.item.name }}
+                      						</h5>
+                      						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    					</div>
+                    					<div class="modal-body">
+											<p><strong>Referencia:</strong> {{ s.item.reference }}</p>
+											<p><strong>Presentación:</strong> {{ s.item.presentacion }}</p>
+											{% if s.item.imagen %}
+												<img src="{{ s.item.imagen.url }}" alt="{{ s.item.name }}" class="img-fluid">
+											{% else %}
+												<p class="text-muted">Sin imagen disponible.</p>
+											{% endif %}
+											<p><strong>Descripción:</strong></p>
+											<p>{{ s.item.descripcion|default_if_none:"No hay descripción." }}</p>
+										</div>
+										<div class="modal-footer">
+											<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+												Cerrar
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						{% endif %}
+          			{% endfor %}
+				{% else %}
+					<tr>
+						<td colspan="5">No hay suministros asociados a este Activo.</td>
+					</tr>
+				{% endif %}
+			</tbody>
+		</table>
+	</div><!-- table-responsive -->
+</div><!-- container -->
+
 
 	<!-- Modal "Crear Nuevo Suministro" -->
 	<div class="modal fade" id="createSupplyModal" tabindex="-1" aria-hidden="true">
@@ -255,161 +365,50 @@
   	</div><!-- Fin Modal -->
 
 
-	<div class="table-responsive">
-		<table class="table table-sm align-middle" style="font-size:0.85rem;">
-			<thead>
-				<tr>
-					<th>Artículo</th>
-					<th>Tipo</th>
-					<th>Presentación</th>
-					<th>Cantidad</th>
-					<th class="text-end">Acciones</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% if suministros %}
-					{% for s in suministros %}
-						<tr>
-							<td>
-								{% if s.item %}
-									{{ s.item.name }}
-									({{ s.item.reference|default_if_none:"-" }})
-								{% else %}
-									-
-								{% endif %}
-							</td>
-							<td>
-								{% if s.item %}
-									{{ s.item.get_seccion_display }}
-								{% else %}
-									-
-								{% endif %}
-							</td>
-							<td>
-								{% if s.item %}
-									{{ s.item.presentacion }}
-								{% else %}
-									-
-								{% endif %}
-							</td>
-							<td>{{ s.cantidad }}</td>
-							<td class="text-end">
-								{% if s.item %}
-									<!-- Ver detalle del artículo (modal) -->
-									<a href="#" class="text-primary me-2" data-bs-toggle="modal" data-bs-target="#itemDetailModal{{ s.item.id }}" title="Ver Detalle del Artículo">
-										<i class="fa-solid fa-eye"></i>
-									</a>
-
-                  					{% if 'combustible' in s.item.name|lower or 'aceite' in s.item.name|lower or 'filtro' in s.item.name|lower %}
-										<!-- Link a AssetSuministrosReportView -->
-										<a href="{% url 'inv:asset-suministros' activo.abbreviation %}" class="text-info" title="Ver Reporte Suministros">
-											<i class="fa-solid fa-list"></i>
-										</a>
-									{% else %}
-										<!-- Link a AssetInventarioReportView -->
-										<a href="{% url 'inv:asset_inventario_report' activo.abbreviation %}" class="text-success" title="Ver Reporte Inventario">
-											<i class="fa-solid fa-clipboard-list"></i>
-										</a>
-									{% endif %}
-								{% endif %}
-							</td>
-						</tr>
-
-            			<!-- Modal para detalle del artículo -->
-            			{% if s.item %}
-              				<div class="modal fade" id="itemDetailModal{{ s.item.id }}" tabindex="-1" aria-hidden="true">
-                				<div class="modal-dialog">
-                  					<div class="modal-content" style="font-size:0.9rem;">
-                    					<div class="modal-header">
-                      						<h5 class="modal-title">
-                        						Detalle: {{ s.item.name }}
-                      						</h5>
-                      						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    					</div>
-                    					<div class="modal-body">
-											<p><strong>Referencia:</strong> {{ s.item.reference }}</p>
-											<p><strong>Presentación:</strong> {{ s.item.presentacion }}</p>
-											{% if s.item.imagen %}
-												<img src="{{ s.item.imagen.url }}" alt="{{ s.item.name }}" class="img-fluid">
-											{% else %}
-												<p class="text-muted">Sin imagen disponible.</p>
-											{% endif %}
-											<p><strong>Descripción:</strong></p>
-											<p>{{ s.item.descripcion|default_if_none:"No hay descripción." }}</p>
-										</div>
-										<div class="modal-footer">
-											<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-												Cerrar
-											</button>
-										</div>
-									</div>
-								</div>
-							</div>
-						{% endif %}
-          			{% endfor %}
-				{% else %}
-					<tr>
-						<td colspan="5">No hay suministros asociados a este Activo.</td>
-					</tr>
-				{% endif %}
-			</tbody>
-		</table>
-	</div><!-- table-responsive -->
-</div><!-- container -->
-
-
 <!-- Modal: Seleccionar Sistema para crear nuevo equipo -->
-<div class="modal fade" id="selectSystemModal" tabindex="-1"
-     aria-labelledby="selectSystemModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content" style="font-size:0.9rem;">
-      <div class="modal-header">
-        <h5 class="modal-title" id="selectSystemModalLabel">Crear nuevo equipo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <p>Seleccione el sistema en el que desea crear el nuevo equipo:</p>
-        {% if activo.system_set.all %}
-          <ul class="list-group">
-            {% for sys in activo.system_set.all %}
-              <li class="list-group-item d-flex justify-content-between align-items-center"
-                  style="cursor:pointer;"
-                  onclick="crearNuevoEquipo({{ sys.id }})">
-                {{ sys.name }}
-                <i class="fa-solid fa-chevron-right"></i>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="text-muted">Este activo no tiene sistemas asociados.</p>
-        {% endif %}
-      </div>
-      <div class="modal-footer">
-        <button type="button"
-                class="btn btn-secondary btn-sm"
-                data-bs-dismiss="modal">
-          Cerrar
-        </button>
-      </div>
-    </div>
-  </div>
+<div class="modal fade" id="selectSystemModal" tabindex="-1" aria-labelledby="selectSystemModalLabel" aria-hidden="true">
+  	<div class="modal-dialog">
+    	<div class="modal-content" style="font-size:0.9rem;">
+      		<div class="modal-header">
+        		<h5 class="modal-title" id="selectSystemModalLabel">Crear nuevo equipo</h5>
+        		<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      		</div>
+      		<div class="modal-body">
+        		<p>Seleccione el sistema en el que desea crear el nuevo equipo:</p>
+        		{% if activo.system_set.all %}
+          			<ul class="list-group">
+            			{% for sys in activo.system_set.all %}
+              				<li class="list-group-item d-flex justify-content-between align-items-center" style="cursor:pointer;" onclick="crearNuevoEquipo({{ sys.id }})">
+                				{{ sys.name }} <i class="fa-solid fa-chevron-right"></i>
+              				</li>
+            			{% endfor %}
+          			</ul>
+        		{% else %}
+          			<p class="text-muted">Este activo no tiene sistemas asociados.</p>
+        		{% endif %}
+      		</div>
+      		<div class="modal-footer">
+        		<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+          			Cerrar
+        		</button>
+      		</div>
+    	</div>
+  	</div>
 </div>
 
 <!-- Modal para escanear QR (“Identificar”) -->
-<div class="modal fade" id="scanQRModal" tabindex="-1"
-     aria-labelledby="scanQRModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="max-width:600px;">
-      <div class="modal-header">
-        <h5 class="modal-title" id="scanQRModalLabel">Escanear Código QR</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <div id="qrReader" style="width: 100%;"></div>
-      </div>
-    </div>
-  </div>
+<div class="modal fade" id="scanQRModal" tabindex="-1" aria-labelledby="scanQRModalLabel" aria-hidden="true">
+  	<div class="modal-dialog modal-dialog-centered">
+    	<div class="modal-content" style="max-width:600px;">
+      		<div class="modal-header">
+        		<h5 class="modal-title" id="scanQRModalLabel">Escanear Código QR</h5>
+        		<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+         	</div>
+      	<div class="modal-body">
+        	<div id="qrReader" style="width: 100%;"></div>
+      		</div>
+    	</div>
+  	</div>
 </div>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
@@ -453,6 +452,23 @@
 			if(!nameCell) continue;
 			const eqName = nameCell.textContent.toLowerCase();
 			row.style.display = eqName.includes(filterText) ? '' : 'none';
+			}
+		});
+	});
+
+	document.addEventListener('DOMContentLoaded', function() {
+		const searchInput = document.getElementById('searchInput');
+		const sumiTable = document.getElementById('SumiTable');
+		const sumiRows = sumiTable.getElementsByTagName('tr');
+
+		searchInput.addEventListener('input', function() {
+			const filterText = searchInput.value.toLowerCase();
+			for(let i=1; i < sumiRows.length; i++){
+			const row = sumiRows[i];
+			const nameCell = row.querySelector('.name');
+			if(!nameCell) continue;
+			const sumiName = nameCell.textContent.toLowerCase();
+			row.style.display = sumiName.includes(filterText) ? '' : 'none';
 			}
 		});
 	});

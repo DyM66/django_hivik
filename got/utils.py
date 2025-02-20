@@ -176,7 +176,8 @@ def get_filtered_rutas(asset, user, request_data=None):
             return (r.percentage_remaining < 10 or (r.ot and r.ot.state == 'x'))
 
     filtered_rutas = [ruta for ruta in all_rutas if match_criteria(ruta)]
-    current_month_name_es = traductor(calendar.month_name[month])
+    # current_month_name_es = traductor(calendar.month_name[month])
+    current_month_name_es = calendar.month_name[month]
     return filtered_rutas, current_month_name_es
 
 
