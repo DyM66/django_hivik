@@ -46,7 +46,7 @@ def get_filtered_rutas(asset, request_data=None):
     current_month_name_es = calendar.month_name[month]
     return filtered_rutas, current_month_name_es
 
-
+from django.utils.dateparse import parse_date
 def record_execution(plan, execution_date):
     """
     Registra una ejecución en el plan de mantenimiento 'plan' para la fecha 'execution_date'.
@@ -60,6 +60,16 @@ def record_execution(plan, execution_date):
       
     Retorna True si se pudo registrar la ejecución; de lo contrario, False.
     """
+    # Obtener las entradas del plan ordenadas por año y mes
+    # entries = plan.entries.all().order_by('year', 'month')
+
+    # Si execution_date es un string, convertirlo a date
+    if isinstance(execution_date, str):
+        execution_date = parse_date(execution_date)
+        if execution_date is None:
+            # Manejar el error si la conversión falla
+            return False
+
     # Obtener las entradas del plan ordenadas por año y mes
     entries = plan.entries.all().order_by('year', 'month')
     
