@@ -1,41 +1,41 @@
 # inventory_management/views.py
 import base64
+import io
 import qrcode
-from io import BytesIO
-import re
 import qrcode.image.svg
+import re
+import requests
+
+from io import BytesIO
 from itertools import groupby
 from operator import attrgetter
 
+from django.contrib import messages
 from django.contrib.auth.decorators import permission_required, login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.files.base import ContentFile
-from django.utils import timezone
-from django.shortcuts import render, get_object_or_404
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.db.models import Q, Sum, Max
+from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.urls import reverse
-from django.http import HttpResponseRedirect
+from django.utils import timezone
+from django.views import generic, View
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.edit import CreateView
+
+from openpyxl import Workbook
+from openpyxl.drawing.image import Image
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.utils import get_column_letter
+
 from got.models import Asset, System, Equipo, Suministro, Item
-from got.forms import ItemForm
 from got.utils import *
+from got.forms import ItemForm
+from inv.utils import enviar_correo_transferencia
 from .models import DarBaja
 from .forms import *
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views import generic, View
-from django.views.generic import ListView, DetailView
-from django.views.generic.edit import CreateView
-from got.utils import get_full_systems_ids
-from django.views.decorators.csrf import csrf_exempt
-import openpyxl
-from openpyxl.styles import Font, Alignment
-from openpyxl.utils import get_column_letter
-import io
-from django.http import HttpResponse
-from openpyxl import Workbook
-from django.shortcuts import redirect
-from django.contrib import messages
-from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Sum, Max, Case, When, IntegerField, BooleanField, Value
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.template.loader import render_to_string
-from inv.utils import enviar_correo_transferencia
 
 
 class ActivoEquipmentListView(View):
@@ -44,15 +44,7 @@ class ActivoEquipmentListView(View):
     def get(self, request, abbreviation):
         activo = get_object_or_404(Asset, abbreviation=abbreviation)
         sistemas_ids = get_full_systems_ids(activo, request.user)
-        # Optimizar la consulta de equipos
         equipos = Equipo.objects.filter(system__in=sistemas_ids).select_related('system').prefetch_related('images')
-
-        # Optimizar la consulta de suministros
-        suministros = Suministro.objects.filter(asset=activo).select_related('item')
-
-        # Optimizar la consulta de items (si es necesario)
-        all_items = Item.objects.all().only('id', 'name', 'reference', 'seccion', 'presentacion').order_by('name')
-
         suministros = Suministro.objects.filter(asset=activo).select_related('item')
         all_items = Item.objects.all().only('id', 'name', 'reference', 'seccion', 'presentacion').order_by('name')
 
@@ -64,17 +56,27 @@ class ActivoEquipmentListView(View):
             'all_items': all_items,
         }
         return render(request, self.template_name, context)
-
-
-class EquipoDetailPartialView(View):
-    def get(self, request, eq_id):
-        equipo = get_object_or_404(Equipo, pk=eq_id)
-        context = {
-            'equipo': equipo,
-        }
-        html = render_to_string('inventory_management/partial_equipo_detail.html', context, request=request)
-        return HttpResponse(html)
     
+
+class AllAssetsEquipmentListView(View):
+    template_name = 'inventory_management/all_equipment_list.html'
+
+    def get(self, request):
+        all_activos = Asset.objects.filter(show=True).select_related('supervisor', 'capitan').order_by('name')
+        all_systems = System.objects.filter(asset__in=all_activos)
+        equipos = Equipo.objects.filter(system__in=all_systems).order_by('name')
+        suministros = Suministro.objects.filter(asset__in=all_activos).select_related('item')
+        all_items = Item.objects.all().order_by('name')
+
+        context = {
+            'all_activos': all_activos,
+            'equipos': equipos,
+            'suministros': suministros,
+            'all_items': all_items,
+            'fecha_actual': timezone.now().date(),
+        }
+        return render(request, self.template_name, context)
+
 
 @csrf_exempt
 def public_equipo_detail(request, eq_code):
@@ -98,34 +100,17 @@ def public_equipo_detail(request, eq_code):
     return render(request, 'inventory_management/public_equipo_detail.html', context)
 
 
-import io
-from io import BytesIO
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-from openpyxl.utils import get_column_letter
-import requests
-
 def export_equipment_supplies(request, abbreviation):
-    """
-    Genera un archivo Excel con dos secciones:
-    1) Lista de Equipos del Activo
-    2) Lista de Suministros del Activo
-    usando la función pro_export_to_excel (adaptándola para 2 sheets).
-    """
-    # 1. Obtener el Activo
     asset = get_object_or_404(Asset, abbreviation=abbreviation)
-
-    # 2. Recolectar datos de Equipos
-    # Filtra todos los equipos de los sistemas de este activo
     systems = asset.system_set.all()
     equipos_qs = Equipo.objects.filter(system__in=systems).order_by('name')
+    suministros_qs = Suministro.objects.filter(asset=asset).exclude(cantidad=0).select_related('item')
 
-    # Construimos las filas con la información de cada equipo
-    equipment_data = []
+    equipment_data = []  # Construimos las filas con la información de cada equipo
     counter = 1
     for eq in equipos_qs:
         system_name = eq.system.name
-        max_feature_length = 40  # define el límite deseado
+        max_feature_length = 50  # define el límite deseado
         feature_display = (eq.feature[:max_feature_length] + '...') if eq.feature and len(eq.feature) > max_feature_length else (eq.feature or "")
 
         row = [
@@ -145,7 +130,6 @@ def export_equipment_supplies(request, abbreviation):
         equipment_data.append(row)
         counter += 1
 
-    suministros_qs = Suministro.objects.filter(asset=asset).select_related('item')
 
     for s in suministros_qs:
         equipment_data.append([
@@ -164,42 +148,12 @@ def export_equipment_supplies(request, abbreviation):
         ])
         counter += 1
 
-    # 3. Recolectar datos de Suministros
-    # Cabeceras para "Suministros"
-    supply_headers = [
-        'Artículo', 'Referencia', 'Presentación', 'Cantidad'
-    ]
-
-    supply_data = []
-    for s in suministros_qs:
-        if s.item:
-            supply_data.append([
-                s.item.name,
-                s.item.reference or "",
-                s.item.presentacion or "",
-                str(s.cantidad)
-            ])
-        else:
-            # Suministro sin item
-            supply_data.append([
-                "(Sin artículo)",
-                "",
-                "",
-                str(s.cantidad)
-            ])
-
     # 4. Crear el workbook y las hojas
     wb = Workbook()
     ws_equips = wb.active
     ws_equips.title = "Equipos"
 
-    # Definir un borde delgado en color negro
-    thin_border = Border(
-        left=Side(style='thin', color="000000"),
-        right=Side(style='thin', color="000000"),
-        top=Side(style='thin', color="000000"),
-        bottom=Side(style='thin', color="000000")
-    )
+    thin_border = Border(left=Side(style='thin', color="000000"), right=Side(style='thin', color="000000"), top=Side(style='thin', color="000000"), bottom=Side(style='thin', color="000000"))
 
     # Fila 1: Título
     ws_equips.merge_cells('A1:C3')
@@ -251,7 +205,6 @@ def export_equipment_supplies(request, abbreviation):
     ws_equips['A6'].alignment = Alignment(horizontal="center", vertical="center")
     ws_equips.row_dimensions[6].height = 20
 
-
     # --- Agregar bordes al área de cabecera (título y datos generales) ---
     header_ranges = ["A1:C3", "D1:J3", "K1:L1", "K2:L2", "K3:L3", "A4:G4", "H4:L4", "A5:G5", "H5:L5", "A6:L6"]
     for merged_range in header_ranges:
@@ -290,30 +243,6 @@ def export_equipment_supplies(request, abbreviation):
         length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in column_cells)
         col_letter = get_column_letter(idx)
         ws_equips.column_dimensions[col_letter].width = length + 1
-
-    # === HOJA DE SUMINISTROS ===
-    ws_supp = wb.create_sheet(title="Suministros")
-    current_row = 1
-    for col_num, header in enumerate(supply_headers, 1):
-        cell = ws_supp.cell(row=current_row, column=col_num)
-        cell.value = header
-        cell.font = Font(bold=True, name='Arial')
-        cell.alignment = Alignment(horizontal='center', vertical='center')
-        cell.border = thin_border
-
-    current_row += 1
-    for row_data in supply_data:
-        for col_num, cell_value in enumerate(row_data, 1):
-            cell = ws_supp.cell(row=current_row, column=col_num)
-            cell.value = cell_value
-            cell.font = Font(name='Arial')
-            cell.border = thin_border
-        current_row += 1
-
-    for idx, column_cells in enumerate(ws_supp.columns, 1):
-        length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in column_cells)
-        col_letter = get_column_letter(idx)
-        ws_supp.column_dimensions[col_letter].width = length + 2
 
     # === Sección de Observaciones y Cierre ===
     current_row = ws_equips.max_row + 1
@@ -533,89 +462,29 @@ def export_equipment_supplies(request, abbreviation):
     for col in range(1, 13):
         ws_equips.cell(row=current_row, column=col).border = thin_border
 
-
     # === Insertar la imagen desde la URL ===
     url = "https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png"
     img_response = requests.get(url)
     if img_response.status_code == 200:
         image_data = BytesIO(img_response.content)
-        from openpyxl.drawing.image import Image  # Asegúrate de tener este import
+        from openpyxl.drawing.image import Image
+        image_data.name = "Logo.png"  # Asignar un nombre con la extensión adecuada
+        image_data.seek(0)           # Reiniciar el puntero del archivo
         img = Image(image_data)
-        # Asignar dimensiones a la imagen para evitar el error
-        img.width = 300   # Ajusta según tus necesidades
-        img.height = 80   # Ajusta según tus necesidades
-        # Insertar la imagen en la hoja de Equipos, por ejemplo en la celda A1
+        img.width = 300  # Asignar dimensiones a la imagen
+        img.height = 80
         ws_equips.add_image(img, "A1")
-        # ws_equips.row_dimensions[1].height = 30
-        print(ws_equips.row_dimensions[1].height)
-
     else:
         print("No se pudo descargar la imagen.")
 
-    # Exportar a HttpResponse
-    output = io.BytesIO()
+    output = io.BytesIO()  # Exportar a HttpResponse
     wb.save(output)
     output.seek(0)
 
     filename = f"{asset.abbreviation}_Equipos_y_Suministros.xlsx"
-    response = HttpResponse(
-        output,
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    response = HttpResponse(output, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = f'attachment; filename={filename}'
     return response
-
-
-class AllAssetsEquipmentListView(View):
-    """
-    Muestra una vista muy similar a ActivoEquipmentListView,
-    pero incluyendo TODOS los activos (show=True),
-    y en la tabla de equipos y suministros se incluye una columna adicional con el Activo.
-    """
-    template_name = 'inventory_management/all_equipment_list.html'
-
-    def get(self, request):
-        # 1) Lista de TODOS los Activos (show=True), sin excluir nada:
-        all_activos = (
-            Asset.objects.filter(show=True)
-            .select_related('supervisor', 'capitan')
-            .order_by('name')
-        )
-
-        # 2) Obtener todos los sistemas de esos activos
-        all_systems = System.objects.filter(asset__in=all_activos)
-
-        # 3) Todos los equipos de esos sistemas
-        equipos = Equipo.objects.filter(system__in=all_systems).order_by('name')
-
-        # 4) Todos los suministros asociados a esos activos
-        suministros = Suministro.objects.filter(asset__in=all_activos).select_related('item')
-
-        # 5) Generar un QR para cada equipo (opcional, si lo deseas)
-        domain = "https://got.serport.co"
-        for eq in equipos:
-            # Por ejemplo, generamos un link público:
-            public_url = f"{domain}/inv/public/equipo/{eq.code}/"
-            qr = qrcode.QRCode(version=1, box_size=4, border=2)
-            qr.add_data(public_url)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-            qr_io = BytesIO()
-            img.save(qr_io, format='PNG')
-            eq.qr_code_b64 = base64.b64encode(qr_io.getvalue()).decode('utf-8')
-
-        # 6) Si deseas, obtén también la lista de Item para "crear nuevo suministro"
-        all_items = Item.objects.all().order_by('name')
-
-        context = {
-            'all_activos': all_activos,  # Para scroll horizontal, si quieres
-            'equipos': equipos,
-            'suministros': suministros,
-            'all_items': all_items,
-            # Fecha actual, etc.
-            'fecha_actual': timezone.now().date(),
-        }
-        return render(request, self.template_name, context)
 
 
 class DarBajaCreateView(LoginRequiredMixin, CreateView):
@@ -632,15 +501,13 @@ class DarBajaCreateView(LoginRequiredMixin, CreateView):
         equipo = self.get_equipo()
         context['equipo'] = equipo
 
-        # Instanciar el segundo formulario (evidencias + firmas)
-        if self.request.method == 'POST':
+        if self.request.method == 'POST':  # Instanciar el segundo formulario (evidencias + firmas)
             context['upload_form'] = UploadEvidenciasYFirmasForm(self.request.POST, self.request.FILES)
         else:
             context['upload_form'] = UploadEvidenciasYFirmasForm()
         return context
 
     def form_valid(self, form):
-        # 1) Guardar DarBaja => self.object
         equipo = self.get_equipo()
         user = self.request.user
         form.instance.equipo = equipo
@@ -648,7 +515,7 @@ class DarBajaCreateView(LoginRequiredMixin, CreateView):
         form.instance.activo = f"{equipo.system.asset.name} - {equipo.system.name}"
 
         # Guardamos de forma normal
-        response = super().form_valid(form)  # => crea self.object
+        response = super().form_valid(form)
 
         # 2) Procesar upload_form
         upload_form = self.get_context_data()['upload_form']
@@ -726,9 +593,7 @@ class DarBajaCreateView(LoginRequiredMixin, CreateView):
 
         # 6) Generar PDF (opcional)
         self.generate_pdf()
-
-        # 7) Redirigir => 'activos/<str:abbreviation>/equipos/'
-        return redirect(self.get_success_url())
+        return redirect(self.get_success_url())  # 7) Redirigir => 'activos/<str:abbreviation>/equipos/'
 
     def do_equipo_cleanup(self, equipo):
         # Eliminar rutinas, hours, etc.
@@ -1087,6 +952,21 @@ def delete_transaction(request, transaction_id):
         return redirect(next_url)
     
 
+# @permission_required('got.delete_transaction', raise_exception=True)
+def delete_sumi(request, sumi_id):
+    sumi = get_object_or_404(Suministro, id=sumi_id)
+    next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/'))
+
+    if request.method == 'POST':
+        sumini = sumi.item
+        sumi.delete()
+        messages.success(request, f"Eliminado correctamente el articulo {sumini}")
+        return redirect(next_url)
+    else:
+        messages.success(request, f"se intento y no fuciono")
+        return redirect(next_url)
+    
+
 def export_historial_pdf(request, abbreviation):
     """
     Genera un PDF con los registros de transacciones,
@@ -1210,42 +1090,36 @@ def export_historial_pdf(request, abbreviation):
 
 @login_required
 def transferir_equipo(request, equipo_id):
-    equipo = get_object_or_404(Equipo, pk=equipo_id)
+    equipo = get_object_or_404(Equipo, pk=equipo_id)  # Equipo a trasladar
     next_url = request.GET.get('next') or request.POST.get('next') or None
     related_equipos = equipo.related_with.all()
 
     if request.method == 'POST':
         form = TransferenciaForm(request.POST)
 
-        # Obtener lista de equipos relacionados que se desean transferir (checkboxes)
         transfer_related_ids = request.POST.getlist('transfer_related')
         if form.is_valid():
             nuevo_sistema = form.cleaned_data['destino']
             observaciones = form.cleaned_data['observaciones']
             receptor = form.cleaned_data['receptor']
 
-            sistema_origen = equipo.system            
-            # Actualiza el sistema del equipo principal
-            equipo.system = nuevo_sistema
+            sistema_origen = equipo.system      
+            equipo.system = nuevo_sistema  # Actualiza el sistema del equipo principal   
             equipo.save()
 
-            # Actualiza las rutas asociadas al equipo
-            rutas = Ruta.objects.filter(equipo=equipo)
+            rutas = Ruta.objects.filter(equipo=equipo)  # Actualiza las rutas asociadas al equipo
             for ruta in rutas:
                 ruta.system = nuevo_sistema
                 ruta.save()
 
-            # Procesa los equipos relacionados
-            transferred_related_names = []
+            transferred_related_names = []  # Procesa los equipos relacionados
             for rel in related_equipos:
                 if str(rel.code) in transfer_related_ids:
-                    # Se transfiere el equipo relacionado
-                    rel.system = nuevo_sistema
+                    rel.system = nuevo_sistema  # Se transfiere el equipo relacionado
                     rel.save()
                     transferred_related_names.append(rel.name)
                 else:
-                    # Se rompe la relación (se desvincula)
-                    rel.related = None
+                    rel.related = None  # Se rompe la relación (se desvincula)
                     rel.save()
 
             # Anexa la lista de equipos relacionados transferidos a las observaciones
@@ -1262,14 +1136,13 @@ def transferir_equipo(request, equipo_id):
                 observaciones=observaciones
             )
 
-            # Enviar correo de notificación (ver sección siguiente)
-            enviar_correo_transferencia(transferencia, equipo, sistema_origen, nuevo_sistema, observaciones)
+            enviar_correo_transferencia(transferencia, equipo, sistema_origen, nuevo_sistema, observaciones)  # Enviar correo de notificación (ver sección siguiente)
 
             messages.success(request, "Transferencia realizada exitosamente.")
             if next_url:
                 return redirect(next_url)
             else:
-                return redirect(nuevo_sistema.get_absolute_url())
+                return redirect(sistema_origen.get_absolute_url())
     else:
         form = TransferenciaForm()
 

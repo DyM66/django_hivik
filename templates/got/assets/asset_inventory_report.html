@@ -62,9 +62,13 @@
 
         {% for group_key, group in grouped_suministros.items %}
             {% if group_by != 'presentacion' %}
-                <h2>{{ secciones_dict|get_item:group_key }}</h2>
+                <h2>{{ secciones_dict|get_item:group_key }}</h2>                  
             {% endif %}
-            <table class="table-list table-detail">
+
+            <div class="mb-3">
+                <input type="text" id="search-suministros-{{ forloop.counter }}" class="form-control search-suministros" data-group="{{ forloop.counter }}" placeholder="Buscar por nombre o referencia...">
+            </div>
+            <table id="suministros-table-{{ forloop.counter }}" class="table-list table-detail" data-group="{{ forloop.counter }}">
                 <thead>
                     <tr>
                         <th scope="col">Descripción</th>
@@ -72,7 +76,7 @@
                         {% if perms.got.can_add_supply %}
                             <th scope="col">Cantidad Ingresada</th>
                         {% endif %}
-                        {% if group_by != 'presentacion' and group_key != 'h' %}
+                        {% if group_by != 'presentacion' %}
                             <th scope="col">Cantidad Consumida</th>
                         {% elif group_by == 'presentacion' %}
                             <th scope="col">Cantidad Consumida</th>
@@ -89,7 +93,7 @@
                             {% if perms.got.can_add_supply %}
                                 <td data-cell="Cantidad ingresada"><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
                             {% endif %}
-                            {% if group_by != 'presentacion' and group_key != 'h' %}
+                            {% if group_by != 'presentacion' %}
                                 <td data-cell="Cantidad consumida"><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
                             {% elif group_by == 'presentacion' %}
                                 <td data-cell="Cantidad consumida"><input class="form-control cantidad-consumida" type="number" name="consumido_{{ suministro.id }}" value="0.00" min="0" step="any" data-row-id="{{ suministro.id }}"></td>
@@ -102,18 +106,79 @@
                                     </button>
                                     <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ suministro.id }}">
                                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#transferModal{{ suministro.id }}">Transferir</a></li>
+                                        {% if perms.got.delete_suministro %}
+                                            <li><a class="dropdown-item" href="#"  data-bs-toggle="modal" data-bs-target="#deleteSumiModal{{ suministro.id }}">Eliminar</a></li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                             </td>
                         </tr>
+
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade" id="deleteSumiModal{{ suministro.id }}" tabindex="-1" aria-labelledby="deleteSumiModalLabel{{ suministro.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form method="post" action="{% url 'inv:delete_sumi' suministro.id %}">{% csrf_token %}
+                                                <!-- Include the 'next' parameter -->
+                                                <input type="hidden" name="next" value="{{ request.path }}">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="deleteSumiModalLabel{{ suministro.id }}">Confirmar Eliminación</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>¿Está seguro de que desea eliminar este suministro?</p>
+                                                    <p><strong>articulo:</strong> {{ suministro.item }}</p>+
+                                                    <p><strong>cant:</strong> {{ suministro.cantidad }}</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+
                     {% endfor %}
                 </tbody>
             </table>
+
+
+
         <br>
         {% endfor %}
         
         <button type="submit" class="btn btn-primary submit-button">Actualizar Inventario</button>
     </form>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Selecciona todos los inputs de búsqueda
+            const searchInputs = document.querySelectorAll('.search-suministros');
+            searchInputs.forEach(input => {
+                const group = input.dataset.group;
+                // Selecciona la tabla correspondiente usando el mismo data-group
+                const table = document.querySelector(`table[data-group="${group}"]`);
+                input.addEventListener("input", function() {
+                    const filter = input.value.toLowerCase();
+                    const rows = table.getElementsByTagName("tr");
+                    for (let i = 0; i < rows.length; i++) {
+                        // Buscamos la celda que contiene la información del artículo
+                        const cell = rows[i].querySelector("td[data-cell='Articulo']");
+                        if (cell) {
+                            const text = cell.textContent.toLowerCase();
+                            // Mostrar u ocultar la fila según el filtro
+                            rows[i].style.display = text.indexOf(filter) > -1 ? "" : "none";
+                        }
+                    }
+                });
+            });
+        });
+        </script>
+        
+      
 
 
     <!-- Modales para transferir suministros -->

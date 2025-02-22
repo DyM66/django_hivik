@@ -99,4 +99,6 @@ urlpatterns = [
     path('notifications/mark_seen/', views.mark_notification_seen, name='mark_notification_seen'),
 
     path('assets/report/pdf/', views.GenerateAssetReportPDFView.as_view(), name='asset_report_pdf'),
+
+    path('ot/<int:ot_num>/download_task_images/', views.download_ot_task_images, name='download_ot_task_images'),
 ]

@@ -12,15 +12,15 @@ urlpatterns = [
 
     path('all/equipos/', AllAssetsEquipmentListView.as_view(), name='all_equipment_list'),
     path('equipo/<str:equipo_code>/dar_baja/', DarBajaCreateView.as_view(), name='dar_baja'),
-
     path('asset/<str:abbreviation>/suministros/', AssetSuministrosReportView.as_view(), name='asset-suministros'),
     path('asset/<str:abbreviation>/inventario/', AssetInventarioReportView.as_view(), name='asset_inventario_report'),
     path('transaction/<int:transaction_id>/delete/', delete_transaction, name='delete_transaction'),
-
     path('asset/<str:abbreviation>/historial/pdf/', export_historial_pdf, name='export_historial_pdf'),
     path('transferir/<str:equipo_id>/', transferir_equipo, name='transferir_equipo'),
 
     path('items/', ItemManagementView.as_view(), name='item_management'),
     path('items/edit/<int:item_id>/', edit_item, name='edit_item'),
+
+    path('sumi/delete/<int:sumi_id>/', delete_sumi, name='delete_sumi'),
 
 ]

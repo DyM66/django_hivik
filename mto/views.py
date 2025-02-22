@@ -11,7 +11,7 @@ from django.views import generic
 
 from got.models import Asset, Suministro, Equipo, Ruta
 from got.utils import get_full_systems_ids
-from got.forms import RutinaFilterForm
+from mto.forms import RutinaFilterForm
 from mto.utils import update_future_plan_entries_for_asset, get_filtered_rutas
 from .models import MaintenancePlan, MaintenancePlanEntry
 

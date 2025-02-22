@@ -118,9 +118,14 @@
                                     {% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                                     {{ rq.estado }}
                                 </button>
-                                {% if not rq.cancel %}
                                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    {% if user.is_superuser %}
+                                        <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal{{ rq.id }}">Eliminar</a></li>
+                                    {% endif %}
+
                                     <li><a class="dropdown-item" href="{% url 'got:solicitud_pdf' rq.id %}">Ver detalle</a></li>
+
+                                    {% if not rq.cancel %}
 
                                     <!-- Dentro del menú de opciones de cada solicitud -->
                                     {% if perms.got.can_transfer_solicitud %}
@@ -153,11 +158,8 @@
                                     {% if rq.estado == 'Tramitado' %}
                                         <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#receiveModal{{ rq.id }}">Reportar recibido</a></li>
                                     {% endif %}
-                                    {% if user.is_superuser %}
-                                        <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal{{ rq.id }}">Eliminar</a></li>
                                     {% endif %}
                                 </ul>
-                                {% endif %}
                             </div>
                         </td>
                         

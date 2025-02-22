@@ -838,14 +838,27 @@ class EquipoUpdate(UpdateView):
     http_method_names = ['get', 'post']
 
     def dispatch(self, request, *args, **kwargs):
-        # Guardar la URL previa en self.next_url, si la hay
+        try:
+            obj = self.get_object()
+        except Equipo.DoesNotExist:
+            # Si no se encuentra, buscar el equipo usando otro criterio (por ejemplo, si guardaste el antiguo código en otro campo)
+            # O bien redirigir a una página de error o al listado
+            messages.error(request, "El equipo que intentas actualizar ya no existe. Por favor, actualiza la URL.")
+            return redirect('got:asset-list')
+        
+        # Si se encontró pero el pk de la URL no coincide con el actual, redirige al URL correcto
+        if str(obj.pk) != kwargs.get('pk'):
+            return redirect(obj.get_absolute_url())
+        
+        self.object = obj
         self.next_url = request.GET.get('next') or request.POST.get('next') or ''
         self.next_to = request.GET.get('next_to') or request.POST.get('next') or ''
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        equipo = Equipo.objects.get(pk=self.kwargs['pk'])
+        # equipo = Equipo.objects.get(pk=self.kwargs['pk'])
+        equipo = self.get_object()
         kwargs['system'] = get_object_or_404(System, equipos=equipo)
         return kwargs
     
@@ -883,13 +896,13 @@ class EquipoUpdate(UpdateView):
         new_tipo = self.object.tipo  # el "tipo" que el usuario seleccionó 
         new_code = self.object.code 
 
-        if new_tipo != self.old_tipo:
-            # Llamar a la función update_equipo_code con el code viejo
-            update_equipo_code(self.old_code)
-            messages.info(
-                self.request, 
-                f"El tipo cambió de '{self.old_tipo}' a '{new_tipo}'. Se actualizó el código del equipo."
-            )
+        # if new_tipo != self.old_tipo:
+        #     # Llamar a la función update_equipo_code con el code viejo
+        #     update_equipo_code(self.old_code)
+        #     messages.info(
+        #         self.request, 
+        #         f"El tipo cambió de '{self.old_tipo}' a '{new_tipo}'. Se actualizó el código del equipo."
+        #     )
         
         upload_form = self.get_context_data()['upload_form']
         if upload_form.is_valid():
@@ -1627,6 +1640,46 @@ class OtListView(LoginRequiredMixin, generic.ListView):
         ).order_by('state_order', '-creation_date', '-num_ot')
 
         return queryset
+
+
+import io
+import os
+import zipfile
+from django.http import HttpResponse, HttpResponseNotFound
+
+@login_required
+def download_ot_task_images(request, ot_num):
+    """
+    Vista que recopila todas las imágenes asociadas a las actividades (tareas) de una OT
+    y las empaqueta en un archivo ZIP para descarga.
+    """
+    ot = get_object_or_404(Ot, num_ot=ot_num)
+    tasks = ot.task_set.all()
+    images = Image.objects.filter(task__in=tasks)
+
+    if not images.exists():
+        return HttpResponseNotFound("No hay imágenes asociadas a las actividades de esta OT.")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for image in images:
+            try:
+                response = requests.get(image.image.url)
+                if response.status_code == 200:
+                    file_data = response.content
+                    file_name = f"{image.id}_{os.path.basename(image.image.name)}"
+                    zip_file.writestr(file_name, file_data)
+                else:
+                    print(f"Error al descargar la imagen {image.id}: status {response.status_code}")
+            except Exception as e:
+                print(f"Error al procesar la imagen {image.id}: {e}")
+                continue
+
+    zip_buffer.seek(0)
+    response = HttpResponse(zip_buffer, content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="OT_{ot_num}_task_images.zip"'
+    return response
+
 
 
 class OtDetailView(LoginRequiredMixin, generic.DetailView):
