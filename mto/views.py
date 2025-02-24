@@ -757,13 +757,16 @@ class ScrollytellingAssetsView(TemplateView):
             ots_finalizadas_list = list(ot_finalizadas_grouped.values())
             
             # Solicitudes de compra asociadas a las OT en ejecución
-            solicitudes = Solicitud.objects.filter(ot__in=ots_en_ejecucion)
+            solicitudes = Solicitud.objects.filter(ot__in=ots_en_ejecucion).order_by('ot__num_ot')
+
             solicitudes_data = []
             for sol in solicitudes:
                 if sol.ot:
-                    cotizacion = f"{sol.ot.description} - {sol.quotation if sol.quotation else Truncator(sol.suministros).chars(50)}"
+                    cotizacion = f"{sol.ot.description} - {sol.quotation if sol.quotation else Truncator(sol.suministros).chars(40)}"
+                    ot_num = sol.ot.num_ot 
                 else:
                     cotizacion = Truncator(sol.suministros).chars(50)
+                    ot_num = None
                 sc = sol.num_sc
                 total_formatted = "COP " + format(sol.total, ",.2f")
                 estado = sol.estado
@@ -778,9 +781,10 @@ class ScrollytellingAssetsView(TemplateView):
 
                 solicitudes_data.append({
                     'cotizacion': cotizacion,
+                    'ot_num': ot_num,
                     'num_sc': sc,
                     'total': total_formatted,
-                    'estado': f"{estado}{extra}",
+                    'estado': sol.recibido_por,
                     'suministros': sol.suministros,
                     'solicitante': sol.requested_by,
                     'creation_date': sol.creation_date,

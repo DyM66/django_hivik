@@ -27,6 +27,10 @@
             {{ form.recibido_por.label_tag }}
             {% render_field form.recibido_por class="form-control" %}
         </div>
+        <div class="mb-3">
+            {{ form.num_sc.label_tag }}
+            {% render_field form.num_sc class="form-control" %}
+        </div>
         <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
             <a href="{% url 'got:rq-list' %}" class="btn btn-secondary">Cancelar</a>

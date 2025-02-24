@@ -1,5 +1,5 @@
 {% extends "got/base/base_generic.html" %}
-
+{% load my_tags %}
 {% block headtag %}
     <!-- Cargar AOS desde CDN o S3 -->
     <link rel="stylesheet" href="https://hivik.s3.us-east-2.amazonaws.com/static/css/aos.css">
@@ -119,7 +119,7 @@
         color: #fff;
         padding: 10px;
         border-radius: 5px;
-        font-size: 12px;
+        /* font-size: 12px; */
         margin-bottom: 20px;
     }
     /* Tabla de Solicitudes de Compra: efecto flotante */
@@ -196,7 +196,7 @@
                         <ul style="list-style: none; padding-left: 0; margin:0;">
                         {% for ot_data in data.ots_ejecucion %}
                             <li>
-                                <strong>OT:</strong> {{ ot_data.ot.description }} ({{ ot_data.ot.num_ot }})
+                                <strong>OT - {{ ot_data.ot.num_ot }}:</strong> {{ ot_data.ot.description }} 
                                 <ul style="list-style: disc; margin-left:20px;">
                                     {% for task in ot_data.tasks %}
                                         <li>{{ task.description }} <small>({{ task.responsible.get_full_name }})</small></li>
@@ -246,13 +246,13 @@
                     <tbody>
                         {% for sol in data.solicitudes %}
                         <tr class="solicitud-row" id="solicitud-{{ sol.id }}" onclick="toggleSolicitudDetails({{ sol.id }});">
-                            <td>{{ sol.cotizacion }}</td>
+                            <td><strong>{{sol.ot_num}}</strong> - {{ sol.cotizacion }}</td>
                             <td>{% if sol.num_sc %}{{ sol.num_sc }}{% else %}-{% endif %}</td>
                             <td>{{ sol.total }}</td>
-                            <td>{{ sol.recibido_por }}</td>
+                            <td>{% if sol.estado %}{{ sol.estado }}{% else %}-{% endif %}</td>
                             <td class="edit-icon-col">
                                 <!-- Icono de edición; al hacer clic redirige a la vista independiente para editar -->
-                                <a href="{% url 'mto:edit_solicitud_view' sol.id %}" title="Editar Solicitud">
+                                <a href="{% url 'mto:edit_solicitud_view' sol.id %}" title="Editar Solicitud" style="font-size: 0.8rem;">
                                     <i class="bi bi-pencil edit-icon"></i>
                                 </a>
                             </td>
@@ -275,7 +275,7 @@
                                 <!-- Fila de suma total en la columna "Total" -->
         <tr>
             <td colspan="2" style="text-align: right;"><strong>Total General:</strong></td>
-            <td><strong>COP {{ data.solicitudes_total|floatformat:2 }}</strong></td>
+            <td><strong>{{ data.solicitudes_total|currency }}</strong></td>
             <td colspan="2"></td>
         </tr>
                     </tbody>
