@@ -1,0 +1,381 @@
+{% extends "got/base/base_generic.html" %}
+
+{% block headtag %}
+    <!-- Cargar AOS desde CDN o S3 -->
+    <link rel="stylesheet" href="https://hivik.s3.us-east-2.amazonaws.com/static/css/aos.css">
+{% endblock headtag %}
+
+{% block content %}
+
+
+<style>
+    /* Fondo: imagen fija desde S3 */
+    body {
+        background: url("https://hivik.s3.us-east-2.amazonaws.com/static/Imagen1.jpg") no-repeat center center fixed;
+        background-size: cover;
+    }
+    /* Sección de presentación */
+    .presentation-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 80vh;
+        text-align: center;
+        background: rgba(0,0,0,0.5);
+        margin-bottom: 50px;
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    }
+    .presentation-section h1 {
+        font-size: 64px;
+        color: #fff;
+    }
+    /* Sección de cada asset */
+    .asset-section {
+        padding: 80px 50px;
+        border-bottom: 2px solid rgba(0,0,0,0.2);
+        margin-bottom: 50px;
+        background: rgba(255,255,255,0.9);
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    }
+    .asset-title {
+        font-size: 42px;
+        font-weight: bold;
+        color: #000;
+    }
+    .compliance-indicator {
+        font-size: 20px;
+        color: #000;
+    }
+
+    /* Sidebar: ubicado en el lado derecho, sin superponerse al menú superior */
+    .sidebar {
+        position: fixed;
+        top: 100px; /* Dejar espacio para el navbar */
+        right: 0;
+        width: 50px; /* Estado colapsado */
+        height: 90vh; /* Más alto para abarcar todas las secciones */
+        background: rgba(0,0,0,0.6);
+        border-radius: 8px 0 0 8px;
+        z-index: 1100;
+        transition: width 0.3s;
+        overflow: hidden;
+        padding-left: 10px; /* Espacio a la izquierda para que se vea el círculo completo */
+        display: flex;
+        flex-direction: column;
+        justify-content: center; /* Centrar verticalmente */
+    }
+    .sidebar:hover {
+        width: 200px;
+    }   
+    /* Timeline dentro del sidebar */
+    .sidebar .timeline {
+        width: 100%;
+        padding: 0 10px;
+    }
+    .sidebar .timeline a {
+        display: block;
+        margin-bottom: 20px;
+        text-decoration: none;
+        position: relative;
+        /* Ocultamos el texto en estado colapsado */
+        color: transparent;
+        transition: color 0.3s;
+    }
+    /* Cuando el sidebar se expande, se muestra el texto */
+    .sidebar:hover .timeline a {
+        color: #fff;
+    }
+    /* Pseudo-elemento para los círculos */
+    .sidebar .timeline a::before {
+        content: "";
+        position: absolute;
+        left: -16px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 12px;
+        height: 12px;
+        background: #fff;
+        border-radius: 50%;
+        transition: background 0.3s;
+    }
+    /* Resaltar el círculo de la sección activa */
+    .sidebar .timeline a.active::before,
+    .sidebar .timeline a:hover::before {
+        background: #ff0;
+    }
+    /* Animación de aparición (fade-in) */
+    .fade-in {
+        opacity: 0;
+        transform: translateY(50px);
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    }
+    .fade-in.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    /* Cuadro de OT en ejecución: fondo negro semitransparente */
+    .ot-execution-box {
+        background: rgba(0,0,0,0.5);
+        color: #fff;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        margin-bottom: 20px;
+    }
+    /* Tabla de Solicitudes de Compra: efecto flotante */
+    .solicitudes-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background: #fff;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .solicitudes-table th, .solicitudes-table td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        /* Encabezado vacío para el icono de edición */
+        .edit-icon-col {
+            width: 30px;
+            text-align: center;
+        }
+        /* Estilo para el icono de edición */
+        .edit-icon {
+            cursor: pointer;
+            color: #191645;
+            font-size: 1.2rem;
+        }
+        .edit-icon:hover {
+            color: #43c6ac;
+        }
+    /* Sección para assets sin OT */
+    .no-ot-summary {
+        padding: 50px;
+        background: rgba(255,255,255,0.95);
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 50px;
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    }
+
+</style>
+
+
+<div class="container">
+    <!-- Sección de presentación -->
+    <section id="presentation" class="presentation-section fade-in" data-aos="fade-up">
+        <div>
+            <h1>Mantenimiento</h1>
+            <p style="font-size:24px; color:#fff;">{{ current_date }}</p>
+        </div>
+    </section>
+
+    <!-- Secciones para cada asset con OT en ejecución -->
+    {% for data in assets_data %}
+    <section id="asset-{{ data.asset.abbreviation }}" class="asset-section fade-in" data-aos="fade-up">
+        <div class="row">
+            <div class="col-md-8">
+                <h2 class="asset-title">
+                    {{ data.asset.name }} 
+                    <span class="compliance-indicator">({{ data.compliance }}%)</span>
+                </h2>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Columna izquierda: OT en ejecución -->
+            <div class="col-md-6">
+                <h3 style="color:#000; font-size:20px;">Órdenes en Ejecución</h3>
+                <div class="ot-execution-box">
+                    {% if data.ots_ejecucion %}
+                        <ul style="list-style: none; padding-left: 0; margin:0;">
+                        {% for ot_data in data.ots_ejecucion %}
+                            <li>
+                                <strong>OT:</strong> {{ ot_data.ot.description }} ({{ ot_data.ot.num_ot }})
+                                <ul style="list-style: disc; margin-left:20px;">
+                                    {% for task in ot_data.tasks %}
+                                        <li>{{ task.description }} <small>({{ task.responsible.get_full_name }})</small></li>
+                                    {% endfor %}
+                                </ul>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p style="color:#000;">No hay órdenes en ejecución.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Columna derecha: OT finalizadas del mes actual -->
+            <div class="col-md-6">
+                <h3 style="color:#000; font-size:20px;">Órdenes Finalizadas (Mes actual)</h3>
+                <ul style="list-style: none; padding:0; color:#000;">
+                    {% if data.ots_finalizadas %}
+                        {% for ot_final in data.ots_finalizadas %}
+                        <li style="margin-bottom: 10px;">
+                            OT: {{ ot_final.ot.description }} ({{ ot_final.ot.num_ot }})
+                            {% if ot_final.count > 1 %} <strong>[{{ ot_final.count }} veces]</strong>{% endif %}
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li>No hay órdenes finalizadas en el mes actual.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Tabla de Solicitudes de Compra asociadas a OT en ejecución -->
+        <div class="row">
+            <div class="col-md-12">
+                <h3 style="color:#000; font-size:20px;">Solicitudes</h3>
+                <table class="solicitudes-table">
+                    <thead>
+                        <tr>
+                            <th>Cotización</th>
+                            <th>#SC</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th class="edit-icon-col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sol in data.solicitudes %}
+                        <tr class="solicitud-row" id="solicitud-{{ sol.id }}" onclick="toggleSolicitudDetails({{ sol.id }});">
+                            <td>{{ sol.cotizacion }}</td>
+                            <td>{% if sol.num_sc %}{{ sol.num_sc }}{% else %}-{% endif %}</td>
+                            <td>{{ sol.total }}</td>
+                            <td>{{ sol.recibido_por }}</td>
+                            <td class="edit-icon-col">
+                                <!-- Icono de edición; al hacer clic redirige a la vista independiente para editar -->
+                                <a href="{% url 'mto:edit_solicitud_view' sol.id %}" title="Editar Solicitud">
+                                    <i class="bi bi-pencil edit-icon"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr id="sol-details-{{ sol.id }}" class="solicitud-details" style="display:none;">
+                            <td colspan="4">
+                                <strong>Suministros:</strong><br>
+                                {{ sol.suministros|linebreaks }}<br>
+                                <strong>Solicitante:</strong> {{ sol.solicitante }}<br>
+                                <strong>Fecha Solicitado:</strong> {{ sol.creation_date|date:"d/m/Y H:i" }}
+                            </td>
+                        </tr>
+
+                          
+        {% empty %}
+        <tr>
+            <td colspan="4">No hay solicitudes para estas órdenes.</td>
+        </tr>
+                        {% endfor %}
+                                <!-- Fila de suma total en la columna "Total" -->
+        <tr>
+            <td colspan="2" style="text-align: right;"><strong>Total General:</strong></td>
+            <td><strong>COP {{ data.solicitudes_total|floatformat:2 }}</strong></td>
+            <td colspan="2"></td>
+        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    {% endfor %}
+    
+    <!-- Sección final: Resumen de assets SIN OT en ejecución -->
+    <section id="assets-no-ot" class="asset-section fade-in" data-aos="fade-up">
+        <h2 class="asset-title" style="color:#000;">Resumen de Activos Sin OT en Ejecución</h2>
+        <ul style="color:#000;">
+            {% for asset in assets_no_ot %}
+                <li>{{ asset.name }} - Cumplimiento: {{ asset.maintenance_compliance_cache }}%</li>
+            {% empty %}
+                <li>No hay activos sin OT.</li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+
+<!-- Sidebar: timeline -->
+<div class="sidebar">
+    <div class="timeline">
+        <a href="#presentation" class="sidebar-link" id="link-presentation"><span>Inicio</span></a>
+        {% for data in assets_data %}
+            <a href="#asset-{{ data.asset.abbreviation }}" class="sidebar-link" id="link-{{ data.asset.abbreviation }}">
+                <span>{{ data.asset.name }}</span>
+            </a>
+        {% endfor %}
+        <a href="#assets-no-ot" class="sidebar-link" id="link-noot"><span>Sin OT</span></a>
+    </div>
+</div>
+
+<!-- Incluir AOS desde CDN -->
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script>
+    // Inicializar AOS
+    AOS.init({
+        duration: 800,
+        once: true
+    });
+
+    // Alternar detalles de solicitud (función de ejemplo para abrir/ocultar filas de detalles)
+    function toggleSolicitudDetails(solId) {
+        var detailsRow = document.getElementById("sol-details-" + solId);
+        if (detailsRow.style.display === "none") {
+            detailsRow.style.display = "table-row";
+        } else {
+            detailsRow.style.display = "none";
+        }
+    }
+
+    // Cerrar el modal si se hace clic fuera del contenido del modal
+    window.addEventListener("click", function(event) {
+        var modals = document.querySelectorAll(".custom-modal");
+        modals.forEach(function(modal) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        });
+    });
+
+    // Función para resaltar la sección activa en el sidebar
+    function revealOnScroll() {
+        var elements = document.querySelectorAll('.fade-in');
+        var windowHeight = window.innerHeight;
+        elements.forEach(function(el) {
+            var elementTop = el.getBoundingClientRect().top;
+            if (elementTop < windowHeight - 100) {
+                el.classList.add('visible');
+            }
+        });
+        // Resaltar la sección actual en el sidebar
+        var sidebarLinks = document.querySelectorAll('.sidebar .timeline a');
+        sidebarLinks.forEach(function(link) {
+            link.classList.remove('active');
+        });
+        document.querySelectorAll('section.asset-section, section.presentation-section, section#assets-no-ot').forEach(function(section) {
+            var rect = section.getBoundingClientRect();
+            if (rect.top <= 150 && rect.bottom >= 150) {
+                var id = section.getAttribute('id');
+                var activeLink = document.querySelector('.sidebar .timeline a[href="#' + id + '"]');
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+            }
+        });
+    }
+    window.addEventListener('scroll', revealOnScroll);
+    document.addEventListener('DOMContentLoaded', revealOnScroll);
+
+    // Smooth scroll para el sidebar
+    document.querySelectorAll('.sidebar .timeline a').forEach(function(anchor) {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            var targetId = this.getAttribute('href');
+            document.querySelector(targetId).scrollIntoView({behavior: 'smooth'});
+        });
+    });
+</script>
+{% endblock %}

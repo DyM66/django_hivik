@@ -8,16 +8,22 @@
 	{% include 'got/base/navegacion.html' %}
 
 	<!-- En base_generic.html o la plantilla base que uses -->
-	{% if messages %}
-		<div class="container mt-3">
-			{% for message in messages %}
-			<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-				{{ message }}
-				<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-			</div>
-			{% endfor %}
-		</div>
-	{% endif %}
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+            <div class="toast-header" style="background-color: #ffc107; color: #000;">
+                <strong class="me-auto">Mensaje</strong>
+                <small>{{ message.tags }}</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                {{ message }}
+            </div>	
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
 
 	<!-- Contenido -->
@@ -68,6 +74,15 @@
 <div id="notification-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1050;"></div>
 
 <style>
+	/* Estilo para los toasts */
+	.toast {
+		width: 400px;
+		margin-bottom: 10px;
+		padding: 5px;
+	}
+</style>
+<!-- 
+<style>
 	.notification-box {
 		background: #fffffff2; /* Blanco con 95% de opacidad */
 		border: 1px solid #ccc;
@@ -108,7 +123,7 @@
     #notification-container .notification-box:not(:last-child) {
         opacity: 0.9;
     }
-</style>
+</style> -->
 
 <script>
     // Función para obtener notificaciones del servidor (por ejemplo, vía fetch)
@@ -119,27 +134,47 @@
             data.notifications.forEach(notification => {
                 // Crear la caja de notificación y asignar el ID de la notificación al dataset
                 const div = document.createElement("div");
-                div.className = "notification-box";
+				div.className = "toast";
+				div.setAttribute("role", "alert");
+                div.setAttribute("aria-live", "assertive");
+                div.setAttribute("aria-atomic", "true");
+                div.setAttribute("data-bs-autohide", "false");
+                // div.className = "notification-box";
                 div.dataset.notificationId = notification.id;
-                div.innerHTML = `
-                    <button class="notification-close" onclick="closeNotification(this)">&times;</button>
-                    <p>${notification.message}</p>
-                    <small>${notification.created_at}</small>
-                `;
+				div.innerHTML = `
+                            <div class="toast-header">
+                                <strong class="me-auto">${notification.title}</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close" onclick="markAsSeen('${notification.id}');"></button>
+                            </div>
+                            <div class="toast-body">
+                                <p>${notification.message}</p>
+								<a href="#" onclick="handleNotificationClick('${notification.id}', '${notification.redirect_url}'); return false;">Ver detalle</a>	
+								
+                                <small>${notification.created_at}</small>
+                            </div>
+                        `;
+
                 container.appendChild(div);
+				var toast = new bootstrap.Toast(div);
+				toast.show();
             });
         });
     }
 
     // Función para cerrar una notificación con animación
-    function closeNotification(btn) {
-        const box = btn.parentNode;
-        box.classList.add("fade-out");
-        box.addEventListener("transitionend", function() {
-            box.remove();
-        });
-        markAsSeen(box.dataset.notificationId);
-    }
+    // function closeNotification(btn) {
+    //     const box = btn.parentNode;
+    //     box.classList.add("fade-out");
+    //     box.addEventListener("transitionend", function() {
+    //         box.remove();
+    //     });
+    //     markAsSeen(box.dataset.notificationId);
+    // }
+
+	function handleNotificationClick(notificationId, redirectUrl) {
+		markAsSeen(notificationId);
+		window.location.href = redirectUrl;
+	}
 
     // Función para marcar la notificación como vista (ejemplo con fetch)
     function markAsSeen(notificationId) {

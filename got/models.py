@@ -109,6 +109,8 @@ class Ot(models.Model):
     sign_supervision = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_ots')
 
+    closing_date = models.DateField(null=True, blank=True)
+
     def all_tasks_finished(self):
         related_tasks = self.task_set.all()
         if all(task.finished for task in related_tasks):
@@ -120,6 +122,15 @@ class Ot(models.Model):
 
     def get_absolute_url(self):
         return reverse('got:ot-detail', args=[str(self.num_ot)])
+    
+    def save(self, *args, **kwargs):
+        # Si ya existe la OT, obtenemos la instancia anterior
+        if self.pk:
+            old = Ot.objects.get(pk=self.pk)
+            # Si el estado pasa de algo distinto a 'f' a 'f' y no se ha registrado la fecha de cierre
+            if old.state != 'f' and self.state == 'f' and not self.closing_date:
+                self.closing_date = timezone.now().date()
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ['-num_ot']
@@ -505,7 +516,7 @@ class Task(models.Model):
 
 # Model 10: Reportes de falla
 class FailureReport(models.Model):
-    IMPACT = (('s', 'La seguridad personal'), ('m', 'El medio ambiente'), ('i', 'Integridad del equipo/sistema'), ('o', 'El desarrollo normal de las operaciones'),)
+    IMPACT = (('s', 'La seguridad personal'), ('m', 'El medio ambiente'), ('i', 'Integridad del equipo/sistema'), ('o', 'El desarrollo de las operaciones'),)
     report = models.CharField(max_length=100, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True)
     moment = models.DateTimeField(auto_now_add=True)
@@ -566,60 +577,12 @@ class Requirement(models.Model):
         permissions = [('can_create_requirement', 'Can create requirement'), ('can_delete_requirement', 'Can delete requirement'),]
 
 
-# Model 13: Solicitudes de compra $app
-class Solicitud(models.Model):
-    DPTO = (('m', 'Mantenimiento'), ('o', 'Operaciones'),)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    solicitante = models.ForeignKey(User, on_delete=models.CASCADE)
-    requested_by = models.CharField(max_length=100, null=True, blank=True)
-    ot = models.ForeignKey(Ot, on_delete=models.CASCADE, null=True, blank=True)
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
-    suministros = models.TextField()
-    num_sc = models.TextField(null=True, blank=True)
-    approved_by = models.CharField(max_length=100, null=True, blank=True)
-    approved = models.BooleanField(default=False)
-    approval_date = models.DateTimeField(null=True, blank=True) 
-    sc_change_date = models.DateTimeField(null=True, blank=True)
-    cancel_date = models.DateTimeField(null=True, blank=True)
-    cancel_reason = models.TextField(null=True, blank=True)
-    cancel = models.BooleanField(default=False)
-    satisfaccion = models.BooleanField(default=False)
-    recibido_por = models.TextField(null=True, blank=True)
-    dpto = models.CharField(choices=DPTO, max_length=1, default='m')
-
-    @property
-    def estado(self):
-        if self.cancel:
-            return 'Cancelado'
-        elif self.satisfaccion:
-            return 'Recibido'
-        elif not self.satisfaccion and self.recibido_por:
-            return 'Parcialmente'
-        elif self.approved and self.sc_change_date:
-            return 'Tramitado'
-        elif self.approved:
-            return 'Aprobado'
-        else:
-            return 'No aprobado'
-
-    def __str__(self):
-        return f"Suministros para {self.asset}/{self.ot}"
-    
-    class Meta:
-        permissions = (
-            ('can_approve', 'Aprobar solicitudes'),
-            ('can_cancel', 'Puede cancelar'),
-            ('can_view_all_rqs', 'Puede ver todas las solicitudes'),
-            ('can_transfer_solicitud', 'Puede transferir solicitudes'),
-            )
-        ordering = ['-creation_date']
-
 
 # Model 14: Suministros (Inventario para barcos o bodegas, contenido de equipos o ...)
 class Suministro(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00')) 
-    Solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=True, blank=True)
+    Solicitud = models.ForeignKey('inv.solicitud', on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
 
@@ -648,7 +611,7 @@ class Image(models.Model):
     failure = models.ForeignKey(FailureReport, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    solicitud = models.ForeignKey(Solicitud, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
+    # solicitud = models.ForeignKey('inv.solicitud', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     salida= models.ForeignKey('outbound.outbounddelivery', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacional = models.ForeignKey('preoperacionales.preoperacional', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacionaldiario = models.ForeignKey('preoperacionales.preoperacionaldiario', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
@@ -701,10 +664,11 @@ class ActivityLog(models.Model):
         return f"{self.user_name} {self.action} {self.model_name} {self.field_name} at {self.timestamp}"
     
 
-
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    title = models.CharField(max_length=100, blank=True) 
     message = models.TextField()
+    redirect_url = models.CharField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     seen = models.BooleanField(default=False)
 

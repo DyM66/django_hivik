@@ -5,15 +5,19 @@ from datetime import date, datetime
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Sum
+from django.db import models
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views import generic
+from django import forms
+from django.utils import timezone
 
 from got.models import Asset, Suministro, Equipo, Ruta
 from got.utils import get_full_systems_ids
-from mto.forms import RutinaFilterForm
 from mto.utils import update_future_plan_entries_for_asset, get_filtered_rutas
 from .models import MaintenancePlan, MaintenancePlanEntry
+
+TODAY = timezone.now().date()
 
 
 class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
@@ -22,39 +26,80 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        asset = self.get_object()
-        user = self.request.user
-        filtered_rutas, current_month_name_es = get_filtered_rutas(asset, self.request.GET)
-
-        executing_rutas = []
-        normal_rutas = []
-        for r in filtered_rutas:
-            if r.ot and r.ot.state == 'x':
-                executing_rutas.append(r)
-            else:
-                normal_rutas.append(r)
-
-        context['rotativos'] = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
-        context['view_type'] = 'rutas'
-        context['asset'] = asset
-        context['mes'] = current_month_name_es
-        context['page_obj_rutas'] = normal_rutas
-        context['exec_rutas'] = executing_rutas
-        context['rutinas_filter_form'] = RutinaFilterForm(self.request.GET or None, asset=asset)
-        context['rutinas_disponibles'] = Ruta.objects.filter(system__asset=asset)
+        main, planned, exec, realized, filter_date = get_filtered_rutas(self.get_object(), self.request.GET)
 
         ubicaciones = set()
-        for r in filtered_rutas:
-            if r.equipo and r.equipo.ubicacion:
+        usuarios = set()
+        niveles = set()
+        
+        for r in main:
+            if r.equipo and r.equipo.ubicacion:  # Ubicación desde el equipo, si existe
                 ubicaciones.add(r.equipo.ubicacion)
-
-            if r.equipo and r.equipo.ubicacion: # Asignar r.ubic_label = su ubicación o "(sin)"
-                r.ubic_label = r.equipo.ubicacion
             else:
                 r.ubic_label = "(sin)"
-        context['ubicaciones_unicas'] = sorted(ubicaciones)
-        return context
+            
+            for task in r.task_set.all():  # Usuarios: extraer de las actividades relacionadas a la ruta
+                if task.responsible:
+                    usuarios.add(task.responsible.get_full_name())
+            # Niveles
+            niveles.add(r.nivel)
 
+        context['filter_date_str'] = filter_date.strftime('%Y-%m-%d')
+        context['ubicaciones'] = sorted(ubicaciones)
+        context['usuarios_unicos'] = sorted(usuarios)
+        context['niveles_opciones'] = [(1, "Nivel 1 - Operadores"), (2, "Nivel 2 - Técnico"), (3, "Nivel 3 - Proveedor especializado")]
+        context['mes'] = calendar.month_name[filter_date.month]
+        context['planning'] = planned
+        context['exec'] = exec
+        context['realized'] = realized
+        context['rotativos'] = Equipo.objects.filter(system__in=get_full_systems_ids(self.get_object(), self.request.user), tipo='r').exists()
+
+        pm = MaintenancePlan.objects.filter(ruta__system__asset=self.get_object(), period_start__lte=TODAY, period_end__gte=TODAY).order_by("ruta")     
+        
+        if pm.exists():
+            aggregated = pm.aggregate(min_start=models.Min('period_start'), max_end=models.Max('period_end'))
+            period_start = aggregated['min_start']
+            period_end = aggregated['max_end']   
+
+            context["pm"] = pm
+            context["period_start"] = period_start
+            context["period_end"] = period_end
+
+            # Calcular la cantidad de meses entre period_start y period_end:
+            n_months = (period_end.year - period_start.year) * 12 + (period_end.month - period_start.month) + 1
+
+            months = [
+                (period_start.year + (period_start.month - 1 + i) // 12, ((period_start.month - 1 + i) % 12) + 1, f"{calendar.month_name[((period_start.month - 1 + i) % 12) + 1]} {period_start.year + (period_start.month - 1 + i) // 12}")
+                for i in range(n_months)
+            ]
+
+            try:
+                current_month_index = next(i for i, (year, month, _) in enumerate(months) if year == TODAY.year and month == TODAY.month)
+            except StopIteration:
+                current_month_index = None
+
+            context["months"] = months
+            context["current_month"] = current_month_index
+
+            # Para cada plan, construir la estructura de ejecuciones
+            plan_rows = []
+            for plan in pm:
+                entries = plan.entries.all()
+                entry_dict = {
+                    (entry.year, entry.month): (entry.planned_executions, entry.actual_executions) for entry in entries
+                }
+                executions = [entry_dict.get((year, month), (0, 0)) for (year, month, _) in months] # ¿???
+                # Calcular totales acumulados sobre el período:
+                total_planned = sum(x[0] for x in executions)
+                total_actual = sum(x[1] for x in executions)
+                plan_rows.append({
+                    "routine_name": plan.ruta.name,
+                    "plan": plan,
+                    "executions": executions,
+                    "total": (total_planned, total_actual),
+                })
+            context["plan_rows"] = plan_rows
+        return context
 
 
 @login_required
@@ -128,7 +173,6 @@ class MaintenancePlanReportView(generic.TemplateView):
             
             reqs_dict = {}
             for plan in plans:
-                # Si se filtra por mes, se toma la entrada de ese mes; de lo contrario se agregan todos
                 if self.request.GET.get("month"):
                     entry = plan.entries.filter(
                         year=datetime.strptime(self.request.GET.get("month"), "%Y-%m").year,
@@ -654,3 +698,124 @@ class MaintenancePlanAllAssetsView(generic.TemplateView):
         return context
 
 
+from django.views.generic import TemplateView
+from django.utils import timezone
+from django.db.models import Count, Q
+from django.utils.text import Truncator
+from got.models import Asset, Ot, Task, Ruta
+from inv.models import Solicitud 
+
+
+
+class ScrollytellingAssetsView(TemplateView):
+    template_name = "mto/scrollytelling.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        current_date = timezone.now().date()
+        
+        # Listado de assets de área "a" (barcos) que están activos (show=True)
+        assets = Asset.objects.filter(area='a', show=True)
+        assets_data = []
+        assets_with_ot = []  # Aquellos con OT en ejecución
+        
+        for asset in assets:
+            # Obtener OT en ejecución (estado "x") para este asset
+            ots_en_ejecucion = Ot.objects.filter(system__asset=asset, state='x')
+            if not ots_en_ejecucion.exists():
+                continue  # Omitir assets sin OT en ejecución de la sección principal
+
+            ot_ejecucion_data = []
+            for ot in ots_en_ejecucion:
+                tasks_pending = ot.task_set.filter(finished=False)
+                ot_ejecucion_data.append({
+                    'ot': ot,
+                    'tasks': tasks_pending,
+                })
+            
+            # OT finalizadas (estado "f") del mes actual
+            ots_finalizadas = Ot.objects.filter(
+                system__asset=asset, state='f',
+                closing_date__year=current_date.year,
+                closing_date__month=current_date.month
+            )
+            # Agrupar por descripción si ésta contiene el código de alguna rutina asociada al asset
+            routines_codes = list(asset.system_set.values_list('rutas__code', flat=True))
+            ot_finalizadas_grouped = {}
+            for ot in ots_finalizadas:
+                found = False
+                for code in routines_codes:
+                    if code and str(code) in ot.description:
+                        found = True
+                        break
+                if found:
+                    key = ot.description  # Agrupamos por descripción (ajustable)
+                    if key in ot_finalizadas_grouped:
+                        ot_finalizadas_grouped[key]['count'] += 1
+                    else:
+                        ot_finalizadas_grouped[key] = {'ot': ot, 'count': 1}
+            ots_finalizadas_list = list(ot_finalizadas_grouped.values())
+            
+            # Solicitudes de compra asociadas a las OT en ejecución
+            solicitudes = Solicitud.objects.filter(ot__in=ots_en_ejecucion)
+            solicitudes_data = []
+            for sol in solicitudes:
+                if sol.ot:
+                    cotizacion = f"{sol.ot.description} - {sol.quotation if sol.quotation else Truncator(sol.suministros).chars(50)}"
+                else:
+                    cotizacion = Truncator(sol.suministros).chars(50)
+                sc = sol.num_sc
+                total_formatted = "COP " + format(sol.total, ",.2f")
+                estado = sol.estado
+                extra = ""
+                if estado == "Tramitado":
+                    extra = " en espera de OC"
+                elif estado == "Parcialmente":
+                    extra = sol.recibido_por
+                elif estado == "Recibido":
+                    extra = "finalizado"
+
+
+                solicitudes_data.append({
+                    'cotizacion': cotizacion,
+                    'num_sc': sc,
+                    'total': total_formatted,
+                    'estado': f"{estado}{extra}",
+                    'suministros': sol.suministros,
+                    'solicitante': sol.requested_by,
+                    'creation_date': sol.creation_date,
+                    'id': sol.id,
+                })
+
+            solicitudes_total = sum(sol_obj.total for sol_obj in Solicitud.objects.filter(ot__in=ots_en_ejecucion))
+
+            assets_data.append({
+                'asset': asset,
+                'compliance': asset.maintenance_compliance_cache,
+                'ots_ejecucion': ot_ejecucion_data,
+                'ots_finalizadas': ots_finalizadas_list,
+                'solicitudes': solicitudes_data,
+                'solicitudes_total': solicitudes_total,
+            })
+            assets_with_ot.append(asset)
+        
+        # Assets sin OT en ejecución: se muestran en la sección final
+        assets_no_ot = assets.exclude(pk__in=[a.pk for a in assets_with_ot])
+        
+        context['assets_data'] = assets_data
+        context['assets_no_ot'] = assets_no_ot
+        context['current_date'] = current_date
+        context['page_title'] = "Mantenimiento"
+        return context
+    
+from mto.forms import SolicitudUpdateForm
+from django.urls import reverse_lazy
+from django.views.generic import UpdateView
+class EditSolicitudView(LoginRequiredMixin, UpdateView):
+    model = Solicitud
+    form_class = SolicitudUpdateForm
+    template_name = "mto/edit_solicitud.html"
+
+    def get_success_url(self):
+        # Redirigir al listado de solicitudes (ajusta según tus necesidades)
+        return reverse_lazy('mto:stoytell')

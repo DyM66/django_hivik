@@ -11,4 +11,7 @@ urlpatterns = [
     path('dashboard/<str:asset_abbr>/', MaintenancePlanDashboardView.as_view(), name='dashboard'),
     path("update-plan/<str:asset_abbr>/", update_plan_entries_view, name="update-plan"),
     path('maintenance-plan/all-assets/', MaintenancePlanAllAssetsView.as_view(), name='maintenance_plan_all_assets'),
+
+    path('maintenance-plan/dashbord/', ScrollytellingAssetsView.as_view(), name='stoytell'),
+    path('solicitud/<int:pk>/editar/', EditSolicitudView.as_view(), name='edit_solicitud_view'),
 ]

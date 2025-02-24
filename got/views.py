@@ -37,7 +37,7 @@ from taggit.models import Tag
 from .utils import *
 from .models import *
 from .forms import *
-from inv.models import Transaction
+from inv.models import Transaction, Solicitud
 import locale
 
 from mto.utils import get_filtered_rutas
@@ -57,17 +57,26 @@ AREAS = {
 
 @login_required
 def get_notifications(request):
-    user = request.user
-    notifications = user.notifications.filter(seen=False)
-    data = [
-        {
-            "id": n.id,
-            "message": n.message,
-            "created_at": n.created_at.strftime("%d/%m/%Y %H:%M"),
-        }
-        for n in notifications
-    ]
-    return JsonResponse({"notifications": data})
+    try:
+        user = request.user
+        notifications = user.notifications.filter(seen=False)
+        data = [
+            {
+                "id": n.id,
+                "title": n.title,
+                "message": n.message,
+                "redirect_url": n.redirect_url,
+                "created_at": n.created_at.strftime("%d/%m/%Y %H:%M"),
+            }
+            for n in notifications
+        ]
+        return JsonResponse({"notifications": data})
+    except Exception as e:
+        # Registra el error o imprímelo en la consola
+        print("Error en get_notifications:", e)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
 
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt 

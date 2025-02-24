@@ -176,7 +176,7 @@
                 });
             });
         });
-        </script>
+        </script> # Mirian a
         
       
 
@@ -431,8 +431,7 @@
                     <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1" aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                                <form method="post" action="{% url 'inv:delete_transaction' transaccion.id %}">
-                                    {% csrf_token %}
+                                <form method="post" action="{% url 'inv:delete_transaction' transaccion.id %}">{% csrf_token %}
                                     <!-- Include the 'next' parameter -->
                                     <input type="hidden" name="next" value="{{ request.path }}">
                                     <div class="modal-header">

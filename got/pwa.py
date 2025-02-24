@@ -5,9 +5,10 @@ from django.views.decorators.cache import cache_control
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from inv.models import Solicitud
 
 # Modelos
-from got.models import Solicitud
+# from got.models import Solicitud
 
 # Puedes definir una constante para el logo utilizando settings:
 PROJECT_LOGO_URL = getattr(settings, 'PROJECT_LOGO_URL', "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png")

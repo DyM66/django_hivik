@@ -1,6 +1,6 @@
 # got/context_processors.py
 
-from .models import Solicitud
+from inv.models import Solicitud
 from django.db.models import Q
 
 def unapproved_requests_count(request):

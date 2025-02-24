@@ -4,7 +4,7 @@ from django.db.models import Avg, Sum, Min
 from decimal import Decimal
 from datetime import datetime
 from dth.models import UserProfile
-from inv.models import Transaction
+from inv.models import Transaction, Solicitud
 from .models import *
 
 
@@ -264,29 +264,36 @@ from django.contrib.auth.models import Group
 @receiver(post_save, sender=Solicitud)
 def create_solicitud_notification(sender, instance, created, **kwargs):
     if created:
-        # Determinar el grupo de destino según el departamento:
-        # 'm' => mantenimiento => super_members
-        # 'o' => operaciones => operaciones
-        group_name = 'super_members' if instance.dpto == 'm' else 'operaciones'
-        
-        # Obtener el nombre completo del solicitante; si está vacío, usar el username
+        group_name = 'super_members' if instance.dpto == 'm' else 'operaciones' # Determinar el grupo de destino según el departamento:
         full_name = instance.solicitante.get_full_name() or instance.solicitante.username
         
-        # Determinar el asset asociado: si instance.asset existe, usarlo; de lo contrario, si existe OT, obtener
-        # el asset a partir del sistema asociado a la OT.
-        if instance.asset:
-            asset_name = instance.asset.name
-        elif instance.ot and instance.ot.system and instance.ot.system.asset:
+        # Determinar el asset asociado
+        if instance.ot:
             asset_name = instance.ot.system.asset.name
+            ot_name = Truncator(instance.ot.description).chars(50)
+            title = f"Nueva RQ para {asset_name} OT{instance.ot.num_ot}: {ot_name}"
+        elif instance.asset:
+            asset_name = instance.asset.name
+            title = f"Nueva RQ para {asset_name}"
         else:
             asset_name = "N/D"  # No disponible
         
         # Truncar el texto de suministros a 100 caracteres (puedes ajustar el límite)
         suministros_desc = instance.suministros or ""
-        suministros_truncated = Truncator(suministros_desc).chars(100)
+        suministros_truncated = Truncator(suministros_desc).chars(150)
         
         # Construir el mensaje de notificación
-        message = f"{full_name} ha generado una SC para {asset_name}.<br> {suministros_truncated}"
+        message = f"{full_name}/ {suministros_truncated}"
+
+        # Calcular el número de página en la vista de Solicitudes
+        page_size = 20  # Según paginate_by en SolicitudesListView
+        # Como el listado se ordena descendientemente por creation_date, contamos las solicitudes más nuevas
+        newer_count = Solicitud.objects.filter(creation_date__gt=instance.creation_date).count()
+        page_number = (newer_count // page_size) + 1
+
+        # Construir la URL de redirección; se añade un ancla para identificar la solicitud
+        redirect_url = reverse('got:rq-list') + f"?page={page_number}#solicitud-{instance.id}"
+
         
         # Obtener el grupo y los usuarios destinatarios
         try:
@@ -295,9 +302,58 @@ def create_solicitud_notification(sender, instance, created, **kwargs):
         except Group.DoesNotExist:
             users = []
         
-        # Crear la notificación para cada usuario del grupo
+         # Crear la notificación para cada usuario del grupo
         for user in users:
             Notification.objects.create(
                 user=user,
-                message=message
+                title=title,
+                message=message,
+                redirect_url=redirect_url
             )
+
+
+@receiver(post_save, sender=FailureReport)
+def create_failure_report_notification(sender, instance, created, **kwargs):
+    if created:
+        # Determinar asset a partir del equipo
+        if instance.equipo and instance.equipo.system and instance.equipo.system.asset:
+            asset_name = instance.equipo.system.asset.name
+        else:
+            asset_name = "N/D"
+        
+        reporter = instance.modified_by.get_full_name() if instance.modified_by else "Sistema"
+        title = f"Nuevo reporte de falla para {asset_name}"
+        
+        description_truncated = Truncator(instance.description).chars(150)
+        # Incluir enlace al detalle del reporte de falla
+        message = f"{reporter}/ {instance.equipo.name}: {description_truncated}"
+        redirect_url = instance.get_absolute_url()
+        
+        # Notificar a usuarios del grupo 'super_members'
+        try:
+            group_super = Group.objects.get(name="super_members")
+            users_super = group_super.user_set.all()
+        except Group.DoesNotExist:
+            users_super = []
+        for user in users_super:
+            Notification.objects.create(
+                user=user,
+                title=title,
+                message=message,
+                redirect_url=redirect_url
+            )
+        
+        # Si el campo impact incluye 'o', notificar también al grupo 'operaciones'
+        if 'o' in instance.impact:
+            try:
+                group_operaciones = Group.objects.get(name="operaciones")
+                users_operaciones = group_operaciones.user_set.all()
+            except Group.DoesNotExist:
+                users_operaciones = []
+            for user in users_operaciones:
+                Notification.objects.create(
+                    user=user,
+                    title=title,
+                    message=message,
+                    redirect_url=redirect_url
+                )

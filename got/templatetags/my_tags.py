@@ -1,5 +1,6 @@
 from django import template
-from got.models import Asset, FailureReport, Solicitud, Equipo
+from got.models import Asset, FailureReport, Equipo
+from inv.models import Solicitud
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
 from dth.models import UserProfile
