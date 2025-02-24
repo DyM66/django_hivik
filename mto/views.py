@@ -781,7 +781,7 @@ class ScrollytellingAssetsView(TemplateView):
             grouped_dict = defaultdict(lambda: {'solicitudes': [], 'count': 0, 'sc_numbers': [], 'subtotal': 0})
             individual_solicitudes = []
             for sol in solicitudes_data:
-                if sol['total_numeric'] < 200000 and sol['ot_num'] is not None:
+                if sol['total_numeric'] < 2000000 and sol['ot_num'] is not None:
                     group = grouped_dict[sol['ot_num']]
                     group['solicitudes'].append(sol)
                     group['count'] += 1
