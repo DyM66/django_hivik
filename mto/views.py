@@ -706,6 +706,8 @@ from got.models import Asset, Ot, Task, Ruta
 from inv.models import Solicitud 
 from collections import defaultdict
 
+
+
 class ScrollytellingAssetsView(TemplateView):
     template_name = "mto/scrollytelling.html"
 
@@ -716,7 +718,7 @@ class ScrollytellingAssetsView(TemplateView):
         # Listado de assets de área "a" (barcos) activos (show=True)
         assets = Asset.objects.filter(area='a', show=True)
         assets_data = []
-        assets_with_ot = []  # Aquellos con OT en ejecución
+        assets_with_ot = []  # Aquellos que tienen OT en ejecución
         
         for asset in assets:
             # Obtener OT en ejecución (estado "x") para este asset
@@ -749,7 +751,7 @@ class ScrollytellingAssetsView(TemplateView):
                     else:
                         ot_finalizadas_grouped[key] = {'ot': ot, 'count': 1}
             ots_finalizadas_list = list(ot_finalizadas_grouped.values())
-
+            
             # Solicitudes asociadas a las OT en ejecución, ordenadas por número de OT
             solicitudes_qs = Solicitud.objects.filter(ot__in=ots_en_ejecucion).order_by('ot__num_ot')
             solicitudes_data = []
@@ -772,19 +774,21 @@ class ScrollytellingAssetsView(TemplateView):
                     'id': sol.id,
                     'quotation_url': sol.quotation_file.url if sol.quotation_file else "",
                     'total_numeric': sol.total,
-                    'grouped': False,  # Por defecto, individual
+                    'grouped': False,  # Por defecto, se considerará individual
                 })
 
-            # Agrupar aquellas solicitudes cuyo total es 0 y pertenecen a una OT
-            grouped_dict = defaultdict(lambda: {'solicitudes': [], 'count': 0, 'sc_numbers': []})
+            # Agrupar aquellas solicitudes cuyo total es inferior a 200000 y pertenecen a una OT
+            grouped_dict = defaultdict(lambda: {'solicitudes': [], 'count': 0, 'sc_numbers': [], 'subtotal': 0})
             individual_solicitudes = []
             for sol in solicitudes_data:
-                if sol['total_numeric'] == 0 and sol['ot_num'] is not None:
-                    grouped_dict[sol['ot_num']]['solicitudes'].append(sol)
-                    grouped_dict[sol['ot_num']]['count'] += 1
-                    grouped_dict[sol['ot_num']]['sc_numbers'].append(sol['num_sc'])
-                    grouped_dict[sol['ot_num']]['ot_description'] = sol['cotizacion'].split(' - ')[0]
-                    grouped_dict[sol['ot_num']]['ot_num'] = sol['ot_num']
+                if sol['total_numeric'] < 200000 and sol['ot_num'] is not None:
+                    group = grouped_dict[sol['ot_num']]
+                    group['solicitudes'].append(sol)
+                    group['count'] += 1
+                    group['sc_numbers'].append(sol['num_sc'])
+                    group['ot_description'] = sol['cotizacion'].split(' - ')[0]
+                    group['ot_num'] = sol['ot_num']
+                    group['subtotal'] += sol['total_numeric']
                 else:
                     individual_solicitudes.append(sol)
             # Si un grupo tiene solo una solicitud, la tratamos como individual
@@ -796,19 +800,23 @@ class ScrollytellingAssetsView(TemplateView):
                     for sol in group['solicitudes']:
                         sol['grouped'] = True
                     final_grouped.append(group)
-            # Ahora definimos dos variables en el contexto
-            grouped_solicitudes = final_grouped
-            # Las solicitudes individuales son aquellas que no están agrupadas
+            # Solicitudes finales: combinación de agrupadas e individuales
+            final_solicitudes = final_grouped + individual_solicitudes
+
+            # Calcular el total general: sumamos los totales de las solicitudes individuales
+            # y además el subtotal de cada grupo
             individual_total = sum(sol['total_numeric'] for sol in individual_solicitudes)
-            
+            grouped_total = sum(group['subtotal'] for group in final_grouped)
+            overall_total = individual_total + grouped_total
+
             assets_data.append({
                 'asset': asset,
                 'compliance': asset.maintenance_compliance_cache,
                 'ots_ejecucion': ot_ejecucion_data,
                 'ots_finalizadas': ots_finalizadas_list,
-                'grouped_solicitudes': grouped_solicitudes,
+                'grouped_solicitudes': final_grouped,
                 'individual_solicitudes': individual_solicitudes,
-                'overall_total': individual_total,  # Como los agrupados tienen total 0
+                'overall_total': overall_total,
             })
             assets_with_ot.append(asset)
         
@@ -820,7 +828,10 @@ class ScrollytellingAssetsView(TemplateView):
         context['current_date'] = current_date
         context['page_title'] = "Mantenimiento"
         return context
-    
+
+# {% ruta_status ruta as status %}
+# <td>{{ ruta.next_date|date:"d/m/Y" }}</td>
+# <td>{{ ruta.daysleft }}</td>    
 from mto.forms import SolicitudUpdateForm
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView

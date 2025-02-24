@@ -281,7 +281,7 @@
                         <tr class="solicitud-group-row" onclick="toggleGroupDetails({{ group.ot_num }})">
                             <td>{{ group.ot_description }} ({{ group.count }})</td>
                             <td>{{ group.sc_numbers|join:", " }}</td>
-                            <td>0</td>
+                            <td>{{ group.subtotal|currency }}</td>
                             <td>-</td>
                             <td><!-- Aquí podrías agregar un icono para editar el grupo si lo deseas --></td>
                         </tr>
@@ -350,10 +350,20 @@
         once: true
     });
 
-    // Alternar detalles de solicitud (función de ejemplo para abrir/ocultar filas de detalles)
-    function toggleSolicitudDetails(solId) {
+   // Alternar detalles de solicitud individual
+   function toggleSolicitudDetails(solId) {
         var detailsRow = document.getElementById("sol-details-" + solId);
-        if (detailsRow.style.display === "none") {
+        if (detailsRow.style.display === "none" || detailsRow.style.display === "") {
+            detailsRow.style.display = "table-row";
+        } else {
+            detailsRow.style.display = "none";
+        }
+    }
+
+    // Alternar detalles de grupo (para solicitudes agrupadas)
+    function toggleGroupDetails(otNum) {
+        var detailsRow = document.getElementById("group-details-" + otNum);
+        if (detailsRow.style.display === "none" || detailsRow.style.display === "") {
             detailsRow.style.display = "table-row";
         } else {
             detailsRow.style.display = "none";
