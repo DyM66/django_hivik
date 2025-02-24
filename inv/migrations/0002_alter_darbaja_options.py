@@ -14,16 +14,16 @@ class Migration(migrations.Migration):
             name='darbaja',
             options={'ordering': ['-fecha']},
         ),
-        migrations.RunSQL(
-            """
-            UPDATE django_content_type
-            SET app_label = 'inv'
-            WHERE app_label = 'got' AND model = 'transferencia';
-            """,
-            reverse_sql="""
-            UPDATE django_content_type
-            SET app_label = 'got'
-            WHERE app_label = 'inv' AND model = 'transferencia';
-            """
-        ),
+        # migrations.RunSQL(
+        #     """
+        #     UPDATE django_content_type
+        #     SET app_label = 'inv'
+        #     WHERE app_label = 'got' AND model = 'transferencia';
+        #     """,
+        #     reverse_sql="""
+        #     UPDATE django_content_type
+        #     SET app_label = 'got'
+        #     WHERE app_label = 'inv' AND model = 'transferencia';
+        #     """
+        # ),
     ]

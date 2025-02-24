@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ('receptor', models.CharField(max_length=150)),
             ],
             options={
-                'db_table': 'got_transferencia',
+                'db_table': 'inv_transferencia',
                 'ordering': ['-fecha'],
             },
         ),

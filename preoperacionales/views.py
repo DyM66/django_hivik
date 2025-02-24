@@ -1,4 +1,3 @@
-
 from datetime import datetime, time, date
 from django.db.models import Sum
 from django.contrib import messages
@@ -8,7 +7,6 @@ from django.views import generic, View
 from django.urls import reverse
 from django.utils import timezone
 import calendar
-from django.utils.timezone import localdate
 from .models import *
 from .forms import *
 from got.forms import UploadImages
@@ -27,7 +25,7 @@ def preoperacional_diario_view(request, code):
     equipo = get_object_or_404(Equipo, code=code)
     rutas_vencidas = [ruta for ruta in equipo.equipos.all() if ruta.next_date < date.today()]
 
-    existente = PreoperacionalDiario.objects.filter(vehiculo=equipo, fecha=localdate()).first()
+    existente = PreoperacionalDiario.objects.filter(vehiculo=equipo, fecha=date.today()).first()
 
     if existente:
         mensaje = f"El preoperacional del vehículo {equipo} de la fecha actual ya fue diligenciado y exitosamente enviado. El resultado fue: {'Aprobado' if existente.aprobado else 'No aprobado'}."
@@ -44,12 +42,12 @@ def preoperacional_diario_view(request, code):
             preop.kilometraje = form.cleaned_data['kilometraje']
             preop.save()
 
-            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
+            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=date.today()).aggregate(total=Sum('hour'))['total'] or 0)
             kilometraje_reportado = preop.kilometraje - horometro_actual
 
             history_hour, created = HistoryHour.objects.get_or_create(
                 component=equipo,
-                report_date=localdate(),
+                report_date=date.today(),
                 defaults={'hour': kilometraje_reportado}
             )
 
@@ -320,12 +318,12 @@ def preoperacional_especifico_view(request, code):
             preop.kilometraje = nuevo_kilometraje
             preop.save()
 
-            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=localdate()).aggregate(total=Sum('hour'))['total'] or 0)
+            horometro_actual = equipo.initial_hours + (equipo.hours.filter(report_date__lt=date.today()).aggregate(total=Sum('hour'))['total'] or 0)
             kilometraje_reportado = nuevo_kilometraje - horometro_actual
 
             history_hour, created = HistoryHour.objects.get_or_create(
                 component=equipo,
-                report_date=localdate(),
+                report_date=date.today(),
                 defaults={'hour': kilometraje_reportado}
             )
 

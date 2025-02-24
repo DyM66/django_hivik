@@ -63,7 +63,7 @@ class Transferencia(models.Model):
 
     class Meta:
         ordering = ['-fecha']
-        db_table = 'got_transferencia'
+        db_table = 'inv_transferencia'
 
     def __str__(self):
         return f"{self.equipo} - {self.origen} -> {self.destino}"
