@@ -258,7 +258,7 @@
                             </td>
                             <td>{% if sol.num_sc %}{{ sol.num_sc }}{% else %}-{% endif %}</td>
                             <td>{{ sol.total|currency }}</td>
-                            <td>{{ sol.estado }}</td>
+                            <td>{% if sol.estado %}{{ sol.estado }}{% else %}-{% endif %}</td>
                             <td class="edit-icon-col">
                                 {% if sol.id %}
                                     <a href="{% url 'mto:edit_solicitud_view' sol.id %}" title="Editar">
