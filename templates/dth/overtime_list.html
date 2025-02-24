@@ -164,7 +164,7 @@
                             <td data-cell="Detalles" class="full-width-cell solicitud-cell" colspan="4">
                                 <ul style="list-style: none; padding-left: 0;">
                                     {% for entry in asset_group.entries %}
-                                        <li>
+                                        <li id="entry.id">
                                             <strong>{{ entry.nombre_completo }}</strong> - {{ entry.get_cargo_display }}
                                             {% if perms.overtime.change_overtime %}
                                                 <a href="#" data-bs-toggle="modal" data-bs-target="#editEntryModal{{ entry.id }}">
@@ -181,7 +181,7 @@
                                             {% endif %}
                                             <br>
                                             {% if perms.got.can_approve_overtime %}
-                                            <form method="post" action="{% url 'dth:approve_overtime' entry.id %}" style="display:inline;">
+                                            <form method="post" action="{% url 'dth:approve_overtime' entry.id %}#{{entry.id}}" style="display:inline;">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                                 {% if not entry.approved %}

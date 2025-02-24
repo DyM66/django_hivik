@@ -704,8 +704,7 @@ from django.db.models import Count, Q
 from django.utils.text import Truncator
 from got.models import Asset, Ot, Task, Ruta
 from inv.models import Solicitud 
-
-
+from collections import defaultdict
 
 class ScrollytellingAssetsView(TemplateView):
     template_name = "mto/scrollytelling.html"
@@ -714,7 +713,7 @@ class ScrollytellingAssetsView(TemplateView):
         context = super().get_context_data(**kwargs)
         current_date = timezone.now().date()
         
-        # Listado de assets de área "a" (barcos) que están activos (show=True)
+        # Listado de assets de área "a" (barcos) activos (show=True)
         assets = Asset.objects.filter(area='a', show=True)
         assets_data = []
         assets_with_ot = []  # Aquellos con OT en ejecución
@@ -725,6 +724,7 @@ class ScrollytellingAssetsView(TemplateView):
             if not ots_en_ejecucion.exists():
                 continue  # Omitir assets sin OT en ejecución de la sección principal
 
+            # Procesar OT en ejecución
             ot_ejecucion_data = []
             for ot in ots_en_ejecucion:
                 tasks_pending = ot.task_set.filter(finished=False)
@@ -732,74 +732,83 @@ class ScrollytellingAssetsView(TemplateView):
                     'ot': ot,
                     'tasks': tasks_pending,
                 })
-            
+
             # OT finalizadas (estado "f") del mes actual
             ots_finalizadas = Ot.objects.filter(
                 system__asset=asset, state='f',
                 closing_date__year=current_date.year,
                 closing_date__month=current_date.month
             )
-            # Agrupar por descripción si ésta contiene el código de alguna rutina asociada al asset
             routines_codes = list(asset.system_set.values_list('rutas__code', flat=True))
             ot_finalizadas_grouped = {}
             for ot in ots_finalizadas:
-                found = False
-                for code in routines_codes:
-                    if code and str(code) in ot.description:
-                        found = True
-                        break
-                if found:
+                if any(code and str(code) in ot.description for code in routines_codes):
                     key = ot.description  # Agrupamos por descripción (ajustable)
                     if key in ot_finalizadas_grouped:
                         ot_finalizadas_grouped[key]['count'] += 1
                     else:
                         ot_finalizadas_grouped[key] = {'ot': ot, 'count': 1}
             ots_finalizadas_list = list(ot_finalizadas_grouped.values())
-            
-            # Solicitudes de compra asociadas a las OT en ejecución
-            solicitudes = Solicitud.objects.filter(ot__in=ots_en_ejecucion).order_by('ot__num_ot')
 
+            # Solicitudes asociadas a las OT en ejecución, ordenadas por número de OT
+            solicitudes_qs = Solicitud.objects.filter(ot__in=ots_en_ejecucion).order_by('ot__num_ot')
             solicitudes_data = []
-            for sol in solicitudes:
+            for sol in solicitudes_qs:
                 if sol.ot:
                     cotizacion = f"{sol.ot.description} - {sol.quotation if sol.quotation else Truncator(sol.suministros).chars(40)}"
-                    ot_num = sol.ot.num_ot 
+                    ot_num = sol.ot.num_ot
                 else:
                     cotizacion = Truncator(sol.suministros).chars(50)
                     ot_num = None
-                sc = sol.num_sc
-                total_formatted = "COP " + format(sol.total, ",.2f")
-                estado = sol.estado
-                extra = ""
-                if estado == "Tramitado":
-                    extra = " en espera de OC"
-                elif estado == "Parcialmente":
-                    extra = sol.recibido_por
-                elif estado == "Recibido":
-                    extra = "finalizado"
-
-
                 solicitudes_data.append({
                     'cotizacion': cotizacion,
                     'ot_num': ot_num,
-                    'num_sc': sc,
-                    'total': total_formatted,
-                    'estado': sol.recibido_por,
+                    'num_sc': sol.num_sc if sol.num_sc else "-",
+                    'total': sol.total,  # valor numérico
+                    'estado': sol.recibido_por,  # se usará este campo como "estado"
                     'suministros': sol.suministros,
                     'solicitante': sol.requested_by,
                     'creation_date': sol.creation_date,
                     'id': sol.id,
+                    'quotation_url': sol.quotation_file.url if sol.quotation_file else "",
+                    'total_numeric': sol.total,
+                    'grouped': False,  # Por defecto, individual
                 })
 
-            solicitudes_total = sum(sol_obj.total for sol_obj in Solicitud.objects.filter(ot__in=ots_en_ejecucion))
-
+            # Agrupar aquellas solicitudes cuyo total es 0 y pertenecen a una OT
+            grouped_dict = defaultdict(lambda: {'solicitudes': [], 'count': 0, 'sc_numbers': []})
+            individual_solicitudes = []
+            for sol in solicitudes_data:
+                if sol['total_numeric'] == 0 and sol['ot_num'] is not None:
+                    grouped_dict[sol['ot_num']]['solicitudes'].append(sol)
+                    grouped_dict[sol['ot_num']]['count'] += 1
+                    grouped_dict[sol['ot_num']]['sc_numbers'].append(sol['num_sc'])
+                    grouped_dict[sol['ot_num']]['ot_description'] = sol['cotizacion'].split(' - ')[0]
+                    grouped_dict[sol['ot_num']]['ot_num'] = sol['ot_num']
+                else:
+                    individual_solicitudes.append(sol)
+            # Si un grupo tiene solo una solicitud, la tratamos como individual
+            final_grouped = []
+            for key, group in grouped_dict.items():
+                if group['count'] == 1:
+                    individual_solicitudes.append(group['solicitudes'][0])
+                else:
+                    for sol in group['solicitudes']:
+                        sol['grouped'] = True
+                    final_grouped.append(group)
+            # Ahora definimos dos variables en el contexto
+            grouped_solicitudes = final_grouped
+            # Las solicitudes individuales son aquellas que no están agrupadas
+            individual_total = sum(sol['total_numeric'] for sol in individual_solicitudes)
+            
             assets_data.append({
                 'asset': asset,
                 'compliance': asset.maintenance_compliance_cache,
                 'ots_ejecucion': ot_ejecucion_data,
                 'ots_finalizadas': ots_finalizadas_list,
-                'solicitudes': solicitudes_data,
-                'solicitudes_total': solicitudes_total,
+                'grouped_solicitudes': grouped_solicitudes,
+                'individual_solicitudes': individual_solicitudes,
+                'overall_total': individual_total,  # Como los agrupados tienen total 0
             })
             assets_with_ot.append(asset)
         

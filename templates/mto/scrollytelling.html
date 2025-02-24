@@ -244,42 +244,72 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for sol in data.solicitudes %}
+                        {% for sol in data.individual_solicitudes %}
                         <tr class="solicitud-row" id="solicitud-{{ sol.id }}" onclick="toggleSolicitudDetails({{ sol.id }});">
-                            <td><strong>{{sol.ot_num}}</strong> - {{ sol.cotizacion }}</td>
+                            <td>
+                                {% if sol.ot %}
+                                    {{ sol.ot.description }} - {{ sol.quotation }}
+                                    {% if sol.quotation %}
+                                        <a href="{{ sol.quotation_url }}"><i class="bi bi-file-earmark-text"></i></a>
+                                    {% endif %}
+                                {% else %}
+                                    {{ sol.cotizacion }}
+                                {% endif %}
+                            </td>
                             <td>{% if sol.num_sc %}{{ sol.num_sc }}{% else %}-{% endif %}</td>
-                            <td>{{ sol.total }}</td>
-                            <td>{% if sol.estado %}{{ sol.estado }}{% else %}-{% endif %}</td>
+                            <td>{{ sol.total|currency }}</td>
+                            <td>{{ sol.estado }}</td>
                             <td class="edit-icon-col">
-                                <!-- Icono de edición; al hacer clic redirige a la vista independiente para editar -->
-                                <a href="{% url 'mto:edit_solicitud_view' sol.id %}" title="Editar Solicitud" style="font-size: 0.8rem;">
-                                    <i class="bi bi-pencil edit-icon"></i>
-                                </a>
+                                {% if sol.id %}
+                                    <a href="{% url 'mto:edit_solicitud_view' sol.id %}" title="Editar">
+                                        <i class="bi bi-pencil edit-icon"></i>
+                                    </a>
+                                {% endif %}
                             </td>
                         </tr>
                         <tr id="sol-details-{{ sol.id }}" class="solicitud-details" style="display:none;">
-                            <td colspan="4">
+                            <td colspan="5">
                                 <strong>Suministros:</strong><br>
                                 {{ sol.suministros|linebreaks }}<br>
                                 <strong>Solicitante:</strong> {{ sol.solicitante }}<br>
                                 <strong>Fecha Solicitado:</strong> {{ sol.creation_date|date:"d/m/Y H:i" }}
                             </td>
                         </tr>
-
-                          
-        {% empty %}
-        <tr>
-            <td colspan="4">No hay solicitudes para estas órdenes.</td>
-        </tr>
                         {% endfor %}
-                                <!-- Fila de suma total en la columna "Total" -->
-        <tr>
-            <td colspan="2" style="text-align: right;"><strong>Total General:</strong></td>
-            <td><strong>{{ data.solicitudes_total|currency }}</strong></td>
-            <td colspan="2"></td>
-        </tr>
+                
+                        {% for group in data.grouped_solicitudes %}
+                        <tr class="solicitud-group-row" onclick="toggleGroupDetails({{ group.ot_num }})">
+                            <td>{{ group.ot_description }} ({{ group.count }})</td>
+                            <td>{{ group.sc_numbers|join:", " }}</td>
+                            <td>0</td>
+                            <td>-</td>
+                            <td><!-- Aquí podrías agregar un icono para editar el grupo si lo deseas --></td>
+                        </tr>
+                        <tr class="solicitud-group-details" id="group-details-{{ group.ot_num }}" style="display:none;">
+                            <td colspan="5">
+                                {% for s in group.solicitudes %}
+                                    <div style="margin-bottom:10px;">
+                                        <strong>Suministros:</strong> {{ s.suministros|linebreaks }}<br>
+                                        <strong>Solicitante:</strong> {{ s.solicitante }}<br>
+                                        <strong>Fecha:</strong> {{ s.creation_date|date:"d/m/Y H:i" }}
+                                        {% if s.id %}
+                                            <a href="{% url 'mto:edit_solicitud_view' s.id %}" class="btn btn-link btn-sm">Editar</a>
+                                        {% endif %}
+                                    </div>
+                                    <hr>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                
+                        <tr>
+                            <td colspan="2" style="text-align: right;"><strong>Total General:</strong></td>
+                            <td><strong>COP {{ data.overall_total|floatformat:2 }}</strong></td>
+                            <td colspan="2"></td>
+                        </tr>
                     </tbody>
                 </table>
+                
             </div>
         </div>
     </section>

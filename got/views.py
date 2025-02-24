@@ -309,7 +309,9 @@ class MaintenancePlanExcelExportView(View):
     def get(self, request, asset_abbr):
         asset = get_object_or_404(Asset, abbreviation=asset_abbr)
         # Usamos la función get_filtered_rutas para obtener las rutinas filtradas
-        filtered_rutas, _ = get_filtered_rutas(asset, request.GET)
+        # filtered_rutas, _ = get_filtered_rutas(asset, request.GET)
+
+        main, filtered_rutas, exec, realized, filter_date = get_filtered_rutas(asset, request.GET)
         # Llamamos a la función especializada para generar el Excel
 
         wb = openpyxl.Workbook()
