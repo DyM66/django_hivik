@@ -14,11 +14,10 @@
     <!-- Secciones para cada asset con OT en ejecución -->
     {% for data in assets_data %}
     <!-- Primera sección para indicadores y gráficos -->
-    <section id="asset-{{ data.asset.abbreviation }}-indicators" class="asset-indicators fade-in" data-aos="fade-up">
+    <!-- <section id="asset-{{ data.asset.abbreviation }}-indicators" class="asset-indicators fade-in" data-aos="fade-up">
         <div class="row">
             <div class="col-md-4">
                 <h3>Distribución de OT</h3>
-                <!-- Canvas para la gráfica circular -->
                 <canvas id="chart-{{ data.asset.abbreviation }}" width="300" height="300"></canvas>
             </div>
             <div class="col-md-4">
@@ -31,7 +30,7 @@
                 <p>Críticos: {{ data.failure_reports_critical }}</p>
             </div>
         </div>
-    </section>
+    </section> -->
 
     <section id="asset-{{ data.asset.abbreviation }}" class="asset-section fade-in" data-aos="fade-up">
         <div class="row">
