@@ -757,7 +757,7 @@ class ScrollytellingAssetsView(TemplateView):
             solicitudes_data = []
             for sol in solicitudes_qs:
                 if sol.ot:
-                    cotizacion = f"{sol.ot.description} - {sol.quotation if sol.quotation else Truncator(sol.suministros).chars(40)}"
+                    cotizacion = f"{sol.ot.description} - {sol.quotation if sol.quotation else Truncator(sol.suministros).chars(50)}"
                     ot_num = sol.ot.num_ot
                 else:
                     cotizacion = Truncator(sol.suministros).chars(50)
@@ -786,7 +786,7 @@ class ScrollytellingAssetsView(TemplateView):
                     group['solicitudes'].append(sol)
                     group['count'] += 1
                     group['sc_numbers'].append(sol['num_sc'])
-                    group['ot_description'] = sol['cotizacion'].split(' - ')[0]
+                    group['ot_description'] = sol['cotizacion'] #.split(' - ')[0]
                     group['ot_num'] = sol['ot_num']
                     group['subtotal'] += sol['total_numeric']
                 else:
@@ -843,3 +843,4 @@ class EditSolicitudView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         # Redirigir al listado de solicitudes (ajusta según tus necesidades)
         return reverse_lazy('mto:stoytell')
+

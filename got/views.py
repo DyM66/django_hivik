@@ -43,7 +43,6 @@ import locale
 from mto.utils import get_filtered_rutas
 
 logger = logging.getLogger(__name__)
-# locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8') 
 TODAY = timezone.now().date()
 
 AREAS = {
@@ -352,13 +351,7 @@ class MaintenancePlanExcelExportView(View):
         ws['A5'].fill = PatternFill(fill_type="solid", fgColor="92cddc")
         
         ws.merge_cells('A6:F6')
-        prev_locale = locale.getlocale(locale.LC_TIME)
-        # Cambiar a español para formatear la fecha
-        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
-        formatted_date = TODAY.strftime('%A, %d de %B de %Y')
-        # Restaurar el locale original
-        locale.setlocale(locale.LC_TIME, prev_locale)
-        ws['A6'] = f"FECHA: {formatted_date}"
+        ws['A6'] = f"FECHA: {TODAY.strftime('%A, %d de %B de %Y')}"
         ws['A6'].font = Font(bold=True, name='Arial') # 
         ws['A6'].fill = PatternFill(fill_type="solid", fgColor="92cddc")
 
@@ -1528,7 +1521,7 @@ def fail_pdf(request, pk):
 def crear_ot_failure_report(request, fail_id):
     fail = get_object_or_404(FailureReport, pk=fail_id)
     nueva_ot = Ot(
-        description=f"Reporte de falla - {fail.equipo}",
+        description=f"Reporte de falla - {fail.equipo.name}",
         state='x',
         supervisor=f"{request.user.first_name} {request.user.last_name}",
         tipo_mtto='c',

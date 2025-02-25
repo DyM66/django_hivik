@@ -3,172 +3,173 @@
 {% block headtag %}
     <!-- Cargar AOS desde CDN o S3 -->
     <link rel="stylesheet" href="https://hivik.s3.us-east-2.amazonaws.com/static/css/aos.css">
+    <style>
+        /* Fondo: imagen fija desde S3 */
+        body {
+            background: url("https://hivik.s3.us-east-2.amazonaws.com/fondo-degradado-azul-oscuro_78370-2078.avif") no-repeat center center fixed;
+            background-size: cover;
+        }
+        /* Sección de presentación */
+        .presentation-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+            text-align: center;
+            background: rgba(0,0,0,0.5);
+            margin-bottom: 50px;
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .presentation-section h1 {
+            font-size: 64px;
+            color: #fff;
+        }
+        /* Sección de cada asset */
+        .asset-section {
+            padding: 80px 50px;
+            border-bottom: 2px solid rgba(0,0,0,0.2);
+            margin-bottom: 50px;
+            /* background: rgba(255,255,255,0.9); */
+            background: rgba(0,0,0,0.5);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .asset-title {
+            font-size: 42px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .compliance-indicator {
+            font-size: 20px;
+            color: #fff;
+        }
+    
+        /* Sidebar: ubicado en el lado derecho, sin superponerse al menú superior */
+        .sidebar {
+            position: fixed;
+            top: 100px; /* Dejar espacio para el navbar */
+            right: 0;
+            width: 50px; /* Estado colapsado */
+            height: 90vh; /* Más alto para abarcar todas las secciones */
+            background: rgba(0,0,0,0.6);
+            border-radius: 8px 0 0 8px;
+            z-index: 1100;
+            transition: width 0.3s;
+            overflow: hidden;
+            padding-left: 10px; /* Espacio a la izquierda para que se vea el círculo completo */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Centrar verticalmente */
+        }
+        .sidebar:hover {
+            width: 200px;
+        }   
+        /* Timeline dentro del sidebar */
+        .sidebar .timeline {
+            width: 100%;
+            padding: 0 10px;
+        }
+        .sidebar .timeline a {
+            display: block;
+            margin-bottom: 20px;
+            text-decoration: none;
+            position: relative;
+            /* Ocultamos el texto en estado colapsado */
+            color: transparent;
+            transition: color 0.3s;
+        }
+        /* Cuando el sidebar se expande, se muestra el texto */
+        .sidebar:hover .timeline a {
+            color: #fff;
+        }
+        /* Pseudo-elemento para los círculos */
+        .sidebar .timeline a::before {
+            content: "";
+            position: absolute;
+            left: -16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        /* Resaltar el círculo de la sección activa */
+        .sidebar .timeline a.active::before,
+        .sidebar .timeline a:hover::before {
+            background: #ff0;
+        }
+        /* Animación de aparición (fade-in) */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Cuadro de OT en ejecución: fondo negro semitransparente */
+        .ot-execution-box {
+            /* background: rgba(0,0,0,0.5); */
+            color: #fff;
+            padding: 10px;
+            /* font-size: 12px; */
+            margin-bottom: 20px;
+        }
+        /* Tabla de Solicitudes de Compra: efecto flotante */
+        .solicitudes-table {
+            border-radius: 20px;
+
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            /* background: #fff; */
+            background: rgba(255,255,255,0.6);
+            
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .solicitudes-table th, .solicitudes-table td {
+                padding: 10px;
+                /* border: 1px solid #ccc; */
+                font-size: 14px;
+                text-align: left;
+            }
+    
+            /* Encabezado vacío para el icono de edición */
+            .edit-icon-col {
+                width: 30px;
+                text-align: center;
+            }
+            /* Estilo para el icono de edición */
+            .edit-icon {
+                cursor: pointer;
+                color: #191645;
+                font-size: 1.2rem;
+            }
+            .edit-icon:hover {
+                color: #43c6ac;
+            }
+        /* Sección para assets sin OT */
+        .no-ot-summary {
+            padding: 50px;
+            background: rgba(255,255,255,0.95);
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 50px;
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+    
+    </style>
 {% endblock headtag %}
 
 {% block content %}
 
-
-<style>
-    /* Fondo: imagen fija desde S3 */
-    body {
-        background: url("https://hivik.s3.us-east-2.amazonaws.com/static/Imagen1.jpg") no-repeat center center fixed;
-        background-size: cover;
-    }
-    /* Sección de presentación */
-    .presentation-section {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 80vh;
-        text-align: center;
-        background: rgba(0,0,0,0.5);
-        margin-bottom: 50px;
-        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-    }
-    .presentation-section h1 {
-        font-size: 64px;
-        color: #fff;
-    }
-    /* Sección de cada asset */
-    .asset-section {
-        padding: 80px 50px;
-        border-bottom: 2px solid rgba(0,0,0,0.2);
-        margin-bottom: 50px;
-        background: rgba(255,255,255,0.9);
-        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-    }
-    .asset-title {
-        font-size: 42px;
-        font-weight: bold;
-        color: #000;
-    }
-    .compliance-indicator {
-        font-size: 20px;
-        color: #000;
-    }
-
-    /* Sidebar: ubicado en el lado derecho, sin superponerse al menú superior */
-    .sidebar {
-        position: fixed;
-        top: 100px; /* Dejar espacio para el navbar */
-        right: 0;
-        width: 50px; /* Estado colapsado */
-        height: 90vh; /* Más alto para abarcar todas las secciones */
-        background: rgba(0,0,0,0.6);
-        border-radius: 8px 0 0 8px;
-        z-index: 1100;
-        transition: width 0.3s;
-        overflow: hidden;
-        padding-left: 10px; /* Espacio a la izquierda para que se vea el círculo completo */
-        display: flex;
-        flex-direction: column;
-        justify-content: center; /* Centrar verticalmente */
-    }
-    .sidebar:hover {
-        width: 200px;
-    }   
-    /* Timeline dentro del sidebar */
-    .sidebar .timeline {
-        width: 100%;
-        padding: 0 10px;
-    }
-    .sidebar .timeline a {
-        display: block;
-        margin-bottom: 20px;
-        text-decoration: none;
-        position: relative;
-        /* Ocultamos el texto en estado colapsado */
-        color: transparent;
-        transition: color 0.3s;
-    }
-    /* Cuando el sidebar se expande, se muestra el texto */
-    .sidebar:hover .timeline a {
-        color: #fff;
-    }
-    /* Pseudo-elemento para los círculos */
-    .sidebar .timeline a::before {
-        content: "";
-        position: absolute;
-        left: -16px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 12px;
-        height: 12px;
-        background: #fff;
-        border-radius: 50%;
-        transition: background 0.3s;
-    }
-    /* Resaltar el círculo de la sección activa */
-    .sidebar .timeline a.active::before,
-    .sidebar .timeline a:hover::before {
-        background: #ff0;
-    }
-    /* Animación de aparición (fade-in) */
-    .fade-in {
-        opacity: 0;
-        transform: translateY(50px);
-        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-    }
-    .fade-in.visible {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    /* Cuadro de OT en ejecución: fondo negro semitransparente */
-    .ot-execution-box {
-        background: rgba(0,0,0,0.5);
-        color: #fff;
-        padding: 10px;
-        border-radius: 5px;
-        /* font-size: 12px; */
-        margin-bottom: 20px;
-    }
-    /* Tabla de Solicitudes de Compra: efecto flotante */
-    .solicitudes-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-        background: #fff;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        transition: transform 0.3s ease, opacity 0.3s ease;
-    }
-    .solicitudes-table th, .solicitudes-table td {
-            padding: 10px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-            text-align: left;
-        }
-
-        /* Encabezado vacío para el icono de edición */
-        .edit-icon-col {
-            width: 30px;
-            text-align: center;
-        }
-        /* Estilo para el icono de edición */
-        .edit-icon {
-            cursor: pointer;
-            color: #191645;
-            font-size: 1.2rem;
-        }
-        .edit-icon:hover {
-            color: #43c6ac;
-        }
-    /* Sección para assets sin OT */
-    .no-ot-summary {
-        padding: 50px;
-        background: rgba(255,255,255,0.95);
-        border: 2px solid #ccc;
-        border-radius: 8px;
-        text-align: center;
-        margin-bottom: 50px;
-        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-    }
-
-</style>
-
-
 <div class="container">
     <!-- Sección de presentación -->
-    <section id="presentation" class="presentation-section fade-in" data-aos="fade-up">
+    <section id="presentation" class="presentation-section fade-in mt-2" data-aos="fade-up">
         <div>
             <h1>Mantenimiento</h1>
             <p style="font-size:24px; color:#fff;">{{ current_date }}</p>
@@ -190,7 +191,7 @@
         <div class="row">
             <!-- Columna izquierda: OT en ejecución -->
             <div class="col-md-6">
-                <h3 style="color:#000; font-size:20px;">Órdenes en Ejecución</h3>
+                <h3 style="color:#fff; font-size:20px;">Órdenes en Ejecución</h3>
                 <div class="ot-execution-box">
                     {% if data.ots_ejecucion %}
                         <ul style="list-style: none; padding-left: 0; margin:0;">
@@ -206,15 +207,15 @@
                         {% endfor %}
                         </ul>
                     {% else %}
-                        <p style="color:#000;">No hay órdenes en ejecución.</p>
+                        <p style="color:#fff;">No hay órdenes en ejecución.</p>
                     {% endif %}
                 </div>
             </div>
             
             <!-- Columna derecha: OT finalizadas del mes actual -->
             <div class="col-md-6">
-                <h3 style="color:#000; font-size:20px;">Órdenes Finalizadas (Mes actual)</h3>
-                <ul style="list-style: none; padding:0; color:#000;">
+                <h3 style="color:#fff; font-size:20px;">Órdenes Finalizadas (Mes actual)</h3>
+                <ul style="list-style: none; padding:0; color:#fff;">
                     {% if data.ots_finalizadas %}
                         {% for ot_final in data.ots_finalizadas %}
                         <li style="margin-bottom: 10px;">
@@ -232,7 +233,7 @@
         <!-- Tabla de Solicitudes de Compra asociadas a OT en ejecución -->
         <div class="row">
             <div class="col-md-12">
-                <h3 style="color:#000; font-size:20px;">Solicitudes</h3>
+                <h3 style="color:#fff; font-size:20px;">Solicitudes</h3>
                 <table class="solicitudes-table">
                     <thead>
                         <tr>
@@ -248,7 +249,7 @@
                         <tr class="solicitud-row" id="solicitud-{{ sol.id }}" onclick="toggleSolicitudDetails({{ sol.id }});">
                             <td>
                                 {% if sol.ot %}
-                                    {{ sol.ot.description }} - {{ sol.quotation }}
+                                    <strong>{{ sol.ot.ot_num }}</strong> - {{ sol.quotation }}
                                     {% if sol.quotation %}
                                         <a href="{{ sol.quotation_url }}"><i class="bi bi-file-earmark-text"></i></a>
                                     {% endif %}
@@ -317,8 +318,8 @@
     
     <!-- Sección final: Resumen de assets SIN OT en ejecución -->
     <section id="assets-no-ot" class="asset-section fade-in" data-aos="fade-up">
-        <h2 class="asset-title" style="color:#000;">Resumen de Activos Sin OT en Ejecución</h2>
-        <ul style="color:#000;">
+        <h2 class="asset-title" style="color:#fff;">Resumen de Activos Sin OT en Ejecución</h2>
+        <ul style="color:#fff;">
             {% for asset in assets_no_ot %}
                 <li>{{ asset.name }} - Cumplimiento: {{ asset.maintenance_compliance_cache }}%</li>
             {% empty %}
@@ -329,7 +330,7 @@
 </div>
 
 <!-- Sidebar: timeline -->
-<div class="sidebar">
+<!-- <div class="sidebar">
     <div class="timeline">
         <a href="#presentation" class="sidebar-link" id="link-presentation"><span>Inicio</span></a>
         {% for data in assets_data %}
@@ -339,7 +340,7 @@
         {% endfor %}
         <a href="#assets-no-ot" class="sidebar-link" id="link-noot"><span>Sin OT</span></a>
     </div>
-</div>
+</div> -->
 
 <!-- Incluir AOS desde CDN -->
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>

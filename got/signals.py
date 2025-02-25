@@ -357,3 +357,43 @@ def create_failure_report_notification(sender, instance, created, **kwargs):
                     message=message,
                     redirect_url=redirect_url
                 )
+
+
+
+@receiver(post_save, sender=Solicitud)
+def notify_tramitado_solicitud(sender, instance, created, **kwargs):
+    # Solo se dispara al actualizar (no en la creación)
+    if created:
+        return
+
+    # Verificamos si la solicitud está en estado "Tramitado"
+    # (según tu lógica: aprobada y con sc_change_date asignado)
+    if instance.approved and instance.sc_change_date:
+        # Obtenemos el asset asociado; si la solicitud tiene OT, se obtiene a través de ésta, si no, se usa el asset directamente
+        asset = instance.ot.system.asset if instance.ot else instance.asset
+        if not asset:
+            return
+
+        asset_name = asset.name
+        title = f"Solicitud Tramitada para {asset_name}"
+        # Truncamos la descripción de suministros para incluirla en el mensaje
+        supplies_truncated = Truncator(instance.suministros).chars(100)
+        # Preparamos el mensaje, incluyendo el valor de num_sc y el usuario que tramitó (suponiendo que se registra en approved_by)
+        message = f"Se ha aprobado y tramitado la solicitud de compra: {supplies_truncated} - SC: {instance.num_sc}. Tramita: {instance.approved_by}."
+
+        # Opcional: podemos construir una URL de redirección similar a la de las notificaciones de creación
+        page_size = 20  # Debe coincidir con paginate_by en tu vista de solicitudes
+        newer_count = Solicitud.objects.filter(creation_date__gt=instance.creation_date).count()
+        page_number = (newer_count // page_size) + 1
+        redirect_url = reverse('got:rq-list') + f"?page={page_number}#solicitud-{instance.id}"
+
+        # Notificar al supervisor y al capitán del asset (si existen)
+        for role in ['supervisor', 'capitan']:
+            user = getattr(asset, role, None)
+            if user:
+                Notification.objects.create(
+                    user=user,
+                    title=title,
+                    message=message,
+                    redirect_url=redirect_url
+                )

@@ -14,4 +14,5 @@ urlpatterns = [
 
     path('maintenance-plan/dashbord/', ScrollytellingAssetsView.as_view(), name='stoytell'),
     path('solicitud/<int:pk>/editar/', EditSolicitudView.as_view(), name='edit_solicitud_view'),
+
 ]
