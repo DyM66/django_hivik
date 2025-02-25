@@ -1,172 +1,7 @@
-{% extends "got/base/base_generic.html" %}
-{% load my_tags %}
-{% block headtag %}
-    <!-- Cargar AOS desde CDN o S3 -->
-    <link rel="stylesheet" href="https://hivik.s3.us-east-2.amazonaws.com/static/css/aos.css">
-    <style>
-        /* Fondo: imagen fija desde S3 */
-        body {
-            background: url("https://hivik.s3.us-east-2.amazonaws.com/fondo-degradado-azul-oscuro_78370-2078.avif") no-repeat center center fixed;
-            background-size: cover;
-        }
-        /* Sección de presentación */
-        .presentation-section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 80vh;
-            text-align: center;
-            background: rgba(0,0,0,0.5);
-            margin-bottom: 50px;
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-        }
-        .presentation-section h1 {
-            font-size: 64px;
-            color: #fff;
-        }
-        /* Sección de cada asset */
-        .asset-section {
-            padding: 80px 50px;
-            border-bottom: 2px solid rgba(0,0,0,0.2);
-            margin-bottom: 50px;
-            /* background: rgba(255,255,255,0.9); */
-            background: rgba(0,0,0,0.5);
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-        }
-        .asset-title {
-            font-size: 42px;
-            font-weight: bold;
-            color: #fff;
-        }
-        .compliance-indicator {
-            font-size: 20px;
-            color: #fff;
-        }
-    
-        /* Sidebar: ubicado en el lado derecho, sin superponerse al menú superior */
-        .sidebar {
-            position: fixed;
-            top: 100px; /* Dejar espacio para el navbar */
-            right: 0;
-            width: 50px; /* Estado colapsado */
-            height: 90vh; /* Más alto para abarcar todas las secciones */
-            background: rgba(0,0,0,0.6);
-            border-radius: 8px 0 0 8px;
-            z-index: 1100;
-            transition: width 0.3s;
-            overflow: hidden;
-            padding-left: 10px; /* Espacio a la izquierda para que se vea el círculo completo */
-            display: flex;
-            flex-direction: column;
-            justify-content: center; /* Centrar verticalmente */
-        }
-        .sidebar:hover {
-            width: 200px;
-        }   
-        /* Timeline dentro del sidebar */
-        .sidebar .timeline {
-            width: 100%;
-            padding: 0 10px;
-        }
-        .sidebar .timeline a {
-            display: block;
-            margin-bottom: 20px;
-            text-decoration: none;
-            position: relative;
-            /* Ocultamos el texto en estado colapsado */
-            color: transparent;
-            transition: color 0.3s;
-        }
-        /* Cuando el sidebar se expande, se muestra el texto */
-        .sidebar:hover .timeline a {
-            color: #fff;
-        }
-        /* Pseudo-elemento para los círculos */
-        .sidebar .timeline a::before {
-            content: "";
-            position: absolute;
-            left: -16px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 12px;
-            height: 12px;
-            background: #fff;
-            border-radius: 50%;
-            transition: background 0.3s;
-        }
-        /* Resaltar el círculo de la sección activa */
-        .sidebar .timeline a.active::before,
-        .sidebar .timeline a:hover::before {
-            background: #ff0;
-        }
-        /* Animación de aparición (fade-in) */
-        .fade-in {
-            opacity: 0;
-            transform: translateY(50px);
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-        }
-        .fade-in.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        /* Cuadro de OT en ejecución: fondo negro semitransparente */
-        .ot-execution-box {
-            /* background: rgba(0,0,0,0.5); */
-            color: #fff;
-            padding: 10px;
-            /* font-size: 12px; */
-            margin-bottom: 20px;
-        }
-        /* Tabla de Solicitudes de Compra: efecto flotante */
-        .solicitudes-table {
-            border-radius: 20px;
-
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            /* background: #fff; */
-            background: rgba(255,255,255,0.6);
-            
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-        .solicitudes-table th, .solicitudes-table td {
-                padding: 10px;
-                /* border: 1px solid #ccc; */
-                font-size: 14px;
-                text-align: left;
-            }
-    
-            /* Encabezado vacío para el icono de edición */
-            .edit-icon-col {
-                width: 30px;
-                text-align: center;
-            }
-            /* Estilo para el icono de edición */
-            .edit-icon {
-                cursor: pointer;
-                color: #191645;
-                font-size: 1.2rem;
-            }
-            .edit-icon:hover {
-                color: #43c6ac;
-            }
-        /* Sección para assets sin OT */
-        .no-ot-summary {
-            padding: 50px;
-            background: rgba(255,255,255,0.95);
-            border: 2px solid #ccc;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 50px;
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-        }
-    
-    </style>
-{% endblock headtag %}
+{% extends "got/base/base_generic.html" %}{% load my_tags %}
+{% block headtag %}{% include 'mto/scrolly_styles.html' %}{% endblock headtag %}
 
 {% block content %}
-
 <div class="container">
     <!-- Sección de presentación -->
     <section id="presentation" class="presentation-section fade-in mt-2" data-aos="fade-up">
@@ -178,6 +13,26 @@
 
     <!-- Secciones para cada asset con OT en ejecución -->
     {% for data in assets_data %}
+    <!-- Primera sección para indicadores y gráficos -->
+    <section id="asset-{{ data.asset.abbreviation }}-indicators" class="asset-indicators fade-in" data-aos="fade-up">
+        <div class="row">
+            <div class="col-md-4">
+                <h3>Distribución de OT</h3>
+                <!-- Canvas para la gráfica circular -->
+                <canvas id="chart-{{ data.asset.abbreviation }}" width="300" height="300"></canvas>
+            </div>
+            <div class="col-md-4">
+                <h3>Indicador de Cumplimiento</h3>
+                <p class="indicator-number">{{ data.compliance }}%</p>
+            </div>
+            <div class="col-md-4">
+                <h3>Reportes de Falla</h3>
+                <p class="indicator-number">{{ data.failure_reports_total }}</p>
+                <p>Críticos: {{ data.failure_reports_critical }}</p>
+            </div>
+        </div>
+    </section>
+
     <section id="asset-{{ data.asset.abbreviation }}" class="asset-section fade-in" data-aos="fade-up">
         <div class="row">
             <div class="col-md-8">
@@ -329,21 +184,10 @@
     </section>
 </div>
 
-<!-- Sidebar: timeline -->
-<!-- <div class="sidebar">
-    <div class="timeline">
-        <a href="#presentation" class="sidebar-link" id="link-presentation"><span>Inicio</span></a>
-        {% for data in assets_data %}
-            <a href="#asset-{{ data.asset.abbreviation }}" class="sidebar-link" id="link-{{ data.asset.abbreviation }}">
-                <span>{{ data.asset.name }}</span>
-            </a>
-        {% endfor %}
-        <a href="#assets-no-ot" class="sidebar-link" id="link-noot"><span>Sin OT</span></a>
-    </div>
-</div> -->
 
 <!-- Incluir AOS desde CDN -->
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
 <script>
     // Inicializar AOS
     AOS.init({
@@ -391,11 +235,6 @@
                 el.classList.add('visible');
             }
         });
-        // Resaltar la sección actual en el sidebar
-        var sidebarLinks = document.querySelectorAll('.sidebar .timeline a');
-        sidebarLinks.forEach(function(link) {
-            link.classList.remove('active');
-        });
         document.querySelectorAll('section.asset-section, section.presentation-section, section#assets-no-ot').forEach(function(section) {
             var rect = section.getBoundingClientRect();
             if (rect.top <= 150 && rect.bottom >= 150) {
@@ -410,13 +249,34 @@
     window.addEventListener('scroll', revealOnScroll);
     document.addEventListener('DOMContentLoaded', revealOnScroll);
 
-    // Smooth scroll para el sidebar
-    document.querySelectorAll('.sidebar .timeline a').forEach(function(anchor) {
-        anchor.addEventListener('click', function(e) {
-            e.preventDefault();
-            var targetId = this.getAttribute('href');
-            document.querySelector(targetId).scrollIntoView({behavior: 'smooth'});
+    // Inicializar las gráficas para cada asset (usando Chart.js)
+    {% for data in assets_data %}
+        var ctx{{ data.asset.abbreviation }} = document.getElementById('chart-{{ data.asset.abbreviation }}').getContext('2d');
+        var chart{{ data.asset.abbreviation }} = new Chart(ctx{{ data.asset.abbreviation }}, {
+            type: 'pie',
+            data: {
+                labels: ['Preventivo ({{ data.ot_chart.preventivo_pct|safe }}%)', 'Correctivo ({{ data.ot_chart.correctivo_pct|safe }}%)', 'Modificativo ({{ data.ot_chart.modificativo_pct|safe }}%)'],
+                datasets: [{
+                    data: [{{ data.ot_chart.preventivo_count }}, {{ data.ot_chart.correctivo_count }}, {{ data.ot_chart.modificativo_count }}],
+                    backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(255, 159, 64, 0.7)'],
+                    boderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)', 'rgba(255, 159, 64, 1)'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                }
+            }
         });
-    });
+    {% endfor %}
+
 </script>
 {% endblock %}

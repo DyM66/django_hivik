@@ -702,10 +702,9 @@ from django.views.generic import TemplateView
 from django.utils import timezone
 from django.db.models import Count, Q
 from django.utils.text import Truncator
-from got.models import Asset, Ot, Task, Ruta
+from got.models import Asset, Ot, Task, Ruta, FailureReport
 from inv.models import Solicitud 
 from collections import defaultdict
-
 
 
 class ScrollytellingAssetsView(TemplateView):
@@ -751,6 +750,35 @@ class ScrollytellingAssetsView(TemplateView):
                     else:
                         ot_finalizadas_grouped[key] = {'ot': ot, 'count': 1}
             ots_finalizadas_list = list(ot_finalizadas_grouped.values())
+
+            # Cálculo de la gráfica circular: contar todas las OT (sin importar su estado) del asset
+            ot_all = Ot.objects.filter(system__asset=asset)
+            total_ot = ot_all.count()
+            if total_ot > 0:
+                count_preventivo = ot_all.filter(tipo_mtto='p').count()
+                count_correctivo = ot_all.filter(tipo_mtto='c').count()
+                count_modificativo = ot_all.filter(tipo_mtto='m').count()
+                pct_preventivo = (count_preventivo / total_ot) * 100
+                pct_correctivo = (count_correctivo / total_ot) * 100
+                pct_modificativo = (count_modificativo / total_ot) * 100
+            else:
+                count_preventivo = count_correctivo = count_modificativo = 0
+                pct_preventivo = pct_correctivo = pct_modificativo = 0
+
+            ot_chart = {
+                'preventivo_count': count_preventivo,
+                'correctivo_count': count_correctivo,
+                'modificativo_count': count_modificativo,
+                'preventivo_pct': round(pct_preventivo, 2),
+                'correctivo_pct': round(pct_correctivo, 2),
+                'modificativo_pct': round(pct_modificativo, 2),
+            }
+
+            # Indicadores de fallas
+            # Se consideran todos los FailureReport relacionados a un equipo cuyo sistema pertenezca a este asset.
+            failure_reports = FailureReport.objects.filter(equipo__system__asset=asset)
+            total_failure_reports = failure_reports.count()
+            critical_failure_reports = failure_reports.filter(critico=True).count()
             
             # Solicitudes asociadas a las OT en ejecución, ordenadas por número de OT
             solicitudes_qs = Solicitud.objects.filter(ot__in=ots_en_ejecucion).order_by('ot__num_ot')
@@ -818,6 +846,20 @@ class ScrollytellingAssetsView(TemplateView):
                 'individual_solicitudes': individual_solicitudes,
                 'overall_total': overall_total,
             })
+
+            assets_data.append({
+                'asset': asset,
+                'compliance': asset.maintenance_compliance_cache,
+                'ots_ejecucion': ot_ejecucion_data,
+                'ots_finalizadas': ots_finalizadas_list,
+                'ot_chart': ot_chart,
+                'failure_reports_total': total_failure_reports,
+                'failure_reports_critical': critical_failure_reports,
+                'grouped_solicitudes': final_grouped,
+                'individual_solicitudes': individual_solicitudes,
+                'overall_total': overall_total,
+            })
+
             assets_with_ot.append(asset)
         
         # Assets sin OT en ejecución: se muestran en la sección final
