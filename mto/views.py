@@ -730,8 +730,8 @@ class ScrollytellingAssetsView(TemplateView):
             # OT finalizadas (estado "f") del mes actual
             ots_finalizadas = Ot.objects.filter(system__asset=asset, state='f', closing_date__year=current_date.year, closing_date__month=current_date.month)
             
+            # Repasamos ordenes de trabajo que contienen codigos de rutinas en la descrición
             routines_codes = list(asset.system_set.values_list('rutas__code', flat=True))
-            
             ot_finalizadas_grouped = {}
             for ot in ots_finalizadas:
                 if any(code and str(code) in ot.description for code in routines_codes):
@@ -741,7 +741,6 @@ class ScrollytellingAssetsView(TemplateView):
                     else:
                         ot_finalizadas_grouped[key] = {'ot': ot, 'count': 1}
             ots_finalizadas_list = list(ot_finalizadas_grouped.values())
-
 
             # Indicadores de fallas
             # Se consideran todos los FailureReport relacionados a un equipo cuyo sistema pertenezca a este asset.
@@ -763,8 +762,8 @@ class ScrollytellingAssetsView(TemplateView):
                     'cotizacion': cotizacion,
                     'ot_num': ot_num,
                     'num_sc': sol.num_sc if sol.num_sc else "-",
-                    'total': sol.total,  # valor numérico
-                    'estado': sol.recibido_por,  # se usará este campo como "estado"
+                    'total': sol.total,
+                    'estado': sol.recibido_por,
                     'suministros': sol.suministros,
                     'solicitante': sol.requested_by,
                     'creation_date': sol.creation_date,
@@ -798,8 +797,6 @@ class ScrollytellingAssetsView(TemplateView):
                         sol['grouped'] = True
                     final_grouped.append(group)
 
-            # Calcular el total general: sumamos los totales de las solicitudes individuales
-            # y además el subtotal de cada grupo
             individual_total = sum(sol['total_numeric'] for sol in individual_solicitudes)
             grouped_total = sum(group['subtotal'] for group in final_grouped)
             overall_total = individual_total + grouped_total
@@ -817,9 +814,7 @@ class ScrollytellingAssetsView(TemplateView):
             })
 
             assets_with_ot.append(asset)
-        
-        # Assets sin OT en ejecución: se muestran en la sección final
-        assets_no_ot = assets.exclude(pk__in=[a.pk for a in assets_with_ot])
+        assets_no_ot = assets.exclude(pk__in=[a.pk for a in assets_with_ot]) # Assets sin OT en ejecución: se muestran en la sección final
         
         context['assets_data'] = assets_data
         context['assets_no_ot'] = assets_no_ot
@@ -827,7 +822,6 @@ class ScrollytellingAssetsView(TemplateView):
         context['page_title'] = "Mantenimiento"
 
         labels = ['Preventivo', 'Correctivo', 'Modificativo']
-
         ots = Ot.objects.filter(creation_date__month=current_date.month, creation_date__year=current_date.year, system__asset__area='a')
         total_ot = ots.count()
         if total_ot > 0:
@@ -855,10 +849,7 @@ class ScrollytellingAssetsView(TemplateView):
 
 
         # NUEVO BLOQUE: Tabla de mantenimiento
-
-        # Definir meses (de febrero a diciembre)
         months = list(range(2, 13))
-        # Nombres de meses en español
         month_names = ["Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
 
         maintenance_table = {}
@@ -889,16 +880,12 @@ class ScrollytellingAssetsView(TemplateView):
         for m in months:
             agg_planned = MaintenancePlanEntry.objects.filter(
                 plan__ruta__system__asset__area__in=['a', 'o', 'v'],
-                month=m,
-                year=current_date.year
-            ).aggregate(total=Sum("planned_executions"))
+                month=m, year=current_date.year).aggregate(total=Sum("planned_executions"))
             planned = agg_planned["total"] or 0
 
             agg_executed = MaintenancePlanEntry.objects.filter(
                 plan__ruta__system__asset__area__in=['a', 'o', 'v'],
-                month=m,
-                year=current_date.year
-            ).aggregate(total=Sum("actual_executions"))
+                month=m, year=current_date.year).aggregate(total=Sum("actual_executions"))
             executed = agg_executed["total"] or 0
 
             percentage = (executed / planned * 100) if planned > 0 else 0
@@ -908,6 +895,36 @@ class ScrollytellingAssetsView(TemplateView):
         context['maintenance_table'] = maintenance_table
         context['maintenance_months'] = month_names
 
+        # INDICADOR GLOBAL: Cálculo del promedio de maintenance_compliance_cache
+        # Por ejemplo, de todos los assets con show=True que tengan un valor en el campo.
+        from django.db.models import Avg
+        all_assets = Asset.objects.filter(show=True).exclude(maintenance_compliance_cache__isnull=True)
+        avg_compliance = all_assets.aggregate(Avg('maintenance_compliance_cache'))
+        # Si no hay registros, usar 0 o None
+        global_compliance = avg_compliance['maintenance_compliance_cache__avg'] or 0
+        # Redondear a 2 decimales
+        context['global_maintenance_compliance'] = round(global_compliance, 2)
+
+        # NUEVO: Rutinas planeadas vs ejecutadas por cada barco (año actual)
+        assets_bar_data = []
+        barcos = Asset.objects.filter(area='a', show=True)
+        for barco in barcos:
+            agg_bar = MaintenancePlanEntry.objects.filter(
+                plan__ruta__system__asset=barco,
+                year=current_date.year
+            ).aggregate(
+                planned=Sum('planned_executions'),
+                executed=Sum('actual_executions')
+            )
+            planned_val = agg_bar['planned'] or 0
+            executed_val = agg_bar['executed'] or 0
+            assets_bar_data.append({
+                'name': barco.name,
+                'planned': planned_val,
+                'executed': executed_val,
+            })
+
+        context['assets_bar_data'] = assets_bar_data
 
         return context
 

@@ -15,7 +15,17 @@
     <!-- Sección final: Resumen y tabla de mantenimiento -->
     <section id="dashboard" class="asset-section fade-in" data-aos="fade-up">
         <h2 class="asset-title" style="color:#fff;">Resumen</h2>
-        <canvas id="pie-chart" width="300" height="300"></canvas>
+
+        <div class="row">
+            <div class="card-body col-md-6" style="color:#fff;">
+                <h5 class="card-title" style="margin: 15px;">Distribución tipo de OT</h5>
+                <canvas id="pie-chart" width="300" height="300"></canvas>
+            </div>
+            <div class="card-body col-md-6" style="color:#fff;">
+                <h5 class="card-title">Cumplimiento del plan de mantenimiento</h5>
+                <h1 class="display-1">{{ global_maintenance_compliance }}%</h1> 
+            </div>
+        </div>
         
         <h3 style="color:#fff; margin-top:20px;">Tabla de Mantenimiento</h3>
         <table class="maintenance-table" style="width:100%; margin-top:20px; color:#fff; border: 1px solid #fff;">
@@ -38,6 +48,14 @@
                 {% endfor %}
             </tbody>
         </table>
+    </section>
+
+
+    <!-- Sección final: Resumen y tabla de mantenimiento -->
+    <section id="dashboard2" class="asset-section fade-in" data-aos="fade-up" style="text-align:center;">
+        <h2 class="asset-title" style="color:#fff;">Consolidado por barco</h2>
+        <!-- Canvas para la nueva gráfica de barras (Plan vs Ejecutado) -->
+        <canvas id="bar-chart" style="width:100%; max-width:1200px; height:500px;"></canvas>
     </section>
 
     <!-- Secciones para cada asset con OT en ejecución -->
@@ -307,6 +325,79 @@
         var pieCtx = document.getElementById('pie-chart').getContext('2d');
         window.pieChart = new Chart(pieCtx, pieConfig);
     };
+
+
+    // Al cargar la página, dibujar ambas gráficas
+    window.onload = function() {
+        // 1) Pie chart
+        var pieCtx = document.getElementById('pie-chart').getContext('2d');
+        window.pieChart = new Chart(pieCtx, pieConfig);
+
+        // 2) Bar chart: Plan vs Ejecutado por barco
+        var barLabels = [
+            {% for item in assets_bar_data %}
+                "{{ item.name }}",
+            {% endfor %}
+        ];
+        var plannedData = [
+            {% for item in assets_bar_data %}
+                {{ item.planned }},
+            {% endfor %}
+        ];
+        var executedData = [
+            {% for item in assets_bar_data %}
+                {{ item.executed }},
+            {% endfor %}
+        ];
+
+        var barConfig = {
+            type: 'bar',
+            data: {
+                labels: barLabels,
+                datasets: [
+                    {
+                        label: 'Planificado',
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        data: plannedData
+                    },
+                    {
+                        label: 'Ejecutado',
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        data: executedData
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    xAxes: [{
+                        ticks: {
+                            fontColor: '#fff'
+                        }
+                    }],
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true,
+                            fontColor: '#fff'
+                        }
+                    }]
+                },
+                legend: {
+                    labels: {
+                        fontColor: '#fff'
+                    }
+                }
+            }
+        };
+
+        var barCtx = document.getElementById('bar-chart').getContext('2d');
+        window.barChart = new Chart(barCtx, barConfig);
+    };
+</script>
 
 </script>
 {% endblock %}

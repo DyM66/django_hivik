@@ -2943,8 +2943,8 @@ class TransferSolicitudView(LoginRequiredMixin, PermissionRequiredMixin, View):
 'GENERAL VIEWS'
 @login_required
 def indicadores(request):
-    m = 1
-    y = 2025
+    m = 12
+    y = 2024
 
     area_filter = request.GET.get('area', None)
 
