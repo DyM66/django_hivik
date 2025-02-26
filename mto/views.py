@@ -713,34 +713,25 @@ class ScrollytellingAssetsView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         current_date = timezone.now().date()
-        
-        # Listado de assets de área "a" (barcos) activos (show=True)
         assets = Asset.objects.filter(area='a', show=True)
         assets_data = []
-        assets_with_ot = []  # Aquellos que tienen OT en ejecución
+        assets_with_ot = []
         
         for asset in assets:
-            # Obtener OT en ejecución (estado "x") para este asset
             ots_en_ejecucion = Ot.objects.filter(system__asset=asset, state='x')
             if not ots_en_ejecucion.exists():
                 continue  # Omitir assets sin OT en ejecución de la sección principal
 
-            # Procesar OT en ejecución
-            ot_ejecucion_data = []
+            ot_ejecucion_data = []  # Procesar OT en ejecución
             for ot in ots_en_ejecucion:
                 tasks_pending = ot.task_set.filter(finished=False)
-                ot_ejecucion_data.append({
-                    'ot': ot,
-                    'tasks': tasks_pending,
-                })
+                ot_ejecucion_data.append({'ot': ot, 'tasks': tasks_pending,})
 
             # OT finalizadas (estado "f") del mes actual
-            ots_finalizadas = Ot.objects.filter(
-                system__asset=asset, state='f',
-                closing_date__year=current_date.year,
-                closing_date__month=current_date.month
-            )
+            ots_finalizadas = Ot.objects.filter(system__asset=asset, state='f', closing_date__year=current_date.year, closing_date__month=current_date.month)
+            
             routines_codes = list(asset.system_set.values_list('rutas__code', flat=True))
+            
             ot_finalizadas_grouped = {}
             for ot in ots_finalizadas:
                 if any(code and str(code) in ot.description for code in routines_codes):
@@ -751,28 +742,6 @@ class ScrollytellingAssetsView(TemplateView):
                         ot_finalizadas_grouped[key] = {'ot': ot, 'count': 1}
             ots_finalizadas_list = list(ot_finalizadas_grouped.values())
 
-            # Cálculo de la gráfica circular: contar todas las OT (sin importar su estado) del asset
-            ot_all = Ot.objects.filter(system__asset=asset)
-            total_ot = ot_all.count()
-            if total_ot > 0:
-                count_preventivo = ot_all.filter(tipo_mtto='p').count()
-                count_correctivo = ot_all.filter(tipo_mtto='c').count()
-                count_modificativo = ot_all.filter(tipo_mtto='m').count()
-                pct_preventivo = (count_preventivo / total_ot) * 100
-                pct_correctivo = (count_correctivo / total_ot) * 100
-                pct_modificativo = (count_modificativo / total_ot) * 100
-            else:
-                count_preventivo = count_correctivo = count_modificativo = 0
-                pct_preventivo = pct_correctivo = pct_modificativo = 0
-
-            ot_chart = {
-                'preventivo_count': count_preventivo,
-                'correctivo_count': count_correctivo,
-                'modificativo_count': count_modificativo,
-                'preventivo_pct': round(pct_preventivo, 2),
-                'correctivo_pct': round(pct_correctivo, 2),
-                'modificativo_pct': round(pct_modificativo, 2),
-            }
 
             # Indicadores de fallas
             # Se consideran todos los FailureReport relacionados a un equipo cuyo sistema pertenezca a este asset.
@@ -828,8 +797,6 @@ class ScrollytellingAssetsView(TemplateView):
                     for sol in group['solicitudes']:
                         sol['grouped'] = True
                     final_grouped.append(group)
-            # Solicitudes finales: combinación de agrupadas e individuales
-            final_solicitudes = final_grouped + individual_solicitudes
 
             # Calcular el total general: sumamos los totales de las solicitudes individuales
             # y además el subtotal de cada grupo
@@ -842,17 +809,6 @@ class ScrollytellingAssetsView(TemplateView):
                 'compliance': asset.maintenance_compliance_cache,
                 'ots_ejecucion': ot_ejecucion_data,
                 'ots_finalizadas': ots_finalizadas_list,
-                'grouped_solicitudes': final_grouped,
-                'individual_solicitudes': individual_solicitudes,
-                'overall_total': overall_total,
-            })
-
-            assets_data.append({
-                'asset': asset,
-                'compliance': asset.maintenance_compliance_cache,
-                'ots_ejecucion': ot_ejecucion_data,
-                'ots_finalizadas': ots_finalizadas_list,
-                'ot_chart': ot_chart,
                 'failure_reports_total': total_failure_reports,
                 'failure_reports_critical': critical_failure_reports,
                 'grouped_solicitudes': final_grouped,
@@ -869,11 +825,93 @@ class ScrollytellingAssetsView(TemplateView):
         context['assets_no_ot'] = assets_no_ot
         context['current_date'] = current_date
         context['page_title'] = "Mantenimiento"
+
+        labels = ['Preventivo', 'Correctivo', 'Modificativo']
+
+        ots = Ot.objects.filter(creation_date__month=current_date.month, creation_date__year=current_date.year, system__asset__area='a')
+        total_ot = ots.count()
+        if total_ot > 0:
+            count_preventivo = ots.filter(tipo_mtto='p').count()
+            count_correctivo = ots.filter(tipo_mtto='c').count()
+            count_modificativo = ots.filter(tipo_mtto='m').count()
+            pct_preventivo = round((count_preventivo / total_ot) * 100, 2)
+            pct_correctivo = round((count_correctivo / total_ot) * 100, 2)
+            pct_modificativo = round((count_modificativo / total_ot) * 100, 2)
+        else:
+            count_preventivo = count_correctivo = count_modificativo = 0
+            pct_preventivo = pct_correctivo = pct_modificativo = 0
+
+        ot_chart = {
+            'preventivo_count': count_preventivo,
+            'correctivo_count': count_correctivo,
+            'modificativo_count': count_modificativo,
+            'preventivo_pct': round(pct_preventivo, 2),
+            'correctivo_pct': round(pct_correctivo, 2),
+            'modificativo_pct': round(pct_modificativo, 2),
+        }
+
+        context['labels'] = labels
+        context['data'] = ot_chart
+
+
+        # NUEVO BLOQUE: Tabla de mantenimiento
+
+        # Definir meses (de febrero a diciembre)
+        months = list(range(2, 13))
+        # Nombres de meses en español
+        month_names = ["Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+
+        maintenance_table = {}
+        # Configuración de filas: cada entrada define el área y el campo a sumar
+        rows_config = [
+            {"label": "Mantenimiento Embarcaciones Programados", "area": "a", "field": "planned_executions"},
+            {"label": "Mantenimiento Embarcaciones Ejecutados", "area": "a", "field": "actual_executions"},
+            {"label": "Mantenimiento Equipos de BUCEO Programados", "area": "o", "field": "planned_executions"},
+            {"label": "Mantenimiento Equipos de BUCEO Ejecutados", "area": "o", "field": "actual_executions"},
+            {"label": "Mantenimiento VEHICULOS Programados", "area": "v", "field": "planned_executions"},
+            {"label": "Mantenimiento VEHICULOS Ejecutados", "area": "v", "field": "actual_executions"},
+        ]
+        # Para cada fila, calcular los totales mes a mes
+        for row in rows_config:
+            row_values = []
+            for m in months:
+                agg = MaintenancePlanEntry.objects.filter(
+                    plan__ruta__system__asset__area=row["area"],
+                    month=m,
+                    year=current_date.year
+                ).aggregate(total=Sum(row["field"]))
+                value = agg["total"] or 0
+                row_values.append(value)
+            maintenance_table[row["label"]] = row_values
+
+        # Fila final: porcentaje de ejecución = (total ejecutado / total planificado * 100)
+        total_percentage = []
+        for m in months:
+            agg_planned = MaintenancePlanEntry.objects.filter(
+                plan__ruta__system__asset__area__in=['a', 'o', 'v'],
+                month=m,
+                year=current_date.year
+            ).aggregate(total=Sum("planned_executions"))
+            planned = agg_planned["total"] or 0
+
+            agg_executed = MaintenancePlanEntry.objects.filter(
+                plan__ruta__system__asset__area__in=['a', 'o', 'v'],
+                month=m,
+                year=current_date.year
+            ).aggregate(total=Sum("actual_executions"))
+            executed = agg_executed["total"] or 0
+
+            percentage = (executed / planned * 100) if planned > 0 else 0
+            total_percentage.append(round(percentage, 2))
+        maintenance_table["Total (%)"] = total_percentage
+
+        context['maintenance_table'] = maintenance_table
+        context['maintenance_months'] = month_names
+
+
         return context
 
-# {% ruta_status ruta as status %}
-# <td>{{ ruta.next_date|date:"d/m/Y" }}</td>
-# <td>{{ ruta.daysleft }}</td>    
+
 from mto.forms import SolicitudUpdateForm
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView

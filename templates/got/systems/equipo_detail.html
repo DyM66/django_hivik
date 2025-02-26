@@ -112,6 +112,9 @@
 								<a href="{% url 'got:equipo-delete' object.code %}" title="Eliminar" class="action-icon me-2">
 									<i class="bi bi-trash"></i>
 								</a>
+								<a href="{% url 'got:equipo-pdf' object.code %}" title="Eliminar" class="action-icon me-2">
+									<i class="fa-solid fa-download"></i>
+								</a>
 								{% if object.critico %}
 									<i class="fa-solid fa-star action-icon" title="Equipo crítico"></i>
 								{% else %}

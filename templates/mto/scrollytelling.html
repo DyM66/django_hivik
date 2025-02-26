@@ -11,33 +11,43 @@
         </div>
     </section>
 
+
+    <!-- Sección final: Resumen y tabla de mantenimiento -->
+    <section id="dashboard" class="asset-section fade-in" data-aos="fade-up">
+        <h2 class="asset-title" style="color:#fff;">Resumen</h2>
+        <canvas id="pie-chart" width="300" height="300"></canvas>
+        
+        <h3 style="color:#fff; margin-top:20px;">Tabla de Mantenimiento</h3>
+        <table class="maintenance-table" style="width:100%; margin-top:20px; color:#fff; border: 1px solid #fff;">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #fff;">Concepto</th>
+                    {% for month in maintenance_months %}
+                        <th style="border: 1px solid #fff;">{{ month }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for label, values in maintenance_table.items %}
+                    <tr>
+                        <td style="border: 1px solid #fff;">{{ label }}</td>
+                        {% for value in values %}
+                            <td style="border: 1px solid #fff; text-align: center;">{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
     <!-- Secciones para cada asset con OT en ejecución -->
     {% for data in assets_data %}
-    <!-- Primera sección para indicadores y gráficos -->
-    <!-- <section id="asset-{{ data.asset.abbreviation }}-indicators" class="asset-indicators fade-in" data-aos="fade-up">
-        <div class="row">
-            <div class="col-md-4">
-                <h3>Distribución de OT</h3>
-                <canvas id="chart-{{ data.asset.abbreviation }}" width="300" height="300"></canvas>
-            </div>
-            <div class="col-md-4">
-                <h3>Indicador de Cumplimiento</h3>
-                <p class="indicator-number">{{ data.compliance }}%</p>
-            </div>
-            <div class="col-md-4">
-                <h3>Reportes de Falla</h3>
-                <p class="indicator-number">{{ data.failure_reports_total }}</p>
-                <p>Críticos: {{ data.failure_reports_critical }}</p>
-            </div>
-        </div>
-    </section> -->
 
     <section id="asset-{{ data.asset.abbreviation }}" class="asset-section fade-in" data-aos="fade-up">
         <div class="row">
             <div class="col-md-8">
                 <h2 class="asset-title">
                     {{ data.asset.name }} 
-                    <span class="compliance-indicator">({{ data.compliance }}%)</span>
                 </h2>
             </div>
         </div>
@@ -214,15 +224,6 @@
         }
     }
 
-    // Cerrar el modal si se hace clic fuera del contenido del modal
-    window.addEventListener("click", function(event) {
-        var modals = document.querySelectorAll(".custom-modal");
-        modals.forEach(function(modal) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        });
-    });
 
     // Función para resaltar la sección activa en el sidebar
     function revealOnScroll() {
@@ -233,6 +234,11 @@
             if (elementTop < windowHeight - 100) {
                 el.classList.add('visible');
             }
+        });
+        // Resaltar la sección actual en el sidebar
+        var sidebarLinks = document.querySelectorAll('.sidebar .timeline a');
+        sidebarLinks.forEach(function(link) {
+            link.classList.remove('active');
         });
         document.querySelectorAll('section.asset-section, section.presentation-section, section#assets-no-ot').forEach(function(section) {
             var rect = section.getBoundingClientRect();
@@ -248,34 +254,59 @@
     window.addEventListener('scroll', revealOnScroll);
     document.addEventListener('DOMContentLoaded', revealOnScroll);
 
-    // Inicializar las gráficas para cada asset (usando Chart.js)
-    {% for data in assets_data %}
-        var ctx{{ data.asset.abbreviation }} = document.getElementById('chart-{{ data.asset.abbreviation }}').getContext('2d');
-        var chart{{ data.asset.abbreviation }} = new Chart(ctx{{ data.asset.abbreviation }}, {
-            type: 'pie',
-            data: {
-                labels: ['Preventivo ({{ data.ot_chart.preventivo_pct|safe }}%)', 'Correctivo ({{ data.ot_chart.correctivo_pct|safe }}%)', 'Modificativo ({{ data.ot_chart.modificativo_pct|safe }}%)'],
-                datasets: [{
-                    data: [{{ data.ot_chart.preventivo_count }}, {{ data.ot_chart.correctivo_count }}, {{ data.ot_chart.modificativo_count }}],
-                    backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(255, 159, 64, 0.7)'],
-                    boderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)', 'rgba(255, 159, 64, 1)'],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: {
-                            color: '#fff'
-                        }
-                    }
+    // Smooth scroll para el sidebar
+    document.querySelectorAll('.sidebar .timeline a').forEach(function(anchor) {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            var targetId = this.getAttribute('href');
+            document.querySelector(targetId).scrollIntoView({behavior: 'smooth'});
+        });
+    });
+
+    var pieConfig = {
+        type: 'pie',
+        data: {
+            labels: [
+                'Preventivo ({{ data.preventivo_pct|safe }}%)',
+                'Correctivo ({{ data.correctivo_pct|safe }}%)',
+                'Modificativo ({{ data.modificativo_pct|safe }}%)'
+            ],
+            datasets: [{
+                data: [
+                    {{ data.preventivo_count }},
+                    {{ data.correctivo_count }},
+                    {{ data.modificativo_count }}
+                ],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(255, 159, 64, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(255, 159, 64, 1)'
+                    ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: false,
+            legend: {
+                display: true,
+                position: 'bottom',
+                labels: {
+                    fontColor: '#fff',
+                    fontSize: 16
                 }
             }
-        });
-    {% endfor %}
+        }
+    };
+
+    window.onload = function() {
+        var pieCtx = document.getElementById('pie-chart').getContext('2d');
+        window.pieChart = new Chart(pieCtx, pieConfig);
+    };
 
 </script>
 {% endblock %}

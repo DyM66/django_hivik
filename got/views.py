@@ -1,8 +1,12 @@
 import base64
-import logging
+import io
 import json
+import logging
+import os
 import requests
 import uuid
+import zipfile
+
 
 from datetime import timedelta, date, datetime
 from decimal import Decimal
@@ -17,7 +21,7 @@ from django.core.mail import EmailMessage
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db import transaction, IntegrityError
 from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Case, When, IntegerField, BooleanField, Value
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
@@ -27,20 +31,24 @@ from django.utils.translation import gettext as _
 from django.views import generic, View
 from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from io import BytesIO
-from megger_app.models import Megger
-from mto.utils import record_execution
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-from openpyxl.utils import get_column_letter
-from taggit.models import Tag 
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt 
+
 from .utils import *
 from .models import *
 from .forms import *
 from inv.models import Transaction, Solicitud
-import locale
+from mto.utils import record_execution, get_filtered_rutas
+from megger_app.models import Megger
 
-from mto.utils import get_filtered_rutas
+
+from io import BytesIO
+from weasyprint import HTML, CSS
+from taggit.models import Tag 
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.utils import get_column_letter
+
 
 logger = logging.getLogger(__name__)
 TODAY = timezone.now().date()
@@ -71,14 +79,9 @@ def get_notifications(request):
         ]
         return JsonResponse({"notifications": data})
     except Exception as e:
-        # Registra el error o imprímelo en la consola
         print("Error en get_notifications:", e)
         return JsonResponse({"error": str(e)}, status=500)
 
-
-
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt 
 
 @login_required
 @require_POST
@@ -92,6 +95,7 @@ def mark_notification_seen(request):
         return JsonResponse({"success": True})
     except Notification.DoesNotExist:
         return JsonResponse({"success": False, "error": "Notificación no encontrada"})
+
 
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, TemplateView):
@@ -190,80 +194,6 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
 
         context['open_failures_dict'] = open_failures_dict
         return context
-    
-
-from weasyprint import HTML, CSS
-class GenerateAssetReportPDFView(LoginRequiredMixin, View):
-    """
-    Vista que genera un informe PDF para el departamento de mantenimiento.
-    Muestra los activos (barcos, area = "a") en un formato de cards, similar a asset_list,
-    pero adaptado para impresión en tamaño A4 y visualización en línea.
-    """
-    def get(self, request, *args, **kwargs):
-        # Obtener activos que se muestran (por ejemplo, show=True)
-        assets = Asset.objects.filter(show=True).order_by('name')
-        
-        # Agrupar activos por área usando la variable AREAS
-        assets_by_area = {
-            area_code: [asset for asset in assets if asset.area == area_code]
-            for area_code in AREAS.keys()
-        }
-        
-        # Definir iconos para cada área (los mismos que usas en asset_list)
-        area_icons = {
-            'a': 'fa-ship',
-            'c': 'fa-solid fa-ferry',
-            'o': 'fa-water',
-            'l': 'fa-building',
-            'v': 'fa-car',
-            'x': 'fa-cogs'
-        }
-        
-        # Otros datos que puedas necesitar (puedes ampliar según tus requerimientos)
-        places = Place.objects.all()
-        supervisors = User.objects.filter(groups__name__in=['maq_members', 'super_members'])
-        capitanes = User.objects.filter(groups__name='maq_members')
-        
-        # Crear un diccionario para las fallas abiertas (si lo requieres)
-        open_failures_dict = {}
-        for asset in assets:
-            fr_qs = FailureReport.objects.filter(closed=False, equipo__system__asset=asset)
-            crit_qs = fr_qs.filter(critico=True)
-            no_crit_qs = fr_qs.filter(critico=False)
-            crit_count = crit_qs.count()
-            no_crit_count = no_crit_qs.count()
-            single_crit_id = crit_qs.first().pk if crit_count == 1 else None
-            single_no_crit_id = no_crit_qs.first().pk if no_crit_count == 1 else None
-            open_failures_dict[asset.pk] = {
-                'crit_count': crit_count,
-                'no_crit_count': no_crit_count,
-                'single_crit_id': single_crit_id,
-                'single_no_crit_id': single_no_crit_id,
-            }
-        
-        context = {
-            'all_assets': assets,
-            'assets_by_area': assets_by_area,
-            'area_icons': area_icons,
-            'places': places,
-            'supervisors': supervisors,
-            'capitanes': capitanes,
-            'open_failures_dict': open_failures_dict,
-            'today': datetime.now(),  # Para mostrar la fecha
-            'request': request,  # Para que WeasyPrint resuelva URLs absolutas
-        }
-        
-        # Renderizar la plantilla para el informe PDF
-        html_string = render_to_string("asset_report.html", context)
-        html = HTML(string=html_string, base_url=request.build_absolute_uri())
-        css = CSS(string='@page { size: A4; margin: 2cm; }')
-        pdf_file = html.write_pdf(stylesheets=[css])
-        
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        # Mostrar el PDF en el navegador (Content-Disposition inline)
-        filename = f"informe_activos_{datetime.now().strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
-        return response
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
@@ -755,6 +685,32 @@ class EquipoDetailView(LoginRequiredMixin, generic.DetailView):
         previous_url = self.request.GET.get('previous_url') or self.request.META.get('HTTP_REFERER', '/')
         context['previous_url'] = previous_url
         return context
+    
+
+class EquipoPDFView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        equipo = get_object_or_404(Equipo, pk=self.kwargs['pk'])
+        images = Image.objects.filter(equipo=equipo)
+        
+        context = {
+            'equipo': equipo,
+            'images': images,
+            'suministros': Suministro.objects.filter(equipo=equipo),
+            'rutinas': Ruta.objects.filter(equipo=equipo),
+            'transferencias': Transferencia.objects.filter(equipo=equipo),
+            'today': timezone.now().date(),  # Para mostrar la fecha
+        }
+        
+        # Renderizar la plantilla para el informe PDF
+        html_string = render_to_string("got/systems/eq_datasheet_pdf.html", context)
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        css = CSS(string='@page { size: A4; margin: 2cm; }')
+        pdf_file = html.write_pdf(stylesheets=[css])
+        
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        filename = f"Datasheet_{equipo}.pdf"
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
 
 
 class EquipoCreateView(LoginRequiredMixin, CreateView):
@@ -1307,7 +1263,7 @@ class RutaDelete(DeleteView):
 
 def acta_entrega_pdf(request, pk):
     equipo = get_object_or_404(Equipo, pk=pk)
-    current_date = timezone.localdate()
+    current_date = timezone.now().date()
     context = {
         'equipo': equipo,
         'current_date': current_date,
@@ -1645,11 +1601,6 @@ class OtListView(LoginRequiredMixin, generic.ListView):
 
         return queryset
 
-
-import io
-import os
-import zipfile
-from django.http import HttpResponse, HttpResponseNotFound
 
 @login_required
 def download_ot_task_images(request, ot_num):
