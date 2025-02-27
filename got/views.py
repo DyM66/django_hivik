@@ -697,7 +697,7 @@ class EquipoPDFView(LoginRequiredMixin, View):
             'related': related_equipos,
             'images': images,
             'suministros': Suministro.objects.filter(equipo=equipo),
-            'rutinas': Ruta.objects.filter(Q(equipo=equipo) | Q(equipo__in=related_equipos) | Q(task_set__equipo=equipo)),
+            'rutinas': Ruta.objects.filter(Q(equipo=equipo) | Q(equipo__in=related_equipos) | Q(task__equipo=equipo)),
             'transferencias': Transferencia.objects.filter(equipo=equipo),
             'today': timezone.now().date(),  # Para mostrar la fecha
         }
