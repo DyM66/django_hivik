@@ -1,59 +1,170 @@
-{% extends "got/base/pdf_template.html" %}
 {% load my_tags %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Reporte de ejecución {{ date_range }}</title>
+    <meta name="description" content="Informe - Reporte de ejecución">
 
-{% block title %}REPORTE DE ACTIVIDADES EJECUTADAS{% endblock %}
-{% block doc_info %}
-    <th>CODIGO: </th>
-    <th>VERSION 001</th>
-    <th>FECHA DE ACTUALIZACION:</th>
-{% endblock %}
-{% block content %}
+    <style>
+        @page { /* Configuración de la página y encabezado en cada hoja */
+            size: A4;
+            margin: 4cm 1cm 2cm 1cm;
+            @top-center {
+                content: element(header);
+            }
+            @bottom-center {
+                content: element(footer);
+            }
+        }
+        footer.page-footer {
+            position: running(footer);
+            width: 100%;
+            text-align: center;
+            padding-top: 0;
+            font-size: 0.8em;
+        }
+        footer.page-footer::after {
+            content: "Página " counter(page) " de " counter(pages);
+            display: block;
+            margin-top: 5px;
+        }
+        header.page-header {
+            position: running(header);
+        }
+        header.page-header table {
+            border-collapse: collapse;
+            min-width: 715px;
+        }
+        header.page-header td, header.page-header th {
+            vertical-align: -webkit-baseline-middle;
+            padding: 5px;
+        }
+        header.page-header img {
+            max-width: 220px;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color:#191645
+        }
+        .content {
+            border: 2px solid #000;
+            padding: 0.5cm;
+        }
+        .watermark {  /* Marca de agua en el fondo */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 5em;
+            color: rgba(0, 0, 0, 0.1);
+            z-index: -999;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .images { /* Imágenes centradas */
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        .images img {
+            max-width: 300px;
+            height: auto;
+            border: 1px solid #ccc;
+            z-index: -1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Marca de agua -->
+    <div class="watermark">GOT</div>
+  
+    <!-- Encabezado que se repite en cada página -->
+    <header class="page-header">
+        <table>
+            <thead>
+                <tr>
+                    <td rowspan="2" style="width: 200px; text-align: center;  border: 1px solid #000;">
+                        <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" alt="Logo">
+                    </td>
+                    <th colspan="3" style="text-align: center; border: 1px solid #000">
+                        <h1>REPORTE DE ACTIVIDADES</h1>
+                    </th>
+                </tr>
+                <tr>
+                    <td style="text-align: center; border: 1px solid #000; font-weight: bold; font-size: 11px;">
+                        CÓDIGO: 
+                    </td>
+                    <td style="text-align: center; border: 1px solid #000; font-weight: bold; font-size: 11px;">
+                        VERSION 001
+                    </td>
+                    <td style="text-align: center; border: 1px solid #000; font-weight: bold; font-size: 11px;">
+                        FECHA DE ACTUALIZACIÓN: 26/02/2025
+                    </td>
+                </tr>
+            </thead>
+        </table>
+    </header>
 
-<br>
-<br>
+    <footer class="page-footer" style="min-width: 715px;">{{ date_range }}</footer>
 
-{{start}} - {{end}}
-<br>
-<hr>
-
-{% regroup tasks by ot.system.asset as tasks_by_asset %}
-
-{% for asset_group in tasks_by_asset %}
-
-    <!-- Subtítulo con la información del activo -->
-    <h2>{{ asset_group.grouper.name }} ({{ asset_group.grouper.abbreviation }})</h2>
-
-    {% regroup asset_group.list by ot as tasks_by_ot %}
-    {% for ot_group in tasks_by_ot %}
-        <h3>OT-{{ ot_group.grouper.num_ot }}: {{ ot_group.grouper.description }}</h3>
-        {% for task in ot_group.list %}
-        <br>
-            <ul>
-                <li><strong>Actividad:</strong> {{ task.description }}</li>
-                <li><strong>Responsable:</strong> {{ task.responsible.first_name }} {{ task.responsible.last_name }}</li>
-                <li><strong>Tiempo de ejecución:</strong> {{ task.start_date|date:"d/m/Y" }} - {{ task.final_date|date:"d/m/Y" }}</li>
-                <li><strong>Novedades:</strong> {{ task.news }}</li>
-            </ul>
-            <br>
-            {% with filtered_images=task.images.all|filter_by_date_range:date_range %}
-                {% if filtered_images %}
-                    <table style="width:100%; border:none;">
-                        <tr>
-                        {% for img in filtered_images %}
-                            <td style="padding:5px;">
-                                <img src="{{ img.image.url }}" alt="Imagen de la actividad" style="width: 200px;">
-                            </td>
-                            {% if forloop.counter|divisibleby:"3" and not forloop.last %}
-                        </tr>
-                        <tr>
+    <div class="content">
+        {% regroup tasks by ot.system.asset as tasks_by_asset %}
+        {% for asset_group in tasks_by_asset %}
+    
+            <section class="section">
+                <div style="text-align: center;">
+                    <h2>{{ asset_group.grouper.name }} ({{ asset_group.grouper.abbreviation }})</h2>
+                    <hr>
+                </div>
+                {% regroup asset_group.list by ot as tasks_by_ot %}
+                {% for ot_group in tasks_by_ot %}
+                    <h3>OT-{{ ot_group.grouper.num_ot }}: {{ ot_group.grouper.description }}</h3>
+                    {% for task in ot_group.list %}
+                        <ul>
+                            <li><strong>Descripción de la actividad:</strong> {{ task.description|linebreaks }}</li>
+                            <li><strong>Responsable:</strong> {{ task.responsible.first_name }} {{ task.responsible.last_name }}</li>
+                            <li><strong>Tiempo de ejecución:</strong> {{ task.start_date|date:"d/m/Y" }} - {{ task.final_date|date:"d/m/Y" }}</li>
+                            <li><strong>Novedades:</strong> {{ task.news|linebreaks }}</li>
+                        </ul>
+                        <br>
+                        {% with filtered_images=task.images.all|filter_by_date_range:date_range %}
+                            {% if filtered_images %}
+                                <table style="width:100%; border:none;">
+                                    <tr>
+                                    {% for img in filtered_images %}
+                                        <td style="padding:5px;">
+                                            <img src="{{ img.image.url }}" alt="Imagen de la actividad" style="width: 200px;">
+                                        </td>
+                                        {% if forloop.counter|divisibleby:"3" and not forloop.last %}
+                                    </tr>
+                                    <tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </tr>
+                                </table>
                             {% endif %}
-                        {% endfor %}
-                        </tr>
-                    </table>
-                {% endif %}
-            {% endwith %}
-            <br>
+                        {% endwith %}
+                        <br>
+                    {% endfor %}
+                {% endfor %}
+            </section>
+
         {% endfor %}
-    {% endfor %}
-{% endfor %}
-{% endblock %}
+    </div>
+
+
+
+

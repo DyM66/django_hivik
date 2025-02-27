@@ -852,6 +852,8 @@ class ScrollytellingAssetsView(TemplateView):
         months = list(range(2, 13))
         month_names = ["Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
 
+        context['cu_month'] = month_names[current_date.month - 2]
+
         maintenance_table = {}
         # Configuración de filas: cada entrada define el área y el campo a sumar
         rows_config = [
@@ -911,7 +913,8 @@ class ScrollytellingAssetsView(TemplateView):
         for barco in barcos:
             agg_bar = MaintenancePlanEntry.objects.filter(
                 plan__ruta__system__asset=barco,
-                year=current_date.year
+                year=current_date.year,
+                month=current_date.month
             ).aggregate(
                 planned=Sum('planned_executions'),
                 executed=Sum('actual_executions')

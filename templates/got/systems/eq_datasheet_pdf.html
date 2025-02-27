@@ -13,14 +13,13 @@
             }
             @bottom-center {
                 content: element(footer);
-        }
+            }
         }
         footer.page-footer {
             position: running(footer);
             width: 100%;
             text-align: center;
             padding-top: 0;
-            background: white;
             font-size: 0.8em;
         }
         footer.page-footer::after {
@@ -33,6 +32,7 @@
         }
         header.page-header table {
             border-collapse: collapse;
+            min-width: 715px;
         }
         header.page-header td, header.page-header th {
             vertical-align: -webkit-baseline-middle;
@@ -130,8 +130,7 @@
         </table>
     </header>
 
-    <footer class="page-footer" style="min-width: 715px;">
-    </footer>
+    <footer class="page-footer" style="min-width: 715px;"></footer>
   
     <!-- Contenido principal -->
     <div class="content">
@@ -192,22 +191,24 @@
                         <th>Estado</th>
                         <td>{{ equipo.get_estado_display }}</td>
                     </tr>
-                    <tr>
-                        <th>Características</th>
-                        <td colspan="3">{{ equipo.feature|default_if_none:"" }}</td>
-                    </tr>
-                    {% if equipo.recomendaciones %}
-                    <tr>
-                        <th>Recomendaciones</th>
-                        <td colspan="3">{{ equipo.recomendaciones }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if equipo.get_tipo_display == 'r' %}
+                    {% if equipo.tipo == 'r' %}
                     <tr>
                         <th>Horómetro</th>
                         <td>{{ equipo.horometro }}</td>
                         <th>Horas Promedio</th>
                         <td>{{ equipo.prom_hours }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th colspan="4">Características</th>
+                    </tr>
+                    <tr> 
+                        <td colspan="4">{{ equipo.feature|linebreaks|default_if_none:"" }}</td>
+                    </tr>
+                    {% if equipo.recomendaciones %}
+                    <tr>
+                        <th>Recomendaciones</th>
+                        <td colspan="3">{{ equipo.recomendaciones }}</td>
                     </tr>
                     {% endif %}
                     {% if equipo.tipo_almacenamiento %}
@@ -224,11 +225,57 @@
                     {% endif %}
                 </tbody>
             </table>
+
+            {% if related %}
+                <h3>1.2 Equipos relacionados</h3>
+                {% for eq in related %}
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>Código</th>
+                            <td>{{ eq.code }}</td>
+                            <th>Nombre</th>
+                            <td>{{ eq.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Modelo</th>
+                            <td>{{ eq.model|default_if_none:"" }}</td>
+                            <th>Serial</th>
+                            <td>{{ eq.serial|default_if_none:"" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Marca</th>
+                            <td>{{ eq.marca|default_if_none:"" }}</td>
+                            <th>Fabricante</th>
+                            <td>{{ eq.fabricante|default_if_none:"" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Tipo</th>
+                            <td>{{ eq.get_tipo_display }}</td>
+                            <th>Ubicación</th>
+                            <td>{{ eq.ubicacion|default_if_none:"" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Fecha de Inventario</th>
+                            <td>{{ eq.date_inv|date:"d/m/Y" }}</td>
+                            <th>Estado</th>
+                            <td>{{ eq.get_estado_display }}</td>
+                        </tr>
+                        <tr>
+                            <th colspan="4">Características</th>
+                        </tr>
+                        <tr> 
+                            <td colspan="4">{{ eq.feature|linebreaks|default_if_none:"" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                {% endfor %}
+            {% endif %}
         </section>
 
         <!-- Rutinas de Mantenimiento -->
         <section class="section" id="rutinas">
-            <h2>Rutinas de Mantenimiento</h2>
+            <h2>2. Rutinas de Mantenimiento</h2>
             {% if rutinas %}
                 <table>
                     <thead>
@@ -269,7 +316,7 @@
             {% endif %}
 
             {% if suministros %}
-            <h2>Consumibles</h2>
+            <h2>3. Consumibles</h2>
             <table>
                 <tbody>
                     {% for sumi in suministros%}

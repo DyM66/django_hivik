@@ -41,7 +41,6 @@ from inv.models import Transaction, Solicitud
 from mto.utils import record_execution, get_filtered_rutas
 from megger_app.models import Megger
 
-
 from io import BytesIO
 from weasyprint import HTML, CSS
 from taggit.models import Tag 
@@ -691,12 +690,14 @@ class EquipoPDFView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         equipo = get_object_or_404(Equipo, pk=self.kwargs['pk'])
         images = Image.objects.filter(equipo=equipo)
+        related_equipos = equipo.related_with.all()
         
         context = {
             'equipo': equipo,
+            'related': related_equipos,
             'images': images,
             'suministros': Suministro.objects.filter(equipo=equipo),
-            'rutinas': Ruta.objects.filter(equipo=equipo),
+            'rutinas': Ruta.objects.filter(Q(equipo=equipo) | Q(equipo__in=related_equipos) | Q(task_set__equipo=equipo)),
             'transferencias': Transferencia.objects.filter(equipo=equipo),
             'today': timezone.now().date(),  # Para mostrar la fecha
         }
@@ -704,10 +705,8 @@ class EquipoPDFView(LoginRequiredMixin, View):
         # Renderizar la plantilla para el informe PDF
         html_string = render_to_string("got/systems/eq_datasheet_pdf.html", context)
         html = HTML(string=html_string, base_url=request.build_absolute_uri())
-        css = CSS(string='@page { size: A4; margin: 2cm; }')
-        pdf_file = html.write_pdf(stylesheets=[css])
         
-        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response = HttpResponse(html.write_pdf(), content_type='application/pdf')
         filename = f"Datasheet_{equipo}.pdf"
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
@@ -1898,25 +1897,24 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         return filter_tasks_queryset(self.request)
     
 
-@login_required
-def assignedTasks_pdf(request):
-    queryset = filter_tasks_queryset(request)
-    queryset = queryset.order_by('ot__system__asset__name', 'start_date')
+class TaskPDFView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        queryset = filter_tasks_queryset(request).order_by('ot__system__asset__name', 'start_date')
     
-    # Obtener los parámetros de fecha
-    start = request.GET.get('start_date', '')
-    end = request.GET.get('end_date', '')
-    # Formar el string con el rango de fechas (separado por coma)
-    date_range = f"{start},{end}" if start and end else ""
+        # Obtener los parámetros de fecha
+        start = request.GET.get('start_date', '')
+        end = request.GET.get('end_date', '')
+        # Formar el string con el rango de fechas (separado por coma)
+        date_range = f"{start},{end}" if start != end else start
 
-    context = {
-        'tasks': queryset,
-        'start': start,
-        'end': end,
-        'finalizados': request.GET.get('show_finalizadas', '0'),
-        'date_range': date_range,
-    }
-    return render_to_pdf('got/ots/assigned_tasks_pdf.html', context)
+        context = {
+            'tasks': queryset,
+            'start': start,
+            'end': end,
+            'finalizados': request.GET.get('show_finalizadas', '0'),
+            'date_range': date_range,
+        }
+        return pdf_render(request, 'got/ots/assigned_tasks_pdf.html', context, "ppr")
 
 
 @login_required

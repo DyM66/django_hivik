@@ -48,7 +48,7 @@ urlpatterns = [
 
     path("tasks/", views.AssignedTaskByUserListView.as_view(), name="my-tasks"),
     path('tasks/excel/', views.assignedTasks_excel, name='assigned-tasks-excel'),
-    path('tasks/pdf/', views.assignedTasks_pdf, name='assigned-tasks-pdf'),
+    path('tasks/pdf/', views.TaskPDFView.as_view(), name='assigned-tasks-pdf'),
     path('task/<str:pk>/create/', views.TaskCreate.as_view(), name='task-create'),
     path('task/<int:pk>/update/', views.TaskUpdate.as_view(), name='task-update'),
     path('task/<int:pk>/delete/', views.TaskDelete.as_view(), name='task-delete'),

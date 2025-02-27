@@ -96,6 +96,19 @@ def render_to_pdf(template_src, context_dict={}):
         return HttpResponse(result.getvalue(), content_type='application/pdf')
     return HttpResponse('Error al generar el PDF', status=400)
 
+from django.template.loader import render_to_string
+from weasyprint import HTML, CSS
+def pdf_render(request, template_src, context_dict={}, file_name="document"):
+    html_string = render_to_string(template_src, context_dict)
+    html = HTML(string=html_string, base_url=request.build_absolute_uri())
+    css = CSS(string='@page { size: A4; margin: 2cm; }')
+    pdf_file = html.write_pdf(stylesheets=[css])
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    filename = file_name
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
+
 
 def generate_equipo_code(asset_abbr, tipo):
     """
