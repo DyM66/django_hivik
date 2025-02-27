@@ -269,6 +269,21 @@
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Imágenes Asociadas -->
+                <section class="section" id="imagenes">
+                    {% if eq.images.all %}
+                        <div class="images">
+                            {% for image in eq.images.all %}
+                                <div class="image-item">
+                                    <img src="{{ image.image.url }}" alt="Imagen del equipo">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>No se encontraron imágenes asociadas.</p>
+                    {% endif %}
+                </section>
                 {% endfor %}
             {% endif %}
         </section>

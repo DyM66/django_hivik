@@ -280,6 +280,8 @@ def filter_by_date_range(images, date_range):
         start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
         end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
     except Exception:
-        return images
+        start_date = datetime.strptime(date_range, "%Y-%m-%d").date()
+        end_date = datetime.strptime(date_range, "%Y-%m-%d").date()
+        # return images
     # Suponiendo que 'images' es un QuerySet; si es una lista, podemos usar una lista por comprensión.
     return images.filter(creation__gte=start_date, creation__lte=end_date)

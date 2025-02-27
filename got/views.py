@@ -691,13 +691,34 @@ class EquipoPDFView(LoginRequiredMixin, View):
         equipo = get_object_or_404(Equipo, pk=self.kwargs['pk'])
         images = Image.objects.filter(equipo=equipo)
         related_equipos = equipo.related_with.all()
-        
+        related_related_equipos = Equipo.objects.none()
+        for r in related_equipos:
+            related_related_equipos = related_related_equipos | r.related_with.all()
+
+        all_related_equipos = related_equipos | related_related_equipos
+
+        rutinas = Ruta.objects.filter(
+            Q(equipo=equipo) |
+            Q(equipo__in=all_related_equipos) |
+            Q(task__equipo=equipo)
+        ).distinct()
+
+        context = {
+            'equipo': equipo,
+            'related': all_related_equipos,
+            'images': images,
+            'suministros': Suministro.objects.filter(equipo=equipo),
+            'rutinas': rutinas,
+            'transferencias': Transferencia.objects.filter(equipo=equipo),
+            'today': timezone.now().date(),  # Para mostrar la fecha
+        }
+
         context = {
             'equipo': equipo,
             'related': related_equipos,
             'images': images,
             'suministros': Suministro.objects.filter(equipo=equipo),
-            'rutinas': Ruta.objects.filter(Q(equipo=equipo) | Q(equipo__in=related_equipos) | Q(task__equipo=equipo)),
+            'rutinas': Ruta.objects.filter(Q(equipo=equipo) | Q(equipo__in=related_equipos) | Q(equipo__in=related_related_equipos) | Q(task__equipo=equipo)).distinct(),
             'transferencias': Transferencia.objects.filter(equipo=equipo),
             'today': timezone.now().date(),  # Para mostrar la fecha
         }
@@ -1914,7 +1935,7 @@ class TaskPDFView(LoginRequiredMixin, View):
             'finalizados': request.GET.get('show_finalizadas', '0'),
             'date_range': date_range,
         }
-        return pdf_render(request, 'got/ots/assigned_tasks_pdf.html', context, "ppr")
+        return pdf_render(request, 'got/ots/assigned_tasks_pdf.html', context, "REPORTE DE ACTIVIDADES")
 
 
 @login_required

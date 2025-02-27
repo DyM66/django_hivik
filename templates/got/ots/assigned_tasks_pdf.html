@@ -96,7 +96,7 @@
         <table>
             <thead>
                 <tr>
-                    <td rowspan="2" style="width: 200px; text-align: center;  border: 1px solid #000;">
+                    <td rowspan="2" style="width: 200px; text-align: center;  border: 1px solid #000; font-size: 14px;">
                         <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" alt="Logo">
                     </td>
                     <th colspan="3" style="text-align: center; border: 1px solid #000">
@@ -135,7 +135,7 @@
                     {% for task in ot_group.list %}
                         <ul>
                             <li><strong>Descripción de la actividad:</strong> {{ task.description|linebreaks }}</li>
-                            <li><strong>Responsable:</strong> {{ task.responsible.first_name }} {{ task.responsible.last_name }}</li>
+                            <li><strong>Responsable:</strong> {{ task.responsible.first_name }} {{ task.responsible.last_name }} - ({% if task.finished %}Finalizado{% endif %})</li>
                             <li><strong>Tiempo de ejecución:</strong> {{ task.start_date|date:"d/m/Y" }} - {{ task.final_date|date:"d/m/Y" }}</li>
                             <li><strong>Novedades:</strong> {{ task.news|linebreaks }}</li>
                         </ul>
@@ -157,7 +157,6 @@
                                 </table>
                             {% endif %}
                         {% endwith %}
-                        <br>
                     {% endfor %}
                 {% endfor %}
             </section>
