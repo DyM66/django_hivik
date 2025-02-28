@@ -59,7 +59,6 @@ def record_execution(plan, execution_date):
         entry.save()
         return True
     except entries.model.DoesNotExist:
-        # No existe entrada para el mes de execution_date; se podría registrar la ejecución "extra" o retornar False.
         return False
     
     # total_planned = sum(entry.planned_executions for entry in entries)
