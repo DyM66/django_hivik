@@ -134,7 +134,7 @@
                     <h3>OT-{{ ot_group.grouper.num_ot }}: {{ ot_group.grouper.description }}</h3>
                     {% for task in ot_group.list %}
                         <ul>
-                            <li><strong>Descripción de la actividad:</strong> {{ task.description|linebreaks }}</li>
+                            <li><strong>Descripción de la actividad:</strong> {{ task.description|first_line }}</li>
                             <li><strong>Responsable:</strong> {{ task.responsible.first_name }} {{ task.responsible.last_name }} - ({% if task.finished %}Finalizado{% endif %})</li>
                             <li><strong>Tiempo de ejecución:</strong> {{ task.start_date|date:"d/m/Y" }} - {{ task.final_date|date:"d/m/Y" }}</li>
                             <li><strong>Novedades:</strong> {{ task.news|linebreaks }}</li>

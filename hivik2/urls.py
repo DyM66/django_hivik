@@ -35,10 +35,11 @@ urlpatterns = [
     path('got/', include('got.urls')),
     path('got/preoperacional/', include('preoperacionales.urls')),
     path('outbound/', include('outbound.urls')),
-    path('megger/', include('megger_app.urls')),
+    path('meg/', include('meg.urls')),
     path('inv/', include('inv.urls')),
     path('dth/', include('dth.urls', namespace='dth')),
     path('mto/', include('mto.urls', namespace='mto')),
+    path('ope/', include('ope.urls', namespace='ope')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
 
     

@@ -544,40 +544,6 @@ class FailureReport(models.Model):
         return dict(self.IMPACT).get(impact_code, "Desconocido")
 
 
-# Model 11: Proyectos/operaciones para barcos
-class Operation(models.Model):
-    start = models.DateField()
-    end = models.DateField()
-    proyecto = models.CharField(max_length=100)
-    requirements = models.TextField()
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
-    confirmado = models.BooleanField(default=False)
-
-    def requirements_progress(self):
-        total_requirements = self.requirement_set.count()
-        if total_requirements == 0:
-            return None
-        approved_requirements = self.requirement_set.filter(approved=True).count()
-        progress_percentage = (approved_requirements / total_requirements) * 100
-        return int(progress_percentage)
-
-    def __str__(self):
-        return f"{self.proyecto}/{self.asset} ({self.start} - {self.start})"
-
-
-# Model 12: Requerimientos para proyectos
-class Requirement(models.Model):
-    operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
-    text = models.TextField()
-    approved = models.BooleanField(default=False)
-    novedad = models.TextField(null=True, blank=True)
-    responsable = models.CharField(max_length=100, null=True, blank=True)
-
-    class Meta:
-        permissions = [('can_create_requirement', 'Can create requirement'), ('can_delete_requirement', 'Can delete requirement'),]
-
-
-
 # Model 14: Suministros (Inventario para barcos o bodegas, contenido de equipos o ...)
 class Suministro(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
@@ -611,12 +577,10 @@ class Image(models.Model):
     failure = models.ForeignKey(FailureReport, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     task = models.ForeignKey(Task, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    # solicitud = models.ForeignKey('inv.solicitud', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     salida= models.ForeignKey('outbound.outbounddelivery', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacional = models.ForeignKey('preoperacionales.preoperacional', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     preoperacionaldiario = models.ForeignKey('preoperacionales.preoperacionaldiario', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
     darbaja = models.ForeignKey('inv.DarBaja', related_name='images', on_delete=models.CASCADE, null=True, blank=True)
-    requirements = models.ForeignKey(Requirement, related_name='images', on_delete=models.CASCADE, null=True, blank=True)
 
 
 # Model 18: Documentos

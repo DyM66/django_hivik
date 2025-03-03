@@ -30,7 +30,6 @@ class OtAdmin(admin.ModelAdmin):
 
 admin.site.register(Asset)
 admin.site.register(MaintenanceRequirement)
-admin.site.register(Operation)
 admin.site.register(FailureReport)
 admin.site.register(Ruta)
 admin.site.register(Equipo)

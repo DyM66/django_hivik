@@ -18,9 +18,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                # Aquí NO hacemos nada en la BD (p. ej. no CreateModel)
-                # porque las tablas 'got_megger', 'got_estator', etc. ya existen.
-                # y definiremos managed=False en los modelos.
             ],
             state_operations=[
                 # 1) Modelo Megger
@@ -77,7 +74,7 @@ class Migration(migrations.Migration):
                             'megger',
                             models.ForeignKey(
                                 on_delete=django.db.models.deletion.CASCADE,
-                                to='megger_app.megger'
+                                to='meg.megger'
                             )
                         ),
                     ],
@@ -108,7 +105,7 @@ class Migration(migrations.Migration):
                             'megger',
                             models.ForeignKey(
                                 on_delete=django.db.models.deletion.CASCADE,
-                                to='megger_app.megger'
+                                to='meg.megger'
                             )
                         ),
                     ],
@@ -145,7 +142,7 @@ class Migration(migrations.Migration):
                             'megger',
                             models.ForeignKey(
                                 on_delete=django.db.models.deletion.CASCADE,
-                                to='megger_app.megger'
+                                to='meg.megger'
                             )
                         ),
                     ],
@@ -180,7 +177,7 @@ class Migration(migrations.Migration):
                             'megger',
                             models.ForeignKey(
                                 on_delete=django.db.models.deletion.CASCADE,
-                                to='megger_app.megger'
+                                to='meg.megger'
                             )
                         ),
                     ],
@@ -211,7 +208,7 @@ class Migration(migrations.Migration):
                             'megger',
                             models.ForeignKey(
                                 on_delete=django.db.models.deletion.CASCADE,
-                                to='megger_app.megger'
+                                to='meg.megger'
                             )
                         ),
                     ],

@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('megger_app', '0002_alter_estator_options_alter_excitatriz_options_and_more'),
+        ('meg', '0002_alter_estator_options_alter_excitatriz_options_and_more'),
     ]
 
     operations = [

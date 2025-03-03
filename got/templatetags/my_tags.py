@@ -285,3 +285,13 @@ def filter_by_date_range(images, date_range):
         # return images
     # Suponiendo que 'images' es un QuerySet; si es una lista, podemos usar una lista por comprensión.
     return images.filter(creation__gte=start_date, creation__lte=end_date)
+
+
+@register.filter
+def first_line(value):
+    """
+    Devuelve sólo la primera línea del texto.
+    """
+    if not value:
+        return ""
+    return value.splitlines()[0]

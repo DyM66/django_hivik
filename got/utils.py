@@ -17,7 +17,7 @@ from collections import defaultdict
 from openpyxl.styles import Alignment, Font
 from django.contrib.auth.models import Group
 from openpyxl.utils import get_column_letter
-from megger_app.models import Megger
+from meg.models import Megger
 from django.db.models import Prefetch, Sum
 from inv.models import EquipoCodeCounter
 from django.db import transaction

@@ -36,10 +36,11 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'preoperacionales.apps.PreoperacionalesConfig',
     'outbound.apps.OutboundConfig',
-    'megger_app.apps.MeggerAppConfig',
+    'meg.apps.MegConfig',
     'inv.apps.InvConfig',
     'dth.apps.DthConfig', 
     'mto.apps.MtoConfig', 
+    'ope.apps.OpeConfig', 
     'taggit',
 ]
 

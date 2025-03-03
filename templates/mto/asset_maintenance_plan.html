@@ -5,7 +5,7 @@
 <div class="main-asset">
 
 	<div class="rutinas">
-		<table class="table-list table-detail">
+		<table id="rutinasMantenimientoTable" class="table-list table-detail">
 			<thead>
 				<tr>
 					<th colspan="8">
@@ -271,51 +271,48 @@
                     <label for="filter_date">Selecciona una fecha:</label>
                     <input type="date" id="filter_date" name="filter_date" class="form-control" value="{{ filter_date_str }}">
                 </div>
-    
-                <!-- Filtro por Ubicación -->
-                <div class="mt-3">
-                    <strong>Ubicaciones (Equipos)</strong><br>
-                    <!-- Check principal "Mostrar sin equipo" -->
-                    <label>
-                        <input type="checkbox" name="showWithoutEquipo" id="showWithoutEquipo" checked>
-                        Sin equipo
-                    </label>
-                    <br>
-                    {% for ub in ubicaciones %}
-                        <label>
-                            <input type="checkbox" class="ubicacion-checkbox" name="ubicacion" value="{{ ub }}" checked>
-                            {{ ub }}
-                        </label><br>
-                    {% endfor %}
-                </div>
-    
-                <!-- Filtro por Usuario -->
-                <div class="mt-3">
-                    <strong>Personal Asignados</strong><br>
-                    {% for user_name in usuarios_unicos %}
-                        <label>
-                            <input type="checkbox" class="usuario-checkbox" name="usuario" value="{{ user_name }}" checked>
-                            {{ user_name }}
-                        </label><br>
-                    {% endfor %}
-                </div>
-
-                <!-- Filtro por Nivel -->
-                <div class="mt-3">
-                    <strong>Nivel de Rutina</strong><br>
-                    {% for nivel, label in niveles_opciones %}
-                        <label>
-                            <input type="checkbox" class="nivel-checkbox" name="nivel" value="{{ nivel }}" checked>
-                            {{ label }}
-                        </label><br>
-                    {% endfor %}
-                </div>
 
                 <!-- Botón para enviar el filtro por fecha al servidor -->
                 <button type="submit" class="btn btn-primary mt-3">Filtrar</button>
             </fieldset>
         </form>
     
+        <!-- Filtro por Ubicación -->
+        <!-- <div class="mt-3">
+            <strong>Ubicaciones (Equipos)</strong><br>
+            <label>
+                <input type="checkbox" name="showWithoutEquipo" id="showWithoutEquipo" checked>
+                Sin equipo
+            </label>
+            <br>
+            {% for ub in ubicaciones %}
+                <label>
+                    <input type="checkbox" class="ubicacion-checkbox" name="ubicacion" value="{{ ub }}" checked>
+                    {{ ub }}
+                </label>
+                <br>
+            {% endfor %}
+        </div>
+            
+        <div class="mt-3">
+            <strong>Personal Asignados</strong><br>
+            {% for user_name in usuarios_unicos %}
+                <label>
+                    <input type="checkbox" class="usuario-checkbox" name="usuario" value="{{ user_name }}" checked>
+                    {{ user_name }}
+                </label><br>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-3">
+            <strong>Nivel de Rutina</strong><br>
+            {% for nivel, label in niveles_opciones %}
+                <label>
+                    <input type="checkbox" class="nivel-checkbox" name="nivel" value="{{ nivel }}" checked>
+                    {{ label }}
+                </label><br>
+            {% endfor %}
+        </div> -->
         <hr>
 
         <a href="{% url 'got:maintenance_plan_excel_export' asset.abbreviation %}" class="btn btn-info mt-2">
@@ -366,11 +363,6 @@
 </table>
 
 
-
-
-
-
-
 <script>
     function toggleDetails(detailId, trigger, event) {
         if (event.target.closest('.dropdown') || event.target.closest('.dropdown-toggle')) {
@@ -384,44 +376,5 @@
         trigger.style.fontWeight = (detailRow.style.display === 'none') ? 'normal' : 'bold';
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Función para filtrar filas según checkbox
-        function filtrarFilas() {
-            // Obtiene valores seleccionados
-            let ubicacionesSeleccionadas = Array.from(document.querySelectorAll('.ubicacion-checkbox:checked'))
-                                               .map(chk => chk.value.toLowerCase());
-            let usuariosSeleccionados = Array.from(document.querySelectorAll('.usuario-checkbox:checked'))
-                                               .map(chk => chk.value.toLowerCase());
-            let nivelesSeleccionados = Array.from(document.querySelectorAll('.nivel-checkbox:checked'))
-                                               .map(chk => chk.value);
-            
-            // Filtra las filas de la tabla principal ("Rutinas de mantenimiento")
-            document.querySelectorAll('tr[data-ubicacion]').forEach(function(row) {
-                let ubRow = row.getAttribute('data-ubicacion').toLowerCase();
-                let mostrarUbicacion = (ubRow === '(sin)') ? document.getElementById('showWithoutEquipo').checked : ubicacionesSeleccionadas.includes(ubRow);
-                
-                // Filtrar por usuario: se asume que en cada fila se puede incluir un atributo "data-usuarios"
-                // que contenga una lista separada por comas de nombres de usuarios asignados en las actividades.
-                // Si no lo tienes, podrías agregarlo en el renderizado de cada <tr>.
-                let usuariosRow = row.getAttribute('data-usuarios') ? row.getAttribute('data-usuarios').toLowerCase().split(',') : [];
-                let mostrarUsuario = usuariosRow.length === 0 || usuariosRow.some(u => usuariosSeleccionados.includes(u.trim()));
-                
-                // Filtrar por nivel: asumiendo que cada fila tiene "data-nivel"
-                let nivelRow = row.getAttribute('data-nivel');
-                let mostrarNivel = nivelesSeleccionados.includes(nivelRow);
-                
-                // Se muestra la fila solo si cumple los tres filtros:
-                row.style.display = (mostrarUbicacion && mostrarUsuario && mostrarNivel) ? '' : 'none';
-            });
-        }
-        
-        // Agregar listeners a los checkboxes de ubicación, usuario y nivel
-        document.querySelectorAll('.ubicacion-checkbox, .usuario-checkbox, .nivel-checkbox, #showWithoutEquipo')
-                .forEach(chk => chk.addEventListener('change', filtrarFilas));
-        
-        // Llamar al filtrado inicial
-        filtrarFilas();
-    });
-    </script>
-    
+</script>
 {% endblock %}

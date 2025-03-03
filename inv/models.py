@@ -7,13 +7,7 @@ from decimal import Decimal
 
 
 class DarBaja(models.Model):
-    MOTIVO = (
-        ('o', 'Obsoleto'),
-        ('r', 'Robo/Hurto'),
-        ('p', 'Perdida'),
-        ('i', 'Inservible/depreciado'),
-        ('v', 'Venta'),
-    )
+    MOTIVO = (('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('i', 'Inservible/depreciado'), ('v', 'Venta'),)
     fecha = models.DateField(auto_now_add=True)
     reporter = models.CharField(max_length=100)
     responsable = models.CharField(max_length=100)

@@ -9,7 +9,6 @@ from django.db import models
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views import generic
-from django import forms
 from django.utils import timezone
 
 from got.models import Asset, Suministro, Equipo, Ruta
@@ -32,7 +31,7 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         usuarios = set()
         niveles = set()
         
-        for r in main:
+        for r in planned:
             if r.equipo and r.equipo.ubicacion:  # Ubicación desde el equipo, si existe
                 ubicaciones.add(r.equipo.ubicacion)
             else:
