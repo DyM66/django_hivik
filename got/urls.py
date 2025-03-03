@@ -62,13 +62,6 @@ urlpatterns = [
     path('ruta/<int:ruta_id>/crear_ot/',views.crear_ot_desde_ruta,name='crear_ot_desde_ruta'),
     path('ruta/<int:ruta_id>/create_ot/', views.rutina_form_view, name='create-ot-from-ruta'),
 
-    path("operations/", views.OperationListView, name="operation-list"),
-    path('operation/<int:pk>/update/', views.OperationUpdate.as_view(), name='operation-update'),
-    path("operation/<int:pk>/delete/", views.OperationDelete.as_view(), name="operation-delete"),
-    path('operation/<int:operation_id>/requirement/add/', views.requirement_create, name='requirement-create'),
-    path('requirement/<int:pk>/update/', views.requirement_update, name='requirement-update'),
-    path('requirement/<int:pk>/delete/', views.requirement_delete, name='requirement-delete'),
-
     path("solicitud/", views.SolicitudesListView.as_view(), name="rq-list"),
     path('detalle_pdf/<int:pk>/', views.detalle_pdf, name='solicitud_pdf'),
     path('nueva-solicitud/<str:asset_id>/', views.CreateSolicitudOt.as_view(), name='create-solicitud'),

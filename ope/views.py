@@ -1,6 +1,14 @@
 from django.shortcuts import render
-from .models import *
+from django.utils import timezone
+from django.db.models import Prefetch
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.shortcuts import render, get_object_or_404, redirect
+from django.views.generic.edit import UpdateView, DeleteView
+from django.urls import reverse, reverse_lazy
+from django.contrib.auth.decorators import permission_required
 
+from .models import *
+from got.forms import OperationForm, RequirementForm, UploadImages, FullRequirementForm, LimitedRequirementForm
 
 
 'OPERATIONS VIEW'
@@ -35,7 +43,6 @@ def OperationListView(request):
     except EmptyPage:
         operaciones = paginator.page(paginator.num_pages)
 
-    # Datos para el gráfico: incluir todas las operaciones
     operations_data = []
     for asset in assets:
         asset_operations = asset.operation_set.all().values(
@@ -99,8 +106,8 @@ def requirement_create(request, operation_id):
             requirement.operation = operation
             requirement.save()
             # Acceder directamente a los archivos desde request.FILES
-            for f in request.FILES.getlist('file_field'):
-                Image.objects.create(image=f, requirements=requirement)
+            # for f in request.FILES.getlist('file_field'):
+                # Image.objects.create(image=f, requirements=requirement)
             return redirect('got:operation-list')
     else:
         requirement_form = RequirementForm()
@@ -128,12 +135,12 @@ def requirement_update(request, pk):
         if requirement_form.is_valid() and upload_images_form.is_valid():
             requirement_form.save()
             # Manejar eliminación de imágenes
-            if can_delete_images:
-                images_to_delete = request.POST.getlist('delete_images')
-                Image.objects.filter(id__in=images_to_delete).delete()
+            # if can_delete_images:
+                # images_to_delete = request.POST.getlist('delete_images')
+                # Image.objects.filter(id__in=images_to_delete).delete()
             # Guardar nuevas imágenes
-            for f in request.FILES.getlist('file_field'):
-                Image.objects.create(image=f, requirements=requirement)
+            # for f in request.FILES.getlist('file_field'):
+                # Image.objects.create(image=f, requirements=requirement)
             return redirect('got:operation-list')
     else:
         requirement_form = RequirementFormClass(instance=requirement)

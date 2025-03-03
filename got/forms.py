@@ -6,6 +6,7 @@ from django.forms.widgets import ClearableFileInput
 from django.utils.text import get_valid_filename 
 from django.utils.safestring import mark_safe
 from taggit.forms import TagWidget
+from ope.models import *
 
 from got.models import *
 from dth.forms import UserChoiceField
