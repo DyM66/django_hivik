@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 {% if perms.got.view_operation %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'operation-list' %}active{% endif %}" href="{% url 'got:operation-list' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'operation-list' %}active{% endif %}" href="{% url 'ope:operation-list' %}">
                             Proyectos
                         </a>
                     </li>
