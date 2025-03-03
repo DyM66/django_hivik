@@ -36,6 +36,7 @@ from got.forms import ItemForm
 from inv.utils import enviar_correo_transferencia
 from .models import DarBaja
 from .forms import *
+from ope.models import Operation
 
 
 class ActivoEquipmentListView(View):

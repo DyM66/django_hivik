@@ -613,7 +613,6 @@ class Document(models.Model):
             raise ValidationError('El documento debe estar asociado a un asset, OT o equipo.')
         
 
-# Model 1: Registro de actividades
 class ActivityLog(models.Model):
     user_name = models.CharField(max_length=100)
     action = models.CharField(max_length=100)

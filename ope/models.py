@@ -2,7 +2,6 @@ from django.db import models
 from got.models import Asset
 
 
-# Model 11: Proyectos/operaciones para barcos
 class Operation(models.Model):
     start = models.DateField()
     end = models.DateField()
