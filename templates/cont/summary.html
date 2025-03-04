@@ -1,0 +1,34 @@
+{% extends "got/base/base_generic.html" %}
+{% load con_extras %}
+
+{% block content %}
+<div class="container my-4">
+  <h1 class="text-center text-primary">Resumen de Costos de Activos</h1>
+  <table class="table table-bordered table-striped mt-4">
+    <thead class="table-primary">
+      <tr>
+        <th>Asset</th>
+        <th>Costo Inicial</th>
+        <th>Costo Adicional</th>
+        <th>Total (Inicial + Adicional)</th>
+        <th>FP</th>
+        <th>Gastos Calculados<br>(Total Promedio Mes * FP)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ac in asset_costs %}
+        {% with total=ac.initial_cost|default_if_none:"0"|add:ac.costo_adicional %}
+        <tr>
+          <td>{{ ac.asset.name }}</td>
+          <td>{{ ac.initial_cost }}</td>
+          <td>{{ ac.costo_adicional }}</td>
+          <td>{{ total }}</td>
+          <td>{{ ac.fp }}</td>
+          <td>{{ total_promedio_mes|mul:ac.fp|floatformat:2 }}</td>
+        </tr>
+        {% endwith %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

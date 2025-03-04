@@ -1,0 +1,21 @@
+<!-- con/templates/con/asset_depreciation.html -->
+{% extends "got/base/base_generic.html" %}
+
+{% block content %}
+  <h2>Calcular Depreciación Diaria del Asset</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Calcular</button>
+  </form>
+
+  {% if selected_asset %}
+    <h3>Resultado para: {{ selected_asset }}</h3>
+    {% if depreciation %}
+      <p>El costo inicial es: {{ selected_asset.cost_info.initial_cost }} COP</p>
+      <p>La depreciación diaria es: {{ depreciation|floatformat:2 }} COP/día</p>
+    {% else %}
+      <p>No se ha ingresado un costo inicial para este asset.</p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

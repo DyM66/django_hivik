@@ -1,0 +1,16 @@
+{% extends "got/base/base_generic.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <h1 class="text-center">Activos</h1>
+    <ul class="list-unstyled">
+        {% for ac in asset_costs %}
+        <li class="my-2">
+            <a href="{% url 'con:asset-detail' ac.pk %}" class="text-decoration-none fw-bold text-primary">
+            {{ ac.asset.name }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

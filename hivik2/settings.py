@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'dth.apps.DthConfig', 
     'mto.apps.MtoConfig', 
     'ope.apps.OpeConfig', 
+    'con.apps.ConConfig', 
     'taggit',
 ]
 

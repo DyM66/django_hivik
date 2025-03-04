@@ -49,36 +49,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Operation',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('start', models.DateField()),
-                ('end', models.DateField()),
-                ('proyecto', models.CharField(max_length=100)),
-                ('requirements', models.TextField()),
-                ('asset', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.asset')),
-                ('confirmado', models.BooleanField(default=False)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='Requirement',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.TextField()),
-                ('approved', models.BooleanField(default=False)),
-                ('operation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.operation')),
-                ('novedad', models.TextField(blank=True, null=True)),
-                ('responsable', models.CharField(blank=True, max_length=100, null=True)),
-            ],
-            options={
-                'permissions': [
-                    ('can_create_requirement', 'Can create requirement'),
-                    ('can_delete_requirement', 'Can delete requirement')
-                ]
-            }
-        ),
-
-        migrations.CreateModel(
             name='Suministro',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -100,7 +70,6 @@ class Migration(migrations.Migration):
                 ('darbaja', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='inv.darbaja')),
                 ('salida', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='outbound.outbounddelivery')),
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.equipo')),
-                ('requirements', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.requirement')),
                 ('preoperacionaldiario', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='preoperacionales.preoperacionaldiario')),
                 ('preoperacional', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='preoperacionales.preoperacional')),
             ],
