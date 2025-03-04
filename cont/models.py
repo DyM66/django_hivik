@@ -19,7 +19,8 @@ class AssetCost(models.Model):
         with transaction.atomic():
             super().save(*args, **kwargs)
             # Sumar initial_cost y costo_adicional para cada asset
-            assets = AssetCost.objects.filter(asset__area=self.asset.area)
+            # assets = AssetCost.objects.filter(asset__area=self.asset.area)
+            assets = AssetCost.objects.all()
             total_area = sum(
                 (ac.initial_cost or Decimal('0')) + (ac.costo_adicional or Decimal('0'))
                 for ac in assets
