@@ -26,9 +26,9 @@ class FinanciacionForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Si se recibe asset_cost en initial, lo ocultamos; en este caso no se mostrará
-        if self.initial.get('asset_cost'):
+        if 'asset_cost' in self.fields and self.initial.get('asset_cost'):
             self.fields['asset_cost'].widget = forms.HiddenInput()
+
 
 class AssetCostUpdateForm(forms.ModelForm):
     class Meta:
