@@ -59,7 +59,7 @@ class AssetCostDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         ac = self.object
         total_cost = (ac.initial_cost or Decimal('0')) + (ac.costo_adicional or Decimal('0'))
-        depreciation = total_cost / Decimal('43800') if total_cost > 0 else Decimal('0')
+        depreciation = total_cost / Decimal('3600') if total_cost > 0 else Decimal('0')
         context['total_cost'] = total_cost
         context['depreciation'] = depreciation
 
