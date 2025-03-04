@@ -40,7 +40,7 @@ urlpatterns = [
     path('dth/', include('dth.urls', namespace='dth')),
     path('mto/', include('mto.urls', namespace='mto')),
     path('ope/', include('ope.urls', namespace='ope')),
-    path('cont/', include('con.urls', namespace='con')),
+    path('cont/', include('cont.urls', namespace='cont')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
 
     
