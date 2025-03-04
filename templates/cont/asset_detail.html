@@ -4,6 +4,7 @@
 {% block content %}
 <div class="container my-4">
     <div class="d-flex justify-content-between align-items-center">
+        <a href="{% url 'cont:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
         <h1 class="mb-0">Detalle - {{ asset_cost.asset.name }}</h1>
         <!-- Botón discreto con el ícono de lápiz -->
         <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#updateModal">
