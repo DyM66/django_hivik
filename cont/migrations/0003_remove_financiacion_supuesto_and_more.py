@@ -17,11 +17,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='assetcost',
-            name='cont_a_los_gastos',
-            field=models.DecimalField(decimal_places=2, default=0, help_text='Contador a los gastos (valor inicial 0)', max_digits=18),
-        ),
-        migrations.AddField(
-            model_name='assetcost',
             name='valor_financiacion',
             field=models.DecimalField(decimal_places=2, default=0, help_text='Valor de la financiación generado por la tasa de interés', max_digits=18),
         ),
@@ -29,8 +24,5 @@ class Migration(migrations.Migration):
             model_name='financiacion',
             name='asset_cost',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='financiaciones', to='cont.assetcost'),
-        ),
-        migrations.DeleteModel(
-            name='Supuesto',
         ),
     ]

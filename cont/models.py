@@ -100,26 +100,25 @@ class Financiacion(models.Model):
 
 
 class GastosAdministrativos(models.Model):
-    """
-    Registra gastos administrativos.
-    Se calcula un promedio mensual a partir del total ingresado, dividiendo entre:
-      - El número de meses transcurridos en el año actual (si es el año en curso)
-      - 12, si es un año anterior.
-    """
     codigo = models.CharField(max_length=50)
     descripcion = models.CharField(max_length=200)
     anio = models.PositiveIntegerField()
+    mes = models.PositiveIntegerField(help_text="Mes (1-12)")
     total = models.DecimalField(max_digits=18, decimal_places=2)
 
     @property
     def promedio_mes(self):
-        current_year = timezone.now().year
-        import datetime
-        if self.anio == current_year:
-            current_month = datetime.date.today().month
-            return self.total / 2 if current_month > 0 else self.total
-        else:
-            return self.total / Decimal('12')
+        if self.mes and self.mes > 0:
+            return self.total / Decimal(self.mes)
+        return self.total
 
     def __str__(self):
-        return f"Gasto {self.codigo} - {self.descripcion} ({self.anio})"
+        return f"Gasto {self.codigo} - {self.descripcion} ({self.anio}) - Mes: {self.mes}"
+
+
+class CodigoContable(models.Model):
+    codigo = models.CharField(max_length=20, unique=True, help_text="Código contable")
+    nombre = models.CharField(max_length=200, help_text="Nombre o descripción asociada al código")
+
+    def __str__(self):
+        return f"{self.codigo} - {self.nombre}"

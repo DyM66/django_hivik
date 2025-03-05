@@ -18,6 +18,7 @@ class Migration(migrations.Migration):
                 ('codigo', models.CharField(max_length=50)),
                 ('descripcion', models.CharField(max_length=200)),
                 ('anio', models.PositiveIntegerField()),
+                ('mes', models.PositiveIntegerField()),
                 ('total', models.DecimalField(decimal_places=2, max_digits=18)),
             ],
         ),
@@ -27,22 +28,12 @@ class Migration(migrations.Migration):
             field=models.DecimalField(decimal_places=2, default=0, help_text='Suma de montos de financiaciones (COP)', max_digits=18),
         ),
         migrations.CreateModel(
-            name='Supuesto',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cont_a_los_gastos', models.DecimalField(decimal_places=2, default=0, help_text='Contador a los gastos (valor inicial 0)', max_digits=18)),
-                ('valor_financiacion', models.DecimalField(decimal_places=2, default=0, help_text='Valor de la financiación generado por la tasa de interés', max_digits=18)),
-                ('asset_cost', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='supuestos', to='cont.assetcost')),
-            ],
-        ),
-        migrations.CreateModel(
             name='Financiacion',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('monto', models.DecimalField(decimal_places=2, help_text='Monto del préstamo (COP)', max_digits=18)),
                 ('plazo', models.PositiveIntegerField(help_text='Plazo en meses')),
                 ('fecha_desembolso', models.DateField()),
-                ('fecha_vencimiento', models.DateField()),
                 ('tasa_interes', models.DecimalField(decimal_places=4, help_text='Tasa de interés (ej. 0.05 para 5%)', max_digits=5)),
                 ('no_deuda', models.CharField(help_text='Número de deuda', max_length=50)),
                 ('periodicidad_pago', models.CharField(default='mensual', help_text='Periodicidad del pago de interés', max_length=20)),

@@ -84,12 +84,12 @@ class OperationUpdate(UpdateView):
     template_name = 'got/operations/operation_form.html'
 
     def get_success_url(self):
-        return reverse('got:operation-list')
+        return reverse('ope:operation-list')
 
 
 class OperationDelete(DeleteView):
     model = Operation
-    success_url = reverse_lazy('got:operation-list')
+    success_url = reverse_lazy('ope:operation-list')
     template_name = 'got/operations/operation_confirm_delete.html'
 
 
@@ -107,7 +107,7 @@ def requirement_create(request, operation_id):
             # Acceder directamente a los archivos desde request.FILES
             # for f in request.FILES.getlist('file_field'):
                 # Image.objects.create(image=f, requirements=requirement)
-            return redirect('got:operation-list')
+            return redirect('ope:operation-list')
     else:
         requirement_form = RequirementForm()
         upload_images_form = UploadImages()
@@ -157,7 +157,7 @@ def requirement_delete(request, pk):
     requirement = get_object_or_404(Requirement, pk=pk)
     if request.method == 'POST':
         requirement.delete()
-        return redirect('got:operation-list')
+        return redirect('ope:operation-list')
     return render(request, 'got/operations/requirement_confirm_delete.html', {'requirement': requirement})
 
 

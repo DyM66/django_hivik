@@ -1,5 +1,5 @@
 {% extends "got/base/base_generic.html" %}
-{% load my_tags %}
+
 {% load con_extras %}
 {% block content %}
 <div class="container my-4">
@@ -109,56 +109,100 @@
 
 <!-- Modal Amplio para Mostrar Gastos Administrativos y Cargar Excel -->
 <div class="modal fade" id="gastosModal" tabindex="-1" aria-labelledby="gastosModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">  <!-- modal-lg para un modal amplio -->
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="gastosModalLabel">Registros de Gastos Administrativos</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <!-- Sección para subir archivo Excel -->
-        <div class="mb-3">
-          <label for="id_excel_file" class="form-label">Subir archivo Excel (.xlsx):</label>
-          <input type="file" class="form-control" id="id_excel_file" name="excel_file" accept=".xlsx">
-          <button id="uploadGastosBtn" class="btn btn-primary mt-2">Subir Archivo</button>
-          <div id="uploadStatus" class="mt-2 text-info"></div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-bordered table-striped">
-            <thead class="table-primary">
-              <tr>
-                <th>Código</th>
-                <th>Descripción</th>
-                <th>Año</th>
-                <th>Total</th>
-                <th>Promedio Mes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for gasto in gastos %}
-              <tr>
-                <td>{{ gasto.codigo }}</td>
-                <td>{{ gasto.descripcion }}</td>
-                <td>{{ gasto.anio }}</td>
-                <td>{{ gasto.total|currency }}</td>
-                <td>{{ gasto.promedio_mes|currency }}</td>
-              </tr>
-              {% endfor %}
-              <tr class="fw-bold">
-                <td colspan="3" class="text-end">Totales</td>
-                <td>{{ total_gastos_sum|currency }}</td>
-                <td>{{ total_promedio_sum|currency }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer">
-         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-      </div>
-    </div>
+	<div class="modal-dialog modal-lg">  
+	  <div class="modal-content">
+		<div class="modal-header">
+		  <h5 class="modal-title" id="gastosModalLabel">Registros de Gastos Administrativos</h5>
+		  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+		</div>
+		<div class="modal-body">
+		  <!-- Sección para subir archivo Excel y seleccionar mes -->
+		  <div class="mb-3">
+			<label for="id_excel_file" class="form-label">Subir archivo Excel (.xlsx):</label>
+			<input type="file" class="form-control" id="id_excel_file" name="excel_file" accept=".xlsx">
+			<label for="id_mes_upload" class="form-label mt-2">Mes (1-12):</label>
+			<input type="number" min="1" max="12" class="form-control" id="id_mes_upload" name="mes" placeholder="Ingrese el mes">
+			<button id="uploadGastosBtn" class="btn btn-primary mt-2">Subir Archivo</button>
+			<div id="uploadStatus" class="mt-2 text-info"></div>
+		  </div>
+		  <!-- Tabla dinámica pivot -->
+		  <div class="table-responsive">
+			<table class="table table-bordered table-striped">
+			  <thead>
+				<tr class="table-primary">
+				  <th rowspan="2">Código</th>
+				  <th rowspan="2">Descripción</th>
+				  <th rowspan="2">Año</th>
+				  <th rowspan="2">Total</th>
+				  <th colspan="{{ unique_months|length }}">Promedio Mes</th>
+				</tr>
+				<tr class="table-primary">
+				  {% for m in unique_months %}
+					<th>{{ m }}</th>
+				  {% endfor %}
+				</tr>
+			  </thead>
+			  <tbody>
+				{% for row in pivot_rows %}
+				<tr data-toggle="collapse" data-target="#detail-{{ forloop.counter }}" class="clickable">
+				  <td>{{ row.codigo }}</td>
+				  <td>{{ row.descripcion }}</td>
+				  <td>{{ row.anio }}</td>
+				  <td>{{ row.total|currency }}</td>
+				  {% for m in unique_months %}
+					<td>
+					  {% with value=row|get_item:m %}
+						{% if value %}
+						  {{ value|currency }}
+						{% else %}
+						  -
+						{% endif %}
+					  {% endwith %}
+					</td>
+				  {% endfor %}
+				</tr>
+				<!-- Fila detalle colapsable -->
+				<tr id="detail-{{ forloop.counter }}" class="collapse">
+				  <td colspan="{{ 4|add:unique_months|length }}">
+					<div class="table-responsive">
+					  <table class="table table-sm table-bordered">
+						<thead>
+						  <tr class="table-secondary">
+							<th>Cuenta</th>
+							<th>Nombre Cuenta</th>
+							<th>Fecha</th>
+							<th>Total</th>
+							<th>Mes</th>
+						  </tr>
+						</thead>
+						<tbody>
+						  {% for detail in row.detalles %}
+						  <tr>
+							<td>{{ detail.cuenta }}</td>
+							<td>{{ detail.nombre_cuenta }}</td>
+							<td>{{ detail.fecha|date:"d/m/Y" }}</td>
+							<td>{{ detail.total|currency }}</td>
+							<td>{{ detail.mes }}</td>
+						  </tr>
+						  {% endfor %}
+						</tbody>
+					  </table>
+					</div>
+				  </td>
+				</tr>
+				{% endfor %}
+				
+			  </tbody>
+			</table>
+		  </div>
+		</div>
+		<div class="modal-footer">
+		   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+		</div>
+	  </div>
+	</div>
   </div>
-</div> 
+  
 
 <script>
   // Actualización vía AJAX del Costo Inicial
@@ -194,41 +238,48 @@
     });
   });
 
-  // Envío del archivo Excel vía AJAX para cargar gastos administrativos
-  document.getElementById("uploadGastosBtn").addEventListener("click", function(){
-      const fileInput = document.getElementById("id_excel_file");
-      const statusDiv = document.getElementById("uploadStatus");
-      if(fileInput.files.length === 0) {
-          alert("Por favor, seleccione un archivo.");
-          return;
-      }
-      statusDiv.textContent = "Cargando archivo, por favor espere...";
-      const file = fileInput.files[0];
-      const formData = new FormData();
-      formData.append("excel_file", file);
-      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-      fetch("{% url 'con:gastos-upload-ajax' %}", {
-          method: "POST",
-          headers: {
-              "X-CSRFToken": csrftoken
-          },
-          body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-          if(data.success) {
-              statusDiv.textContent = data.message;
-              setTimeout(() => {
-                  location.reload();
-              }, 2000);
-          } else {
-              statusDiv.textContent = "Error: " + (data.error || JSON.stringify(data.errors));
-          }
-      })
-      .catch(error => {
-          console.error("Error:", error);
-          statusDiv.textContent = "Error al subir el archivo.";
-      });
-  });
+// Envío del archivo Excel vía AJAX para cargar gastos administrativos
+document.getElementById("uploadGastosBtn").addEventListener("click", function(){
+    const fileInput = document.getElementById("id_excel_file");
+    const mesInput = document.getElementById("id_mes_upload");
+    const statusDiv = document.getElementById("uploadStatus");
+    if(fileInput.files.length === 0) {
+        alert("Por favor, seleccione un archivo.");
+        return;
+    }
+    if(mesInput.value === "" || mesInput.value < 1 || mesInput.value > 12) {
+        alert("Por favor, ingrese un mes válido (1-12).");
+        return;
+    }
+    statusDiv.textContent = "Cargando archivo, por favor espere...";
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append("excel_file", file);
+    formData.append("mes", mesInput.value);
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    fetch("{% url 'con:gastos-upload-ajax' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrftoken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.success) {
+            statusDiv.textContent = data.message;
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            statusDiv.textContent = "Error: " + (data.error || JSON.stringify(data.errors));
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        statusDiv.textContent = "Error al subir el archivo.";
+    });
+});
+
 </script>
 {% endblock %}
