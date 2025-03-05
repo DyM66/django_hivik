@@ -21,14 +21,14 @@ def OperationListView(request):
         operaciones_list = Operation.objects.order_by('start').prefetch_related(
             Prefetch(
                 'requirement_set',
-                queryset=Requirement.objects.order_by('responsable').prefetch_related('images')
+                queryset=Requirement.objects.order_by('responsable')
             )
         )
     else:
         operaciones_list = Operation.objects.filter(end__gte=today).order_by('start').prefetch_related(
             Prefetch(
                 'requirement_set',
-                queryset=Requirement.objects.order_by('responsable').prefetch_related('images')
+                queryset=Requirement.objects.order_by('responsable')
             )
         )
 
@@ -72,7 +72,6 @@ def OperationListView(request):
         'modal_open': modal_open,
         'operaciones': operaciones,
         'requirement_form': RequirementForm(),
-        'upload_images_form': UploadImages(),
         'show_past': show_past,
     }
 

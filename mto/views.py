@@ -928,6 +928,24 @@ class ScrollytellingAssetsView(TemplateView):
 
         context['assets_bar_data'] = assets_bar_data
 
+
+        assets_bar_data = []
+        barcos = Asset.objects.filter(area='a', show=True)
+        for barco in barcos:
+            # Contar las OT de cada tipo para el asset (barco)
+            preventivo_count = Ot.objects.filter(system__asset=barco, tipo_mtto='p').count()
+            correctivo_count = Ot.objects.filter(system__asset=barco, tipo_mtto='c').count()
+            modificativo_count = Ot.objects.filter(system__asset=barco, tipo_mtto='m').count()
+            
+            assets_bar_data.append({
+                'name': barco.name,
+                'preventivo': preventivo_count,
+                'correctivo': correctivo_count,
+                'modificativo': modificativo_count,
+            })
+
+        context['assets_bar_data'] = assets_bar_data
+
         return context
 
 

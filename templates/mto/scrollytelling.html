@@ -327,77 +327,88 @@
     };
 
 
-    // Al cargar la página, dibujar ambas gráficas
-    window.onload = function() {
-        // 1) Pie chart
-        var pieCtx = document.getElementById('pie-chart').getContext('2d');
-        window.pieChart = new Chart(pieCtx, pieConfig);
 
-        // 2) Bar chart: Plan vs Ejecutado por barco
-        var barLabels = [
-            {% for item in assets_bar_data %}
-                "{{ item.name }}",
-            {% endfor %}
-        ];
-        var plannedData = [
-            {% for item in assets_bar_data %}
-                {{ item.planned }},
-            {% endfor %}
-        ];
-        var executedData = [
-            {% for item in assets_bar_data %}
-                {{ item.executed }},
-            {% endfor %}
-        ];
 
-        var barConfig = {
-            type: 'bar',
-            data: {
-                labels: barLabels,
-                datasets: [
-                    {
-                        label: 'Planificado',
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1,
-                        data: plannedData
-                    },
-                    {
-                        label: 'Ejecutado',
-                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 1,
-                        data: executedData
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    xAxes: [{
-                        ticks: {
-                            fontColor: '#fff'
-                        }
-                    }],
-                    yAxes: [{
-                        ticks: {
-                            beginAtZero: true,
-                            fontColor: '#fff'
-                        }
-                    }]
+</script>
+
+
+<script>
+    // Crear los labels a partir del nombre de cada barco
+    var barLabels = [
+        {% for item in assets_bar_data %}
+            "{{ item.name }}",
+        {% endfor %}
+    ];
+    // Datos para cada tipo de OT
+    var preventivoData = [
+        {% for item in assets_bar_data %}
+            {{ item.preventivo }},
+        {% endfor %}
+    ];
+    var correctivoData = [
+        {% for item in assets_bar_data %}
+            {{ item.correctivo }},
+        {% endfor %}
+    ];
+    var modificativoData = [
+        {% for item in assets_bar_data %}
+            {{ item.modificativo }},
+        {% endfor %}
+    ];
+
+    var barConfig = {
+        type: 'bar',
+        data: {
+            labels: barLabels,
+            datasets: [
+                {
+                    label: 'Preventivo',
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    data: preventivoData
                 },
-                legend: {
-                    labels: {
+                {
+                    label: 'Correctivo',
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1,
+                    data: correctivoData
+                },
+                {
+                    label: 'Modificativo',
+                    backgroundColor: 'rgba(255, 159, 64, 0.7)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 1,
+                    data: modificativoData
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                xAxes: [{
+                    ticks: {
                         fontColor: '#fff'
                     }
+                }],
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true,
+                        fontColor: '#fff'
+                    }
+                }]
+            },
+            legend: {
+                labels: {
+                    fontColor: '#fff'
                 }
             }
-        };
-
-        var barCtx = document.getElementById('bar-chart').getContext('2d');
-        window.barChart = new Chart(barCtx, barConfig);
+        }
     };
+
+    var barCtx = document.getElementById('bar-chart').getContext('2d');
+    window.barChart = new Chart(barCtx, barConfig);
 </script>
 
-</script>
 {% endblock %}

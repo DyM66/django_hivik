@@ -68,7 +68,7 @@
 
         <div class="operation-filters mb-3">
             {% if show_past %}
-                <a href="{% url 'got:operation-list' %}" class="btn btn-primary">Ver Operaciones Actuales</a>
+                <a href="{% url 'ope:operation-list' %}" class="btn btn-primary">Ver Operaciones Actuales</a>
             {% else %}
                 <a href="?show_past=true" class="btn btn-primary">Ver Operaciones Anteriores</a>
             {% endif %}
@@ -94,7 +94,6 @@
                 </tr>
             </thead>
             <tbody>
-                {% if operaciones %}
                     {% for operacion in operaciones %}
                         <tr id="row{{ forloop.counter }}" onclick="toggleDetails('details{{ forloop.counter }}', this, event)">
                             <td>{{ operacion.proyecto }}{% if not operacion.confirmado %}(Tentativa){% endif %}</td>
@@ -111,18 +110,13 @@
                             </td>
                             
                             <td>
-                                <a href="{% url 'got:operation-update' operacion.id %}"><i class="bi bi-pen"></i></a>
-                                <a href="{% url 'got:operation-delete' operacion.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
+                                <a href="{% url 'ope:operation-update' operacion.id %}"><i class="bi bi-pen"></i></a>
+                                <a href="{% url 'ope:operation-delete' operacion.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
                                 <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#addRequirementModal{{ operacion.id }}">Añadir Requerimiento</button>
                             </td>
                         </tr>
                   
                 {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="7">No hay Operaciones registradas.</td>
-                    </tr>
-                {% endif %}
             </tbody>
         </table>
 
