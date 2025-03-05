@@ -94,4 +94,6 @@ urlpatterns = [
     path('assets/<str:pk>/pdf/', views.EquipoPDFView.as_view(), name='equipo-pdf'),
 
     path('ot/<int:ot_num>/download_task_images/', views.download_ot_task_images, name='download_ot_task_images'),
+
+    path('task/<int:task_pk>/delete-image/', views.TaskDeleteImageView.as_view(), name='task-delete-image'),
 ]

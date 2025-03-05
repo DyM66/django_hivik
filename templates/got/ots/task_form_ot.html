@@ -1,6 +1,43 @@
 {% extends "got/base/base_generic.html" %}
 
 {% block content %}
+
+<style>
+    .task-image {
+        position: relative;
+        display: inline-block;
+        margin: 5px;
+        transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+    }
+    .task-image:hover {
+        /* Por ejemplo, se puede escalar un poco la imagen al pasar el mouse */
+        transform: scale(1.05);
+    }
+    .task-image.selected {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    
+    /* Estilos para el botón "x" */
+    .delete-task-image-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: rgba(255,0,0,0.7);
+        border: none;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .delete-task-image-btn:hover {
+        background: rgba(255,0,0,1);
+    }
+</style>
+
+
 <div class="container mt-2">
     <h1>Editar Actividad</h1>
     <hr>
@@ -52,10 +89,66 @@
         </div>
     </form>
 
+<!-- Dentro de la plantilla ots/task_form_ot.html, donde se muestran las imágenes -->
+<div class="task-images">
     {% for image in images %}
-        <img src="{{ image.image.url }}" alt="Imagen asociada" style="width: 100px; height: auto;">
+        <div class="task-image" id="task-image-{{ image.id }}" style="position: relative; display: inline-block; margin: 5px;">
+            <img src="{{ image.image.url }}" alt="Imagen asociada" style="width: 100px; height: auto;">
+            <button type="button" class="delete-task-image-btn" data-image-id="{{ image.id }}"
+                style="position: absolute; top: 0; right: 0; background: rgba(255,0,0,0.7); border: none; color: white; border-radius: 50%; width: 20px; height: 20px;">
+                &times;
+            </button>
+        </div>
     {% endfor %}
 </div>
+
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const deleteButtons = document.querySelectorAll('.delete-task-image-btn');
+        deleteButtons.forEach(function(button) {
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                const imageId = this.getAttribute('data-image-id');
+                const taskPk = "{{ object.pk }}";
+                const url = "{% url 'got:task-delete-image' task_pk=object.pk %}";
+                
+                // Realizar la petición AJAX
+                fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: "image_id=" + encodeURIComponent(imageId)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Seleccionar el contenedor de la imagen
+                        const imageDiv = document.getElementById("task-image-" + imageId);
+                        if (imageDiv) {
+                            // Agregar la clase que activa la animación de desvanecimiento
+                            imageDiv.classList.add("selected");
+                            // Una vez finalizada la transición, eliminar el elemento
+                            imageDiv.addEventListener("transitionend", function() {
+                                imageDiv.remove();
+                            });
+                        }
+                    } else {
+                        alert("Error: " + (data.error || "No se pudo eliminar la imagen."));
+                    }
+                })
+                .catch(error => {
+                    console.error("Error al eliminar la imagen:", error);
+                });
+            });
+        });
+    });
+    </script>
+    
 
 <!-- Regla CSS para ocultar el icono del calendario en el input start_date -->
 <style>

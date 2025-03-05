@@ -47,7 +47,6 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
-
 logger = logging.getLogger(__name__)
 TODAY = timezone.now().date()
 
@@ -232,14 +231,9 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
 
 
 class MaintenancePlanExcelExportView(View):
-
     def get(self, request, asset_abbr):
         asset = get_object_or_404(Asset, abbreviation=asset_abbr)
-        # Usamos la función get_filtered_rutas para obtener las rutinas filtradas
-        # filtered_rutas, _ = get_filtered_rutas(asset, request.GET)
-
         main, filtered_rutas, exec, realized, filter_date = get_filtered_rutas(asset, request.GET)
-        # Llamamos a la función especializada para generar el Excel
 
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -928,6 +922,24 @@ class EquipoDeleteImageView(LoginRequiredMixin, View):
         
         # Devolver la cantidad actualizada de imágenes
         image_count = equipo.images.count()
+        return JsonResponse({'success': True, 'image_count': image_count})
+    
+
+from django.utils.decorators import method_decorator
+@method_decorator(login_required, name='dispatch')
+class TaskDeleteImageView(View):
+    def post(self, request, task_pk):
+        # Obtener la tarea
+        task = get_object_or_404(Task, pk=task_pk)
+        # Obtener el ID de la imagen desde el POST
+        image_id = request.POST.get("image_id")
+        if not image_id:
+            return JsonResponse({'error': 'No se proporcionó el ID de la imagen.'}, status=400)
+        # Asegurarse de que la imagen pertenece a la tarea
+        image = get_object_or_404(Image, id=image_id, task=task)
+        image.delete()
+        # Devolver la cantidad actualizada de imágenes asociadas a la tarea
+        image_count = task.images.count()  # Asumiendo que en el modelo Task se definió related_name='images'
         return JsonResponse({'success': True, 'image_count': image_count})
 
 
