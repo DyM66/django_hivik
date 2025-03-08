@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'mto.apps.MtoConfig', 
     'ope.apps.OpeConfig', 
     'cont.apps.ContConfig', 
+    'tic.apps.TicConfig', 
     'taggit',
 ]
 
@@ -78,6 +79,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'got.context_processors.unapproved_requests_count',
+                'tic.context_processors.ticket_form_processor',
             ],
         },
     },

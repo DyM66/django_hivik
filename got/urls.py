@@ -96,4 +96,6 @@ urlpatterns = [
     path('ot/<int:ot_num>/download_task_images/', views.download_ot_task_images, name='download_ot_task_images'),
 
     path('task/<int:task_pk>/delete-image/', views.TaskDeleteImageView.as_view(), name='task-delete-image'),
+
+    path('maintenance/export/<str:asset_abbr>/', views.MaintenancePlanPDFExportView.as_view(), name='maintenance-plan-pdf-export'),
 ]

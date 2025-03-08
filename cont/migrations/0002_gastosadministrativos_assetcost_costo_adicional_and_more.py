@@ -18,8 +18,8 @@ class Migration(migrations.Migration):
                 ('codigo', models.CharField(max_length=50)),
                 ('descripcion', models.CharField(max_length=200)),
                 ('anio', models.PositiveIntegerField()),
-                ('mes', models.PositiveIntegerField()),
                 ('total', models.DecimalField(decimal_places=2, max_digits=18)),
+                ('mes', models.PositiveIntegerField(help_text='Mes (1-12)')),
             ],
         ),
         migrations.AddField(
@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('no_deuda', models.CharField(help_text='Número de deuda', max_length=50)),
                 ('periodicidad_pago', models.CharField(default='mensual', help_text='Periodicidad del pago de interés', max_length=20)),
                 ('valor_financiacion', models.DecimalField(blank=True, decimal_places=2, help_text='Valor generado por la tasa de interés', max_digits=18, null=True)),
-                ('supuesto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='financiaciones', to='cont.supuesto')),
+                ('asset_cost', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='financiaciones', to='cont.assetcost')),
             ],
         ),
     ]

@@ -22,3 +22,12 @@ def mul(value, arg):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+@register.filter
+def format_decimal_dot(value, decimals=2):
+    try:
+        value = Decimal(value)
+        format_string = f"{{:.{decimals}f}}"
+        return format_string.format(value)
+    except Exception:
+        return value

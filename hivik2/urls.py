@@ -41,6 +41,7 @@ urlpatterns = [
     path('mto/', include('mto.urls', namespace='mto')),
     path('ope/', include('ope.urls', namespace='ope')),
     path('cont/', include('cont.urls', namespace='cont')),
+    path('tic/', include('tic.urls', namespace='tic')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
 
     

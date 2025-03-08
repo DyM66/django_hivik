@@ -36,9 +36,4 @@ class Migration(migrations.Migration):
             name='costo',
             field=models.DecimalField(decimal_places=2, default=0.0, max_digits=19),
         ),
-        migrations.AlterField(
-            model_name='item',
-            name='unit_price',
-            field=models.DecimalField(decimal_places=2, default=0.0, max_digits=18),
-        ),
     ]

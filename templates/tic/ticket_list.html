@@ -1,0 +1,37 @@
+{% extends 'got/base/base_generic.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4">Listado de Tickets de Soporte Técnico</h2>
+  
+    {% if tickets %}
+        <div class="row">
+            {% for ticket in tickets %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header text-white" style="background-color: var(--color-primary);">
+                            Ticket #{{ ticket.id }} - {{ ticket.get_state_display }}
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ ticket.title }}</h5>
+                            <p class="card-text">
+                                <strong>Reportado por:</strong> {{ ticket.reporter.get_full_name }}<br>
+                                <strong>Tipo:</strong> {{ ticket.get_ticket_type_display }}<br>
+                                <strong>Categoría:</strong> {{ ticket.get_category_display }}<br>
+                                <strong>Creado:</strong> {{ ticket.created_at|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                        <div class="card-footer text-end">
+                            <a href="{% url 'tic:ticket-detail' ticket.id %}" class="btn btn-sm btn-outline-primary">Ver Detalle</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+        No se han encontrado tickets.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

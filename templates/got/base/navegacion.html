@@ -181,6 +181,37 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                 </li>
+
+                {% if request.user|has_group:"tic_members" %}
+                    <!-- Dropdown de TIC -->
+                    <li class="nav-item dropdown mega-dropdown">
+                        <a class="nav-link {% if request.resolver_match.url_name in 'maintenance_dashboard' %}active{% endif %}" href="#" id="ticDropdown" role="button">
+                            Tecnologías
+                        </a>
+
+                        <!-- Nuestro mega-menu -->
+                        <div class="mega-menu-desktop" aria-labelledby="ticDropdown">
+                            <div class="container-fluid p-3 d-flex flex-wrap">
+                                <div class="flex-fill me-4">
+                                    <ul class="list-unstyled">
+                                        <li><a class="dropdown-item" href="{% url 'tic:ticket-list' %}">Tickets</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2) Submenú MÓVIL => collapse -->
+                        <div id="megaTic" class="collapse mega-menu-mobile">
+                            <div class="p-3 text-center">
+                                <!-- Mismos links que arriba -->
+                                <ul class="list-unstyled">
+                                    <li><a class="dropdown-item" href="{% url 'tic:ticket-list' %}">Tickets</a></li>
+                                </ul>
+                                <hr class="my-2">
+                            </div>
+                        </div>
+                    </li>
+                {% endif %}
           
                 {% if asset_del_supervisor %}
                     <li class="nav-item">
@@ -238,13 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </li>
                 {% endif %}
             
-                <!-- {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'budget_summary_by_asset' %}active{% endif %}" href="{% url 'got:budget_summary_by_asset' %}">
-                        Presupuesto
-                    </a>
-                </li>
-                {% endif %} -->
+
                 
                 <!-- Dropdown de Vehículos -->
                 <li class="nav-item dropdown mega-dropdown">

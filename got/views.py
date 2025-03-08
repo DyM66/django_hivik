@@ -229,6 +229,38 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             return render(request, self.template_name, context)
 
 
+import weasyprint
+
+class MaintenancePlanPDFExportView(View):
+    def get(self, request, asset_abbr):
+        # Obtener el asset a exportar
+        asset = get_object_or_404(Asset, abbreviation=asset_abbr)
+        # Obtener la información necesaria, similar a tu exportación Excel
+        main, filtered_rutas, exec, realized, filter_date = get_filtered_rutas(asset, request.GET)
+
+        # Preparar contexto: incluye todos los datos que necesitas
+        context = {
+            'asset': asset,
+            'asset_abbr': asset_abbr,
+            'filtered_rutas': filtered_rutas,
+            'TODAY': date.today(),
+            # Puedes agregar más datos (por ejemplo, datos de financiación, etc.)
+        }
+        
+        # Renderizamos el template a una cadena HTML
+        html_string = render_to_string("got/maintenance_plan_pdf.html", context)
+        
+        # Generamos el PDF usando WeasyPrint; base_url es importante para que se resuelvan correctamente rutas de imágenes o CSS
+        pdf_file = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+        
+        # Configuramos la respuesta como PDF
+        response = HttpResponse(pdf_file, content_type="application/pdf")
+        filename = f"maintenance_plan_{asset_abbr}_{date.today().strftime('%Y%m%d')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+
+
 
 class MaintenancePlanExcelExportView(View):
     def get(self, request, asset_abbr):
@@ -364,7 +396,7 @@ class MaintenancePlanExcelExportView(View):
                 except Exception:
                     pass
             adjusted_width = (max_length + 2)
-            ws.column_dimensions[column_letter].width = adjusted_width
+            ws.column_dimensions[column_letter].width = adjusted_width         
 
         # === Sección de Observaciones y Cierre ===
         current_row = ws.max_row + 1
@@ -466,6 +498,17 @@ class MaintenancePlanExcelExportView(View):
         cell.alignment = Alignment(horizontal="center", vertical="center")
         cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
         cell.font = Font(name='Arial', italic=True, size=10)
+
+        for col in range(1, 7):
+            ws.cell(row=current_row, column=col).border = thin_border
+
+        current_row += 1
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=6)
+        cell = ws.cell(row=current_row, column=1)
+        cell.value = '“Este documento fue generado por el software GOT - SERPORT para el departamento de mantenimiento.”'
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
+        cell.font = Font(name='Arial', italic=True, size=12)
 
         for col in range(1, 7):
             ws.cell(row=current_row, column=col).border = thin_border

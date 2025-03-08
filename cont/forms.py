@@ -2,7 +2,6 @@
 from django import forms
 from .models import Financiacion, AssetCost
 
-
 class FinanciacionForm(forms.ModelForm):
     class Meta:
         model = Financiacion
@@ -33,7 +32,7 @@ class FinanciacionForm(forms.ModelForm):
 class AssetCostUpdateForm(forms.ModelForm):
     class Meta:
         model = AssetCost
-        fields = ['initial_cost']
+        fields = ['initial_cost', 'codigo']
 
 
 class GastosUploadForm(forms.Form):

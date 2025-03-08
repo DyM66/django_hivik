@@ -1,0 +1,21 @@
+{% extends 'got/base/base_generic.html' %}
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h4>Eliminar Ticket #{{ ticket.id }}</h4>
+        </div>
+        <div class="card-body">
+            <p>¿Estás seguro de que deseas eliminar este ticket?</p>
+            <p><strong>Título:</strong> {{ ticket.title }}</p>
+            <p><strong>Reportado por:</strong> {{ ticket.reporter.get_full_name }}</p>
+        </div>
+        <div class="card-footer text-end">
+            <a href="{% url 'tic:ticket-detail' ticket.id %}" class="btn btn-secondary">Cancelar</a>
+            <form method="post" style="display: inline;">{% csrf_token %}
+                <button type="submit" class="btn btn-danger">Eliminar Ticket</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

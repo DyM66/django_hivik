@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('got', '0005_ot_closing_date'),
+        ('got', '0004_remove_failurereport_evidence_and_more'),
     ]
 
     operations = [
@@ -20,6 +20,15 @@ class Migration(migrations.Migration):
                 ('initial_cost', models.DecimalField(blank=True, decimal_places=2, help_text='Valor monetario de adquisición (COP)', max_digits=18, null=True)),
                 ('fp', models.DecimalField(blank=True, decimal_places=4, help_text='Factor de participación (entre 0 y 1)', max_digits=5, null=True)),
                 ('asset', models.OneToOneField(limit_choices_to={'area__in': ['a', 'c']}, on_delete=django.db.models.deletion.CASCADE, related_name='cost_info', to='got.asset')),
+                ('codigo', models.CharField(blank=True, max_length=50, null=True)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='CodigoContable',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('codigo', models.CharField(help_text='Código contable', max_length=20, unique=True)),
+                ('nombre', models.CharField(help_text='Nombre o descripción asociada al código', max_length=200)),
             ],
         ),
     ]

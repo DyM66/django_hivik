@@ -1,8 +1,8 @@
-{% extends "got/base/base_generic.html" %}
+{% extends "cont/finance_base.html" %}
 
+{% block page_title %}Análisis de costos{% endblock %}
 {% block content %}
 <div class="container my-4">
-    <h1 class="text-center">Activos</h1>
     <ul class="list-unstyled">
         {% for ac in asset_costs %}
         <li class="my-2">

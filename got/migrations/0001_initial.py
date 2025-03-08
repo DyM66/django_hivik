@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('code', models.CharField(blank=True, max_length=50, null=True)),
                 ('seccion', models.CharField(choices=[('c', 'Consumibles'), ('h', 'Herramientas y Elementos'), ('r', 'Repuestos')], default='c', max_length=1)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-                ('unit_price', models.DecimalField(decimal_places=2, default=0.0, max_digits=15)),
+                ('unit_price', models.DecimalField(decimal_places=2, default=0.0, max_digits=18)),
             ],
             options={'ordering': ['name', 'reference']},
         ),
@@ -94,6 +94,7 @@ class Migration(migrations.Migration):
                 ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.system')),
                 ('sign_supervision', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('modified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_ots', to=settings.AUTH_USER_MODEL)),
+                ('closing_date', models.DateField(blank=True, null=True)),
             ],
             options={
                 'ordering': ['-num_ot'],

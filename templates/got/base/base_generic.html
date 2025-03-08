@@ -7,7 +7,6 @@
 <body>
 	{% include 'got/base/navegacion.html' %}
 
-	<!-- En base_generic.html o la plantilla base que uses -->
     {% if messages %}
     <div class="container mt-3">
         {% for message in messages %}
@@ -24,7 +23,6 @@
         {% endfor %}
     </div>
     {% endif %}
-
 
 	<!-- Contenido -->
 	{% block content %}{% endblock %}
@@ -73,6 +71,212 @@
 <!-- Contenedor de notificaciones -->
 <div id="notification-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1050;"></div>
 
+<!-- Botón flotante de Soporte Técnico -->
+<div id="floatingSupport" class="floating-support">
+    <i class="bi bi-headset icon"></i>
+    <span class="text">Soporte Técnico</span>
+</div>
+
+
+<!-- Menú de Soporte Técnico (inicialmente oculto) -->
+<div id="supportMenu" class="support-menu">
+    <ul>
+       <li>
+         <a href="#" data-bs-toggle="modal" data-bs-target="#ticketModal">Reportar falla / Solicitar apoyo</a>
+       </li>
+       <li>
+         <a href="#" data-bs-toggle="modal" data-bs-target="#faqModal">Dudas sobre el proceso</a>
+       </li>
+    </ul>
+</div>
+
+
+    <!-- Modal Ticket Creation -->
+    <div class="modal fade" id="ticketModal" tabindex="-1" aria-labelledby="ticketModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{% url 'tic:ticket-create' %}" method="post" id="ticketForm">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="ticketModalLabel">Reportar falla / Solicitar apoyo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ ticket_form.as_p }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Enviar Ticket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal FAQ -->
+    <div class="modal fade" id="faqModal" tabindex="-1" aria-labelledby="faqModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="faqModalLabel">Dudas sobre el proceso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+					<p>
+						Aquí puedes encontrar respuestas a las dudas más frecuentes sobre el proceso. 
+						Si requieres asistencia adicional, por favor comunícate con el 
+						<a href="#" data-bs-toggle="modal" data-bs-target="#ticketModal" style="text-decoration: underline">departamento de Tecnologías</a>.
+					</p>
+					<!-- Bloque para que cada vista inyecte su lista de procesos -->
+					<div class="list-group">
+						{% block faq_processes %}
+						<a href="#" class="list-group-item list-group-item-action disabled" aria-disabled="true">
+						  	No se han configurado procesos.
+						</a>
+						{% endblock %}
+					</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/5.1.0/intro.min.js"></script>
+
+<style>
+:root {
+    --color-primary: #191645;
+}
+
+/* Botón flotante, inicialmente circular y de 50x50 */
+.floating-support {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1050;
+    width: 50px;
+    height: 50px;
+    border: 2px solid var(--color-primary);
+    border-radius: 50%;
+    background-color: #fff;
+    overflow: hidden; /* Oculta el texto cuando está retraído */
+    transition: width 0.3s ease, border-radius 0.3s ease;
+}
+
+/* Estado expandido: se activa por hover o con la clase "open" */
+.floating-support.open,
+.floating-support:hover {
+    width: 200px;
+    border-radius: 25px;
+}
+
+/* Icono: posicionado absolutamente a la derecha y centrado verticalmente */
+.floating-support .icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 24px;
+    color: var(--color-primary);
+}
+
+/* Texto: posicionado absolutamente a la izquierda, inicialmente oculto */
+.floating-support .text {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--color-primary);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Cuando se expande (hover o "open") se muestra el texto */
+.floating-support.open .text,
+.floating-support:hover .text {
+    opacity: 1;
+}
+
+/* Menú de soporte: se levanta un poco más para no quedar pegado */
+.support-menu {
+    position: fixed;
+    bottom: 90px; /* Más arriba que el botón */
+    right: 20px;
+    background-color: #fff;
+    border: 2px solid var(--color-primary);
+    border-radius: 8px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 10px;
+    display: none;
+    z-index: 1050;
+}
+
+.support-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.support-menu ul li {
+    margin: 5px 0;
+}
+
+.support-menu ul li a {
+    display: block;
+    padding: 5px 10px;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.support-menu ul li a:hover {
+    background-color: var(--color-primary);
+    color: #fff;
+    border-radius: 4px;
+}
+
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const floatingSupport = document.getElementById('floatingSupport');
+        const supportMenu = document.getElementById('supportMenu');
+
+        // Función para mostrar/ocultar el menú y añadir/quitar la clase "open"
+        function toggleSupportMenu(e) {
+            e.stopPropagation();
+            if (supportMenu.style.display === "none" || supportMenu.style.display === "") {
+                supportMenu.style.display = "block";
+                floatingSupport.classList.add("open");
+            } else {
+                supportMenu.style.display = "none";
+                floatingSupport.classList.remove("open");
+            }
+        }
+
+        floatingSupport.addEventListener('click', toggleSupportMenu);
+
+        // Cerrar el menú al hacer click fuera
+        document.addEventListener('click', function() {
+            if (supportMenu.style.display === "block") {
+                supportMenu.style.display = "none";
+                floatingSupport.classList.remove("open");
+            }
+        });
+
+        // Prevenir cierre del menú al hacer click dentro de él
+        supportMenu.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+    </script>
+	
+
 <style>
 	/* Estilo para los toasts */
 	.toast {
@@ -81,49 +285,6 @@
 		padding: 5px;
 	}
 </style>
-<!-- 
-<style>
-	.notification-box {
-		background: #fffffff2; /* Blanco con 95% de opacidad */
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
-		padding: 20px 25px;
-		margin-bottom: 10px;
-		width: 400px;  /* Un poco más ancho */
-		opacity: 1;
-		transform: translateX(0);
-		transition: opacity 0.5s ease, transform 0.5s ease;
-		position: relative;
-	}
-
-    /* Botón de cerrar en forma de "X" */
-    .notification-close {
-        position: absolute;
-        top: 5px;
-        right: 8px;
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: #666;
-    }
-    .notification-close:hover {
-        color: #000;
-    }
-
-    /* Clase para animar el cierre: se desvanece y se desliza a la derecha */
-    .fade-out {
-        opacity: 0;
-        transform: translateX(100%);
-    }
-
-    /* Opcional: si quieres que cuando se acumulen notificaciones,
-       se difuminen (por ejemplo, se puede reducir su opacidad) */
-    #notification-container .notification-box:not(:last-child) {
-        opacity: 0.9;
-    }
-</style> -->
 
 <script>
     // Función para obtener notificaciones del servidor (por ejemplo, vía fetch)
@@ -160,16 +321,6 @@
             });
         });
     }
-
-    // Función para cerrar una notificación con animación
-    // function closeNotification(btn) {
-    //     const box = btn.parentNode;
-    //     box.classList.add("fade-out");
-    //     box.addEventListener("transitionend", function() {
-    //         box.remove();
-    //     });
-    //     markAsSeen(box.dataset.notificationId);
-    // }
 
 	function handleNotificationClick(notificationId, redirectUrl) {
 		markAsSeen(notificationId);
@@ -317,5 +468,156 @@
 			});
 		});
 	</script>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const ticketForm = document.getElementById('ticketForm');
+		if(ticketForm) {
+			ticketForm.addEventListener('submit', function(e) {
+				e.preventDefault();
+				const submitButton = ticketForm.querySelector('button[type="submit"]');
+				submitButton.disabled = true;
+				submitButton.innerHTML = 'Enviando...';
+				const formData = new FormData(ticketForm);
+				fetch(ticketForm.action, {
+					method: 'POST',
+					headers: {
+						'X-Requested-With': 'XMLHttpRequest'
+					},
+					body: formData
+				})
+				.then(response => response.json())
+				.then(data => {
+					if(data.success) {
+						// Reiniciar el formulario
+						ticketForm.reset();
+						// Ocultar el modal (utilizando la API de Bootstrap)
+						const ticketModalEl = document.getElementById('ticketModal');
+						const ticketModal = bootstrap.Modal.getInstance(ticketModalEl);
+						ticketModal.hide();
+						// Mostrar mensaje de éxito
+						showToast(data.message);
+					} else {
+						// Mostrar errores (por ejemplo, concatenando los mensajes de error)
+						let errorText = "";
+						for (const [field, errors] of Object.entries(data.errors)) {
+							errorText += field + ": " + errors.join(', ') + "\n";
+						}
+						showToast("Error: " + errorText);
+					}
+					submitButton.disabled = false;
+					submitButton.innerHTML = 'Enviar Ticket';
+				})
+				.catch(error => {
+					console.error('Error:', error);
+					showToast('Ocurrió un error, por favor intente nuevamente.');
+					submitButton.disabled = false;
+					submitButton.innerHTML = 'Enviar Ticket';
+				});
+			});
+		}
+	});
+	
+	// Función para mostrar un toast de confirmación
+	function showToast(message) {
+		const container = document.getElementById('notification-container');
+		// Crear el elemento del toast
+		const toastEl = document.createElement('div');
+		toastEl.className = 'toast';
+		toastEl.setAttribute('role', 'alert');
+		toastEl.setAttribute('aria-live', 'assertive');
+		toastEl.setAttribute('aria-atomic', 'true');
+		toastEl.innerHTML = `
+			<div class="toast-header">
+				<strong class="me-auto">Soporte Técnico</strong>
+				<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+			</div>
+			<div class="toast-body">
+				${message}
+			</div>
+		`;
+		container.appendChild(toastEl);
+		const toast = new bootstrap.Toast(toastEl, { delay: 10000 });
+		toast.show();
+		// Remover el toast del DOM cuando se oculte
+		toastEl.addEventListener('hidden.bs.toast', function() {
+			toastEl.remove();
+		});
+	}
+	</script>
+	
+
+	{% block faq_extra_js %}
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/5.1.0/intro.min.js"></script>
+	<script>
+	document.addEventListener("DOMContentLoaded", function(){
+	  // Selecciona todos los elementos que tienen el atributo data-tutorial
+	  const processItems = document.querySelectorAll("[data-tutorial]");
+	  processItems.forEach(function(item) {
+		item.addEventListener("click", function(e) {
+		  e.preventDefault();
+		  // Cierra el modal FAQ (opcional)
+		  const faqModalEl = document.getElementById("faqModal");
+		  const faqModal = bootstrap.Modal.getInstance(faqModalEl);
+		  if (faqModal) {
+			faqModal.hide();
+		  }
+		  // Obtén el nombre del tutorial desde el atributo
+		  const tutorialName = this.getAttribute("data-tutorial");
+		  // Inicia el tour para ese proceso
+		  startTutorial(tutorialName);
+		});
+	  });
+	});
+	
+	function startTutorial(tutorialName) {
+	  let steps = [];
+	  // Define los pasos para cada proceso según el valor de tutorialName
+	  switch(tutorialName) {
+		case "horas-report":
+		  steps = [
+			{
+			  element: document.querySelector("table#tableHours thead"),
+			  intro: "Estas son las fechas de reporte; cada columna representa un día en el que se debe registrar las horas.",
+			  position: "bottom"
+			},
+			{
+			  element: document.querySelector("table#tableHours tbody tr td:first-child"),
+			  intro: "Cada fila corresponde a un equipo. Aquí se muestra el nombre del equipo y su horómetro actual.",
+			  position: "right"
+			},
+			{
+			  element: document.querySelector("i.edit-hour"),
+			  intro: "Haz clic en este icono de lápiz para reportar las horas trabajadas para esa fecha.",
+			  position: "top"
+			},
+			{
+			  element: document.getElementById("editHourModal"),
+			  intro: "En este modal podrás ingresar las horas trabajadas (entre 0 y 24) y guardar el reporte.",
+			  position: "left"
+			}
+		  ];
+		  break;
+		// Agrega otros casos según sea necesario
+		default:
+		  steps = [];
+	  }
+	  if (steps.length > 0) {
+		introJs().setOptions({
+		  steps: steps,
+		  showStepNumbers: true,
+		  exitOnOverlayClick: false,
+		  showBullets: true,
+		  nextLabel: "Siguiente",
+		  prevLabel: "Anterior",
+		  skipLabel: "Omitir",
+		  doneLabel: "Finalizar"
+		}).start();
+	  }
+	}
+	</script>
+	{% endblock %}
+	
+
 </body>
 </html>

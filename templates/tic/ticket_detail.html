@@ -1,0 +1,76 @@
+{% extends 'got/base/base_generic.html' %}
+{% load my_tags %}
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow">
+        <div class="card-header text-white" style="background-color: var(--color-primary);">
+            <h4 class="mb-0">Ticket #{{ ticket.id }} - {{ ticket.get_state_display }}</h4>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">{{ ticket.title }}</h5>
+            <p class="card-text">
+                <strong>Reportado por:</strong> {{ ticket.reporter.get_full_name }} ({{ ticket.reporter.email }})<br>
+                {% if ticket.taken_by %}
+                    <strong>Asignado a:</strong> {{ ticket.taken_by.get_full_name }}<br>
+                {% endif %}
+                <strong>Tipo:</strong> {{ ticket.get_ticket_type_display }}<br>
+                <strong>Categoría:</strong> {{ ticket.get_category_display }}<br>
+                <strong>Creado:</strong> {{ ticket.created_at|date:"d/m/Y H:i" }}<br>
+                {% if ticket.updated_at %}
+                    <strong>Actualizado:</strong> {{ ticket.updated_at|date:"d/m/Y H:i" }}
+                {% endif %}
+            </p>
+            <hr>
+            <h5>Descripción</h5>
+            <p>{{ ticket.message|linebreaks }}</p>
+            {% if ticket.solution %}
+                <hr>
+                <h5>Solución</h5>
+                <p>{{ ticket.solution|linebreaks }}</p>
+            {% endif %}
+        </div>
+        <div class="card-footer text-end">
+            {% if ticket.state == 'abierto' and not ticket.taken_by and request.user|has_group:"tic_members" %}     
+                <form method="post" action="{% url 'tic:ticket-take' ticket.id %}" style="display:inline;">{% csrf_token %}
+                    <button type="submit" class="btn btn-success">Tomar Ticket</button>
+                </form>
+            {% elif ticket.state == 'en_proceso' and ticket.taken_by == request.user %}
+                <!-- Botón para cerrar el ticket -->
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#closeTicketModal">
+                    Cerrar Ticket
+                </button>
+            {% endif %}
+            {% if ticket.reporter == request.user or request.user|has_group:"tic_members" %}
+                <a href="{% url 'tic:ticket-delete' ticket.id %}" class="btn btn-outline-danger">Eliminar Ticket</a>
+            {% endif %}
+            <a href="{% url 'tic:ticket-list' %}" class="btn btn-outline-secondary">Volver al listado</a>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal para cerrar el ticket -->
+<div class="modal fade" id="closeTicketModal" tabindex="-1" aria-labelledby="closeTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'tic:ticket-close' ticket.id %}">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="closeTicketModalLabel">Cerrar Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="solution" class="form-label">Ingrese la conclusión del ticket:</label>
+                        <textarea class="form-control" id="solution" name="solution" rows="4" required></textarea>
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" name="action" value="save" class="btn btn-primary">Guardar</button>
+                    <button type="submit" name="action" value="close" class="btn btn-danger">Cerrar Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

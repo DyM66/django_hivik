@@ -2,60 +2,59 @@
 
 {% block content %}
 <div class="container my-4">
-  <div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-      <!-- Se muestra el nombre del asset para el cual se ingresa la financiación -->
-      <h4 class="card-title mb-0">Registrar Financiación para {{ asset_cost_obj.asset.name }}</h4>
-    </div>
-    <div class="card-body">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        <div class="mb-3">
-          <label for="id_monto" class="form-label">Monto (COP)</label>
-          {{ form.monto }}
-          {% if form.monto.errors %}
-            <div class="text-danger">{{ form.monto.errors }}</div>
-          {% endif %}
-        </div>
-        <div class="mb-3">
-          <label for="id_plazo" class="form-label">Plazo (meses)</label>
-          {{ form.plazo }}
-          {% if form.plazo.errors %}
-            <div class="text-danger">{{ form.plazo.errors }}</div>
-          {% endif %}
-        </div>
-        <div class="mb-3">
-          <label for="id_fecha_desembolso" class="form-label">Fecha Desembolso</label>
-          {{ form.fecha_desembolso }}
-          {% if form.fecha_desembolso.errors %}
-            <div class="text-danger">{{ form.fecha_desembolso.errors }}</div>
-          {% endif %}
-        </div>
-        <div class="mb-3">
-          <label for="id_tasa_interes" class="form-label">Tasa de Interés</label>
-          {{ form.tasa_interes }}
-          {% if form.tasa_interes.errors %}
-            <div class="text-danger">{{ form.tasa_interes.errors }}</div>
-          {% endif %}
-        </div>
-        <div class="mb-3">
-          <label for="id_no_deuda" class="form-label">Número de Deuda</label>
-          {{ form.no_deuda }}
-          {% if form.no_deuda.errors %}
-            <div class="text-danger">{{ form.no_deuda.errors }}</div>
-          {% endif %}
-        </div>
-        <div class="mb-3">
-          <label for="id_periodicidad_pago" class="form-label">Periodicidad de Pago</label>
-          {{ form.periodicidad_pago }}
-          {% if form.periodicidad_pago.errors %}
-            <div class="text-danger">{{ form.periodicidad_pago.errors }}</div>
-          {% endif %}
-        </div>
-        <!-- Campo asset_cost se asigna automáticamente, por lo que no se muestra -->
-        <button type="submit" class="btn btn-primary">Registrar Financiación</button>
-      </form>
-    </div>
-  </div>
+	<div class="card shadow-sm">
+		<div class="card-header bg-primary text-white">
+			<!-- Se muestra el nombre del asset para el cual se ingresa la financiación -->
+			<h4 class="card-title mb-0">Registrar Financiación para {{ asset_cost_obj.asset.name }}</h4>
+		</div>
+		<div class="card-body">
+			<form method="post" novalidate>{% csrf_token %}
+				<div class="mb-3">
+					<label for="id_monto" class="form-label">Monto (COP)</label>
+					{{ form.monto }}
+					{% if form.monto.errors %}
+						<div class="text-danger">{{ form.monto.errors }}</div>
+					{% endif %}
+				</div>
+				<div class="mb-3">
+					<label for="id_plazo" class="form-label">Plazo (meses)</label>
+					{{ form.plazo }}
+					{% if form.plazo.errors %}
+						<div class="text-danger">{{ form.plazo.errors }}</div>
+					{% endif %}
+				</div>
+				<div class="mb-3">
+					<label for="id_fecha_desembolso" class="form-label">Fecha Desembolso</label>
+					{{ form.fecha_desembolso }}
+					{% if form.fecha_desembolso.errors %}
+						<div class="text-danger">{{ form.fecha_desembolso.errors }}</div>
+					{% endif %}
+				</div>
+				<div class="mb-3">
+					<label for="id_tasa_interes" class="form-label">Tasa de Interés</label>
+					{{ form.tasa_interes }}
+					{% if form.tasa_interes.errors %}
+						<div class="text-danger">{{ form.tasa_interes.errors }}</div>
+					{% endif %}
+				</div>
+				<div class="mb-3">
+					<label for="id_no_deuda" class="form-label">Número de Deuda</label>
+					{{ form.no_deuda }}
+					{% if form.no_deuda.errors %}
+						<div class="text-danger">{{ form.no_deuda.errors }}</div>
+					{% endif %}
+				</div>
+				<div class="mb-3">
+					<label for="id_periodicidad_pago" class="form-label">Periodicidad de Pago</label>
+					{{ form.periodicidad_pago }}
+					{% if form.periodicidad_pago.errors %}
+						<div class="text-danger">{{ form.periodicidad_pago.errors }}</div>
+					{% endif %}
+				</div>
+				<!-- Campo asset_cost se asigna automáticamente, por lo que no se muestra -->
+				<button type="submit" class="btn btn-primary">Registrar Financiación</button>
+			</form>
+    	</div>
+  	</div>
 </div>
 {% endblock %}

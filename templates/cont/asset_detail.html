@@ -1,11 +1,17 @@
-{% extends "got/base/base_generic.html" %}
+{% extends "cont/finance_base.html" %}
 
 {% load con_extras %}
+{% block page_title %}
+<a href="{% url 'cont:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
+{{ asset_cost.asset.name }} - {{ asset_cost.codigo|default_if_none:"" }}
+{% endblock %}
 {% block content %}
 <div class="container my-4">
     <div class="d-flex justify-content-between align-items-center">
-        <a href="{% url 'cont:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
-        <h1 class="mb-0">Detalle - {{ asset_cost.asset.name }}</h1>
+        
+        <h1 class="mb-0">
+			
+		</h1>
         <!-- Botón discreto con el ícono de lápiz -->
         <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#updateModal">
             <i class="bi bi-pencil" style="font-size: 1rem; color: #094067;"></i>
@@ -63,7 +69,7 @@
                 </div>
             </div>
         {% else %}
-            <p class="small text-muted">No hay registros de financiación para este asset.</p>
+            <p class="small text-muted">No hay registros de financiación.</p>
         {% endif %}
     </div>
 
@@ -79,207 +85,207 @@
             <strong>Contribución a los gastos:</strong> {{ asset_cost.cont_a_los_gastos|currency }}<br>
             <small class="text-muted">Factor de participación (FP): {{ asset_cost.fp|floatformat:4 }}</small>
         </p>
+		<p>
+			<strong>Costos Directos:</strong> {{ asset_cost.total_costos_directos|currency }}
+		</p>
     </div>
 </div>
 
-<!-- Modal Bootstrap para actualizar el Costo Inicial -->
+<!-- Modal Bootstrap para actualizar Costo Inicial y Código -->
 <div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="updateAssetCostForm" method="post">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title" id="updateModalLabel">Actualizar Costo Inicial</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="id_initial_cost" class="form-label">Costo Inicial (COP):</label>
-                        <input type="number" step="0.01" class="form-control" name="initial_cost" id="id_initial_cost" value="{{ asset_cost.initial_cost|default:'0.00' }}">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
-                </div>
-            </form>
-        </div>
-    </div>
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form action="{% url 'con:assetcost-update' asset_cost.pk %}" method="post">{% csrf_token %}
+				<div class="modal-header">
+					<h5 class="modal-title" id="updateModalLabel">Actualizar Información</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+				</div>
+				<div class="modal-body">
+					<!-- Campo Costo Inicial -->
+					<div class="mb-3">
+						<label for="id_initial_cost" class="form-label">Costo Inicial (COP):</label>
+						<input type="number" class="form-control" id="id_initial_cost" name="initial_cost" value={{asset_cost.initial_cost|format_decimal_dot}}>
+					</div>
+					<!-- Campo Código -->
+					<div class="mb-3">
+						<label for="id_codigo" class="form-label">Código</label>
+						<input type="text" class="form-control" id="id_codigo" name="codigo" value="{{ asset_cost.codigo }}">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+					<button type="submit" class="btn btn-primary">Guardar Cambios</button>
+				</div>
+			</form>
+		</div>
+	</div>
 </div>
+  
 
 <!-- Modal Amplio para Mostrar Gastos Administrativos y Cargar Excel -->
 <div class="modal fade" id="gastosModal" tabindex="-1" aria-labelledby="gastosModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg">  
-	  <div class="modal-content">
-		<div class="modal-header">
-		  <h5 class="modal-title" id="gastosModalLabel">Registros de Gastos Administrativos</h5>
-		  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-		</div>
-		<div class="modal-body">
-		  <!-- Sección para subir archivo Excel y seleccionar mes -->
-		  <div class="mb-3">
-			<label for="id_excel_file" class="form-label">Subir archivo Excel (.xlsx):</label>
-			<input type="file" class="form-control" id="id_excel_file" name="excel_file" accept=".xlsx">
-			<label for="id_mes_upload" class="form-label mt-2">Mes (1-12):</label>
-			<input type="number" min="1" max="12" class="form-control" id="id_mes_upload" name="mes" placeholder="Ingrese el mes">
-			<button id="uploadGastosBtn" class="btn btn-primary mt-2">Subir Archivo</button>
-			<div id="uploadStatus" class="mt-2 text-info"></div>
-		  </div>
-		  <!-- Tabla dinámica pivot -->
-		  <div class="table-responsive">
-			<table class="table table-bordered table-striped">
-			  <thead>
-				<tr class="table-primary">
-				  <th rowspan="2">Código</th>
-				  <th rowspan="2">Descripción</th>
-				  <th rowspan="2">Año</th>
-				  <th rowspan="2">Total</th>
-				  <th colspan="{{ unique_months|length }}">Promedio Mes</th>
-				</tr>
-				<tr class="table-primary">
-				  {% for m in unique_months %}
-					<th>{{ m }}</th>
-				  {% endfor %}
-				</tr>
-			  </thead>
-			  <tbody>
-				{% for row in pivot_rows %}
-				<tr data-toggle="collapse" data-target="#detail-{{ forloop.counter }}" class="clickable">
-				  <td>{{ row.codigo }}</td>
-				  <td>{{ row.descripcion }}</td>
-				  <td>{{ row.anio }}</td>
-				  <td>{{ row.total|currency }}</td>
-				  {% for m in unique_months %}
-					<td>
-					  {% with value=row|get_item:m %}
-						{% if value %}
-						  {{ value|currency }}
-						{% else %}
-						  -
-						{% endif %}
-					  {% endwith %}
-					</td>
-				  {% endfor %}
-				</tr>
-				<!-- Fila detalle colapsable -->
-				<tr id="detail-{{ forloop.counter }}" class="collapse">
-				  <td colspan="{{ 4|add:unique_months|length }}">
-					<div class="table-responsive">
-					  <table class="table table-sm table-bordered">
-						<thead>
-						  <tr class="table-secondary">
-							<th>Cuenta</th>
-							<th>Nombre Cuenta</th>
-							<th>Fecha</th>
-							<th>Total</th>
-							<th>Mes</th>
-						  </tr>
+	<div class="modal-dialog modal-xl">  <!-- modal-xl para un modal mucho más amplio -->
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="gastosModalLabel">Registros de Gastos Administrativos</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+			</div>
+			<div class="modal-body">
+			<!-- Sección para subir archivo Excel y seleccionar mes -->
+				<div class="mb-3">
+					<label for="id_excel_file" class="form-label">Subir archivo Excel (.xlsx):</label>
+					<input type="file" class="form-control" id="id_excel_file" name="excel_file" accept=".xlsx">
+					<label for="id_mes_upload" class="form-label mt-2">Mes (1-12):</label>
+					<input type="number" min="1" max="12" class="form-control" id="id_mes_upload" name="mes" placeholder="Ingrese el mes">
+					<button id="uploadGastosBtn" class="btn btn-primary mt-2">Subir Archivo</button>
+					<div id="uploadStatus" class="mt-2 text-info"></div>
+				</div>
+				<!-- Tabla principal con los códigos contables agrupados -->
+				<div class="table-responsive">
+					<table class="table table-bordered table-striped">
+						<thead class="table-primary">
+							<tr>
+								<th>Código</th>
+								<th>Nombre</th>
+								<th>Categoría</th>
+								<th>Año</th>
+								<th>Mes</th>
+								<th>Total</th>
+								<th>Promedio Mes</th>
+							</tr>
 						</thead>
-						<tbody>
-						  {% for detail in row.detalles %}
-						  <tr>
-							<td>{{ detail.cuenta }}</td>
-							<td>{{ detail.nombre_cuenta }}</td>
-							<td>{{ detail.fecha|date:"d/m/Y" }}</td>
-							<td>{{ detail.total|currency }}</td>
-							<td>{{ detail.mes }}</td>
-						  </tr>
-						  {% endfor %}
-						</tbody>
-					  </table>
-					</div>
-				  </td>
-				</tr>
-				{% endfor %}
-				
-			  </tbody>
-			</table>
-		  </div>
+					<tbody>
+						{% for cc in codigos_contables_agrupados %}
+						<tr data-bs-toggle="collapse" data-bs-target="#detail-{{ forloop.counter }}" class="clickable">
+							<td>{{ cc.codigo }}</td>
+							<td>{{ cc.nombre }}</td>
+							<td>
+								{% if cc.categoria == "ga" %}
+									Gastos Administrativos
+								{% elif cc.categoria == "cd" %}
+									Costo Directo
+								{% endif %}
+							</td>
+							<td>{{ cc.anio }}</td>
+							<td>{{ cc.mes }}</td>
+							<td>{{ cc.total|currency }}</td>
+							<td>{{ cc.promedio|currency }}</td>
+						</tr>
+						<!-- Fila detalle colapsable -->
+						<tr id="detail-{{ forloop.counter }}" class="collapse">
+							<td colspan="7">
+								<div class="table-responsive">
+									<table class="table table-sm table-bordered">
+										<thead class="table-secondary">
+											<tr>
+												<th>Cuenta</th>
+												<th>Nombre Cuenta</th>
+												<th>Total</th>
+											</tr>
+										</thead>
+										<tbody>
+											{% for detail in cc.detalles %}
+												<tr>
+													<td>{{ detail.codigo }}</td>
+													<td>{{ detail.descripcion }}</td>
+													<td>{{ detail.total|currency }}</td>
+												</tr>
+											{% endfor %}
+										</tbody>
+									</table>
+								</div>
+				  			</td>
+						</tr>
+						{% endfor %}
+
+						<!-- Fila final de totales -->
+						<tr class="table-primary">
+							<td colspan="5" style="text-align: right;"><strong>Total Gastos Administrativos:</strong></td>
+							<td colspan="2">{{ total_gastos_sum|currency }}</td>
+						</tr>
+						<tr class="table-primary">
+							<td colspan="5" style="text-align: right;"><strong>Total Costos Directos:</strong></td>
+							<td colspan="2">{{ total_costos_directos|currency }}</td>
+						</tr>
+
+			  		</tbody>
+				</table>
+		  	</div>
 		</div>
 		<div class="modal-footer">
 		   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
 		</div>
-	  </div>
 	</div>
-  </div>
-  
+</div>
 
 <script>
-  // Actualización vía AJAX del Costo Inicial
-  document.getElementById("updateAssetCostForm").addEventListener("submit", function(event) {
-    event.preventDefault();
-    const url = "{% url 'con:assetcost-update' asset_cost.pk %}";
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    const initial_cost = document.getElementById("id_initial_cost").value;
-
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-CSRFToken": csrftoken
-      },
-      body: new URLSearchParams({
-        "initial_cost": initial_cost
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if(data.success) {
-        const updateModal = bootstrap.Modal.getInstance(document.getElementById("updateModal"));
-        updateModal.hide();
-        window.location.reload();
-      } else {
-        alert("Error: " + JSON.stringify(data.errors));
-      }
-    })
-    .catch(error => {
-      console.error("Error:", error);
-      alert("Error al actualizar.");
-    });
-  });
-
-// Envío del archivo Excel vía AJAX para cargar gastos administrativos
-document.getElementById("uploadGastosBtn").addEventListener("click", function(){
-    const fileInput = document.getElementById("id_excel_file");
-    const mesInput = document.getElementById("id_mes_upload");
-    const statusDiv = document.getElementById("uploadStatus");
-    if(fileInput.files.length === 0) {
-        alert("Por favor, seleccione un archivo.");
-        return;
-    }
-    if(mesInput.value === "" || mesInput.value < 1 || mesInput.value > 12) {
-        alert("Por favor, ingrese un mes válido (1-12).");
-        return;
-    }
-    statusDiv.textContent = "Cargando archivo, por favor espere...";
-    const file = fileInput.files[0];
-    const formData = new FormData();
-    formData.append("excel_file", file);
-    formData.append("mes", mesInput.value);
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    fetch("{% url 'con:gastos-upload-ajax' %}", {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": csrftoken
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if(data.success) {
-            statusDiv.textContent = data.message;
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-        } else {
-            statusDiv.textContent = "Error: " + (data.error || JSON.stringify(data.errors));
-        }
-    })
-    .catch(error => {
-        console.error("Error:", error);
-        statusDiv.textContent = "Error al subir el archivo.";
-    });
-});
-
-</script>
+	document.addEventListener("DOMContentLoaded", function() {
+		
+		// Función para enviar el archivo con opción de sobrescribir
+		function sendUpload(overwriteFlag) {
+			const fileInput = document.getElementById("id_excel_file");
+			const mesInput = document.getElementById("id_mes_upload");
+			const statusDiv = document.getElementById("uploadStatus");
+			const formData = new FormData();
+			formData.append("excel_file", fileInput.files[0]);
+			formData.append("mes", mesInput.value);
+			if(overwriteFlag) {
+				formData.append("overwrite", "true");
+			}
+			const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+			fetch("{% url 'con:gastos-upload-ajax' %}", {
+				method: "POST",
+				headers: {
+					"X-CSRFToken": csrftoken
+				},
+				body: formData
+			})
+			.then(response => response.json())
+			.then(data => {
+				if(data.success) {
+					statusDiv.textContent = data.message;
+					setTimeout(() => {
+						location.reload();
+					}, 2000);
+				} else {
+					if(data.overwrite_required) {
+						if(confirm("Ya existen registros para este mes. ¿Desea sobrescribir los datos?")) {
+							// Reintentar con overwrite = true
+							sendUpload(true);
+						} else {
+							statusDiv.textContent = "Operación cancelada por el usuario.";
+						}
+					} else {
+						statusDiv.textContent = "Error: " + (data.error || JSON.stringify(data.errors));
+					}
+				}
+			})
+			.catch(error => {
+				console.error("Error:", error);
+				statusDiv.textContent = "Error al subir el archivo.";
+			});
+		}
+		
+		// Envío del archivo Excel vía AJAX para cargar gastos administrativos
+		const uploadGastosBtn = document.getElementById("uploadGastosBtn");
+		if (uploadGastosBtn) {
+			uploadGastosBtn.addEventListener("click", function(){
+				const fileInput = document.getElementById("id_excel_file");
+				const mesInput = document.getElementById("id_mes_upload");
+				const statusDiv = document.getElementById("uploadStatus");
+				if(fileInput.files.length === 0) {
+					alert("Por favor, seleccione un archivo.");
+					return;
+				}
+				if(mesInput.value === "" || mesInput.value < 1 || mesInput.value > 12) {
+					alert("Por favor, ingrese un mes válido (1-12).");
+					return;
+				}
+				statusDiv.textContent = "Cargando archivo, por favor espere...";
+				sendUpload(false);
+			});
+		}
+	});
+	</script>
+	
 {% endblock %}
