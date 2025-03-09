@@ -1,16 +1,53 @@
-{% extends "cont/finance_base.html" %}
+{% extends "got/base/base_generic.html" %}
+{% load cont_extras %}
 
-{% block page_title %}Análisis de costos{% endblock %}
+{% block headtag %}
+    {% include "got/assets/asset_list_styles.html" %}
+{% endblock %}
 {% block content %}
-<div class="container my-4">
-    <ul class="list-unstyled">
-        {% for ac in asset_costs %}
-        <li class="my-2">
-            <a href="{% url 'con:asset-detail' ac.pk %}" class="text-decoration-none fw-bold text-primary">
-            {{ ac.asset.name }}
-            </a>
-        </li>
+<main class="px-3">
+    <div class="areas-container mt-2">
+        <h1>Análisis de costos</h1>
+        {% for area_name, assets in assets_by_area.items %}
+            {% if assets %}
+                <div class="area-section">
+                    <div class="area-title">
+                        <h2>{{ area_name }}</h2>
+                    </div>
+                    <div class="area-cards">
+                        {% for asset in assets %}
+                            <div class="asset-card">
+                                <!-- Circulo con icono de área -->
+                                <div class="area-icon-badge" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight-{{ asset.pk }}" aria-controls="offcanvasRight-{{ asset.pk }}">
+                                    <i class="fa {{ area_icons|get_item:asset.area }} icon-inside-circle"></i>
+                                </div>
+
+                                <div class="card-body" onclick="window.location.href='{{ asset.cost_info.get_absolute_url }}'">
+                                    <div class="asset-card-header">
+                                        <span class="asset-name">{{ asset.name }}</span>
+                                        <span class="asset-abbr">{{ asset.cost_info.codigo }}</span>
+                                    </div>
+                                    {% if asset.abbreviation in projects %}
+                                        <p class="asset-place">
+                                            <i class="fa-solid fa-briefcase"></i> {{ projects|get_item:asset.abbreviation }}
+                                        </p>
+                                    {% elif asset.place %}
+                                        <p class="asset-place">
+                                            <i class="fa-solid fa-city"></i> {{ asset.place.name }}
+                                        </p>
+                                    {% endif %}
+                                
+                                    <div class="asset-compliance compliance-high">
+                                        {{ asset.cost_info.fp|mul:100|floatformat:2 }}%
+                                        <i class="fa fa-info-circle info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Porcentaje de participación"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
         {% endfor %}
-    </ul>
-</div>
+    </div>
+</main>
 {% endblock %}

@@ -1,22 +1,103 @@
-{% extends "cont/finance_base.html" %}
+{% extends "got/base/base_generic.html" %}
+{% load cont_extras %}
 
-{% load con_extras %}
-{% block page_title %}
-<a href="{% url 'cont:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
-{{ asset_cost.asset.name }} - {{ asset_cost.codigo|default_if_none:"" }}
+{% block headtag %}
+	<style>
+		hr {
+			height: 3px;
+			/* background-color: #191645; */
+			background-color: var(--color-secondary);
+			margin: 0 auto;
+			opacity: 1;
+			border: none;
+		}
+  	</style>
 {% endblock %}
 {% block content %}
 <div class="container my-4">
     <div class="d-flex justify-content-between align-items-center">
         
         <h1 class="mb-0">
-			
+			<a href="{% url 'cont:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
+			{{ asset_cost.asset.name }} - {{ asset_cost.codigo|default_if_none:"" }}
 		</h1>
         <!-- Botón discreto con el ícono de lápiz -->
         <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#updateModal">
             <i class="bi bi-pencil" style="font-size: 1rem; color: #094067;"></i>
         </button>
     </div>
+	<hr>
+
+	<!-- Sección información general -->
+    <div class="info-asset mt-4">
+		<table class="table-list table-detail">
+			<thead>
+				<tr>
+					<th colspan="5">Información general</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					{% if asset_cost.asset.imagen %}
+						<td rowspan="9" style="width: 435px;">
+							<img src="{{ asset_cost.asset.imagen.url }}" id="asset" width="430px" />
+						</td>
+					{% endif %}
+					<th>Área</th>
+					<td>{{ asset_cost.asset.get_area_display }}</td>
+					<th>Año de construcción</th>
+					<td>{{ asset_cost.asset.anio }}</td>
+				</tr>
+				<tr>
+					<th>Clasificación</th>
+					<td colspan="3">{{ asset_cost.asset.type_vessel }}</td>
+				</tr>
+				<tr>
+					<th>Tipo de navegación</th>
+					<td colspan="3">{{ asset_cost.asset.type_of_trade }} - {{ asset_cost.asset.type_navigation }}</td>
+				</tr>
+				<tr>
+					<th>Bollard Pull</th>
+					<td colspan="3">
+						{% if asset_cost.asset.bollard_pull %}
+							{{ asset_cost.asset.bollard_pull }}
+						{% else %}
+							N/A
+						{% endif %}
+					</td>
+				</tr>
+				<tr>
+					<th>Capacidad de combustible</th>
+					<td colspan="3">{{ asset_cost.asset.capacidad_fo }} Gal</td>
+				</tr>
+				<tr>
+					<th>Eslora</th>
+					<td>{{ asset_cost.asset.eslora }}m</td>
+					<th>Manga</th>
+					<td>{{ asset_cost.asset.manga }}m</td>
+				</tr>
+				<tr>
+					<th>Puntal</th>
+					<td>{{ asset_cost.asset.puntal }}m</td>
+					<th>Calado</th>
+					<td>{{ asset_cost.asset.calado }}m</td>
+				</tr>
+				<tr>
+					<th>Peso Muerto</th>
+					<td>{{ asset_cost.asset.deadweight }}</td>
+					<th>Potencia</th>
+					<td>{{ asset_cost.asset.potencia }} kW</td>
+				</tr>
+				<tr>
+					<th>Arqueo neto</th>
+					<td>{{ asset_cost.asset.arqueo_neto }}</td>
+					<th>Arqueo bruto</th>
+					<td>{{ asset_cost.asset.arqueo_bruto }}</td>
+				</tr>
+		</tbody>
+	</table>
+</div>
+
 
     <!-- Sección de Depreciación -->
     <div class="my-4">

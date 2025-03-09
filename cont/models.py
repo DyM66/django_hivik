@@ -4,6 +4,7 @@ from django.db import models, transaction
 from got.models import Asset
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
+from django.urls import reverse
 
 class AssetCost(models.Model):
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='cost_info', limit_choices_to={'area__in': ['a', 'c']})
@@ -11,7 +12,6 @@ class AssetCost(models.Model):
     costo_adicional = models.DecimalField(max_digits=18, decimal_places=2, default=0, help_text="Suma de montos de financiaciones (COP)")
     fp = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True, help_text="Factor de participación (entre 0 y 1)")
     valor_financiacion = models.DecimalField(max_digits=18, decimal_places=2, default=0, help_text="Valor de la financiación generado por la tasa de interés")
-
     codigo = models.CharField(max_length=50, null=True, blank=True)
 
 
@@ -58,9 +58,11 @@ class AssetCost(models.Model):
         from decimal import Decimal
         return sum((cd.total for cd in self.costos_directos.all()), Decimal('0.00'))
 
-
     def __str__(self):
         return f"Cost info for {self.asset}"
+    
+    def get_absolute_url(self):
+        return reverse('cont:asset-detail', args=[self.id])
     
     class Meta:
         ordering = ['asset']

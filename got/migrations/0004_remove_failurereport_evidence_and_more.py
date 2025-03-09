@@ -10,17 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='image',
-            name='creation',
-            field=models.DateField(auto_now_add=True, default='2025-02-11'),
-            preserve_default=False,
-        ),
-        migrations.AlterField(
-            model_name='asset',
-            name='area',
-            field=models.CharField(choices=[('a', 'Motonave'), ('c', 'Barcazas'), ('o', 'Oceanografía'), ('l', 'Locativo'), ('v', 'Vehiculos'), ('x', 'Apoyo')], default='a', max_length=1),
-        ),
         migrations.AlterField(
             model_name='ruta',
             name='nivel',

@@ -64,6 +64,7 @@ class Migration(migrations.Migration):
             name='Image',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('creation', models.DateField(auto_now_add=True)),
                 ('image', models.ImageField(upload_to=got.models.get_upload_path)),
                 ('failure', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.failurereport')),
                 ('task', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='images', to='got.task')),

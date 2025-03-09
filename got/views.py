@@ -157,7 +157,6 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         assets = Asset.objects.filter(show=True)
-        context['all_assets'] = Asset.objects.filter(show=True).order_by('name')
         context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in AREAS.items()}
         context['area_icons'] = {'a': 'fa-ship', 'c': 'fa-solid fa-ferry', 'o': 'fa-water', 'l': 'fa-building', 'v': 'fa-car', 'x': 'fa-cogs'}
         context['places'] = Place.objects.all()

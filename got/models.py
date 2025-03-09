@@ -23,6 +23,8 @@ class Asset(models.Model):
     name = models.CharField(max_length=50)
     area = models.CharField(max_length=1, choices=AREA, default='a')
     supervisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    capitan = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='Capitanes')
+
     imagen = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
     show = models.BooleanField(default=True)
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_assets')
@@ -30,15 +32,27 @@ class Asset(models.Model):
     place = models.ForeignKey(Place, on_delete=models.SET_NULL, null=True, blank=True, related_name='assets', help_text='Ubicación asociada (opcional).')
 
     # Campos para Barcos
-    capitan = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='Capitanes')
+    type_vessel = models.CharField(max_length=100, null=True, blank=True)
+    type_navigation = models.CharField(max_length=100, null=True, blank=True)
+    type_of_trade = models.CharField(max_length=100, null=True, blank=True)
+
     bandera = models.CharField(default='Colombia', max_length=50, null=True, blank=True)
     eslora = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True)
     manga = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True)
     puntal = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True)
-    calado_maximo = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True)
+    calado = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True)
+    material = models.CharField(max_length=100, null=True, blank=True)
     deadweight = models.IntegerField(default=0, null=True, blank=True)
     arqueo_bruto = models.IntegerField(default=0, null=True, blank=True)
     arqueo_neto = models.IntegerField(default=0, null=True, blank=True)
+    potencia = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True, help_text='En kW.')
+    anio = models.PositiveIntegerField(null=True, blank=True)
+    bollard_pull = models.DecimalField(default=0, max_digits=8, decimal_places=2, null=True, blank=True)
+
+    @property
+    def capacidad_fo(self):
+        total = Equipo.objects.filter(system__asset=self, tipo='k', tipo_almacenamiento='Combustible').aggregate(total_volumen=models.Sum('volumen'))['total_volumen'] or 0
+        return total    
 
     def calculate_maintenance_compliance(self):
         systems = self.system_set.all()
@@ -57,10 +71,6 @@ class Asset(models.Model):
         return round(compliance_percentage, 2)
 
     def update_maintenance_compliance_cache(self):
-        """
-        Calcula y guarda el valor en maintenance_compliance_cache.
-        Llamar a este método cuando se quiera refrescar el compliance en DB.
-        """
         new_value = self.calculate_maintenance_compliance()
         self.maintenance_compliance_cache = new_value
         self.save(update_fields=['maintenance_compliance_cache'])

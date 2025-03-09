@@ -3,16 +3,32 @@ from decimal import Decimal
 from cont.models import *
 from openpyxl import load_workbook
 from .forms import *
-from datetime import datetime
+from ope.models import Operation
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404, redirect, render
 from cont.forms import AssetCostUpdateForm
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView
-from django.views.generic import ListView, DetailView
+from django.views.generic import TemplateView, DetailView
 from cont.mixins import FinanceMembersRequiredMixin
 
+
+AREAS = {'a': 'Barcos', 'c': 'Barcazas',}
+TODAY = timezone.now().date()
+
+class AssetCostListView(FinanceMembersRequiredMixin, TemplateView):
+    template_name = "cont/asset_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assets = Asset.objects.filter(show=True, area__in=AREAS.keys())
+        operations = Operation.objects.filter(start__lte=TODAY, end__gte=TODAY, asset__in=assets).select_related('asset')
+        projects = {op.asset.abbreviation: op.proyecto for op in operations}
+        context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in AREAS.items()}
+        context['projects'] = projects
+        context['area_icons'] = {'a': 'fa-ship', 'c': 'fa-solid fa-ferry'}
+        return context
 
 class FinanciacionCreateView(CreateView):
     model = Financiacion
@@ -37,15 +53,6 @@ class FinanciacionCreateView(CreateView):
     
     def get_success_url(self):
         return reverse_lazy('con:asset-detail', kwargs={'pk': self.kwargs.get('asset_cost_pk')})
-    
-
-class AssetCostListView(FinanceMembersRequiredMixin, ListView):
-    model = AssetCost
-    template_name = "cont/asset_list.html"
-    context_object_name = "asset_costs"
-
-    def get_queryset(self):
-        return AssetCost.objects.filter(asset__area__in=['a','c'], asset__show=True)
 
 
 class AssetCostDetailView(FinanceMembersRequiredMixin, DetailView):
