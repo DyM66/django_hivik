@@ -26,9 +26,4 @@ class Migration(migrations.Migration):
             name='nivel',
             field=models.IntegerField(choices=[(1, 'Nivel 1 - Operadores'), (2, 'Nivel 2 - Técnico'), (3, 'Nivel 3 - Proveedor especializado')], default=1),
         ),
-        migrations.AlterField(
-            model_name='system',
-            name='state',
-            field=models.CharField(choices=[('m', 'Mantenimiento'), ('o', 'Operativo'), ('x', 'Fuera de servicio'), ('s', 'Stand by')], default='o', max_length=1),
-        ),
     ]
