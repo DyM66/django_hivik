@@ -52,6 +52,7 @@ class Migration(migrations.Migration):
                 ('item', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.item')),
                 ('service', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='maintenance_requirements', to='got.service')),
                 ('ruta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requisitos', to='got.ruta')),
+                ('costo', models.DecimalField(decimal_places=2, default=0.0, max_digits=19)),
             ],
         ),
     ]

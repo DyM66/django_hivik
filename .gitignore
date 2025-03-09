@@ -163,6 +163,5 @@ cython_debug/
 
 *.sqlite3
 
-static/
 .env
 GOT-SERPORT.pem

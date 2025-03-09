@@ -31,9 +31,4 @@ class Migration(migrations.Migration):
             name='state',
             field=models.CharField(choices=[('m', 'Mantenimiento'), ('o', 'Operativo'), ('x', 'Fuera de servicio'), ('s', 'Stand by')], default='o', max_length=1),
         ),
-        migrations.AddField(
-            model_name='maintenancerequirement',
-            name='costo',
-            field=models.DecimalField(decimal_places=2, default=0.0, max_digits=19),
-        ),
     ]
