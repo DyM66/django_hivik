@@ -7,6 +7,15 @@
     <meta name="description" content="Informe - Reporte de ejecución">
 
     <style>
+
+@font-face {
+    font-family: 'Poppins';
+    src: url('/static/fonts/Poppins-Regular.ttf') format('truetype');
+}
+body {
+    font-family: 'Poppins', Arial, sans-serif;
+}
+
         @page { /* Configuración de la página y encabezado en cada hoja */
             size: A4;
             margin: 4cm 1cm 2cm 1cm;
@@ -53,7 +62,10 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            color:#191645
+            color:#191645;
+
+            font-size: 12pt;
+            line-height: 1.5;
         }
         .content {
             border: 2px solid #000;
@@ -88,6 +100,45 @@
             height: auto;
             border: 1px solid #ccc;
             z-index: -1000;
+        }
+
+        h1, h2, h3 {
+    margin: 0.5cm 0;
+}
+        h1 {
+            font-size: 1.5em;
+        }
+        h2 {
+            font-size: 1.2em;
+        }
+        h3 {
+            font-size: 1em;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #000;
+        }
+        th, td {
+            padding: 5px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td {
+            vertical-align: top;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
         }
     </style>
 </head>
@@ -169,5 +220,6 @@
     </div>
 
 
-
+</body>
+</html>
 

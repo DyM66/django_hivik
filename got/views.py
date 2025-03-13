@@ -2039,6 +2039,7 @@ def assignedTasks_excel(request):
     title_cell.font = Font(bold=True, size=20, color="FFFFFF")
     title_cell.fill = PatternFill(fill_type="solid", fgColor="4d93d9")
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
+
     for row in range(1, 5):
         ws.row_dimensions[row].height = 30
     
@@ -2106,6 +2107,12 @@ def assignedTasks_excel(request):
             if cell.value:
                 max_length = max(max_length, len(str(cell.value)))
         ws.column_dimensions[col_letter].width = max_length + 2
+
+
+    ws.column_dimensions['A'].width = 30
+
+    for cell in ws['A']:
+        cell.alignment = Alignment(wrap_text=True)        
 
     # Exportar el workbook a BytesIO y retornar la respuesta
     output = BytesIO()
