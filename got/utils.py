@@ -931,6 +931,15 @@ def filter_tasks_queryset(request, base_queryset=None):
     else:
         queryset = base_queryset
 
+    from django.db.models import Value
+    from django.db.models.functions import Concat
+    queryset = queryset.filter(
+        ot__supervisor__in=User.objects.filter(groups__name='super_members').annotate(
+            full_name=Concat('first_name', Value(' '), 'last_name')
+        ).values_list('full_name', flat=True)
+    )
+
+
     # Ordenar por start_date (o puedes encadenar order_by en la vista que llama a esta función)
     queryset = queryset.order_by('start_date')
 

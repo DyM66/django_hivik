@@ -154,11 +154,14 @@
 								<ul class="list-unstyled">
 									<li><strong>Código:</strong> {{ object.code }}</li>
 									{% if object.tipo == 'k' %}
-										<li><strong>Horometro:</strong> {{ object.volumen }}Gal</li>
+										<li><strong>Capacidad:</strong> {{ object.volumen }}Gal</li>
+										<li><strong>Contenido:</strong> {{ object.tipo_almacenamiento }}</li>
 									{% else %}
 										<li><strong>Modelo:</strong> {{ object.model|default:"---" }}</li>
 										<li><strong>Serial:</strong> {{ object.serial|default:"---" }}</li>
 										<li><strong>Marca:</strong> {{ object.marca|default:"---" }}</li>
+										<li><strong>Fabricante:</strong> {{ object.fabricante|default:"---" }}</li>
+
 									{% endif %}
 								</ul>
 							</div>
@@ -168,7 +171,6 @@
 										<li><strong>Horometro:</strong> {{ object.horometro }} Horas</li>
 									{% endif %}
 
-									<li><strong>Fabricante:</strong> {{ object.fabricante|default:"---" }}</li>
 									<li><strong>Tipo:</strong> {{ object.get_tipo_display }}</li>
 									<li><strong>Ubicación:</strong> {{ object.ubicacion|default:"---" }}</li>
 								</ul>

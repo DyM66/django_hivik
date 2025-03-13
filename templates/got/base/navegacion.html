@@ -212,6 +212,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </li>
                 {% endif %}
+
+                {% if request.user|has_group:"finance_members" %}
+                    <!-- Dropdown de TIC -->
+                    <li class="nav-item dropdown mega-dropdown">
+                        <a class="nav-link" href="#" id="ticDropdown" role="button">
+                            Costeo
+                        </a>
+
+                        <!-- Nuestro mega-menu -->
+                        <div class="mega-menu-desktop" aria-labelledby="ticDropdown">
+                            <div class="container-fluid p-3 d-flex flex-wrap">
+                                <div class="flex-fill me-4">
+                                    <ul class="list-unstyled">
+                                        <li><a class="dropdown-item" href="{% url 'cont:asset-list' %}">Análisis de costes</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                {% endif %}                
           
                 {% if asset_del_supervisor %}
                     <li class="nav-item">

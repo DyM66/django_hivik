@@ -12,6 +12,7 @@ from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView
 from django.views.generic import TemplateView, DetailView
 from cont.mixins import FinanceMembersRequiredMixin
+from collections import defaultdict
 
 
 AREAS = {'a': 'Barcos', 'c': 'Barcazas',}
@@ -65,92 +66,94 @@ class AssetCostDetailView(FinanceMembersRequiredMixin, DetailView):
         ac = self.object
         total_cost = (ac.initial_cost or Decimal('0')) + (ac.costo_adicional or Decimal('0'))
         depreciation = total_cost / Decimal('3600') if total_cost > 0 else Decimal('0')
-        context['total_cost'] = total_cost
-        context['depreciation'] = depreciation
+        context.update({
+            'total_cost': total_cost,
+            'depreciation': depreciation,
+            'financiaciones': ac.financiaciones.all(),
+            'total_interest': sum((fin.monto * fin.tasa_interes / Decimal('12') * fin.plazo) for fin in ac.financiaciones.all()),
+            'total_interest_monthly': sum((fin.monto * fin.tasa_interes / Decimal('12')) for fin in ac.financiaciones.all()),
+            'fp': ac.fp,
+        })
 
-        financiaciones = ac.financiaciones.all()
-        total_interest = sum((fin.monto * fin.tasa_interes / Decimal('12') * fin.plazo) for fin in financiaciones)
-        total_interest_monthly = sum((fin.monto * fin.tasa_interes / Decimal('12')) for fin in financiaciones)
-        context['financiaciones'] = financiaciones
-        context['total_interest'] = total_interest
-        context['total_interest_monthly'] = total_interest_monthly
-        context['fp'] = ac.fp
+        # Codigos contables agrupados por categoría
+        categorias = {'ga': GastosAdministrativos, 'cd': CostoDirecto}
+        codigos_por_categoria = {}
 
-        # Pivot de GastosAdministrativos
-        from collections import defaultdict
-        gastos = GastosAdministrativos.objects.all()
-        grupos = defaultdict(list)
-        unique_months = set()
-        for gasto in gastos:
-            key = (gasto.codigo, gasto.descripcion, gasto.anio)
-            grupos[key].append(gasto)
-            unique_months.add(gasto.mes)
-        unique_months = sorted(unique_months)
-        pivot_rows = []
-        for (codigo, descripcion, anio), registros in grupos.items():
-            max_record = max(registros, key=lambda r: r.mes)
-            total_val = max_record.total
-            mes_promedios = {}
-            for r in registros:
-                mes_promedios[r.mes] = mes_promedios.get(r.mes, Decimal('0')) + r.promedio_mes
-            detalles = []
-            for r in registros:
-                detalles.append({
-                    'codigo': r.codigo,
-                    'descripcion': r.descripcion,
-                    'mes': r.mes,
-                    'total': r.total,
-                    'promedio_mes': r.promedio_mes,
+        for cat, modelo in categorias.items():
+            codigos = CodigoContable.objects.filter(categoria=cat)
+            registros = modelo.objects.all() if cat == 'ga' else modelo.objects.filter(assetcost=ac)
+
+            meses_unicos = sorted(set(registros.values_list('mes', flat=True)))
+            codigos_data = []
+            for codigo in codigos:
+                meses_data = []
+                total_acumulado = Decimal('0.00')
+
+                for mes in meses_unicos:
+                    total_mes = registros.filter(codigo__startswith=codigo.codigo, mes=mes).aggregate(total_mes=models.Sum('total'))['total_mes'] or Decimal('0.00')
+                    meses_data.append(total_mes)
+                    total_acumulado += total_mes
+
+
+                # Filtramos todos los registros que coincidan con el prefijo del código contable
+                qs = registros.filter(codigo__startswith=codigo.codigo)
+                detalles_list = []
+                # Obtenemos los códigos únicos de GastosAdministrativos que empiecen con el código contable
+                unique_codes = sorted(set(qs.values_list('codigo', flat=True)))
+                for unique_code in unique_codes:
+                    qs_unique = qs.filter(codigo=unique_code)
+                    # Suponemos que la descripción es la misma para todos los registros con ese código
+                    description = qs_unique.first().descripcion if qs_unique.exists() else ''
+                    detalle_meses_data = []
+                    detalle_total = Decimal('0.00')
+                    for mes in meses_unicos:
+                        total_mes_detalle = qs_unique.filter(mes=mes).aggregate(total_mes=models.Sum('total'))['total_mes'] or Decimal('0.00')
+                        detalle_meses_data.append(total_mes_detalle)
+                        detalle_total += total_mes_detalle
+                    detalles_list.append({
+                        'codigo': unique_code,
+                        'descripcion': description,
+                        'meses_data': detalle_meses_data,
+                        'total_acumulado': detalle_total,
+                    })
+
+                codigos_data.append({
+                    'codigo': codigo.codigo,
+                    'descripcion': codigo.nombre,
+                    'meses_data': meses_data,
+                    'total_acumulado': total_acumulado,
+                    'detalles_list': detalles_list,
                 })
-            pivot_rows.append({
-                'codigo': codigo,
-                'descripcion': descripcion,
-                'anio': anio,
-                'total': total_val,
-                'promedios': mes_promedios,
-                'detalles': detalles,
-            })
-        context['pivot_rows'] = pivot_rows
-        context['unique_months'] = unique_months
-        context['total_columns'] = 4 + len(unique_months)
-        context['total_gastos_sum'] = sum(g.total for g in gastos)
-        context['total_promedio_sum'] = sum(g.promedio_mes for g in gastos)
 
-        MES_NOMBRES = {
+            codigos_por_categoria[cat] = {
+                'meses_unicos': meses_unicos,
+                'codigos_data': codigos_data,
+            }
+
+        context['codigos_por_categoria'] = codigos_por_categoria
+
+
+        # Calcular totales globales para la categoría "ga"
+        ga_data = codigos_por_categoria.get('ga', {})
+        meses_unicos = ga_data.get('meses_unicos', [])
+        totales_por_mes = [Decimal('0.00')] * len(meses_unicos)
+        total_general = Decimal('0.00')
+        for codigo in ga_data.get('codigos_data', []):
+            for i, total_mes in enumerate(codigo['meses_data']):
+                totales_por_mes[i] += total_mes
+            total_general += codigo['total_acumulado']
+        context['totales_gastos'] = {
+            'totales_por_mes': [total * ac.fp for total in totales_por_mes],
+            'total_general': total_general * ac.fp,
+        }
+
+        
+        # Meses para mostrar nombre
+        context['mes_nombres'] = {
             1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
             5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
             9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
         }
-        context['mes_nombres'] = MES_NOMBRES
-
-        # Construir la lista combinada de códigos contables agrupados
-        codigos_ga = list(CodigoContable.objects.filter(categoria='ga'))
-        codigos_cd = list(CodigoContable.objects.filter(categoria='cd'))
-        codigos = codigos_ga + codigos_cd 
-
-        agrupados = []
-        for cc in codigos:
-            if cc.categoria == 'ga':
-                grupo = cc.gastos_agrupados
-            else:  # categoría 'cd'
-                grupo = cc.costos_directos_agrupados(ac.pk)
-            if grupo:
-                agrupados.append({
-                    'codigo': cc.codigo,
-                    'nombre': cc.nombre,
-                    'categoria': cc.categoria,
-                    'anio': grupo['anio'],
-                    'mes': grupo['mes'],
-                    'total': grupo['total'],
-                    'promedio': grupo['promedio'],
-                    'detalles': [{
-                        'codigo': r.codigo,
-                        'descripcion': r.descripcion,
-                        'mes': r.mes,
-                        'total': r.total,
-                    } for r in grupo['detalles']],
-                })
-        context['codigos_contables_agrupados'] = agrupados
         return context
 
 
@@ -165,14 +168,12 @@ def update_assetcost(request, pk):
         form = AssetCostUpdateForm(instance=assetcost)
     return render(request, 'cont/assetcost_form.html', {'form': form})
     
-
 @require_POST
 def gastos_upload_ajax(request):
     form = GastosUploadForm(request.POST, request.FILES)
     overwrite = request.POST.get("overwrite", "false").lower() == "true"
     if form.is_valid():
         excel_file = form.cleaned_data['excel_file']
-        selected_mes = form.cleaned_data['mes']
         try:
             wb = load_workbook(filename=excel_file, data_only=True)
         except Exception as e:
@@ -195,9 +196,11 @@ def gastos_upload_ajax(request):
         valid_codes_cd = {c.codigo: c.nombre for c in codigos if c.categoria == 'cd'}
         
         # Diccionarios para agrupar filas según funcionalidad
-        processed_groups_ga = {}  # key: (cuenta, anio, selected_mes, nombre_cuenta)
+        # Claves para GA: (cuenta, anio, mes, nombre_cuenta)
+        # Claves para CD: (cuenta, anio, mes, nombre_cuenta, centrocostos)
+        processed_groups_ga = {}
         detailed_records_ga = {}
-        processed_groups_cd = {}  # key: (cuenta, anio, selected_mes, nombre_cuenta, centrocostos)
+        processed_groups_cd = {}
         detailed_records_cd = {}
         
         total_rows = 0
@@ -233,6 +236,7 @@ def gastos_upload_ajax(request):
                         logger.warning(f"Error parseando fecha en fila {total_rows}: {fecha_val}. Error: {e}")
                         continue
                 anio = fecha_val.year if fecha_val else None
+                mes = fecha_val.month if fecha_val else None  # Se calcula el mes a partir de la fecha
                 total_val = row[header_map['Total']]
                 try:
                     # Se remueven comas y espacios
@@ -243,7 +247,7 @@ def gastos_upload_ajax(request):
                 
                 # Procesar Gastos Administrativos (GA)
                 if is_ga:
-                    key_ga = (cuenta_str, anio, selected_mes, nombre_cuenta)
+                    key_ga = (cuenta_str, anio, mes, nombre_cuenta)
                     processed_groups_ga.setdefault(key_ga, Decimal('0.00'))
                     processed_groups_ga[key_ga] += total_decimal
                     detailed_records_ga.setdefault(key_ga, []).append({
@@ -251,7 +255,7 @@ def gastos_upload_ajax(request):
                         'nombre_cuenta': nombre_cuenta,
                         'fecha': fecha_val,
                         'total': total_decimal,
-                        'mes': selected_mes
+                        'mes': mes
                     })
                     matched_rows_ga += 1
                 
@@ -261,7 +265,7 @@ def gastos_upload_ajax(request):
                     if not centrocostos_val:
                         continue  # Omitir si está vacío
                     centrocostos_str = str(centrocostos_val).strip()
-                    key_cd = (cuenta_str, anio, selected_mes, nombre_cuenta, centrocostos_str)
+                    key_cd = (cuenta_str, anio, mes, nombre_cuenta, centrocostos_str)
                     processed_groups_cd.setdefault(key_cd, Decimal('0.00'))
                     processed_groups_cd[key_cd] += total_decimal
                     detailed_records_cd.setdefault(key_cd, []).append({
@@ -269,14 +273,14 @@ def gastos_upload_ajax(request):
                         'nombre_cuenta': nombre_cuenta,
                         'fecha': fecha_val,
                         'total': total_decimal,
-                        'mes': selected_mes,
+                        'mes': mes,
                         'centrocostos': centrocostos_str
                     })
                     matched_rows_cd += 1
             
             except Exception as e:
                 logger.error(f"Error procesando fila {total_rows}: {row}. Error: {e}")
-                continue  # Omite la fila y continúa
+                continue
         
         # Detección de duplicados para GA
         duplicate_keys_ga = []
@@ -383,4 +387,3 @@ def gastos_upload_ajax(request):
         })
     else:
         return JsonResponse({'success': False, 'errors': form.errors})
-

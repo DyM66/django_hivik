@@ -37,4 +37,3 @@ class AssetCostUpdateForm(forms.ModelForm):
 
 class GastosUploadForm(forms.Form):
     excel_file = forms.FileField(label="Archivo Excel (.xlsx)")
-    mes = forms.IntegerField(label="Mes (1-12)", min_value=1, max_value=12, help_text="Indique a qué mes corresponden los datos del archivo.")

@@ -14,34 +14,22 @@ class AssetCost(models.Model):
     valor_financiacion = models.DecimalField(max_digits=18, decimal_places=2, default=0, help_text="Valor de la financiación generado por la tasa de interés")
     codigo = models.CharField(max_length=50, null=True, blank=True)
 
-
     def save(self, *args, **kwargs):
         with transaction.atomic():
             super().save(*args, **kwargs)
-            # Sumar initial_cost y costo_adicional para cada asset
-            # assets = AssetCost.objects.filter(asset__area=self.asset.area)
             assets = AssetCost.objects.all()
-            total_area = sum(
-                (ac.initial_cost or Decimal('0')) + (ac.costo_adicional or Decimal('0'))
-                for ac in assets
-            )
-            if total_area > 0:
+            total = sum((ac.initial_cost or Decimal('0')) + (ac.costo_adicional or Decimal('0')) for ac in assets)
+            if total > 0:
                 for ac in assets:
                     asset_total = (ac.initial_cost or Decimal('0')) + (ac.costo_adicional or Decimal('0'))
-                    ac.fp = asset_total / total_area
+                    ac.fp = asset_total / total
                     AssetCost.objects.filter(pk=ac.pk).update(fp=ac.fp)
             else:
                 AssetCost.objects.filter(asset__area=self.asset.area).update(fp=None)
 
     @property
     def cont_a_los_gastos(self):
-        """
-        Calcula la contribución a los gastos de forma dinámica:
-          - Suma el promedio mensual de todos los registros de GastosAdministrativos.
-          - Multiplica el resultado por el factor de participación (fp) de este asset.
-        """
         # Importar localmente para evitar problemas de importación circular
-        from .models import GastosAdministrativos
         gastos = GastosAdministrativos.objects.all()
         total_promedio = sum(g.promedio_mes for g in gastos)
         if self.fp is not None:
@@ -129,29 +117,6 @@ class CodigoContable(models.Model):
     codigo = models.CharField(max_length=20, unique=True, help_text="Código contable")
     nombre = models.CharField(max_length=200, help_text="Nombre o descripción asociada al código")
     categoria = models.CharField(max_length=2, choices=CATEGORIA_CHOICES, default='ga', help_text="Seleccione 'ga' para Gastos Administrativos o 'cd' para Costo Directo")
-
-    @property
-    def gastos_agrupados(self):
-        registros = GastosAdministrativos.objects.filter(codigo__startswith=self.codigo)
-        if not registros.exists():
-            return None
-        grupos = {}
-        for r in registros:
-            grupos.setdefault(r.mes, []).append(r)
-        if not grupos:
-            return None
-        most_recent_mes = max(grupos.keys())
-        detalles = grupos[most_recent_mes]
-        total_sum = sum(r.total for r in detalles)
-        promedio_sum = sum(r.promedio_mes for r in detalles)
-        anio = detalles[0].anio
-        return {
-            'anio': anio,
-            'mes': most_recent_mes,
-            'total': total_sum,
-            'promedio': promedio_sum,
-            'detalles': detalles,
-        }
     
     @property
     def gastos_agrupados(self):
@@ -166,23 +131,15 @@ class CodigoContable(models.Model):
         most_recent_mes = max(grupos.keys())
         detalles = grupos[most_recent_mes]
         total_sum = sum(r.total for r in detalles)
-        promedio_sum = sum(r.promedio_mes for r in detalles)
         anio = detalles[0].anio
         return {
             'anio': anio,
             'mes': most_recent_mes,
             'total': total_sum,
-            'promedio': promedio_sum,
             'detalles': detalles,
         }
 
     def costos_directos_agrupados(self, assetcost_id):
-        """
-        Retorna un diccionario agrupado de registros de CostoDirecto que:
-         - Tienen un 'codigo' que empieza con self.codigo.
-         - Están asociados al AssetCost con id assetcost_id.
-        """
-        from .models import CostoDirecto
         registros = CostoDirecto.objects.filter(codigo__startswith=self.codigo, assetcost_id=assetcost_id)
         if not registros.exists():
             return None
@@ -194,13 +151,11 @@ class CodigoContable(models.Model):
         most_recent_mes = max(grupos.keys())
         detalles = grupos[most_recent_mes]
         total_sum = sum(r.total for r in detalles)
-        promedio_sum = sum(r.promedio_mes for r in detalles)
         anio = detalles[0].anio
         return {
             'anio': anio,
             'mes': most_recent_mes,
             'total': total_sum,
-            'promedio': promedio_sum,
             'detalles': detalles,
         } 
 
@@ -211,26 +166,11 @@ class CodigoContable(models.Model):
 # Nuevo modelo: CostoDirecto
 class CostoDirecto(models.Model):
     codigo = models.CharField(max_length=50, unique=True, help_text="Código independiente para el costo directo")
-    descripcion = models.CharField(
-        max_length=200, help_text="Descripción del costo directo"
-    )
-    total = models.DecimalField(
-        max_digits=18, decimal_places=2,
-        help_text="Valor total del costo directo"
-    )
-    assetcost = models.ForeignKey(
-        AssetCost, on_delete=models.CASCADE, related_name="costos_directos",
-        help_text="Registro de AssetCost asociado"
-    )
+    descripcion = models.CharField(max_length=200, help_text="Descripción del costo directo")
+    total = models.DecimalField(max_digits=18, decimal_places=2, help_text="Valor total del costo directo")
+    assetcost = models.ForeignKey(AssetCost, on_delete=models.CASCADE, related_name="costos_directos", help_text="Registro de AssetCost asociado")
     mes = models.PositiveIntegerField(help_text="Mes (1-12)")
     anio = models.PositiveIntegerField(help_text="Año")
-
-    @property
-    def promedio_mes(self):
-        # Se aplica la misma lógica que en GastosAdministrativos
-        if self.mes and self.mes > 0:
-            return self.total / Decimal(self.mes)
-        return self.total
 
     def __str__(self):
         return f"{self.codigo} - {self.descripcion}"

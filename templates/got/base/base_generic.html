@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 	{% include 'got/base/links.html' %}
+	<title>GOT - {% block title %}{% endblock %}</title>
 	{% block headtag %}{% endblock %}
 </head>
 <body>
@@ -64,9 +65,9 @@
 	<hr class="bottom-line">
 	<footer class="container">
 		<p>
-			Departamento de mantenimiento - Servicios portuarios SERPORT SAS
+			Servicios portuarios SERPORT SAS
 	  	</p>
-	  	<p>Version v3.0.0 </p>
+	  	<p>Version v4.0.0 </p>
 	</footer>
 <!-- Contenedor de notificaciones -->
 <div id="notification-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1050;"></div>
@@ -396,33 +397,6 @@
 			}
 		}
 
-		// Función para actualizar el título de la página
-		function updatePageTitle(count) {
-			if (count > 0) {
-				document.title = `(${count}) GOT - Serport`;
-			} else {
-				document.title = `GOT - Serport`;
-			}
-		}
-
-		// Función para obtener el conteo y actualizar el badge y el título
-		function fetchUnapprovedRequestsCount() {
-			fetch('{% url "got:unapproved_requests_count_api" %}')
-				.then(response => response.json())
-				.then(data => {
-					const count = data.count;
-
-					// Actualizar el badge
-					updateBadge(count);
-
-					// Actualizar el título de la página
-					updatePageTitle(count);
-				})
-				.catch(error => console.error('Error al obtener el conteo:', error));
-		}
-
-		// Actualizar al cargar la página
-		document.addEventListener('DOMContentLoaded', fetchUnapprovedRequestsCount);
 
 		// Actualizar cada 60 segundos
 		setInterval(fetchUnapprovedRequestsCount, 60000);

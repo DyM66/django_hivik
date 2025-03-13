@@ -29,7 +29,6 @@
 
                 <!-- Contenedor de cards de Assets -->
                 <div class="area-cards">
-                    
                     {% for asset in assets %}
                     <!-- Tarjeta individual de cada Asset -->
                     <div class="asset-card">
@@ -40,7 +39,6 @@
                         </div>
 
                         <div class="card-body" onclick="window.location.href='{{ asset.get_absolute_url }}'">
-                            <!-- Primera fila: Nombre (izq) + Abreviación (der) -->
                             <div class="asset-card-header">
                                 <span class="asset-name">{{ asset.name }}</span>
                                 <span class="asset-abbr">{{ asset.abbreviation }}</span>
