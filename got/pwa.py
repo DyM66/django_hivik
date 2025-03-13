@@ -29,64 +29,70 @@ def manifest(request):
         "icons": [
             {
                 "src": PROJECT_LOGO_URL,
-                "sizes": "32x32",  # Se puede ajustar o agregar varios tamaños
+                "sizes": "103x101",
                 "type": "image/png"
             },
-            {
-                "src": PROJECT_LOGO_URL,
-                "sizes": "512x512",
-                "type": "image/png"
-            }
         ],
         # Podrías incluir una versión para forzar actualizaciones cuando cambie el manifest
         "version": "1.0.0"
     }
     return JsonResponse(manifest_data)
 
+
 @never_cache
 def service_worker(request):
-    # Mejorar el service worker: aquí se puede implementar una estrategia de caching
-    # como "stale-while-revalidate" o precacheo de recursos.
-    js = '''
-    // Service Worker básico con estrategia de precacheo
-    const CACHE_NAME = 'got-cache-v1';
-    const PRECACHE_URLS = [
-        '/',
-        '/static/boostrap/css/bootstrap.min.css',
-        // Agrega aquí otros recursos importantes
-    ];
+    # Este script usa Workbox (importado vía CDN) para:
+    # - Precachear recursos estáticos
+    # - Configurar Background Sync para peticiones POST a /reportehorasasset/
+    js = """
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.5.3/workbox-sw.js');
 
-    self.addEventListener('install', event => {
-        event.waitUntil(
-            caches.open(CACHE_NAME)
-                .then(cache => cache.addAll(PRECACHE_URLS))
-                .then(self.skipWaiting())
-        );
-    });
+if (workbox) {
+  console.log("Workbox se ha cargado correctamente.");
 
-    self.addEventListener('activate', event => {
-        event.waitUntil(
-            caches.keys().then(cacheNames => {
-                return Promise.all(
-                    cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
-                );
-            })
-        );
-        self.clients.claim();
-    });
+  // Precaching: define los recursos críticos (ajusta las rutas y versiones según tus necesidades)
+  workbox.precaching.precacheAndRoute([
+    { url: '/', revision: '1' },
+    { url: '/static/boostrap/css/bootstrap.min.css', revision: '1' },
+    // Agrega aquí otros recursos estáticos importantes (JS, CSS, imágenes, etc.)
+  ]);
 
-    self.addEventListener('fetch', event => {
-        // Estrategia de cache-first para recursos precacheados
-        event.respondWith(
-            caches.match(event.request)
-                .then(response => response || fetch(event.request))
-        );
-    });
-    '''
+  // Plugin para Background Sync (para peticiones POST, por ejemplo, de reporte de horas)
+  const bgSyncPlugin = new workbox.backgroundSync.BackgroundSyncPlugin('reportSyncQueue', {
+    maxRetentionTime: 24 * 60  // Retención máxima en minutos (24 horas)
+  });
+
+  // Registra una ruta para interceptar peticiones POST a /reportehorasasset/
+  workbox.routing.registerRoute(
+    new RegExp('/reportehorasasset/'),
+    new workbox.strategies.NetworkOnly({
+      plugins: [bgSyncPlugin]
+    }),
+    'POST'
+  );
+
+  // Para otros recursos (documentos, estilos, scripts) se aplica una estrategia Cache First
+  workbox.routing.registerRoute(
+    ({request}) => request.destination === 'document' ||
+                   request.destination === 'style' ||
+                   request.destination === 'script',
+    new workbox.strategies.CacheFirst({
+      cacheName: 'static-resources',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 50,
+          maxAgeSeconds: 7 * 24 * 60 * 60, // 1 semana
+        })
+      ]
+    })
+  );
+
+} else {
+  console.log("Workbox no se ha cargado.");
+}
+
+self.addEventListener('fetch', (event) => {
+  // Aquí podrías agregar lógica adicional para peticiones no cubiertas por Workbox
+});
+    """
     return HttpResponse(js, content_type='application/javascript')
-
-@login_required
-def get_unapproved_requests_count(request):
-    # Función API para obtener el número de solicitudes no aprobadas.
-    count = Solicitud.objects.filter(approved=False).count()
-    return JsonResponse({'count': count})

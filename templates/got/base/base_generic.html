@@ -398,8 +398,6 @@
 		}
 
 
-		// Actualizar cada 60 segundos
-		setInterval(fetchUnapprovedRequestsCount, 60000);
 
 		document.addEventListener('DOMContentLoaded', function() {
 			const forms = document.querySelectorAll('form');
@@ -591,7 +589,21 @@
 	}
 	</script>
 	{% endblock %}
-	
-
+	  
+    <!-- Registro del Service Worker -->
+    <script>
+		if ('serviceWorker' in navigator) {
+		  window.addEventListener('load', function() {
+			navigator.serviceWorker.register("{% url 'got:service_worker' %}")
+			  .then(function(registration) {
+				console.log("Service Worker registrado con alcance:", registration.scope);
+			  })
+			  .catch(function(error) {
+				console.error("Error al registrar el Service Worker:", error);
+			  });
+		  });
+		}
+	  </script>
+	  
 </body>
 </html>

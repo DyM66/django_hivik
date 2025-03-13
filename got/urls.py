@@ -84,7 +84,6 @@ urlpatterns = [
     path('managerial-report/<str:abbreviation>/', views.managerial_asset_report_pdf, name='managerial_asset_report'),
     path('manifest.json', pwa.manifest, name='manifest'),
     path('service-worker.js', pwa.service_worker, name='service_worker'),
-    path('api/unapproved_requests_count/', pwa.get_unapproved_requests_count, name='unapproved_requests_count_api'),
 
     path('maintenance-plan/export/<str:asset_abbr>/', views.MaintenancePlanExcelExportView.as_view(), name='maintenance_plan_excel_export'),
 
