@@ -1,10 +1,11 @@
-{% load static pwa %}
+{% load pwa %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-	{% include 'base/links.html' %}
 	<title>GOT - {% block title %}{% endblock %}</title>
 	{% progressive_web_app_meta %}
+
+	{% include 'base/links.html' %}
 	{% block headtag %}{% endblock %}
 </head>
 <body>
@@ -20,72 +21,14 @@
 <!-- Registro del Service Worker -->
 
 <script>
-	document.addEventListener("DOMContentLoaded", function() {
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.register("{% url 'serviceworker' %}", { scope: '/' })
-				.then(function(registration) {
-					console.log("Service Worker registrado con alcance:", registration.scope);
-					initializePushSubscription(registration);
-				})
-				.catch(function(error) {
-					console.error("Error al registrar el Service Worker:", error);
-				});
-		}
-	
-		function initializePushSubscription(registration) {
-			registration.pushManager.getSubscription().then(function(subscription) {
-				if (!subscription) {
-					subscribePushNotifications(registration);
-				} else {
-					console.log("Ya existe suscripción:", subscription);
-				}
-			});
-		}
-	
-		function subscribePushNotifications(registration) {
-			registration.pushManager.subscribe({
-				userVisibleOnly: true,
-				applicationServerKey: "{{ VAPID_PUBLIC_KEY }}"
-			}).then(function(subscription) {
-				fetch("{% url 'ntf:save_push_subscription' %}", {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-CSRFToken': '{{ csrf_token }}'
-					},
-					body: JSON.stringify(subscription.toJSON())
-				})
-				.then(response => response.json())
-				.then(data => {
-					if(data.success) {
-						showToast("Suscripción activada.");
-					} else {
-						showToast("Error al activar notificaciones.");
-					}
-				})
-				.catch(err => {
-					console.error('Error:', err);
-					showToast("Error en la suscripción.");
-				});
-			});
-		}
-	
-		document.getElementById("testNotificationBtn").addEventListener("click", function() {
-			fetch("{% url 'ntf:test_push_notification' %}", {
-				method: "GET",
-				headers: { "X-CSRFToken": "{{ csrf_token }}" }
-			})
-			.then(response => response.json())
-			.then(data => {
-				showToast(data.success ? data.message : "Error enviando notificación");
-			})
-			.catch(error => {
-				console.error("Error:", error);
-				showToast("Ocurrió un error al enviar.");
-			});
-		});
-	});
-	</script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register("{% url 'serviceworker' %}", {scope: '/'})
+        .then(reg => {
+            console.log("Service Worker registrado:", reg.scope);
+        })
+        .catch(e => console.error("Service Worker falló:", e));
+    }
+</script>
 
 
 

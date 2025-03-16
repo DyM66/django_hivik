@@ -217,36 +217,29 @@ PROJECT_LOGO_URL = "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdey
 
 
 # Asumiendo que BASE_DIR está definido como la raíz del proyecto:
-PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static', 'js', 'service_worker.js')
+# PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static', 'js', 'service_worker.js')
+PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'service_worker.js')
 
 # PWA settings
+
 PWA_APP_NAME = 'GOT'
 PWA_APP_SHORT_NAME = 'GOT'
-PWA_APP_DESCRIPTION = "Gestión de Operaciones Serport"
+PWA_APP_DESCRIPTION = 'Gestión de Operaciones Serport'
 PWA_APP_THEME_COLOR = '#191645'
-PWA_APP_BACKGROUND_COLOR = '#FFFFFF'
-PWA_APP_DISPLAY = 'standalone'
+PWA_APP_BACKGROUND_COLOR = '#ffffff'
+PWA_APP_DISPLAY = 'standalone'  # Obligatorio para app independiente
 PWA_APP_SCOPE = '/'
-PWA_APP_ORIENTATION = 'portrait'
 PWA_APP_START_URL = '/'
-PWA_APP_STATUS_BAR_COLOR = 'default'
 PWA_APP_ICONS = [
     {
-        'src': PROJECT_LOGO_URL,
-        'sizes': '103x101',
-        'type': 'image/png',
-    }
-]
-PWA_APP_ICONS_APPLE = [
+        'src': 'https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png',
+        'sizes': '192x192',
+        'type': 'image/png'
+    },
     {
-        "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png",
-        "sizes": "150x150"
-    }
-]
-PWA_APP_SPLASH_SCREEN = [
-    {
-        "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png",
-        "media": "(device-width: 768px) and (device-height: 1024px)"
+        'src': 'https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png',
+        'sizes': '512x512',
+        'type': 'image/png'
     }
 ]
 PWA_APP_DIR = 'ltr'
