@@ -24,6 +24,7 @@ from django.views.generic import RedirectView
 
 from rest_framework import routers
 from iot import views
+from django.views.generic import TemplateView
 
 
 router = routers.DefaultRouter()
@@ -46,6 +47,11 @@ urlpatterns = [
     path('', RedirectView.as_view(url='got/', permanent=True)),
 
     path('', include('pwa.urls')),
+
+    path('serviceworker.js', (TemplateView.as_view(
+        template_name="serviceworker.js",
+        content_type='application/javascript'
+    )), name='serviceworker'),
     
     # path('', include(router.urls)),
     # path('api-auth/', include('rest_framework.urls', namespace='rest_framework')), # probando api restframework django

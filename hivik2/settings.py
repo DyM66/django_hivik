@@ -76,7 +76,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'got.context_processors.unapproved_requests_count',
+                'got.context_processors.vapid_public_key',
                 'tic.context_processors.ticket_form_processor',
             ],
         },
@@ -251,3 +251,9 @@ PWA_APP_SPLASH_SCREEN = [
 ]
 PWA_APP_DIR = 'ltr'
 PWA_APP_LANG = 'es-CO'
+
+VAPID_PRIVATE_KEY = "hIbX2PMc8IYgzCoEIdhyGPC/MoQ3khRxT+B35XfwgmhRANCAATv5MDCzQ5BtjtRlG2ndwbwE3iJZiHgorgWN1ZnSgSQ3j04+nJmJ4uAp/yzRf8FQI1+8Dvz+9W+uxLdb3+H74Wo"
+VAPID_PUBLIC_KEY = "BOVuVAsQPns78Nogc1YyLcVoPnuyRNv7b2cSMgao4bE-m43msKlyToiPflejmw9-4m62muBr0xJ3wQSHL2RZURg"
+VAPID_CLAIMS = {
+    "sub": "mailto:analistamto@serport.co"
+}

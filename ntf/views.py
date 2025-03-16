@@ -9,23 +9,22 @@ from .models import WebPushSubscription
 def save_push_subscription(request):
     if request.method == "POST":
         try:
-            data = json.loads(request.body.decode('utf-8'))
-            endpoint = data.get("endpoint")
-            keys = data.get("keys", {})
-            p256dh = keys.get("p256dh")
-            auth_key = keys.get("auth")
-            if not endpoint or not p256dh or not auth_key:
-                return JsonResponse({"error": "Datos incompletos"}, status=400)
-            # Actualiza o crea la suscripción para el usuario
-            subscription, created = WebPushSubscription.objects.update_or_create(
+            data = json.loads(request.body)
+            endpoint = data["endpoint"]
+            keys = data["keys"]
+            WebPushSubscription.objects.update_or_create(
                 user=request.user,
                 endpoint=endpoint,
-                defaults={"p256dh": p256dh, "auth": auth_key},
+                defaults={
+                    "p256dh": keys["p256dh"],
+                    "auth": keys["auth"]
+                },
             )
             return JsonResponse({"success": True})
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-    return JsonResponse({"error": "Método no permitido"}, status=405)
+            print("Error:", e)
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
 
 
 from django.contrib.auth.decorators import login_required

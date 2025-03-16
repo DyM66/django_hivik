@@ -18,92 +18,74 @@
 {% block content %}{% endblock %}
 
 <!-- Registro del Service Worker -->
+
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-
-        // Registro del Service Worker con scope explícito
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register("{% url 'serviceworker' %}", { scope: '/' })
-                .then(function(registration) {
-                    console.log("Service Worker registrado con alcance:", registration.scope);
-                    initializePushSubscription();
-                })
-                .catch(function(error) {
-                    console.error("Error al registrar el Service Worker:", error);
-                });
-        }
-
-        // Inicializar suscripción Push
-        function initializePushSubscription() {
-            navigator.serviceWorker.ready.then(function(registration) {
-                registration.pushManager.getSubscription().then(function(subscription) {
-                    if (!subscription) {
-                        subscribePushNotifications();
-                    } else {
-                        console.log("Ya existe una suscripción activa:", subscription);
-                    }
-                });
-            });
-        }
-
-        // Función para suscribirse a Push Notifications
-        function subscribePushNotifications() {
-            navigator.serviceWorker.ready.then(function(registration) {
-                return registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: 'BOVuVAsQPns78Nogc1YyLcVoPnuyRNv7b2cSMgao4bE-m43msKlyToiPflejmw9-4m62muBr0xJ3wQSHL2RZURg'  // Revisa esta clave pública VAPID
-                });
-            }).then(function(subscription) {
-                return fetch("{% url 'ntf:save_push_subscription' %}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify(subscription.toJSON())
-                });
-            }).then(response => response.json())
-              .then(data => {
-                  if(data.success) {
-                      console.log("Suscripción guardada correctamente.");
-                      showToast("Suscripción a notificaciones activada.");
-                  } else {
-                      console.error("Error al guardar suscripción:", data.error);
-                      showToast("Error al activar notificaciones.");
-                  }
-              }).catch(error => {
-                  console.error('Error al suscribirse:', error);
-                  showToast("Ocurrió un error al suscribirse.");
-              });
-        }
-
-        // Botón para probar la notificación
-        const testNotificationBtn = document.getElementById("testNotificationBtn");
-        testNotificationBtn.addEventListener("click", function() {
-            fetch("{% url 'ntf:test_push_notification' %}", {
-                method: "GET",
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token }}"
-                }
-            }).then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log(data.message);
-                    showToast(data.message);
-                } else {
-                    console.error("Error:", data.message);
-                    showToast("Error enviando notificación");
-                }
-            }).catch(error => {
-                console.error("Error al realizar petición:", error);
-                showToast("Ocurrió un error en la petición");
-            });
-        });
-
-    });
-</script>
-
-
+	document.addEventListener("DOMContentLoaded", function() {
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register("{% url 'serviceworker' %}", { scope: '/' })
+				.then(function(registration) {
+					console.log("Service Worker registrado con alcance:", registration.scope);
+					initializePushSubscription(registration);
+				})
+				.catch(function(error) {
+					console.error("Error al registrar el Service Worker:", error);
+				});
+		}
+	
+		function initializePushSubscription(registration) {
+			registration.pushManager.getSubscription().then(function(subscription) {
+				if (!subscription) {
+					subscribePushNotifications(registration);
+				} else {
+					console.log("Ya existe suscripción:", subscription);
+				}
+			});
+		}
+	
+		function subscribePushNotifications(registration) {
+			registration.pushManager.subscribe({
+				userVisibleOnly: true,
+				applicationServerKey: "{{ VAPID_PUBLIC_KEY }}"
+			}).then(function(subscription) {
+				fetch("{% url 'ntf:save_push_subscription' %}", {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-CSRFToken': '{{ csrf_token }}'
+					},
+					body: JSON.stringify(subscription.toJSON())
+				})
+				.then(response => response.json())
+				.then(data => {
+					if(data.success) {
+						showToast("Suscripción activada.");
+					} else {
+						showToast("Error al activar notificaciones.");
+					}
+				})
+				.catch(err => {
+					console.error('Error:', err);
+					showToast("Error en la suscripción.");
+				});
+			});
+		}
+	
+		document.getElementById("testNotificationBtn").addEventListener("click", function() {
+			fetch("{% url 'ntf:test_push_notification' %}", {
+				method: "GET",
+				headers: { "X-CSRFToken": "{{ csrf_token }}" }
+			})
+			.then(response => response.json())
+			.then(data => {
+				showToast(data.success ? data.message : "Error enviando notificación");
+			})
+			.catch(error => {
+				console.error("Error:", error);
+				showToast("Ocurrió un error al enviar.");
+			});
+		});
+	});
+	</script>
 
 
 
