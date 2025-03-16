@@ -113,7 +113,7 @@
 								<h4>
 									Actividades:  {{ruta.get_nivel_display}}
 									{% if perms.got.add_equipo %}
-										<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill add-more"></i></a>
+										<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill btn-add-table"></i></a>
 									{% endif %}
 								</h4>
 								{% if ruta.dependencia %}
@@ -219,7 +219,7 @@
 								<h4>
 									Actividades:  {{ruta.get_nivel_display}}
 									{% if perms.got.add_equipo %}
-										<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill add-more"></i></a>
+										<a href="{% url 'got:task-create' ruta.code %}"><i class="bi bi-clipboard2-plus-fill btn-add-table"></i></a>
 									{% endif %}
 								</h4>
 								{% if ruta.dependencia %}

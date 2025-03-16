@@ -1,25 +1,21 @@
 import os
 from dotenv import load_dotenv
 
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-#uuzkn6=^^16hmq^^3csx$l)@q+3itn=wmxtt4a@rnxt9iqfxi'
-    )
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("DJANGO_SECRET_KEY no está definida en las variables de entorno")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-# DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ['true', '1']
 ALLOWED_HOSTS = ["*"]
 
 # Application definition
-
 INSTALLED_APPS = [
     'got.apps.GotConfig',
     'django.contrib.admin',
@@ -29,11 +25,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-    'storages',
-    'widget_tweaks',
-    'rest_framework',
-    'corsheaders',
-    'debug_toolbar',
     'preoperacionales.apps.PreoperacionalesConfig',
     'outbound.apps.OutboundConfig',
     'meg.apps.MegConfig',
@@ -43,6 +34,13 @@ INSTALLED_APPS = [
     'ope.apps.OpeConfig', 
     'cont.apps.ContConfig', 
     'tic.apps.TicConfig', 
+    'ntf.apps.NtfConfig', 
+    'pwa',
+    'storages',
+    'widget_tweaks',
+    'rest_framework',
+    'corsheaders',
+    'debug_toolbar',
     'taggit',
 ]
 
@@ -87,21 +85,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'hivik2.wsgi.application'
 
-load_dotenv()
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": "dbmaster",
-        "USER": "dbmasteruser",
+        "NAME": os.getenv('DATABASE_NAME'),
+        "USER": os.getenv('DATABASE_USER'),
         "PASSWORD": os.getenv('DATABASE_PASSWORD'),
-        "HOST": "ls-d8139c3d44c02d059a5520fc27dfb9afd932ec3c.c1488e8iswlk.us-east-1.rds.amazonaws.com",
+        "HOST": os.getenv('DATABASE_HOST'),
         "DATABASE_PORT": "5432",
     }
 }
-
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -130,27 +123,18 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
 USE_I18N = True
 USE_L10N = True
 USE_TZ = False
 
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+LOGIN_REDIRECT_URL = '/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
-
-LOGIN_REDIRECT_URL = '/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static_files')
 STATIC_TMP = os.path.join(BASE_DIR, 'static')
@@ -160,12 +144,12 @@ os.makedirs(STATIC_TMP, exist_ok=True)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'analistamto@serport.co'
-EMAIL_HOST_PASSWORD = 'jkgg ryux ners zrsa'
+EMAIL_PORT = 587 
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = False
 
-AWS_ACCESS_KEY_ID = 'AKIAYS2NTXT562AU74PQ'
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-2')
@@ -196,20 +180,20 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',  # Puedes cambiar a 'simple' si prefieres
+            'formatter': 'verbose',
         },
     },
     'loggers': {
         # Configuración para tu aplicación
         'got': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # Asegúrate de que el nivel sea DEBUG
+            'level': 'DEBUG',
             'propagate': False,
         },
         # Configuración para Django
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',  # Puedes cambiar a DEBUG si deseas más detalles
+            'level': 'INFO',
             'propagate': False,
         },
     },
@@ -218,23 +202,52 @@ LOGGING = {
 MY_SITE_DOMAIN = 'got.serport.co'
 MY_SITE_NAME = 'Got Serport'
 
-# * PAGINATION 
-
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10
 }
 
 DECIMAL_SEPARATOR = '.'
-
-
 ASGI_APPLICATION = "hivik2.asgi.application"
 
-
-
 LANGUAGE_CODE = 'es-co'
-
-# TIME_ZONE = 'UTC'
 TIME_ZONE = 'America/Bogota'
 
+PROJECT_LOGO_URL = "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png"
 
+
+# Asumiendo que BASE_DIR está definido como la raíz del proyecto:
+PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static', 'js', 'service_worker.js')
+
+# PWA settings
+PWA_APP_NAME = 'GOT'
+PWA_APP_SHORT_NAME = 'GOT'
+PWA_APP_DESCRIPTION = "Gestión de Operaciones Serport"
+PWA_APP_THEME_COLOR = '#191645'
+PWA_APP_BACKGROUND_COLOR = '#FFFFFF'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_SCOPE = '/'
+PWA_APP_ORIENTATION = 'portrait'
+PWA_APP_START_URL = '/'
+PWA_APP_STATUS_BAR_COLOR = 'default'
+PWA_APP_ICONS = [
+    {
+        'src': PROJECT_LOGO_URL,
+        'sizes': '103x101',
+        'type': 'image/png',
+    }
+]
+PWA_APP_ICONS_APPLE = [
+    {
+        "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png",
+        "sizes": "150x150"
+    }
+]
+PWA_APP_SPLASH_SCREEN = [
+    {
+        "src": "https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png",
+        "media": "(device-width: 768px) and (device-height: 1024px)"
+    }
+]
+PWA_APP_DIR = 'ltr'
+PWA_APP_LANG = 'es-CO'

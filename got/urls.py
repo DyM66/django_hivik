@@ -1,6 +1,5 @@
 from django.urls import path
 from . import views
-from got import pwa
 
 app_name = 'got'
 
@@ -82,8 +81,6 @@ urlpatterns = [
     path('budget/summary/assets/', views.BudgetSummaryByAssetView.as_view(), name='budget_summary_by_asset'),
 
     path('managerial-report/<str:abbreviation>/', views.managerial_asset_report_pdf, name='managerial_asset_report'),
-    path('manifest.json', pwa.manifest, name='manifest'),
-    path('service-worker.js', pwa.service_worker, name='service_worker'),
 
     path('maintenance-plan/export/<str:asset_abbr>/', views.MaintenancePlanExcelExportView.as_view(), name='maintenance_plan_excel_export'),
 

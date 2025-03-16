@@ -48,7 +48,7 @@
                         <td data-cell="Kilometraje reportado">{{preop.kilometraje}}</td>
                         <td data-cell="Placa">{{preop.vehiculo}}</td>
                         <td class="nowrap" data-cell="Estado">
-                            <p class="status {% if preop.aprobado %}finished{% else %}close{% endif %}">
+                            <p class="status {% if preop.aprobado %}green-state{% else %}red-state{% endif %}">
                                 {% if preop.aprobado %}Aprobado{% else %}No aprobado{% endif %}
                             </p>
                         </td>

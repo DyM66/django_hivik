@@ -18,18 +18,6 @@ class Migration(migrations.Migration):
             unique_together={('component', 'report_date')},
         ),
         migrations.CreateModel(
-            name='Notification',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('message', models.TextField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('seen', models.BooleanField(default=False)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to=settings.AUTH_USER_MODEL)),
-                ('redirect_url', models.CharField(blank=True, max_length=500)),
-                ('title', models.CharField(blank=True, max_length=100)),
-            ],
-        ),
-        migrations.CreateModel(
             name='DailyFuelConsumption',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),

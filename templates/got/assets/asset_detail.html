@@ -1,5 +1,6 @@
 {% extends "got/assets/asset_base.html" %}
 {% block asset %}
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="main-asset">
 
@@ -34,7 +35,11 @@
 				        </td>
 					    <td data-cell="Estado">
 					        <div class="dropdown">
-						        <button class="btn status {% if sys.state == 'o' %}finished{% elif sys.state == 'm' %}pending{% elif sys.state == 's' %}shipped{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+						        <button class="btn status 
+                                    {% if sys.state == 'o' %}green-state
+                                    {% elif sys.state == 'm' %}orange-state
+                                    {% elif sys.state == 's' %}blue-state
+                                    {% else %}red-state{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
 								    {{ sys.get_state_display }}
 							    </button>
 							    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
@@ -131,7 +136,7 @@
                         <tr>
                             <td>{{ item }}</td>
                             <td>{{ quantity }}</td>
-                            <td class="{% if inventory < double_quantity %}red-strong{% endif %}">
+                            <td {% if inventory < double_quantity %}style="color: red;"{% endif %}>
                                 {{ inventory }}
                             </td>
                         </tr>

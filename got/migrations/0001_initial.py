@@ -68,6 +68,7 @@ class Migration(migrations.Migration):
                 ('type_vessel', models.CharField(blank=True, max_length=100, null=True)),
                 ('anio', models.PositiveIntegerField(blank=True, null=True)),
                 ('potencia', models.DecimalField(blank=True, decimal_places=2, default=0, help_text='En kW.', max_digits=8, null=True)),
+                ('bollard_pull', models.DecimalField(blank=True, decimal_places=2, default=0, max_digits=8, null=True)),
             ],
             options={
                 'ordering': ['area', 'name'],

@@ -72,7 +72,7 @@
                 <td data-cell="Responsable" class="nowrap">{{ rq.responsable }}/ {{ rq.recibe}}</td>
                 <td data-cell="Estado">
                     <div class="dropdown">
-                        <button class="btn status {% if rq.auth %}finished{% elif not rq.sign_recibe %}exe{% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn status {% if rq.auth %}green-state{% elif not rq.sign_recibe %}violet-state{% else %}red-state{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                             {% if rq.auth %}Aprobado{% elif not rq.sign_recibe %}Por firmar{% else %}No aprobado{% endif %}
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">

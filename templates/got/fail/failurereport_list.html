@@ -73,7 +73,7 @@
 					<td data-cell="Descripción">{{ fail.description }}</td>
 					<td data-cell="Responsable">{{ fail.report }}</td>
 					<td class="nowrap" data-cell="Estado">
-						<p class="status {% if fail.closed %}finished{% elif fail.related_ot %}shipped{% else %}pending{% endif %}">
+						<p class="status {% if fail.closed %}green-state{% elif fail.related_ot %}blue-state{% else %}orange-state{% endif %}">
 							{% if fail.closed %}
 								Cerrado
 							{% elif fail.related_ot %}

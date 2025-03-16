@@ -12,6 +12,15 @@
         {% endif %}
     </h1>
 
+    <style>
+        .indicador {
+            /* background-color: var(--color-finalizado);  */
+            background: linear-gradient(45deg, var(--color-primary), #0157a4);
+            padding: 0 10px;
+            color: #fff;
+        }
+    </style>
+
     <div class="row">
         <div class="col-auto mb-2">
             <div class="card rounded shadow indicador">
@@ -117,7 +126,12 @@
                     <td data-cell="Sistema">{{ot.system}}</td>
                     <td data-cell="Supervisor">{{ot.supervisor}}</td>
                     <td class="nowrap" data-cell="Estado">
-                        <p class="status {% if ot.state == 'f' %}finished{% elif ot.state == 'c' %}close{% elif ot.is_pausado %}tramitado{% elif ot.state == 'x' %}exe{% elif ot.state == 'a' %}open{% else %}pending{% endif %}">
+                        <p class="status 
+                        {% if ot.state == 'f' %}green-state
+                        {% elif ot.state == 'c' %}red-state
+                        {% elif ot.is_pausado %}tramitado
+                        {% elif ot.state == 'x' %}violet-state
+                        {% elif ot.state == 'a' %}blue-state{% else %}orange-state{% endif %}">
                             {% if ot.is_pausado %}
                                 Pausado
                             {% else %}

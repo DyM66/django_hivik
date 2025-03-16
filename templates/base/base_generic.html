@@ -1,4 +1,4 @@
-{% load pwa %}
+{% load static pwa %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -10,8 +10,88 @@
 <body>
 {% include 'base/navegacion.html' %}
 
+
+<button type="button" id="testNotificationBtn" class="btn btn-primary">
+    Probar Notificación Push
+</button>
 <!-- Contenido -->
 {% block content %}{% endblock %}
+
+<!-- Registro del Service Worker -->
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register("{% url 'serviceworker' %}")
+            .then(function(registration) {
+                console.log("Service Worker registrado con alcance:", registration.scope);
+            })
+            .catch(function(error) {
+                console.error("Error al registrar el Service Worker:", error);
+            });
+        });
+    }
+
+	document.addEventListener("DOMContentLoaded", function () {
+    const testNotificationBtn = document.getElementById("testNotificationBtn");
+
+    testNotificationBtn.addEventListener("click", function () {
+        fetch("{% url 'ntf:test_push_notification' %}", {
+            method: "GET",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log(data.message);
+                showToast(data.message);
+            } else {
+                console.error("Error:", data.message);
+                showToast("Error enviando notificación");
+            }
+        })
+        .catch(error => {
+            console.error("Error al realizar petición:", error);
+            showToast("Ocurrió un error en la petición");
+        });
+    });
+});
+
+
+function subscribePushNotifications() {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready.then(function(registration) {
+            return registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: 'BOVuVAsQPns78Nogc1YyLcVoPnuyRNv7b2cSMgao4bE-m43msKlyToiPflejmw9-4m62muBr0xJ3wQSHL2RZURg'
+            });
+        }).then(function(subscription) {
+            fetch("{% url 'ntf:save_push_subscription' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(subscription.toJSON())
+            }).then(response => response.json())
+              .then(data => console.log("Suscripción guardada:", data))
+              .catch(error => console.error("Error al guardar suscripción:", error));
+        }).catch(function(error) {
+            console.error('Error al suscribirse:', error);
+        });
+    } else {
+        console.warn("Notificaciones Push no soportadas por este navegador.");
+    }
+}
+
+// Ejecuta esta función para suscribirte la primera vez
+subscribePushNotifications();
+
+</script>
+
+
+
 
 {% if is_paginated %}
 	<div class="px-3 mt-2" style="overflow-x: auto;">

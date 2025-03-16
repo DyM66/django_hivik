@@ -1,0 +1,167 @@
+<!-- got/base/pdf_template.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        .overdue {
+            background-color: #ffcccc; 
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            position: relative;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 16px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 5px;
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            background-color: #203066;
+            color: white;
+            padding: 10px;
+        }
+
+        .section-content {
+            padding: 10px;
+            border: 0.2px solid #000;
+            page-break-inside: auto;
+            white-space: pre-wrap;
+        }
+
+        .section-content {
+            line-height: 1.5;
+            text-align: justify;
+        }
+
+        .section-content {
+            page-break-inside: auto;
+            page-break-after: auto;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+            text-align: justify;
+        }
+
+        table {
+            border: 0.1px solid #000; 
+            page-break-inside: auto;
+        }
+
+        td, th {
+            word-wrap: break-word;
+            vertical-align: top;
+            white-space: pre-wrap;
+        }
+
+        thead th, thead td { 
+            padding-top: 10px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .deta thead th {
+            text-align: left;
+            /* padding: 5px 0 5px 10px; */
+        }
+
+        .deta {
+            font-size: 12px;
+        }
+
+        td {
+            padding: 5px 0 0 5px;
+        }
+
+        tbody th {
+            background-color: #203066;
+            color: white;
+            text-align: left;
+            padding: 4px 0 0 4px;
+            
+        }
+
+        .ff {
+            background-color: #203066;
+            color: white;
+        } 
+
+        ul { 
+            list-style-type: none;
+            padding: 0; 
+        }
+
+        li { 
+            margin-bottom: 5px; 
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            opacity: 0.1;
+            font-size: 5rem;
+            color: #000;
+            z-index: -1;
+            white-space: nowrap;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.7rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <table>
+        <thead>
+            <tr>
+                <td rowspan="2" style="width: 240px; padding-right: 5px;">
+                    <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" width="200px">
+                </td>
+                <th colspan="3">
+                    <h1><strong>{% block title %}{% endblock %}</strong></h1>
+                </th>
+            </tr>
+            <tr>
+                {% block doc_info %}{% endblock %}
+            </tr>
+        </thead>
+    </table>
+    
+    {% block content %}{% endblock %}
+
+
+    <!-- Pie de Página -->
+    <div class="footer">
+        <p>Documento generado por el software <strong>GOT</strong></p>
+    </div>
+</body>
+</html>

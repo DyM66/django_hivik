@@ -3,6 +3,18 @@
 
 {% block content %}
 
+<style>
+        .radioOptions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .radioOptions label {
+        margin-right: 5px;
+    }
+</style>
+
     <main class="px-3">
         <h1>
             Solicitudes de materiales/servicios 
@@ -114,8 +126,8 @@
                                     {% elif rq.estado == 'Parcialmente' %}parcialmente
                                     {% elif rq.estado == 'Tramitado' %}tramitado
                                     {% elif rq.estado == 'Aprobado' %}aprobado
-                                    {% elif rq.estado == 'No aprobado' %}no-aprobado
-                                    {% else %}close{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {% elif rq.estado == 'No aprobado' %}orange-state
+                                    {% else %}red-state{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                                     {{ rq.estado }}
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">

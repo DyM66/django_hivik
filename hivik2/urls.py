@@ -16,11 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
-from got.views import CustomPasswordResetView
 from django.contrib.auth import views as auth_views
+from got.views import CustomPasswordResetView
+from django.views.generic import RedirectView
 
 from rest_framework import routers
 from iot import views
@@ -42,8 +42,10 @@ urlpatterns = [
     path('ope/', include('ope.urls', namespace='ope')),
     path('cont/', include('cont.urls', namespace='cont')),
     path('tic/', include('tic.urls', namespace='tic')),
+    path('ntf/', include('ntf.urls', namespace='ntf')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
 
+    path('', include('pwa.urls')),
     
     # path('', include(router.urls)),
     # path('api-auth/', include('rest_framework.urls', namespace='rest_framework')), # probando api restframework django

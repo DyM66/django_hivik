@@ -6,6 +6,7 @@ from datetime import datetime
 from dth.models import UserProfile
 from inv.models import Transaction, Solicitud
 from .models import *
+from ntf.models import Notification
 
 
 @receiver(post_save, sender=User)

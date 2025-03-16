@@ -138,9 +138,9 @@
                     <td data-cell="Estado">
                         <div class="dropdown">
                             <button class="btn status 
-                                {% if act.finished %}finished
-                                {% elif act.is_overdue %}close
-                                {% else %}pending{% endif %} btn-sm dropdown-toggle" 
+                                {% if act.finished %}green-state
+                                {% elif act.is_overdue %}red-state
+                                {% else %}orange-state{% endif %} btn-sm dropdown-toggle" 
                                 type="button" id="dropdown-{{ act.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                 {% if act.finished %}Finalizada
                                 {% elif act.is_overdue %}Retrasado

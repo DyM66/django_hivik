@@ -39,6 +39,7 @@ from .forms import *
 from inv.models import Transaction, Solicitud
 from mto.utils import record_execution, get_filtered_rutas
 from meg.models import Megger
+from ntf.models import Notification
 
 from io import BytesIO
 from weasyprint import HTML, CSS

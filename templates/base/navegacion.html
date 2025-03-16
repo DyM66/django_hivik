@@ -3,110 +3,23 @@
 {% obtener_vehiculos as vehiculos %}
 
 <style>
-    /* ============ ESTILOS ============ */
-    .navbar {
-        position: relative;
-    }
-
-    .mega-dropdown {
-        position: static;
-    }
-
-    /* 3) Mega menú ESCRITORIO => .mega-menu-desktop */
-    .mega-menu-desktop {
-        position: absolute;   /* Ocupa todo el ancho => left:0,right:0 */
-        top: 100%; left: 0; right: 0;
-        background-color: var(--color-primary);
-        color: #fff;
-        overflow: hidden;     /* Oculta contenido si colapsa (max-height) */
-        max-height: 0;        /* Inicia “oculto” */
-        transition: max-height 0.3s ease; /* animación suave */
-        z-index: 999;
-        display: block;       /* en escritorio, está en block, pero con height=0 */
-    }
-
-    /* Para enlaces dentro del mega-menu ESCRITORIO */
-    .mega-menu-desktop .dropdown-item {
-        color: #fff;
-    }
-
-    .mega-menu-desktop .dropdown-item:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-    }
-
-    /* Al hacer hover sobre .mega-dropdown => expandir .mega-menu-desktop */
-    .mega-dropdown:hover .mega-menu-desktop {
-        max-height: 600px; /* Ajusta según tu contenido */
-    }
-
-    /* Subcontenedor interno (opcional) */
-    .mega-menu-desktop .container-fluid {
-        min-height: 200px; /* altura base */
-    }
-
-    /* ========== VERSIÓN MÓVIL => submenú con .collapse ========== */
-    .mega-menu-mobile {
-        background-color: var(--color-aux);
-        color: #fff;
-        width: 100%; /* se expande en todo el ancho */
-        margin-top: 0.5rem; 
-    }
-    .mega-menu-mobile .dropdown-item {
-        color: #fff;
-        text-align: center; /* Cada opción centrada */
-    }
-    .mega-menu-mobile .dropdown-item:hover {
-        background-color: rgba(255,255,255,0.2);
-    }
-
-    @media (min-width: 992px) {
-        .mega-menu-desktop {
-            display: block; /* Se usa en escritorio */
-        }
-        .mega-menu-mobile {
-            display: none !important; /* no se muestra en escritorio */
-        }
-    }
-
     @media (max-width: 991px) {
-        .mega-menu-desktop {
-            display: none !important; /* no se usa en móviles */
-        }
-    }
+  /* Asegura que el submenú móvil se muestre en flujo normal y ocupe todo el ancho */
+  .mega-menu-mobile {
+    position: static !important;
+    width: 100% !important;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  /* Opcional: si el contenedor del enlace dropdown también influye, se fuerza que ocupe el ancho completo */
+  .navbar-nav .nav-item.dropdown.mega-dropdown {
+    width: 100%;
+  }
+}
+
 </style>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const isLargeScreen = window.innerWidth >= 992;
-
-  // --- Mantenimiento (ya existente) ---
-  const maintenanceLink = document.getElementById('maintenanceDropdown');
-  if (maintenanceLink) {
-    if (!isLargeScreen) {
-      maintenanceLink.classList.add('dropdown-toggle');
-      maintenanceLink.setAttribute('data-bs-toggle', 'collapse');
-      maintenanceLink.setAttribute('data-bs-target', '#megaMaintenance');
-      maintenanceLink.setAttribute('aria-expanded', 'false');
-      maintenanceLink.setAttribute('aria-controls', 'megaMaintenance');
-    }
-  }
-
-  // --- Vehículos (nuevo) ---
-  const vehiclesLink = document.getElementById('vehiclesDropdown');
-  if (vehiclesLink) {
-    if (!isLargeScreen) {
-      vehiclesLink.classList.add('dropdown-toggle');
-      vehiclesLink.setAttribute('data-bs-toggle', 'collapse');
-      vehiclesLink.setAttribute('data-bs-target', '#megaVehicles');
-      vehiclesLink.setAttribute('aria-expanded', 'false');
-      vehiclesLink.setAttribute('aria-controls', 'megaVehicles');
-    }
-  }
-
-});
-</script>
-
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+<nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
         <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" width="150px">
 
@@ -116,6 +29,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                {% if asset_del_supervisor %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == asset_del_supervisor.get_absolute_url %}active{% endif %}" href="{{ asset_del_supervisor.get_absolute_url }}">
+                            {{ asset_del_supervisor.name }}
+                        </a>
+                    </li>
+                {% elif perms.got.view_asset %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'asset-list' %}active{% endif %}" href="{% url 'got:asset-list' %}">
+                            Equipos
+                        </a>
+                    </li>
+                {% endif %}
 
                 <!-- Dropdown de Mantenimiento -->
                 <li class="nav-item dropdown mega-dropdown">
@@ -216,12 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 {% if request.user|has_group:"finance_members" %}
                     <!-- Dropdown de TIC -->
                     <li class="nav-item dropdown mega-dropdown">
-                        <a class="nav-link" href="#" id="ticDropdown" role="button">
+                        <a class="nav-link" href="#" id="costDropdown" role="button">
                             Costeo
                         </a>
 
                         <!-- Nuestro mega-menu -->
-                        <div class="mega-menu-desktop" aria-labelledby="ticDropdown">
+                        <div class="mega-menu-desktop" aria-labelledby="costDropdown">
                             <div class="container-fluid p-3 d-flex flex-wrap">
                                 <div class="flex-fill me-4">
                                     <ul class="list-unstyled">
@@ -230,20 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             </div>
                         </div>
-                    </li>
-                {% endif %}                
-          
-                {% if asset_del_supervisor %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == asset_del_supervisor.get_absolute_url %}active{% endif %}" href="{{ asset_del_supervisor.get_absolute_url }}">
-                            {{ asset_del_supervisor.name }}
-                        </a>
-                    </li>
-                {% elif perms.got.view_asset %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'asset-list' %}active{% endif %}" href="{% url 'got:asset-list' %}">
-                            Equipos
-                        </a>
                     </li>
                 {% endif %}
 
@@ -378,3 +291,40 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 </div>
 {% endfor %}
+
+<script>
+    function adaptDropdown(linkId, targetId) {
+        const link = document.getElementById(linkId);
+        if (link) {
+            if (window.innerWidth < 992) {
+                link.classList.add('dropdown-toggle');
+                link.setAttribute('data-bs-toggle', 'collapse');
+                link.setAttribute('data-bs-target', targetId);
+                link.setAttribute('aria-expanded', 'false');
+                link.setAttribute('aria-controls', targetId.substring(1)); // quita el '#' del targetId
+            } else {
+                // Remueve los atributos para pantallas grandes si fuera necesario
+                link.classList.remove('dropdown-toggle');
+                link.removeAttribute('data-bs-toggle');
+                link.removeAttribute('data-bs-target');
+                link.removeAttribute('aria-expanded');
+                link.removeAttribute('aria-controls');
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Llamada inicial
+        adaptDropdown('maintenanceDropdown', '#megaMaintenance');
+        adaptDropdown('ticDropdown', '#megaTic');
+        adaptDropdown('vehiclesDropdown', '#megaVehicles');
+
+        // Escucha cambios en el tamaño de la ventana
+        window.addEventListener('resize', function() {
+            adaptDropdown('maintenanceDropdown', '#megaMaintenance');
+            adaptDropdown('ticDropdown', '#megaTic');
+            adaptDropdown('vehiclesDropdown', '#megaVehicles');
+        });
+    });
+
+</script>

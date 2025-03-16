@@ -3,6 +3,37 @@
 
 {% block headtag %}
     {% include "got/assets/asset_detail_styles.html" %}
+    <style>
+        .nav {
+            background-color: var(--color-aux);
+            min-height: 40px;
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+            gap: 0px;
+            border-bottom: 1px solid var(--color-primary);
+        }
+        .nav .nav-item:hover {
+            background-color: var(--color-primary);
+        }
+        .nav-link {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+            padding: 0.5rem;
+        }
+        .submenu .nav-item {
+            flex: 1 1 auto;
+            display: flex;
+            position: relative;
+        }
+        .nav-link.active {
+            color: var(--color-secondary);
+            border-bottom: 3px solid var(--color-secondary);
+            background-color: var(--color-primary);
+        }
+    </style>    
 {% endblock %}
 
 {% block content %}
@@ -15,7 +46,7 @@
         </h1>
 
 
-        <ul class="nav">
+        <ul class="nav submenu">
             <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'asset-detail' %}active{% endif %}" aria-current="page" href="{% url 'got:asset-detail' asset.abbreviation %}">
                     Información General
@@ -27,7 +58,7 @@
                 </a>
             </li>
         </ul>
-        <ul class="nav d-flex flex-wrap w-100" style="font-size: 0.9rem">
+        <ul class="nav submenu d-flex flex-wrap w-100" style="font-size: 0.9rem">
             {% if rotativos %}
                 <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'horas-asset' %}active{% endif %}" href="{% url 'got:horas-asset' asset.abbreviation %}">
