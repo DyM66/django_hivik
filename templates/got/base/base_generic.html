@@ -195,7 +195,7 @@
 	});
 
     function fetchNotifications() {
-        fetch("{% url 'got:get_notifications' %}").then(response => response.json()).then(data => {
+        fetch("{% url 'ntf:get_notifications' %}").then(response => response.json()).then(data => {
             const container = document.getElementById("dynamic-notifications");
             // container.innerHTML = "";
             data.notifications.forEach(notification => {

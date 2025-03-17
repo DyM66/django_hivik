@@ -92,6 +92,7 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
 
         elif action == 'update_supervisor':
             supervisor = asset.supervisor
+            if supervisor.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
             first_name = request.POST.get('first_name', '').strip()
             last_name = request.POST.get('last_name', '').strip()
             if not first_name or not last_name:
