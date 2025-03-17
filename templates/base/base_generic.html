@@ -10,26 +10,8 @@
 </head>
 <body>
 {% include 'base/navegacion.html' %}
-
-
-<button type="button" id="testNotificationBtn" class="btn btn-primary">
-    Probar Notificación Push
-</button>
 <!-- Contenido -->
 {% block content %}{% endblock %}
-
-<!-- Registro del Service Worker -->
-
-<script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register("{% url 'serviceworker' %}", {scope: '/'})
-        .then(reg => {
-            console.log("Service Worker registrado:", reg.scope);
-        })
-        .catch(e => console.error("Service Worker falló:", e));
-    }
-</script>
-
 
 
 {% if is_paginated %}

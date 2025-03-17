@@ -217,8 +217,8 @@ PROJECT_LOGO_URL = "https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdey
 
 
 # Asumiendo que BASE_DIR está definido como la raíz del proyecto:
-# PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static', 'js', 'service_worker.js')
-PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'service_worker.js')
+PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'static', 'js', 'service_worker.js')
+# PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'service_worker.js')
 
 # PWA settings
 
@@ -230,18 +230,18 @@ PWA_APP_BACKGROUND_COLOR = '#ffffff'
 PWA_APP_DISPLAY = 'standalone'  # Obligatorio para app independiente
 PWA_APP_SCOPE = '/'
 PWA_APP_START_URL = '/'
-PWA_APP_ICONS = [
-    {
-        'src': 'https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png',
-        'sizes': '192x192',
-        'type': 'image/png'
-    },
-    {
-        'src': 'https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png',
-        'sizes': '512x512',
-        'type': 'image/png'
-    }
-]
+# PWA_APP_ICONS = [
+#     {
+#         'src': 'https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png',
+#         'sizes': '192x192',
+#         'type': 'image/png'
+#     },
+#     {
+#         'src': 'https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png',
+#         'sizes': '512x512',
+#         'type': 'image/png'
+#     }
+# ]
 PWA_APP_DIR = 'ltr'
 PWA_APP_LANG = 'es-CO'
 
