@@ -93,15 +93,18 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         elif action == 'update_supervisor':
             supervisor = asset.supervisor
             if supervisor.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
-            first_name = request.POST.get('first_name', '').strip()
-            last_name = request.POST.get('last_name', '').strip()
-            if not first_name or not last_name:
-                messages.error(request, "El nombre y el apellido del supervisor son requeridos.")
+                first_name = request.POST.get('first_name', '').strip()
+                last_name = request.POST.get('last_name', '').strip()
+                if not first_name or not last_name:
+                    messages.error(request, "El nombre y el apellido del supervisor son requeridos.")
+                    return redirect('got:asset-list')
+                supervisor.first_name = first_name
+                supervisor.last_name = last_name
+                supervisor.save()
+                messages.success(request, "Supervisor actualizado correctamente.")
+            else:
+                messages.error(request, "No se puede cambiar el nombre de este usuario.")
                 return redirect('got:asset-list')
-            supervisor.first_name = first_name
-            supervisor.last_name = last_name
-            supervisor.save()
-            messages.success(request, "Supervisor actualizado correctamente.")
 
         elif action == 'update_capitan':
             capitan = asset.capitan
