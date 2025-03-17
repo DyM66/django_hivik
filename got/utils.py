@@ -774,7 +774,7 @@ def operational_users(current_user):
         taller_list = list(talleres.user_set.all())
         taller_list.append(current_user)
         return User.objects.filter(id__in=[user.id for user in taller_list])
-    elif current_user.groups.filter(name='super_members').exists():
+    elif current_user.groups.filter(name='mto_members').exists():
         return User.objects.exclude(groups__name='gerencia')
 
 
@@ -934,7 +934,7 @@ def filter_tasks_queryset(request, base_queryset=None):
     from django.db.models import Value
     from django.db.models.functions import Concat
     queryset = queryset.filter(
-        ot__supervisor__in=User.objects.filter(groups__name='super_members').annotate(
+        ot__supervisor__in=User.objects.filter(groups__name='mto_members').annotate(
             full_name=Concat('first_name', Value(' '), 'last_name')
         ).values_list('full_name', flat=True)
     )
@@ -978,7 +978,7 @@ def filter_tasks_queryset(request, base_queryset=None):
     current_user = request.user
     if current_user.groups.filter(name='serport_members').exists():
         queryset = queryset.filter(responsible=current_user)
-    elif current_user.groups.filter(name='super_members').exists():
+    elif current_user.groups.filter(name='mto_members').exists():
         pass  # Sin filtro adicional
     elif current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
         queryset = queryset.filter(ot__system__asset__supervisor=current_user)

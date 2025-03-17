@@ -55,7 +55,7 @@
                     </button>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ request.GET.asset_id }}">Mostrar todas</a></li>
-                        {% for u in super_members %}
+                        {% for u in mto_members %}
                             <li><a class="dropdown-item" href="{% url 'got:ot-list' %}?asset_id={{ request.GET.asset_id }}&responsable={{ u.first_name }}">{{ u.first_name }} {{ u.last_name }}</a></li>
                         {% endfor %}
                     </ul>

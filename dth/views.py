@@ -139,7 +139,7 @@ class OvertimeListView(LoginRequiredMixin, ListView):
 
         # Filtros por grupo de usuario
         current_user = self.request.user
-        if current_user.groups.filter(name='super_members').exists():
+        if current_user.groups.filter(name='mto_members').exists():
             pass  # Sin filtro adicional
         elif current_user.groups.filter(name='maq_members').exists():
             asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()
@@ -321,7 +321,7 @@ def filter_overtime_queryset(request):
 
     # Filtros según grupo de usuario
     current_user = request.user
-    if current_user.groups.filter(name='super_members').exists():
+    if current_user.groups.filter(name='mto_members').exists():
         pass  # Sin filtro adicional
     elif current_user.groups.filter(name='maq_members').exists():
         asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()

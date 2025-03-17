@@ -84,9 +84,6 @@ urlpatterns = [
 
     path('maintenance-plan/export/<str:asset_abbr>/', views.MaintenancePlanExcelExportView.as_view(), name='maintenance_plan_excel_export'),
 
-    path('notifications/', views.get_notifications, name='get_notifications'),
-    path('notifications/mark_seen/', views.mark_notification_seen, name='mark_notification_seen'),
-
     path('assets/<str:pk>/pdf/', views.EquipoPDFView.as_view(), name='equipo-pdf'),
 
     path('ot/<int:ot_num>/download_task_images/', views.download_ot_task_images, name='download_ot_task_images'),

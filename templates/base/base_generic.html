@@ -196,7 +196,7 @@
 	});
 
     function fetchNotifications() {
-        fetch("{% url 'got:get_notifications' %}").then(response => response.json()).then(data => {
+        fetch("{% url 'ntf:get_notifications' %}").then(response => response.json()).then(data => {
             const container = document.getElementById("dynamic-notifications");
             // container.innerHTML = "";
             data.notifications.forEach(notification => {
@@ -236,7 +236,7 @@
 
     // Función para marcar la notificación como vista
     function markAsSeen(notificationId) {
-        fetch("{% url 'got:mark_notification_seen' %}", {
+        fetch("{% url 'ntf:mark_notification_seen' %}", {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",

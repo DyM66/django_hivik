@@ -30,8 +30,6 @@ from django.utils.translation import gettext as _
 from django.views import generic, View
 from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt 
 
 from .utils import *
 from .models import *
@@ -39,7 +37,6 @@ from .forms import *
 from inv.models import Transaction, Solicitud
 from mto.utils import record_execution, get_filtered_rutas
 from meg.models import Megger
-from ntf.models import Notification
 
 from io import BytesIO
 from weasyprint import HTML, CSS
@@ -59,41 +56,6 @@ AREAS = {
     'v': 'Vehiculos',
     'x': 'Apoyo',
 }
-
-@login_required
-def get_notifications(request):
-    try:
-        user = request.user
-        notifications = user.notifications.filter(seen=False)
-        data = [
-            {
-                "id": n.id,
-                "title": n.title,
-                "message": n.message,
-                "redirect_url": n.redirect_url,
-                "created_at": n.created_at.strftime("%d/%m/%Y %H:%M"),
-            }
-            for n in notifications
-        ]
-        return JsonResponse({"notifications": data})
-    except Exception as e:
-        print("Error en get_notifications:", e)
-        return JsonResponse({"error": str(e)}, status=500)
-
-
-@login_required
-@require_POST
-@csrf_exempt
-def mark_notification_seen(request):    
-    notification_id = request.POST.get("notification_id")
-    try:
-        notification = request.user.notifications.get(id=notification_id)
-        notification.seen = True
-        notification.save()
-        return JsonResponse({"success": True})
-    except Notification.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Notificación no encontrada"})
-
 
 'ASSETS VIEWS'
 class AssetsListView(LoginRequiredMixin, TemplateView):
@@ -161,7 +123,7 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in AREAS.items()}
         context['area_icons'] = {'a': 'fa-ship', 'c': 'fa-solid fa-ferry', 'o': 'fa-water', 'l': 'fa-building', 'v': 'fa-car', 'x': 'fa-cogs'}
         context['places'] = Place.objects.all()
-        context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'super_members'])
+        context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'mto_members'])
         context['capitanes'] = User.objects.filter(groups__name='maq_members')
 
         open_failures_dict = {}
@@ -1440,7 +1402,7 @@ class FailureReportForm(LoginRequiredMixin, CreateView):
             subject,
             email_body_html,
             settings.EMAIL_HOST_USER,
-            [user.email for user in Group.objects.get(name='super_members').user_set.all()],
+            [user.email for user in Group.objects.get(name='mto_members').user_set.all()],
             reply_to=[settings.EMAIL_HOST_USER]
         )
         
@@ -1610,9 +1572,9 @@ class OtListView(LoginRequiredMixin, generic.ListView):
             info_filter = Asset.objects.filter(show=True)
         context['asset'] = info_filter
 
-        super_group = Group.objects.get(name='super_members')
+        super_group = Group.objects.get(name='mto_members')
         users_in_group = super_group.user_set.all()
-        context['super_members'] = users_in_group
+        context['mto_members'] = users_in_group
 
         queryset = self.get_queryset()
         total_ots_en_ejecucion = queryset.filter(state='x').count()
@@ -1630,7 +1592,7 @@ class OtListView(LoginRequiredMixin, generic.ListView):
         elif 'buzos_members' in user_groups:
             supervised_assets = Asset.objects.filter(area='b')
             queryset = queryset.filter(system__asset__in=supervised_assets)
-        elif any(group in user_groups for group in ['super_members', 'serport_members', 'gerencia', 'operaciones']):
+        elif any(group in user_groups for group in ['mto_members', 'serport_members', 'gerencia', 'operaciones']):
             pass
         else:
             queryset = queryset.none()
@@ -1721,7 +1683,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
         context['image_form'] = UploadImages()
         context['doc_form'] = DocumentForm()
 
-        if self.request.user.groups.filter(name='super_members').exists():
+        if self.request.user.groups.filter(name='mto_members').exists():
             context['task_form'] = ActForm()
         else:
             context['task_form'] = ActFormNoSup()
@@ -1763,7 +1725,7 @@ class OtDetailView(LoginRequiredMixin, generic.DetailView):
             task.delete()
             return redirect(ot.get_absolute_url()) 
     
-        task_form_class = ActForm if request.user.groups.filter(name='super_members').exists() else ActFormNoSup
+        task_form_class = ActForm if request.user.groups.filter(name='mto_members').exists() else ActFormNoSup
         task_form = task_form_class(request.POST, request.FILES)
         image_form = UploadImages(request.POST, request.FILES)
 
@@ -1826,7 +1788,7 @@ class OtCreate(CreateView):
     template_name = 'got/ots/ot_form.html'
 
     def get_form_class(self):
-        if self.request.user.groups.filter(name='super_members').exists():
+        if self.request.user.groups.filter(name='mto_members').exists():
             return OtForm
         else:
             return OtFormNoSup
@@ -1853,7 +1815,7 @@ class OtUpdate(UpdateView):
     template_name = 'got/ots/ot_form.html'
 
     def get_form_class(self):
-        if self.request.user.groups.filter(name='super_members').exists():
+        if self.request.user.groups.filter(name='mto_members').exists():
             return OtForm
         else:
             return OtFormNoSup
@@ -2610,7 +2572,7 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         context['user_groups'] = user_groups
 
         group_default_dpto = {
-            'super_members': 'm',  # Mantenimiento
+            'mto_members': 'm',  # Mantenimiento
             'operaciones': 'o'     # Operaciones
         }
 
@@ -2633,7 +2595,7 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         user_groups = set(user.groups.values_list('name', flat=True))
 
         group_default_dpto = {
-            'super_members': 'm',  # Mantenimiento
+            'mto_members': 'm',  # Mantenimiento
             'operaciones': 'o'     # Operaciones
         }
 
@@ -3002,7 +2964,7 @@ class MaintenanceDashboardView(LoginRequiredMixin, UserPassesTestMixin, Template
     template_name = 'got/mantenimiento/maintenance_dashboard.html'
 
     def test_func(self):
-        return self.request.user.groups.filter(name='super_members').exists()
+        return self.request.user.groups.filter(name='mto_members').exists()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

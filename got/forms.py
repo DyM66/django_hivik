@@ -248,7 +248,7 @@ class OtForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['system'].queryset = System.objects.filter(asset=asset)
 
-        super_members_group = Group.objects.get(name='super_members')
+        super_members_group = Group.objects.get(name='mto_members')
         super_members = super_members_group.user_set.all()
         supervisor_choices = [(member.get_full_name(), member.get_full_name()) for member in super_members]
         supervisor_choices.insert(0, ('', '---------'))
@@ -378,7 +378,7 @@ class ActForm(forms.ModelForm):
         self.fields['start_date'].required = True
         self.fields['finished'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
 
-        group_names = ['serport_members', 'super_members', 'maq_members', 'buzos_members']
+        group_names = ['serport_members', 'mto_members', 'maq_members', 'buzos_members']
         groups = Group.objects.filter(name__in=group_names)
         users = User.objects.filter(groups__in=groups).distinct()
         self.fields['responsible'].queryset = users

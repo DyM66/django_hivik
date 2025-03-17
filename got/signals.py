@@ -265,7 +265,7 @@ from django.contrib.auth.models import Group
 @receiver(post_save, sender=Solicitud)
 def create_solicitud_notification(sender, instance, created, **kwargs):
     if created:
-        group_name = 'super_members' if instance.dpto == 'm' else 'operaciones' # Determinar el grupo de destino según el departamento:
+        group_name = 'mto_members' if instance.dpto == 'm' else 'operaciones' # Determinar el grupo de destino según el departamento:
         full_name = instance.solicitante.get_full_name() or instance.solicitante.username
         
         # Determinar el asset asociado
@@ -330,9 +330,9 @@ def create_failure_report_notification(sender, instance, created, **kwargs):
         message = f"{reporter}/ {instance.equipo.name}: {description_truncated}"
         redirect_url = instance.get_absolute_url()
         
-        # Notificar a usuarios del grupo 'super_members'
+        # Notificar a usuarios del grupo 'mto_members'
         try:
-            group_super = Group.objects.get(name="super_members")
+            group_super = Group.objects.get(name="mto_members")
             users_super = group_super.user_set.all()
         except Group.DoesNotExist:
             users_super = []

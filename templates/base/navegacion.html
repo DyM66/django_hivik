@@ -56,7 +56,7 @@
                         
                             <div class="flex-fill me-4">
                                 <ul class="list-unstyled">
-                                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                                {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
                                     <li><a class="dropdown-item" href="{% url 'mto:stoytell' %}">Barcos</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
                                     <li><a class="dropdown-item" href="{% url 'mto:maintenance_plan_all_assets' %}">Proyección</a></li>
@@ -87,7 +87,7 @@
                         <div class="p-3 text-center">
                             <!-- Mismos links que arriba -->
                             <ul class="list-unstyled">
-                                {% if request.user|has_group:"super_members" or request.user|has_group:"gerencia" %}
+                                {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
                                 <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
                                 <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
                                 {% endif %}
