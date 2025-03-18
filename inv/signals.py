@@ -54,6 +54,11 @@ def notify_equipo_changes(sender, instance, created, **kwargs):
             message = (f"El usuario {instance.modified_by.get_full_name() or instance.modified_by.username} "
                        f"ha modificado el equipo '{instance.name}' => {changes_str}")
         else:
+            filtered_logs = [log for log in logs if log.field_name != "horometro"]
+
+            # Si después de excluir 'horometro' ya no quedan cambios => no notificamos
+            if not filtered_logs:
+                return
             # Si no encontramos logs recientes, hacemos un mensaje genérico
             message = (f"El usuario {instance.modified_by.get_full_name() or instance.modified_by.username} "
                        f"ha modificado el equipo '{instance.name}'. (No hay detalles)")
