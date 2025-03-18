@@ -65,7 +65,7 @@
 						<td>{{ eq.ubicacion|default_if_none:"--" }}</td>
 						<td class="text-end">
 							<!-- Editar/Modificar -->
-							<a href="{% url 'got:equipo-update' eq.code %}?next={{ request.path }}" class="me-1 text-secondary" title="Modificar">
+							<a href="{% url 'inv:equipo-update' eq.code %}?next={{ request.path }}" class="me-1 text-secondary" title="Modificar">
 								<i class="fa-solid fa-pen"></i>
 							</a>
 							<!-- Dar de Baja -->
@@ -415,7 +415,7 @@
 <script>
 	function crearNuevoEquipo(systemId){
 		const nextUrl = encodeURIComponent(window.location.pathname);
-		const baseUrl = "{% url 'got:equipo-create' 999999999 %}";
+		const baseUrl = "{% url 'inv:equipo-create' 999999999 %}";
 		const finalUrl = baseUrl.replace("999999999", systemId);
 		window.location.href = finalUrl + "?next=" + nextUrl;
 	}

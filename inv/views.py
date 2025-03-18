@@ -23,7 +23,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views import generic, View
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic.edit import CreateView
+from django.views.generic.edit import CreateView, UpdateView
+from django.utils.http import urlencode
+from django.db import transaction, IntegrityError
 
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image
@@ -32,11 +34,157 @@ from openpyxl.utils import get_column_letter
 
 from got.models import Asset, System, Equipo, Suministro, Item
 from got.utils import *
-from got.forms import ItemForm
+from got.forms import ItemForm, UploadImages
 from inv.utils import enviar_correo_transferencia
 from .models import DarBaja
 from .forms import *
 from ope.models import Operation
+
+
+class EquipoCreateView(LoginRequiredMixin, CreateView):
+    model = Equipo
+    form_class = EquipoForm
+    template_name = 'got/systems/equipo_form.html'
+    http_method_names = ['get', 'post']
+
+    def dispatch(self, request, *args, **kwargs):
+        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['system'] = get_object_or_404(System, pk=self.kwargs['pk']) # Se inyecta el objeto system en los argumentos del formulario
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Se instancia el formulario de carga de imágenes
+        context['upload_form'] = UploadImages(self.request.POST, self.request.FILES) if self.request.method == 'POST' else UploadImages()
+        context['sys'] = get_object_or_404(System, pk=self.kwargs['pk'])
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = None
+        form = self.get_form()
+        upload_form = UploadImages(request.POST, request.FILES)
+        if form.is_valid() and upload_form.is_valid():
+            return self.form_valid(form, upload_form)
+        else:
+            return self.form_invalid(form, upload_form)
+
+    def form_valid(self, form, upload_form):
+        system = get_object_or_404(System, pk=self.kwargs['pk'])
+        form.instance.system = system
+        asset_abbreviation = system.asset.abbreviation
+        tipo = form.cleaned_data['tipo'].upper()
+
+        try:
+            with transaction.atomic():
+                form.instance.code = generate_equipo_code(asset_abbreviation, tipo)
+                form.instance.modified_by = self.request.user
+                response = super().form_valid(form)
+        except IntegrityError:
+            form.add_error('code', 'Error al generar un código único. Por favor, inténtalo de nuevo.')
+            return self.form_invalid(form, upload_form)
+
+        for file in self.request.FILES.getlist('file_field'):
+            Image.objects.create(image=file, equipo=self.object)
+        messages.success(self.request, "Equipo creado exitosamente.")
+        return response
+
+    def form_invalid(self, form, upload_form):
+        context = self.get_context_data(form=form, upload_form=upload_form)
+        return self.render_to_response(context)
+
+    def get_success_url(self):
+        "Redirige a la URL 'next' si está presente; de lo contrario redirige a la vista de detalle del sistema."
+        if self.next_url:
+            return self.next_url
+        else:
+            return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
+
+
+class EquipoUpdate(UpdateView):
+    model = Equipo
+    form_class = EquipoForm
+    template_name = 'got/systems/equipo_form.html'
+    http_method_names = ['get', 'post']
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            obj = self.get_object()
+        except Equipo.DoesNotExist:
+            messages.error(request, "El equipo que intentas actualizar ya no existe. Por favor, actualiza la URL.")
+            return redirect('got:asset-list')
+        
+        if str(obj.pk) != kwargs.get('pk'):
+            return redirect(obj.get_absolute_url())
+        
+        self.object = obj
+        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
+        self.next_to = request.GET.get('next_to') or request.POST.get('next') or ''
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        equipo = self.get_object()
+        kwargs['system'] = get_object_or_404(System, equipos=equipo)
+        return kwargs
+    
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        self.old_tipo = obj.tipo  
+        self.old_code = obj.code
+        return obj
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Formulario para carga de imágenes
+        context['upload_form'] = UploadImages(self.request.POST, self.request.FILES) if self.request.method == 'POST' else UploadImages()
+        ImageFormset = forms.modelformset_factory(Image, fields=('image',), extra=0)
+        context['image_formset'] = ImageFormset(queryset=self.object.images.all())
+        context['image_count'] = self.object.images.count()
+        context['next_url'] = self.next_url
+        context['next_to'] = self.next_to
+        return context
+    
+    def form_valid(self, form):
+        form.instance.modified_by = self.request.user
+        response = super().form_valid(form)
+        new_tipo = self.object.tipo  # el "tipo" que el usuario seleccionó 
+        new_code = self.object.code 
+
+        # if new_tipo != self.old_tipo:
+        #     # Llamar a la función update_equipo_code con el code viejo
+        #     update_equipo_code(self.old_code)
+        #     messages.info(
+        #         self.request, 
+        #         f"El tipo cambió de '{self.old_tipo}' a '{new_tipo}'. Se actualizó el código del equipo."
+        #     )
+        
+        upload_form = self.get_context_data()['upload_form']
+        if upload_form.is_valid():
+            for file in self.request.FILES.getlist('file_field'):
+                Image.objects.create(image=file, equipo=self.object)
+                print(file)
+        return response
+    
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if "delete_image" in request.POST: # Opción para eliminar imagen vía formulario tradicional (fallback)
+            image_id = request.POST.get("delete_image")
+            Image.objects.filter(id=image_id, equipo=self.object).delete()
+            return redirect(self.get_success_url())
+        return super().post(request, *args, **kwargs)
+    
+    def get_success_url(self):
+        url = reverse('got:equipo-detail', kwargs={'pk': self.object.pk})
+        if self.next_to:
+            params = {'previous_url': self.next_to}
+            url = f"{url}?{urlencode(params)}"
+        elif self.next_url:
+            return self.next_url
+        return url
 
 
 class ActivoEquipmentListView(View):

@@ -103,7 +103,7 @@
 								<a href="{% url 'inv:transferir_equipo' object.code %}" title="Transferir" class="action-icon me-2">
 									<i class="fa-solid fa-right-left"></i>
 								</a>
-								<a href="{% url 'got:equipo-update' object.code %}?next={{ request.path }}&next_to={{ previous_url|urlencode }}" title="Editar" class="action-icon me-2">
+								<a href="{% url 'inv:equipo-update' object.code %}?next={{ request.path }}&next_to={{ previous_url|urlencode }}" title="Editar" class="action-icon me-2">
 									<i class="bi bi-pen"></i>
 								</a>
 								<a href="{% url 'got:acta_entrega' object.code %}" title="Crear acta de entrega" class="action-icon me-2">

@@ -3,6 +3,13 @@
        Estilos Dashboard de Assets
     **********************************************/
     
+    .title-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
     /* Contenedor global de todas las áreas */
     .areas-container {
         display: flex;
@@ -14,9 +21,9 @@
     .area-section {
         display: grid;
         grid-template-columns: 180px 1fr; 
-        background-color: #D5DBDB;
-        padding: 1.1rem;
-        column-gap: 0.9rem; /* Espacio entre la columna de título y las cards */
+        background-color: var(--color-bg-aux);   /* #D5DBDB; */
+        padding: 1rem;
+        column-gap: 0.9rem; 
         border-radius: 6px; /* Bordes redondeados sutiles */
         align-items: center; /* Centra verticalmente la columna del título */
     }
@@ -28,10 +35,13 @@
         justify-content: flex-start; 
     }
     
-    .area-title h2 {
-        font-size: 1.4rem;
+    .area-title h4 {
+        /* font-size: 1.4rem; */
         font-weight: 600;
-        color: var(--color-primary)
+    }
+
+    .places {
+        height: 200px; overflow-y: auto;
     }
     
     /* Contenedor de las cards de cada área */
@@ -48,15 +58,15 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         padding: 0.75rem 1rem;
         min-width: 220px;
-        max-width: 300px;
+        max-width: 250px;
         cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
         position: relative;
     }
     
     /* Efecto hover para la tarjeta */
     .asset-card:hover {
-        transform: translateY(-2px);
+        transform: translateY(-3px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     
@@ -77,26 +87,51 @@
     .asset-card-header .asset-abbr {
         font-weight: 500;
         font-size: 0.85rem;
-        color: #888;
+        color: var(--color-text-light) /* #888; */
     }
     
     /* Datos de Supervisor y Capitán */
     .asset-responsibles p {
         margin: 0;
         font-size: 0.85rem;
-        color: #666;
+        color: var(--color-text-light) /* #666; */
     }
     
+    .asset-indicators {
+        display: flex;
+        flex-wrap: wrap;      
+        gap: 0.5rem;          
+        margin-top: 0.5rem;   /* Separación con el resto del contenido */
+    }
+
     /* Compliance: colores + íconos discretos */
     .asset-compliance {
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        font-weight: 600;
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
+        font-size: 0.9rem;
+        font-weight: 600;
         border-radius: 4px;
-        padding: 2px 6px;
+        padding: 3px 6px;
+        cursor: pointer;
+    }
+
+    /* Falla => Rojo */
+    .compliance-failure {
+        background-color: #ffecec; /* Rojo muy claro */
+        color: #e53935;            /* Rojo */
+    }
+
+    /* OT => Azul */
+    .compliance-ot {
+        background-color: #e2edff; /* Azul muy claro */
+        color: #1565c0;            /* Azul */
+    }
+
+    /* Rutinas vencidas => Naranja */
+    .compliance-overdue {
+        background-color: #fff4e0; /* Naranja claro */
+        color: #bf6a00;            /* Naranja */
     }
     
     .compliance-low {
@@ -185,6 +220,6 @@
     }
 
     .offcanvas-end {
-        background-color: #f9f9f9; /* Gris clarito */
+        background-color: var(--color-bg-aux);
     }
 </style>

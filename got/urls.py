@@ -4,7 +4,7 @@ from . import views
 app_name = 'got'
 
 urlpatterns = [
-    path("", views.AssetsListView.as_view(), name="asset-list"),
+    path("", views.AssetsListView.as_view(), name="asset-list"), # Check
     path("asset/<str:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
     path('asset/<str:abbreviation>/documents/', views.AssetDocumentsView.as_view(), name='asset-documents'),
     path('document/<int:pk>/edit/', views.edit_document, name='edit-document'),
@@ -15,8 +15,6 @@ urlpatterns = [
     path('system/<int:pk>/delete/', views.SysDelete.as_view(), name='sys-delete'),
     
     path('Equipment/<str:pk>/', views.EquipoDetailView.as_view(), name='equipo-detail'),
-    path('system/<int:pk>/new_equipo/', views.EquipoCreateView.as_view(), name='equipo-create'),
-    path('equipo/<str:pk>/update/', views.EquipoUpdate.as_view(), name='equipo-update'),
     path('equipo/<str:pk>/delete/', views.EquipoDelete.as_view(), name='equipo-delete'),
     path('equipment/<str:code>/add_supply/', views.add_supply_to_equipment, name='supply'),
     path('equipo/<pk>/delete_image/', views.EquipoDeleteImageView.as_view(), name='equipo-delete-image'),

@@ -61,7 +61,6 @@ class Financiacion(models.Model):
     monto = models.DecimalField(max_digits=18, decimal_places=2, help_text="Monto del préstamo (COP)")
     plazo = models.PositiveIntegerField(help_text="Plazo en meses")
     fecha_desembolso = models.DateField()
-    fecha_vencimiento = models.DateField()
     tasa_interes = models.DecimalField(max_digits=5, decimal_places=4, help_text="Tasa de interés (ej. 0.05 para 5%)")
     no_deuda = models.CharField(max_length=50, help_text="Número de deuda")
     periodicidad_pago = models.CharField(max_length=20, default="mensual", help_text="Periodicidad del pago de interés")

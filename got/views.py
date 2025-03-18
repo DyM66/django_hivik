@@ -18,14 +18,12 @@ from django.contrib.auth.views import PasswordResetView
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.core.paginator import Paginator
-from django.db import transaction, IntegrityError
 from django.db.models import Count, Q, OuterRef, Subquery, F, ExpressionWrapper, DateField, Prefetch, Case, When, IntegerField, BooleanField, Value
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.utils.http import urlencode
 from django.utils.translation import gettext as _
 from django.views import generic, View
 from django.views.generic import TemplateView
@@ -40,6 +38,7 @@ from meg.models import Megger
 
 from io import BytesIO
 from weasyprint import HTML, CSS
+import weasyprint
 from taggit.models import Tag 
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
@@ -62,6 +61,7 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
     template_name = 'got/assets/asset_list.html'
 
     def dispatch(self, request, *args, **kwargs):
+        """Redirecciones personalizadas según el grupo del usuario."""
         user = request.user
         if user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
             asset = Asset.objects.filter(models.Q(supervisor=request.user) | models.Q(capitan=request.user)).first()
@@ -70,7 +70,40 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         elif user.groups.filter(name='serport_members').exists():
             return redirect('got:my-tasks')
         return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assets = Asset.objects.filter(show=True).annotate(
+                total_failures_open=Count('system__equipos__failurereport', filter=Q(system__equipos__failurereport__closed=False), distinct=True),
+                total_failures_process=Count('system__equipos__failurereport', filter=Q(system__equipos__failurereport__closed=False, system__equipos__failurereport__related_ot__isnull=False), distinct=True),
+                total_ots_execution=Count('system__ot', filter=Q(system__ot__state='x'), distinct=True)
+            ).order_by('area', 'name')
 
+        for asset in assets:
+            current_ops = Operation.objects.filter(asset=asset, start__lte=TODAY, end__gte=TODAY).order_by('start')
+
+            if current_ops.exists():
+                operation = current_ops.first()
+                asset.operation_name = operation.proyecto
+                asset.is_current_operation = True
+            else:
+                upcoming_ops = Operation.objects.filter(asset=asset, start__gt=TODAY).order_by('start')
+
+                if upcoming_ops.exists():
+                    operation = upcoming_ops.first()
+                    asset.operation_name = operation.proyecto
+                    asset.is_current_operation = False
+                else:
+                    asset.operation_name = None
+                    asset.is_current_operation = False
+
+        context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in AREAS.items()}
+        context['area_icons'] = {'a': 'fa-ship', 'c': 'fa-solid fa-ferry', 'o': 'fa-water', 'l': 'fa-building', 'v': 'fa-car', 'x': 'fa-cogs'}
+        context['places'] = Place.objects.all()
+        context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'mto_members'])
+        context['capitanes'] = User.objects.filter(groups__name='maq_members')
+        return context
+    
     def post(self, request, *args, **kwargs):
         asset_pk = request.POST.get('asset_pk')
         if not asset_pk:
@@ -120,43 +153,6 @@ class AssetsListView(LoginRequiredMixin, TemplateView):
         else:
             messages.error(request, "Acción no reconocida.")
         return redirect('got:asset-list')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        assets = Asset.objects.filter(show=True)
-        context['assets_by_area'] = {area_name: [asset for asset in assets if asset.area == area_code] for area_code, area_name in AREAS.items()}
-        context['area_icons'] = {'a': 'fa-ship', 'c': 'fa-solid fa-ferry', 'o': 'fa-water', 'l': 'fa-building', 'v': 'fa-car', 'x': 'fa-cogs'}
-        context['places'] = Place.objects.all()
-        context['supervisors'] = User.objects.filter(groups__name__in=['maq_members', 'mto_members'])
-        context['capitanes'] = User.objects.filter(groups__name='maq_members')
-
-        open_failures_dict = {}
-        for asset in assets:
-            fr_qs = FailureReport.objects.filter(closed=False, equipo__system__asset=asset)
-            crit_qs = fr_qs.filter(critico=True)
-            no_crit_qs = fr_qs.filter(critico=False)
-            crit_count = crit_qs.count()
-            no_crit_count = no_crit_qs.count()
-
-            # Si hay exactamente 1 reporte critico, guardo su pk
-            single_crit_id = None
-            if crit_count == 1:
-                single_crit_id = crit_qs.first().pk
-
-            # Lo mismo para no critico
-            single_no_crit_id = None
-            if no_crit_count == 1:
-                single_no_crit_id = no_crit_qs.first().pk
-
-            open_failures_dict[asset.pk] = {
-                'crit_count': crit_count,
-                'no_crit_count': no_crit_count,
-                'single_crit_id': single_crit_id,
-                'single_no_crit_id': single_no_crit_id,
-            }
-
-        context['open_failures_dict'] = open_failures_dict
-        return context
 
 
 class AssetDetailView(LoginRequiredMixin, generic.DetailView):
@@ -194,8 +190,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             context = {'asset': asset, 'sys_form': sys_form}
             return render(request, self.template_name, context)
 
-
-import weasyprint
 
 class MaintenancePlanPDFExportView(View):
     def get(self, request, asset_abbr):
@@ -733,185 +727,6 @@ class EquipoPDFView(LoginRequiredMixin, View):
         filename = f"Datasheet_{equipo}.pdf"
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
-
-
-class EquipoCreateView(LoginRequiredMixin, CreateView):
-    model = Equipo
-    form_class = EquipoForm
-    template_name = 'got/systems/equipo_form.html'
-    http_method_names = ['get', 'post']
-
-    def dispatch(self, request, *args, **kwargs):
-        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_system(self):
-        # Recupera el sistema utilizando el parámetro 'pk' de la URL
-        return get_object_or_404(System, pk=self.kwargs['pk'])
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        # Se inyecta el objeto system en los argumentos del formulario
-        kwargs['system'] = self.get_system()
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Se instancia el formulario de carga de imágenes
-        if self.request.POST:
-            context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
-        else:
-            context['upload_form'] = UploadImages()
-        context['sys'] = self.get_system()
-        return context
-
-    def post(self, request, *args, **kwargs):
-        self.object = None  # Asegurarse de que self.object esté inicializado
-        form = self.get_form()
-        upload_form = UploadImages(request.POST, request.FILES)
-        # Se validan ambos formularios
-        if form.is_valid() and upload_form.is_valid():
-            return self.form_valid(form, upload_form)
-        else:
-            return self.form_invalid(form, upload_form)
-
-    def form_valid(self, form, upload_form):
-        system = self.get_system()
-        form.instance.system = system
-        asset_abbreviation = system.asset.abbreviation
-        # Convertir el tipo a mayúsculas (suponiendo que es requerido)
-        tipo = form.cleaned_data['tipo'].upper()
-
-        try:
-            with transaction.atomic():
-                # Generar código único para el equipo
-                form.instance.code = generate_equipo_code(asset_abbreviation, tipo)
-                form.instance.modified_by = self.request.user
-                # Guarda el registro del equipo; esto asigna self.object
-                response = super().form_valid(form)
-        except IntegrityError:
-            form.add_error('code', 'Error al generar un código único. Por favor, inténtalo de nuevo.')
-            return self.form_invalid(form, upload_form)
-
-        # Una vez guardado el equipo, se procesan las imágenes
-        for file in self.request.FILES.getlist('file_field'):
-            Image.objects.create(image=file, equipo=self.object)
-        messages.success(self.request, "Equipo creado exitosamente.")
-        return response
-
-    def form_invalid(self, form, upload_form):
-        context = self.get_context_data(form=form, upload_form=upload_form)
-        return self.render_to_response(context)
-
-    def get_success_url(self):
-        """
-        Redirige a la URL 'next' si está presente; de lo contrario redirige a la vista de detalle del sistema.
-        """
-        if self.next_url:
-            return self.next_url
-        else:
-            return reverse('got:sys-detail', kwargs={'pk': self.object.system.pk})
-
-
-class EquipoUpdate(UpdateView):
-    model = Equipo
-    form_class = EquipoForm
-    template_name = 'got/systems/equipo_form.html'
-    http_method_names = ['get', 'post']
-
-    def dispatch(self, request, *args, **kwargs):
-        try:
-            obj = self.get_object()
-        except Equipo.DoesNotExist:
-            # Si no se encuentra, buscar el equipo usando otro criterio (por ejemplo, si guardaste el antiguo código en otro campo)
-            # O bien redirigir a una página de error o al listado
-            messages.error(request, "El equipo que intentas actualizar ya no existe. Por favor, actualiza la URL.")
-            return redirect('got:asset-list')
-        
-        # Si se encontró pero el pk de la URL no coincide con el actual, redirige al URL correcto
-        if str(obj.pk) != kwargs.get('pk'):
-            return redirect(obj.get_absolute_url())
-        
-        self.object = obj
-        self.next_url = request.GET.get('next') or request.POST.get('next') or ''
-        self.next_to = request.GET.get('next_to') or request.POST.get('next') or ''
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        # equipo = Equipo.objects.get(pk=self.kwargs['pk'])
-        equipo = self.get_object()
-        kwargs['system'] = get_object_or_404(System, equipos=equipo)
-        return kwargs
-    
-    def get_object(self, queryset=None):
-        """
-        Sobrescribimos get_object para almacenar el tipo y code ANTES de que el form 
-        actualice la instancia.
-        """
-        obj = super().get_object(queryset)
-        # Guardar en atributos de la vista (self) los valores "viejos"
-        self.old_tipo = obj.tipo  
-        self.old_code = obj.code
-        return obj
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Formulario para carga de imágenes
-        if self.request.POST:
-            context['upload_form'] = UploadImages(self.request.POST, self.request.FILES)
-        else:
-            context['upload_form'] = UploadImages()
-        # Formset para mostrar las imágenes ya asociadas al equipo
-        ImageFormset = forms.modelformset_factory(Image, fields=('image',), extra=0)
-        context['image_formset'] = ImageFormset(queryset=self.object.images.all())
-        # Agregar la cantidad de imágenes
-        context['image_count'] = self.object.images.count()
-        context['next_url'] = self.next_url
-        context['next_to'] = self.next_to
-        return context
-    
-    def form_valid(self, form):
-        form.instance.modified_by = self.request.user
-        response = super().form_valid(form)
-
-        new_tipo = self.object.tipo  # el "tipo" que el usuario seleccionó 
-        new_code = self.object.code 
-
-        # if new_tipo != self.old_tipo:
-        #     # Llamar a la función update_equipo_code con el code viejo
-        #     update_equipo_code(self.old_code)
-        #     messages.info(
-        #         self.request, 
-        #         f"El tipo cambió de '{self.old_tipo}' a '{new_tipo}'. Se actualizó el código del equipo."
-        #     )
-        
-        upload_form = self.get_context_data()['upload_form']
-        if upload_form.is_valid():
-            for file in self.request.FILES.getlist('file_field'):
-                Image.objects.create(image=file, equipo=self.object)
-                print(file)
-        return response
-    
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        # Opción para eliminar imagen vía formulario tradicional (fallback)
-        if "delete_image" in request.POST:
-            image_id = request.POST.get("delete_image")
-            Image.objects.filter(id=image_id, equipo=self.object).delete()
-            return redirect(self.get_success_url())
-        return super().post(request, *args, **kwargs)
-    
-    def get_success_url(self):
-        # Construir la URL de la vista de detalle y agregarle el parámetro previous_url
-        url = reverse('got:equipo-detail', kwargs={'pk': self.object.pk})
-        if self.next_to:
-            params = {'previous_url': self.next_to}
-            url = f"{url}?{urlencode(params)}"
-        elif self.next_url:
-            # Si no se especificó next_to, puedes usar next_url o un fallback
-            return self.next_url
-        return url
 
 
 class EquipoDeleteImageView(LoginRequiredMixin, View):

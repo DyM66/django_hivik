@@ -1,44 +1,9 @@
 <!-- Estilos Personalizados -->
 <style>
-    
-    /* Contenedor Principal */
-    .container {
-        background-color: var(--secondary-color);
-        padding: 20px;
-        border: 2px solid #191645; /* Contorno fino y notable */
-        border-radius: 10px;
-        box-shadow: 0 8px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Ajuste de los Controles del Carrusel para Evitar Superposición */
-    .form-control { 
-        background-color: var(--input-bg-color);
-        border: 1px solid var(--input-border-color);
-    }
-
-    .form-control:focus { 
-        background-color: var(--input-bg-color);
-        border-color: var(--accent-color);
-        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-        outline: none;
-    }
-
     .form-control:hover { 
         background-color: var(--input-bg-color);
         border-color: var(--accent-color);
-        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-        outline: none;
     }
-
-    /* input[type="file"] {
-        background-color: var(--input-bg-color);
-        border: 1px solid var(--input-border-color);
-        border-radius: 4px;
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 0.9rem;
-    } */
-    
     input[type="text"]:focus,
     input[type="number"]:focus,
     textarea:focus,
@@ -47,8 +12,6 @@
         background-color: var(--input-bg-color);
         border: 1px solid var(--input-border-color);
     }
-
-    
     input[type="file"]::-webkit-file-upload-button {
         background-color: var(--primary-color);
         border: none;
@@ -62,26 +25,17 @@
         color: #000;
         background-color: #000;
     }
-
-    /* Asegurarse de que el área de texto también tenga un buen hover */
     input[type="file"]:hover {
         background-color: #000;
         border-color: var(--accent-color);
     }
-    
-    /* Botón de Eliminación Global */
     #delete-images-button {
         margin-top: 10px;
         display: none;
     }
-    
-    
-    /* Aseguramos que el contenedor de la imagen tenga posición relativa */
     .image-wrapper {
         position: relative;
     }
-    
-    /* Estilos para el botón de eliminación */
     .delete-image-btn {
         position: absolute;
         top: 5px;
@@ -101,11 +55,65 @@
         transition: opacity 0.3s, background-color 0.3s, color 0.3s;
         z-index: 999;  /* Valor alto para que se muestre siempre encima */
     }
-    
     .delete-image-btn:hover {
         opacity: 1;
         background-color: var(--danger-color);
         color: #fff;
     }
-
+    /* Contenedor general del widget */
+    .custom-file-upload-wrapper {
+        margin-bottom: 15px;
+    }
+    
+    /* Recuadro visual personalizado */
+    .custom-file-upload-box {
+        position: relative; /* Para posicionar el input dentro */
+        border: 2px dashed var(--primary-color);
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        color: var(--primary-color);
+        font-size: 2rem;
+        cursor: pointer;
+        transition: background-color 0.3s, border-color 0.3s;
+        display: inline-block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    /* El input se posiciona absolutamente dentro del recuadro, ocupando solo su área */
+    .custom-file-upload-box input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 2;
+    }
+    /* Ícono y texto en el recuadro */
+    .custom-file-upload-box .plus-icon {
+        display: block;
+        font-size: 2.5rem;
+        margin-bottom: 5px;
+    }
+    .custom-file-upload-box .upload-text {
+        font-size: 1rem;
+        font-weight: bold;
+    }
+    /* Efecto hover para el recuadro */
+    .custom-file-upload-box:hover {
+        background-color: var(--primary-color);
+        border-color: var(--accent-color);
+        color: #fff;
+    }
+    /* Contenedor para listar los nombres de archivos */
+    .custom-file-list {
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: var(--primary-color);
+    }
+    .custom-file-list p {
+        margin: 0.3em 0;
+    }
 </style>

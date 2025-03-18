@@ -149,7 +149,6 @@ def track_model_changes_pre_save(sender, instance, **kwargs):
 def track_model_changes_post_save(sender, instance, **kwargs):
     try:
         if hasattr(instance, 'modified_by'):
-            # Si hay un estado anterior guardado en pre_save
             if hasattr(instance, '_original_state') and instance._original_state:
                 original_instance = instance._original_state
                 # Comparar los campos modificados
@@ -165,33 +164,12 @@ def track_model_changes_post_save(sender, instance, **kwargs):
                             action='updated',
                             model_name=sender.__name__,
                             object_id=instance.pk,
-                            field_name=field_name,
+                            # field_name=field_name,
+                            field_name=get_verbose_name_or_fallback(sender, field_name),
                             old_value=str(old_value),
                             new_value=str(new_value),
                             timestamp=timezone.now()
                         )
-
-                        # --- NOTIFICACIÓN ---
-                        # Sólo para OT y Task
-                        # if sender.__name__ == "Ot":
-                        #     # Notificar, por ejemplo, al supervisor del activo
-                        #     try:
-                        #         recipient = 1
-                        #     except AttributeError:
-                        #         recipient = instance.modified_by
-                        # elif sender.__name__ == "Task":
-                        #     # Notificar al responsable de la tarea (si existe) o al modificador
-                        #     recipient = instance.responsible if instance.responsible else instance.modified_by
-                        #     # recipient = instance.responsible if instance.responsible else instance.modified_by
-                        # else:
-                        #     recipient = instance.modified_by
-
-                        # # Crear el mensaje de notificación
-                        # message = f"{instance.modified_by.username} modificó '{field_name}' y estableció: {new_value}"
-                        # Notification.objects.create(
-                        #     user=recipient,
-                        #     message=message
-                        # )
             else:
                 # Si es una creación
                 ActivityLog.objects.create(
@@ -220,6 +198,18 @@ def track_model_deletion(sender, instance, **kwargs):
             object_id=instance.pk,
             timestamp=timezone.now()
         )
+
+def get_verbose_name_or_fallback(sender, field_name):
+    """
+    Retorna el verbose_name del campo si existe, 
+    en caso contrario retorna field_name tal cual.
+    """
+    try:
+        field = sender._meta.get_field(field_name)
+        return str(field.verbose_name).capitalize()  # O retórnalo tal cual, si no deseas capitalizar
+    except:
+        return field_name  # fallback en caso de error
+
 
 @receiver(post_save, sender=Ruta)
 def update_asset_compliance_after_ruta_save(sender, instance, **kwargs):

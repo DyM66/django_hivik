@@ -21,7 +21,9 @@ class Migration(migrations.Migration):
                 ('fp', models.DecimalField(blank=True, decimal_places=4, help_text='Factor de participación (entre 0 y 1)', max_digits=5, null=True)),
                 ('asset', models.OneToOneField(limit_choices_to={'area__in': ['a', 'c']}, on_delete=django.db.models.deletion.CASCADE, related_name='cost_info', to='got.asset')),
                 ('codigo', models.CharField(blank=True, max_length=50, null=True)),
+                ('valor_financiacion', models.DecimalField(decimal_places=2, default=0, help_text='Valor de la financiación generado por la tasa de interés', max_digits=18)),
             ],
+            options={'ordering': ['asset']},
         ),
         migrations.CreateModel(
             name='CodigoContable',
@@ -29,6 +31,19 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('codigo', models.CharField(help_text='Código contable', max_length=20, unique=True)),
                 ('nombre', models.CharField(help_text='Nombre o descripción asociada al código', max_length=200)),
+                ('categoria', models.CharField(choices=[('ga', 'Gastos Administrativos'), ('cd', 'Costo Directo')], default='ga', help_text="Seleccione 'ga' para Gastos Administrativos o 'cd' para Costo Directo", max_length=2)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='CostoDirecto',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('codigo', models.CharField(help_text='Código independiente para el costo directo', max_length=50, unique=True)),
+                ('descripcion', models.CharField(help_text='Descripción del costo directo', max_length=200)),
+                ('total', models.DecimalField(decimal_places=2, help_text='Valor total del costo directo', max_digits=18)),
+                ('mes', models.PositiveIntegerField(help_text='Mes (1-12)')),
+                ('anio', models.PositiveIntegerField(help_text='Año')),
+                ('assetcost', models.ForeignKey(help_text='Registro de AssetCost asociado', on_delete=django.db.models.deletion.CASCADE, related_name='costos_directos', to='cont.assetcost')),
             ],
         ),
     ]

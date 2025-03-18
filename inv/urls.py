@@ -4,6 +4,9 @@ from .views import *
 app_name = 'inv'
 
 urlpatterns = [
+    path('system/<int:pk>/new_equipo/', EquipoCreateView.as_view(), name='equipo-create'), #Check
+    path('equipo/<str:pk>/update/', EquipoUpdate.as_view(), name='equipo-update'), #Check
+
     path('activos/<str:abbreviation>/equipos/', ActivoEquipmentListView.as_view(), name='asset_equipment_list'),
 
     path('public/equipo/<str:eq_code>/', public_equipo_detail, name='public_equipo_detail'),

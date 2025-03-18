@@ -1,4 +1,4 @@
-{% extends "got/base/base_generic.html" %}
+{% extends "base/base_generic.html" %}
 {% load my_tags %}
 
 {% block headtag %}
@@ -62,6 +62,52 @@
         <hr>
         <br>
     </div>
+
+<!-- Al final de operation_list.html (afuera de la tabla) -->
+
+<!-- Modal para editar operación -->
+<div class="modal fade" id="editOperationModal" tabindex="-1" aria-labelledby="editOperationModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editOperationModalLabel">Editar Operación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Aquí pondremos un formulario o una vista parcial. -->
+        <form id="editOperationForm">
+          {% csrf_token %}
+          <!-- Campos que se llenarán vía JS -->
+          <div class="mb-3">
+            <label for="editProyecto" class="form-label">Proyecto</label>
+            <input type="text" class="form-control" id="editProyecto" name="proyecto">
+          </div>
+          <div class="mb-3">
+            <label for="editStart" class="form-label">Inicio</label>
+            <input type="date" class="form-control" id="editStart" name="start">
+          </div>
+          <div class="mb-3">
+            <label for="editEnd" class="form-label">Fin</label>
+            <input type="date" class="form-control" id="editEnd" name="end">
+          </div>
+          <div class="mb-3">
+            <label for="editConfirmado" class="form-label">¿Confirmado?</label>
+            <select id="editConfirmado" name="confirmado" class="form-control">
+              <option value="False">No</option>
+              <option value="True">Sí</option>
+            </select>
+          </div>
+          <input type="hidden" id="editOperationId" name="id" value="">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" onclick="saveOperation()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
     <section class="mt-2">
         <!-------------------------------------------- Actividades ------------------------------------------------------------>
@@ -227,10 +273,12 @@
         {% for item in operations_data %}
             {% for operation in item.operations %}
                 dataPoints.push({
-                    x: ['{{ operation.start|date:"Y-m-d" }}', '{{ operation.end|date:"Y-m-d" }}'],
-                    y: '{{ item.asset.name|escapejs }}',
-                    proyecto: '{{ operation.proyecto|escapejs }}',
-                    requirements: '{{ operation.requirements|escapejs }}',
+                    x: ["{{ operation.start|date:'Y-m-d' }}", "{{ operation.end|date:'Y-m-d' }}"],
+                    y: "{{ item.asset.name|escapejs }}",
+                    proyecto: "{{ operation.proyecto|escapejs }}",
+                    requirements: "{{ operation.requirements|escapejs }}",
+                    operation_id: {{ operation.id }},
+                    confirmado: {% if operation.confirmado %}true{% else %}false{% endif %}
                 });
 
                 // Determinar el color según si es tentativa o no
@@ -245,7 +293,7 @@
             {% if not item.operations %}
                 dataPoints.push({
                     x: [null, null],
-                    y: '{{ item.asset.name }}',
+                    y: "{{ item.asset.name|escapejs }}",
                 });
                 backgroundColors.push('rgba(255, 255, 255, 0)');
                 borderColors.push('rgba(255, 255, 255, 0)');
@@ -332,6 +380,17 @@
             data,
             options: {
                 responsive: true,
+                onClick: (evt, elements) => {
+                    if (elements.length > 0) {
+                        // elements[0] contiene datasetIndex y index
+                        const datasetIndex = elements[0].datasetIndex;
+                        const index = elements[0].index;
+                        const dataPoint = data.datasets[datasetIndex].data[index];
+                        
+                        // Llamamos a una función para abrir el modal de edición
+                        openEditOperationModal(dataPoint.operation_id);
+                    }
+                },
                 indexAxis: 'y',
                 layout: {
                     padding: {
@@ -419,5 +478,85 @@
             myChart.update();
         }
     </script>
+
+
+<script>
+function openEditOperationModal(operationId) {
+    // O bien traes la info via AJAX: fetch("/ope/operation/ID/json")...
+    // O, si la tenías en dataPoint, rellenas directamente:
+
+    // Deberías buscar en data.datasets => dataPoint con operationId
+    // (O lo guardaste al hacer click, en dataPoint)
+    // Por simplicidad, el dataPoint ya está en la variable dataPoint en onClick. 
+    // Llamaremos a openEditOperationModal(dataPoint.operation_id, dataPoint).
+
+    // Para simplicidad, asume que ya tienes la data del operation (en variables globales o algo).
+    // Este es un ejemplo sencillo:
+
+    const operation = getOperationById(operationId);
+    document.getElementById("editOperationId").value = operationId;
+    document.getElementById("editProyecto").value = operation.proyecto;
+    document.getElementById("editStart").value = operation.x[0]; // Fecha inicio
+    document.getElementById("editEnd").value = operation.x[1];   // Fecha fin
+    document.getElementById("editConfirmado").value = operation.confirmado;
+
+    // Mostrar el modal
+    let modalEl = document.getElementById('editOperationModal');
+    let modal = new bootstrap.Modal(modalEl, {});
+    modal.show();
+}
+
+// Función de ejemplo para obtener la data del operation a partir de su ID
+function getOperationById(operationId) {
+    // Buscar en data.datasets[0].data
+    for (let dp of data.datasets[0].data) {
+        if (dp.operation_id === operationId) {
+            return dp;
+        }
+    }
+    return null;
+}
+
+function saveOperation() {
+    // Tomamos los valores del form
+    const operationId = document.getElementById("editOperationId").value;
+    const proyecto = document.getElementById("editProyecto").value;
+    const start = document.getElementById("editStart").value;
+    const end = document.getElementById("editEnd").value;
+    const confirmado = document.getElementById("editConfirmado").value;
+
+    // Podrías hacer un POST con fetch a /ope/operation/<id>/update/ en AJAX
+    // Pasando {proyecto, start, end, confirmado} y el csrf_token
+    // Luego, si todo ok, recargas la página o actualizas la data en tu chart
+
+    const csrfToken = "{{ csrf_token }}"; // O recupéralo de un <meta> en tu HTML
+
+    fetch(`/ope/operation/${operationId}/update/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": csrfToken
+        },
+        body: new URLSearchParams({
+            proyecto: proyecto,
+            start: start,
+            end: end,
+            confirmado: confirmado
+        })
+    })
+    .then(resp => {
+        if (resp.ok) {
+            // Cerrar modal, recargar la página, etc.
+            location.reload(); 
+        } else {
+            alert("Error al actualizar la operación. Verifique los campos.");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+    });
+}
+</script>
+
 
 {% endblock %}

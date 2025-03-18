@@ -1,15 +1,17 @@
 <!-- got/templates/got/systems/equipo_form.html -->
-{% extends "got/base/base_generic.html" %}
+{% extends "base/base_generic.html" %}
 
+{% block title %}{% if object %}Editar - {{ object.name }}{% else %}Crear Equipo - {{ sys }}{% endif %}{% endblock %}
 {% block headtag %}
     {% include "got/systems/equipo_form_styles.html" %}
 {% endblock %}
-{% block content %}
-<div class="container mt-4" style="font-size:0.9rem;">
 
-    <h2 class="mb-3">
+{% block content %}
+<main class="px-3">
+
+    <h2 class="mt-4">
         {% if object %}
-            Editar Equipo - <strong>{{ object.system }}</strong>
+            Editar Equipo - <strong>{{ object.name }}</strong>
         {% else %}
             Crear Equipo - <strong>{{ sys }}</strong>
         {% endif %}
@@ -81,36 +83,30 @@
 
 
                 <!-- Sección Opcional para Motores -->
-                <div class="mb-3">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#motor-section" aria-expanded="false" aria-controls="motor-section">
-                        {{ form.potencia.label }} y Horas (Opcional)
-                    </button>
-                    <div class="collapse mt-2" id="motor-section">
-                        <div class="mb-3">
-                            {{ form.potencia.label_tag }}
-                            {{ form.potencia }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.initial_hours.label_tag }}
-                            {{ form.initial_hours }}
-                        </div>
+                <div class="mb-3" id="motor-section">
+                    <h5>
+                        Potencia y Horas
+                    </h5>
+                    <div class="mb-3">
+                        {{ form.potencia.label_tag }}
+                        {{ form.potencia }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.initial_hours.label_tag }}
+                        {{ form.initial_hours }}
                     </div>
                 </div>
 
                 <!-- Sección Opcional para Tanques -->
-                <div class="mb-3">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#tanque-section" aria-expanded="false" aria-controls="tanque-section">
-                        Información de Tanques (Opcional)
-                    </button>
-                    <div class="collapse mt-2" id="tanque-section">
-                        <div class="mb-3">
-                            {{ form.tipo_almacenamiento.label_tag }}
-                            {{ form.tipo_almacenamiento }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.volumen.label_tag }}
-                            {{ form.volumen }}
-                        </div>
+                <div class="mb-3" id="tanque-section">
+                    <h5>Información de Tanques</h5>
+                    <div class="mb-3">
+                        {{ form.tipo_almacenamiento.label_tag }}
+                        {{ form.tipo_almacenamiento }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.volumen.label_tag }}
+                        {{ form.volumen }}
                     </div>
                 </div>
 
@@ -180,10 +176,9 @@
                                     });
                                 });
                             });
-                            </script>
+                        </script>
                     {% endif %}
                 </div>
-
             </div>
         </div>
 
@@ -191,152 +186,82 @@
         <button type="submit" class="btn btn-primary">Guardar</button>
     </form>
 </div>
-
-<!-- Estilos para el widget personalizado -->
-<style>
-    /* Contenedor general del widget */
-    .custom-file-upload-wrapper {
-      margin-bottom: 15px;
-    }
-    
-    /* Recuadro visual personalizado */
-    .custom-file-upload-box {
-      position: relative; /* Para posicionar el input dentro */
-      border: 2px dashed var(--primary-color);
-      border-radius: 8px;
-      padding: 30px;
-      text-align: center;
-      color: var(--primary-color);
-      font-size: 2rem;
-      cursor: pointer;
-      transition: background-color 0.3s, border-color 0.3s;
-      display: inline-block;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    
-    /* El input se posiciona absolutamente dentro del recuadro, ocupando solo su área */
-    .custom-file-upload-box input[type="file"] {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-      z-index: 2;
-    }
-    
-    /* Ícono y texto en el recuadro */
-    .custom-file-upload-box .plus-icon {
-      display: block;
-      font-size: 2.5rem;
-      margin-bottom: 5px;
-    }
-    .custom-file-upload-box .upload-text {
-      font-size: 1rem;
-      font-weight: bold;
-    }
-    
-    /* Efecto hover para el recuadro */
-    .custom-file-upload-box:hover {
-      background-color: var(--primary-color);
-      border-color: var(--accent-color);
-      color: var(--secondary-color);
-    }
-    
-    /* Contenedor para listar los nombres de archivos */
-    .custom-file-list {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      color: var(--primary-color);
-    }
-    .custom-file-list p {
-      margin: 0.3em 0;
-    }
-  </style>
   
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const customBox = document.getElementById("custom-file-box");
-    const fileList = document.getElementById("custom-file-list");
-    const form = document.querySelector("form.adap");
-    
-    customBox.addEventListener("click", function(e) {
-        e.preventDefault();
-        // Crear un input de archivos de forma dinámica
-        let tempInput = document.createElement("input");
-        tempInput.type = "file";
-        tempInput.multiple = true;
-        // Opcional: si necesitas múltiples archivos, agrega:
-        // tempInput.multiple = true;
-        // Asigna el nombre del campo si es necesario para el formulario:
-        tempInput.name = "{{ upload_form.file_field.name }}";
-        // Ocultarlo
-        tempInput.style.display = "none";
-        form.appendChild(tempInput);
-
-        // document.body.appendChild(tempInput);
-        
-        // Al cambiar la selección, actualiza la lista de archivos y elimina el input temporal
-        tempInput.addEventListener("change", function() {
-            fileList.innerHTML = ""; // Limpiar la lista
-            if (tempInput.files.length === 0) {
-                fileList.innerHTML = "<p>No se ha seleccionado ningún archivo</p>";
-            } else {
-                for (let i = 0; i < tempInput.files.length; i++) {
-                    const p = document.createElement("p");
-                    p.textContent = tempInput.files[i].name;
-                    fileList.appendChild(p);
-                }
-            }
-            // Eliminar el input temporal
-            document.body.removeChild(tempInput);
-        });
-        
-        // Disparar el click en el input temporal para abrir el explorador
-        tempInput.click();
-    });
-});
-</script>
-
-
-<!-- <script>
     document.addEventListener("DOMContentLoaded", function() {
-    // Obtenemos el input ya renderizado (asegúrate de que upload_form.file_field se renderice en el formulario)
-    const fileInput = document.getElementById("{{ upload_form.file_field.id_for_label }}");
-    const fileList = document.getElementById("custom-file-list");
-    const customBox = document.getElementById("custom-file-box");
-
-    // Evitamos que el input reciba foco (para que no se abra por teclado)
-    fileInput.setAttribute("tabindex", "-1");
-    fileInput.addEventListener("focus", function() {
-        this.blur();
+        const customBox = document.getElementById("custom-file-box");
+        const fileList = document.getElementById("custom-file-list");
+        const form = document.querySelector("form.adap");
+        
+        customBox.addEventListener("click", function(e) {
+            e.preventDefault();
+            // Crear un input de archivos de forma dinámica
+            let tempInput = document.createElement("input");
+            tempInput.type = "file";
+            tempInput.multiple = true;
+            // Opcional: si necesitas múltiples archivos, agrega:
+            // tempInput.multiple = true;
+            // Asigna el nombre del campo si es necesario para el formulario:
+            tempInput.name = "{{ upload_form.file_field.name }}";
+            // Ocultarlo
+            tempInput.style.display = "none";
+            form.appendChild(tempInput);
+            
+            // Al cambiar la selección, actualiza la lista de archivos y elimina el input temporal
+            tempInput.addEventListener("change", function() {
+                fileList.innerHTML = ""; // Limpiar la lista
+                if (tempInput.files.length === 0) {
+                    fileList.innerHTML = "<p>No se ha seleccionado ningún archivo</p>";
+                } else {
+                    for (let i = 0; i < tempInput.files.length; i++) {
+                        const p = document.createElement("p");
+                        p.textContent = tempInput.files[i].name;
+                        fileList.appendChild(p);
+                    }
+                }
+                // Eliminar el input temporal
+                document.body.removeChild(tempInput);
+            });
+            
+            // Disparar el click en el input temporal para abrir el explorador
+            tempInput.click();
+        });
     });
 
-    // Al hacer click en el recuadro, se dispara el click en el input
-    customBox.addEventListener("click", function(e) {
-        e.preventDefault();
-        fileInput.click();
-    });
+    document.addEventListener("DOMContentLoaded", function() {
+        const tipoSelect = document.getElementById("id_tipo"); 
 
-    // Al cambiar la selección, se actualiza la lista de archivos
-    fileInput.addEventListener("change", function() {
-        fileList.innerHTML = ""; // Limpiar la lista
-        if (fileInput.files.length === 0) {
-            fileList.innerHTML = "<p>No se ha seleccionado ningún archivo</p>";
-        } else {
-            for (let i = 0; i < fileInput.files.length; i++) {
-                const p = document.createElement("p");
-                p.textContent = fileInput.files[i].name;
-                fileList.appendChild(p);
+        // Mapeo: "tipo" => secciones que se mostrarán
+        // (Las secciones no incluidas se ocultan)
+        const sectionsMap = {
+            "k": ["tanque-section"],   // Para Tanques
+            "r": ["motor-section"]     // Para Motores
+            // ...podrías añadir más casos como "b": ["otra-section"] ...
+        };
+
+        const allSections = ["tanque-section", "motor-section"];
+    
+        // Función que muestra/oculta la sección
+        function toggleSections() {
+            const currentTipo = tipoSelect.value;
+
+            // 1) Ocultamos TODAS las secciones
+            allSections.forEach(sectionId => {
+                document.getElementById(sectionId).style.display = "none";
+            });
+
+            // 2) Mostramos solo las secciones asociadas al tipo actual
+            if (sectionsMap[currentTipo]) {
+                sectionsMap[currentTipo].forEach(sectionId => {
+                    document.getElementById(sectionId).style.display = "block";
+                });
             }
         }
-        // Se desenfoca el input para evitar que se reabra al presionar Enter
-        fileInput.blur();
+    
+        // Ejecutar al cargar
+        toggleSections();
+        // Ejecutar cada vez que cambie
+        tipoSelect.addEventListener("change", toggleSections);
     });
-});
-
-</script> -->
-
+</script>
 {% endblock %}

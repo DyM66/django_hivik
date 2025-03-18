@@ -3,85 +3,92 @@ from django.utils import timezone
 from django.db.models import Prefetch
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.generic import TemplateView
 from django.views.generic.edit import UpdateView, DeleteView
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import permission_required
 
 from .models import *
-from got.forms import OperationForm, RequirementForm, UploadImages, FullRequirementForm, LimitedRequirementForm
+from .forms import OperationForm
+from got.forms import RequirementForm, UploadImages, FullRequirementForm, LimitedRequirementForm
 
 
-'OPERATIONS VIEW'
-def OperationListView(request):
-    assets = Asset.objects.filter(area='a', show=True)
+class OperationListView(TemplateView):
+    template_name = 'operations/operation_list.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assets = Asset.objects.filter(area='a', show=True)
 
-    today = timezone.now().date()
-    show_past = request.GET.get('show_past', 'false').lower() == 'true'
-    if show_past:
-        operaciones_list = Operation.objects.order_by('start').prefetch_related(
-            Prefetch(
-                'requirement_set',
-                queryset=Requirement.objects.order_by('responsable')
+        today = timezone.now().date()
+        show_past = self.request.GET.get('show_past', 'false').lower() == 'true'
+        if show_past:
+            operaciones_list = Operation.objects.order_by('start').prefetch_related(
+                Prefetch(
+                    'requirement_set',
+                    queryset=Requirement.objects.order_by('responsable')
+                )
             )
-        )
-    else:
-        operaciones_list = Operation.objects.filter(end__gte=today).order_by('start').prefetch_related(
-            Prefetch(
-                'requirement_set',
-                queryset=Requirement.objects.order_by('responsable')
-            )
-        )
-
-    # Paginación
-    page = request.GET.get('page', 1)
-    paginator = Paginator(operaciones_list, 40)  # Mostrar 10 operaciones por página
-
-    try:
-        operaciones = paginator.page(page)
-    except PageNotAnInteger:
-        operaciones = paginator.page(1)
-    except EmptyPage:
-        operaciones = paginator.page(paginator.num_pages)
-
-    operations_data = []
-    for asset in assets:
-        asset_operations = asset.operation_set.all().values(
-            'start', 'end', 'proyecto', 'requirements', 'confirmado'
-        )
-        operations_data.append({
-            'asset': asset,
-            'operations': list(asset_operations)
-        })
-
-    form = OperationForm(request.POST or None)
-    modal_open = False 
-
-    if request.method == 'POST':
-        form = OperationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect(request.path)
         else:
-            modal_open = True 
-    else:
-        form = OperationForm()
+            operaciones_list = Operation.objects.filter(end__gte=today).order_by('start').prefetch_related(
+                Prefetch(
+                    'requirement_set',
+                    queryset=Requirement.objects.order_by('responsable')
+                )
+            )
 
-    context = {
-        'operations_data': operations_data,
-        'operation_form': form,
-        'modal_open': modal_open,
-        'operaciones': operaciones,
-        'requirement_form': RequirementForm(),
-        'show_past': show_past,
-    }
+        # Paginación
+        page = self.request.GET.get('page', 1)
+        paginator = Paginator(operaciones_list, 40)
 
-    return render(request, 'got/operations/operation_list.html', context)
+        try:
+            operaciones = paginator.page(page)
+        except PageNotAnInteger:
+            operaciones = paginator.page(1)
+        except EmptyPage:
+            operaciones = paginator.page(paginator.num_pages)
+
+        operations_data = []
+        for asset in assets:
+            asset_operations = asset.operation_set.all().values(
+                'id', 'start', 'end', 'proyecto', 'requirements', 'confirmado'
+            )
+            operations_data.append({
+                'asset': asset,
+                'operations': list(asset_operations)
+            })
+
+        form = OperationForm(self.request.POST or None)
+        modal_open = False
+        if self.request.method == 'POST' and 'create_operation' in self.request.POST:
+            if form.is_valid():
+                form.save()
+                return redirect(self.request.path)
+            else:
+                modal_open = True 
+
+        context['operations_data'] = operations_data
+        context['operation_form'] = form
+        context['modal_open'] = modal_open
+        context['operaciones'] = operaciones
+        context['requirement_form'] = RequirementForm()
+        context['show_past'] = show_past
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """
+        Sobrescribimos post para manejar la creación de la operación si es que el usuario
+        envía el formulario del modal.
+        """
+        # La lógica de guardado la estamos haciendo en get_context_data, 
+        # pero podrías moverla aquí si prefieres.
+        return super().post(request, *args, **kwargs)
 
 
 class OperationUpdate(UpdateView):
     model = Operation
     form_class = OperationForm
-    template_name = 'got/operations/operation_form.html'
+    template_name = 'operations/operation_form.html'
 
     def get_success_url(self):
         return reverse('ope:operation-list')
@@ -90,7 +97,7 @@ class OperationUpdate(UpdateView):
 class OperationDelete(DeleteView):
     model = Operation
     success_url = reverse_lazy('ope:operation-list')
-    template_name = 'got/operations/operation_confirm_delete.html'
+    template_name = 'operations/operation_confirm_delete.html'
 
 
 
@@ -116,7 +123,7 @@ def requirement_create(request, operation_id):
         'upload_images_form': upload_images_form,
         'operation': operation,
     }
-    return render(request, 'got/operations/requirement_form.html', context)
+    return render(request, 'operations/requirement_form.html', context)
 
 
 def requirement_update(request, pk):
@@ -150,7 +157,7 @@ def requirement_update(request, pk):
         'requirement': requirement,
         'can_delete_images': can_delete_images,
     }
-    return render(request, 'got/operations/requirement_form.html', context)
+    return render(request, 'operations/requirement_form.html', context)
 
 
 def requirement_delete(request, pk):
@@ -158,6 +165,6 @@ def requirement_delete(request, pk):
     if request.method == 'POST':
         requirement.delete()
         return redirect('ope:operation-list')
-    return render(request, 'got/operations/requirement_confirm_delete.html', {'requirement': requirement})
+    return render(request, 'operations/requirement_confirm_delete.html', {'requirement': requirement})
 
 

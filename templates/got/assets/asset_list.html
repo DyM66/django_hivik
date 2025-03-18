@@ -10,8 +10,8 @@
 {% block content %}
 <main class="px-3">
 
-    <div class="areas-container mt-2">
-        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <div class="areas-container">
+        <div class="mt-4 title-section">
             <h1>Listado de activos</h1>
 
             <a href="{% url 'inv:all_equipment_list' %}" class="btn btn-sm btn-outline-dark">
@@ -25,7 +25,7 @@
             <div class="area-section">
 
                 <div class="area-title">
-                    <h2>{{ area_name }}</h2>
+                    <h4>{{ area_name }}</h4>
                 </div>
 
                 <!-- Contenedor de cards de Assets -->
@@ -53,74 +53,73 @@
                                 {% endif %}
                             </div>
 
-                            <!-- Ubicación (Place) si existe -->
-                            {% if asset.place %}
-                                <p class="asset-place"><i class="fa-solid fa-city"></i> {{ asset.place.name }}</p>
+                            <!-- Ubicación (Place) o Proyecto -->
+                            {% if asset.operation_name %}
+                                {% if asset.is_current_operation %}
+                                    <!-- Proyecto actual -->
+                                    <p class="asset-place text-danger">
+                                        <i class="fa-solid fa-briefcase"></i>
+                                        {{ asset.operation_name }}
+                                    </p>
+                                {% else %}
+                                    <!-- Proyecto próximo -->
+                                    <p class="asset-place text-secondary">
+                                        <!-- Podrías poner "Próx:" o algo así -->
+                                        <i class="fa-solid fa-clock"></i>
+                                        Próximo: {{ asset.operation_name }}
+                                    </p>
+                                {% endif %}
+                            {% else %}
+                                <!-- Sin proyecto => mostrar place como antes -->
+                                {% if asset.place %}
+                                    <p class="asset-place"><i class="fa-solid fa-city"></i> {{ asset.place.name }}</p>
+                                {% endif %}
                             {% endif %}
                             
                             <!-- Indicador de compliance -->
-                            {% if asset.maintenance_compliance_cache %}
-                                {% if asset.maintenance_compliance_cache < 30 %}
-                                    <div class="asset-compliance compliance-low">
-                                        <i class="fa fa-triangle-exclamation"></i>
-                                        {{ asset.maintenance_compliance_cache }}%
-                                        <i class="fa fa-info-circle info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Indicador de cumplimiento del plan de mantenimiento"></i>
-                                    </div>
-                                {% elif asset.maintenance_compliance_cache < 80 %}
-                                    <div class="asset-compliance compliance-mid">
-                                        <i class="fa fa-exclamation-circle"></i>
-                                        {{ asset.maintenance_compliance_cache }}%
-                                        <i class="fa fa-info-circle info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Indicador de cumplimiento del plan de mantenimiento"></i>
+                            <div class="asset-indicators">
+                                {% if asset.maintenance_compliance_cache %}
+                                    {% if asset.maintenance_compliance_cache < 30 %}
+                                        <a class="asset-compliance compliance-low" href="{% url 'mto:asset-maintenance-plan' asset.pk %}"
+                                            data-bs-toggle="tooltip" title="Indicador de cumplimiento del plan de mantenimiento">
+                                            <i class="fa fa-triangle-exclamation"></i>
+                                            {{ asset.maintenance_compliance_cache }}%
+                                        </a>
+                                    {% elif asset.maintenance_compliance_cache < 80 %}
+                                        <a class="asset-compliance compliance-mid" href="{% url 'mto:asset-maintenance-plan' asset.pk %}"
+                                            data-bs-toggle="tooltip" title="Indicador de cumplimiento del plan de mantenimiento">
+                                            <i class="fa fa-exclamation-circle"></i>
+                                            {{ asset.maintenance_compliance_cache }}%
+                                        </a>
+                                    {% else %}
+                                        <a class="asset-compliance compliance-high" href="{% url 'mto:asset-maintenance-plan' asset.pk %}"
+                                            data-bs-toggle="tooltip" title="Indicador de cumplimiento del plan de mantenimiento">
+                                            <i class="fa fa-check-circle"></i>
+                                            {{ asset.maintenance_compliance_cache }}%
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+
+                                <!-- 2) Reportes de falla: (en proceso / abiertos) -->
+                                {% if asset.total_failures_open > 0 %}
+                                    <a class="asset-compliance compliance-failure" href="{% url 'got:failure-report-list' %}?asset_id={{ asset.pk }}"
+                                        data-bs-toggle="tooltip" title="Reportes de Fallas: (en proceso / Total abiertos)">
                                     
-                                    </div>
-                                {% else %}
-                                    <div class="asset-compliance compliance-high">
-                                        <i class="fa fa-check-circle"></i>
-                                        {{ asset.maintenance_compliance_cache }}%
-                                        <i class="fa fa-info-circle info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Indicador de cumplimiento del plan de mantenimiento"></i>
-                                    </div>
-                                {% endif %}
-                            {% endif %}
-
-                            <!-- Indicador de Fallas: crit y no-crit -->
-                            {% with failinfo=open_failures_dict|dict_key:asset.pk %}
-                                {% comment %} failinfo = { crit_count, no_crit_count, single_crit_id, single_no_crit_id } {% endcomment %}
-                                
-                                {% if failinfo.crit_count > 0 %}
-                                    <!-- Bloque para fallas CRÍTICAS -->
-                                    {% if failinfo.crit_count == 1 %}
-                                        <!-- Un solo reporte crítico => enlazar al detail -->
-                                        <a href="{% url 'got:failure-report-detail' failinfo.single_crit_id %}" class="asset-compliance compliance-low d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Reportes de falla CRÍTICOS abiertos">
-                                            <!-- Icono más 'rojo' / Llamativo -->
-                                            <i class="fa fa-triangle-exclamation"></i>
-                                            {{ failinfo.crit_count }}
-                                        </a>
-                                    {% else %}
-                                        <!-- Varios => enlazar a la lista de fallas con un param? e.g. ?asset_id=xx&critico=1 -->
-                                        <a href="{% url 'got:failure-report-list' %}?asset_id={{ asset.pk }}&state=abierto&critico=1" class="asset-compliance compliance-low d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Reportes de falla CRÍTICOS abiertos">
-                                            <i class="fa fa-triangle-exclamation"></i>
-                                            {{ failinfo.crit_count }}
-                                        </a>
-                                    {% endif %}
+                                        <i class="fa fa-exclamation-triangle"></i> <!-- Ícono de falla / advertencia. Ajusta tu preferencia -->
+                                        {{ asset.total_failures_process }} / {{ asset.total_failures_open }}
+                                    </a>
                                 {% endif %}
 
-                                {% if failinfo.no_crit_count > 0 %}
-                                    <!-- Bloque para fallas NO críticas -->
-                                    {% if failinfo.no_crit_count == 1 %}
-                                    <!-- Un solo reporte => detail -->
-                                    <a href="{% url 'got:failure-report-detail' failinfo.single_no_crit_id %}" class="asset-compliance compliance-mid d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Novedades">
+                                <!-- 3) Ordenes de trabajo en ejecución -->
+                                {% if asset.total_ots_execution > 0 %}
+                                    <a class="asset-compliance compliance-ot" href="{% url 'got:ot-list' %}?asset_id={{ asset.pk }}&state=x"
+                                        data-bs-toggle="tooltip" title="OT en ejecución">
+                                    
                                         <i class="fa-solid fa-screwdriver-wrench"></i>
-                                        {{ failinfo.no_crit_count }}
+                                        {{ asset.total_ots_execution }}
                                     </a>
-                                    {% else %}
-                                    <!-- Múltiples => lista filtrada -->
-                                    <a href="{% url 'got:failure-report-list' %}?asset_id={{ asset.pk }}&state=abierto&critico=0" class="asset-compliance compliance-mid d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top"title="Novedades">
-                                        <i class="fa-solid fa-screwdriver-wrench"></i>
-                                        {{ failinfo.no_crit_count }}
-                                    </a>
-                                    {% endif %}
                                 {% endif %}
-                            {% endwith %}
+                            </div>
                         </div>
                     </div>
 
@@ -155,7 +154,6 @@
                                     <i class="fa-brands fa-dropbox me-1"></i>Proyección
                                 </a>
 
-
                                 <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#collapsePlace-{{ asset.pk }}" aria-expanded="false" aria-controls="collapsePlace-{{ asset.pk }}">
                                     <i class="fa-solid fa-map-location-dot me-1"></i>
                                     Cambiar lugar
@@ -186,17 +184,16 @@
                                 </div>
 
                                 <form method="POST" action="{% url 'got:asset-list' %}">{% csrf_token %}        
-                                    
                                     <!-- Campos ocultos para identificar el asset y la acción -->
                                     <input type="hidden" name="asset_pk" value="{{ asset.pk }}">
                                     <input type="hidden" name="action" value="update_place">
 
-                                    <!-- Tabla de Places (scroll + font-size reducido) -->
-                                    <div class="mb-3" style="height: 200px; overflow-y: auto;">
-                                        <table class="table table-striped table-hover table-sm" id="places-table-{{ asset.pk }}" style="font-size: 0.85rem;">
+                                    <!-- Tabla de Places  style="width: 40px;" -->
+                                    <div class="mb-3 places">
+                                        <table class="table table-striped table-hover table-sm" id="places-table-{{ asset.pk }}">
                                             <thead class="table-dark">
                                                 <tr>
-                                                    <th style="width: 40px;"></th>
+                                                    <th></th> 
                                                     <th>Nombre</th>
                                                     <th>Ciudad</th>
                                                 </tr>
@@ -305,11 +302,6 @@
 	})
 
     document.addEventListener("DOMContentLoaded", () => {
-        // Asumiendo que tienes varios assets, cada uno con placeSearch-{{ asset.pk }}
-        // y places-table-{{ asset.pk }}.
-        // Podrías hacer un loop, o para simplificar
-        // localizas todos los inputs con id que empiece con "placeSearch-"
-        
         const placeInputs = document.querySelectorAll('input[id^="placeSearch-"]');
         placeInputs.forEach(input => {
             // Extraer el pk => ID final
