@@ -40,9 +40,13 @@ def notify_equipo_changes(sender, instance, created, **kwargs):
         ).order_by('timestamp')
         
         if logs.exists():
-            # Construimos una lista de cambios:
+            filtered_logs = [log for log in logs if log.field_name != "horometro"]
+
+            # Si después de excluir 'horometro' ya no quedan cambios => no notificamos
+            if not filtered_logs:
+                return
             changes = []
-            for log in logs:
+            for log in filtered_logs:
                 # Muestra "field_name: old_value => new_value"
                 changes.append(f"{log.field_name}: {log.old_value} \u2192 {log.new_value}")
             changes_str = "; ".join(changes)
