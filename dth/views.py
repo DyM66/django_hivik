@@ -593,7 +593,8 @@ def gerencia_nomina_view(request):
                     "Empleado", "FechaMovimiento", "Concepto",
                     "ValorDevengo", "ValorDeduccion"
                 ]
-                clean_headers = {k.strip(): v for k, v in headers.items()}
+                clean_headers = {str(k).strip(): v for k, v in headers.items() if k is not None}
+
                 for col in required_cols:
                     if col not in clean_headers:
                         messages.error(request, f"Falta la columna requerida '{col}' en el Excel.")
