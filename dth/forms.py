@@ -4,8 +4,33 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.forms import formset_factory
 
-from dth.models import UserProfile, Overtime
+from dth.models import UserProfile, Overtime, Nomina
 from got.models import Asset
+
+class UploadNominaReportForm(forms.Form):
+    excel_file = forms.FileField(
+        label="Cargar Archivo Excel",
+        help_text="Sube un archivo .xlsx con las columnas requeridas."
+    )
+
+
+class NominaForm(forms.ModelForm):
+    """
+    Formulario para crear/editar registros de Nomina.
+    """
+    class Meta:
+        model = Nomina
+        fields = ['doc_number', 'name', 'surname', 'position', 'salary']
+        # Si quieres personalizar etiquetas o widgets, puedes hacerlo aquí:
+        labels = {
+            'doc_number': 'Cédula del Empleado',
+            'name': 'Nombre',
+            'surname': 'Apellidos',
+            'position': 'Cargo',
+            'salary': 'Salario',
+            # 'dpto': 'Departamento',
+            # 'category': 'Categoría',
+        }
 
 class UserChoiceField(forms.ModelChoiceField):
 

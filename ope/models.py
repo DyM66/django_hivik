@@ -6,7 +6,7 @@ class Operation(models.Model):
     start = models.DateField()
     end = models.DateField()
     proyecto = models.CharField(max_length=100)
-    requirements = models.TextField()
+    requirements = models.TextField(null=True, blank=True)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, to_field='abbreviation')
     confirmado = models.BooleanField(default=False)
 

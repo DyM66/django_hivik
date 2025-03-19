@@ -13,4 +13,10 @@ urlpatterns = [
     path('export_excel/', views.export_overtime_excel, name='export_overtime_excel'),
     path('report/', views.overtime_report, name='overtime_report'),
     path('success/', views.overtime_success, name='overtime_success'),
+
+    path('gerencia/nomina/', views.gerencia_nomina_view, name='gerencia_nomina'),
+    path('gerencia/nomina/export/', views.export_gerencia_nomina_excel, name='gerencia_nomina_export'),
+
+    path('nomina/<int:pk>/edit/', views.nomina_edit, name='nomina_edit'),
+    path('nomina/create/', views.nomina_create, name='nomina_create'),
 ]

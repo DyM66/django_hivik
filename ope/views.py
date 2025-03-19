@@ -3,10 +3,12 @@ from django.utils import timezone
 from django.db.models import Prefetch
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 from django.views.generic.edit import UpdateView, DeleteView
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import permission_required
+from django.http import JsonResponse
 
 from .models import *
 from .forms import OperationForm
@@ -51,53 +53,76 @@ class OperationListView(TemplateView):
         operations_data = []
         for asset in assets:
             asset_operations = asset.operation_set.all().values(
-                'id', 'start', 'end', 'proyecto', 'requirements', 'confirmado'
+                'id', 'start', 'end', 'proyecto', 'requirements', 'confirmado', 'asset'
             )
+
             operations_data.append({
                 'asset': asset,
                 'operations': list(asset_operations)
             })
 
-        form = OperationForm(self.request.POST or None)
-        modal_open = False
-        if self.request.method == 'POST' and 'create_operation' in self.request.POST:
-            if form.is_valid():
-                form.save()
-                return redirect(self.request.path)
-            else:
-                modal_open = True 
+        # 4) Si en self.kwargs o context hay un form con errores del post, lo usamos;
+        #    de lo contrario creamos uno vacío
+        operation_form = kwargs.get('operation_form') or OperationForm()
 
         context['operations_data'] = operations_data
-        context['operation_form'] = form
-        context['modal_open'] = modal_open
+        context['operation_form'] = operation_form
+        context['modal_open'] = kwargs.get('modal_open', False)
         context['operaciones'] = operaciones
         context['requirement_form'] = RequirementForm()
         context['show_past'] = show_past
+        context['assets'] = Asset.objects.filter(area='a', show=True)
         return context
 
     def post(self, request, *args, **kwargs):
         """
-        Sobrescribimos post para manejar la creación de la operación si es que el usuario
-        envía el formulario del modal.
+        Maneja la creación de una operación cuando se hace post.
         """
-        # La lógica de guardado la estamos haciendo en get_context_data, 
-        # pero podrías moverla aquí si prefieres.
+        # Verificamos si el POST viene con el name 'create_operation'
+        # o un <input type="hidden" name="create_operation" ...> en el modal
+        if 'create_operation' in request.POST:
+            form = OperationForm(request.POST)
+            if form.is_valid():
+                form.save()
+                return redirect(request.path)  # Redirige a la misma vista
+            else:
+                # Si no es válido, re-renderizamos con errores:
+                #   - le pasamos el form con errores
+                #   - le pasamos modal_open=True para que abra el modal
+                return self.render_to_response(
+                    self.get_context_data(operation_form=form, modal_open=True)
+                )
+
+        # Si no es un POST de creación, llamamos a super:
         return super().post(request, *args, **kwargs)
 
 
-class OperationUpdate(UpdateView):
-    model = Operation
-    form_class = OperationForm
-    template_name = 'operations/operation_form.html'
-
-    def get_success_url(self):
-        return reverse('ope:operation-list')
+@require_POST  # Asegura que sólo responda a POST
+def update_operation(request, pk):
+    """
+    Recibe los datos de un OperationForm vía POST,
+    y actualiza la operación con id=pk, retorna JSON con éxito o error.
+    """
+    operation = get_object_or_404(Operation, pk=pk)
+    form = OperationForm(request.POST, instance=operation)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({'success': True})
+    else: # Retornar errores de formulario en JSON
+        print("DEBUG form errors:", form.errors)
+        return JsonResponse({
+            'success': False,
+            'errors': form.errors
+        }, status=400)
 
 
 class OperationDelete(DeleteView):
     model = Operation
     success_url = reverse_lazy('ope:operation-list')
-    template_name = 'operations/operation_confirm_delete.html'
+
+    def get(self, request, *args, **kwargs):
+        # Redirige si intentan GET
+        return redirect('ope:operation-list')
 
 
 

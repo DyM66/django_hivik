@@ -18,7 +18,7 @@ class OperationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(OperationForm, self).__init__(*args, **kwargs)
-        self.fields['asset'].queryset = Asset.objects.filter(area='a')
+        # self.fields['asset'].queryset = Asset.objects.filter(area='a')
         self.fields['confirmado'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
 
     def clean(self):
@@ -51,16 +51,16 @@ class OperationForm(forms.ModelForm):
 
     class Meta:
         model = Operation
-        fields = ['proyecto', 'asset', 'start', 'end', 'confirmado']# , 'requirements'
+        fields = ['proyecto','start','end','requirements', 'confirmado']
         widgets = {
             'start': XYZ_DateInput(format=['%Y-%m-%d'],),
             'end': XYZ_DateInput(format=['%Y-%m-%d'],),
-            # 'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
             'asset': 'Equipo',
             'proyecto': 'Nombre del Proyecto',
             'start': 'Fecha de Inicio',
             'end': 'Fecha de Fin',
-            # 'requirements': 'Requerimientos',
+            'requirements': 'Requerimientos',
         }

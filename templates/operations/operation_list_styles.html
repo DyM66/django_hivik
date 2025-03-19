@@ -1,0 +1,62 @@
+<style>
+    body {
+        background-color: var(--color-bg-aux);
+    }
+    .title-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+	.chartBox {
+        position: relative;
+		width: 100%;
+		min-height: 500px;
+		border-radius: 20px;
+		background: #fff;
+        overflow-x: auto;
+        min-width: 1200px;
+        margin-bottom: 1rem;
+	}
+	.chartContainer {
+        margin: 0 60px;  /* deja hueco a los lados */
+        height: 100%;
+	}
+    #myChart {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+    /* Botones que ocupan todo el alto y se ubican a los lados del contenedor */
+    .month-nav-btn {
+        position: absolute;
+        top: 0; 
+        bottom: 0; 
+        width: 50px;
+        border: none;
+        outline: none;
+        background: rgba(255,255,255,0.8); /* semitransparente o el color que desees */
+        cursor: pointer;
+        z-index: 10; /* por encima del canvas */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .month-nav-btn:hover {
+        background: rgba(255,255,255,0.95);
+    }
+    #btnPrevMonth {
+        left: 0;
+    }
+    #btnNextMonth {
+        right: 0;
+    }
+    /* Un ejemplo de clase para tu span manual */
+    .my-static-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />

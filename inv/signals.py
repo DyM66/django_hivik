@@ -22,13 +22,16 @@ def notify_equipo_changes(sender, instance, created, **kwargs):
     except Group.DoesNotExist:
         users = []
 
-    # 2) Determinar acción (creado o modificado)
+    # 2) Determinar el nombre del asset (si existe)
+    asset_name = instance.system.asset.name if (instance.system and instance.system.asset) else "Desconocido"
+
+    # 3) Determinar acción (creado o modificado)
     if created:
         # Caso: creación
-        title = "Equipo creado"
+        title = f"Equipo creado en {asset_name}"    
         message = f"El usuario {instance.modified_by.get_full_name() or instance.modified_by.username} ha creado el equipo '{instance.name}'."
     else:
-        title = "Equipo modificado"
+        title = f"Equipo modificado en {asset_name}"
         now = timezone.now()
         a_minute_ago = now - timezone.timedelta(seconds=60)
         
@@ -38,9 +41,12 @@ def notify_equipo_changes(sender, instance, created, **kwargs):
             action='updated',
             timestamp__gte=a_minute_ago
         ).order_by('timestamp')
+
+        # Campos que NO se incluirán en la notificación
+        EXCLUDED_FIELDS = {"horometro", "prom_hours"}
         
         if logs.exists():
-            filtered_logs = [log for log in logs if log.field_name != "horometro"]
+            filtered_logs = [log for log in logs if log.field_name not in EXCLUDED_FIELDS]
 
             # Si después de excluir 'horometro' ya no quedan cambios => no notificamos
             if not filtered_logs:
@@ -84,7 +90,8 @@ def notify_equipo_deleted(sender, instance, **kwargs):
     except Group.DoesNotExist:
         users = []
 
-    title = "Equipo eliminado"
+    asset_name = instance.system.asset.name if (instance.system and instance.system.asset) else "Desconocido"
+    title = f"Equipo eliminado en {asset_name}"
     user_display = instance.modified_by.get_full_name() if instance.modified_by else "Desconocido"
     message = f"El usuario {user_display} ha eliminado el equipo '{instance.name}'."
 

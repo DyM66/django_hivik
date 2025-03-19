@@ -1,193 +1,36 @@
 {% extends "base/base_generic.html" %}
 {% load my_tags %}
 
+{% block title %}Proyectos{% endblock %}
 {% block headtag %}
-<style>
-	.chartMenu p {
-		padding: 10px;
-		font-size: 20px;
-	}
-	.chartCard {
-		width: 100vw;
-		height: calc(100vh - 40px);
-		/* background: rgba(54, 162, 235, 0.2); */
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.chartBox {
-		width: 100%;
-		padding: 0px;
-		border-radius: 20px;
-		background: white;
-        overflow-x: auto;
-        min-width: 1200px;
-	}
-
-    .wrapper {
-		width: min(900px, 100% - 3rem);
-		margin-inline: auto;
-	}
-
-    .image-gallery img {
-        margin: 5px;
-        cursor: pointer;
-    }
-
-    .table-list tbody tr:hover td {
-        color: black;
-    }
-
-</style>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
+    {% include "operations/operation_list_styles.html" %}
 {% endblock %}
-
-
 {% block content %}
-    <h1 id="chartTitle"></h1>
+<main class="px-3">
+        <div class="mt-4 title-section">
+            <h1>Cronograma de Proyectos</h1>
 
+            <a href="#" class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#addOperationModal">
+                Crear nuevo proyecto
+            </a>
+        </div>
 
     <div class="chartBox rounded shadow">
-        <br>
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px;">
-            <input type="month" onchange="chartFilter(this)" />
-            <!-- <button class="badge rounded-pill text-bg-secondary" data-bs-toggle="modal" data-bs-target="#addOperationModal">Añadir Operación</button> -->
-        </div>        
-        <br>
-        <br>
-        <canvas id="myChart"></canvas>
-        <br>
-        <hr>
-        <br>
+        <button id="btnPrevMonth" class="month-nav-btn" onclick="prevMonth()">
+            <i class="fa fa-chevron-left"></i>
+        </button>      
+            {% comment %} <span id="chartMonthLabel" class="fw-bold fs-5"></span> {% endcomment %}
+        <div class="chartContainer">
+            <canvas id="myChart"></canvas>
+        </div>
+        <!-- Botón Siguiente Mes -->
+        <button id="btnNextMonth" class="month-nav-btn" onclick="nextMonth()">
+            <i class="fa fa-chevron-right"></i>
+        </button>
     </div>
 
-<!-- Al final de operation_list.html (afuera de la tabla) -->
+</main>
 
-<!-- Modal para editar operación -->
-<div class="modal fade" id="editOperationModal" tabindex="-1" aria-labelledby="editOperationModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="editOperationModalLabel">Editar Operación</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <!-- Aquí pondremos un formulario o una vista parcial. -->
-        <form id="editOperationForm">
-          {% csrf_token %}
-          <!-- Campos que se llenarán vía JS -->
-          <div class="mb-3">
-            <label for="editProyecto" class="form-label">Proyecto</label>
-            <input type="text" class="form-control" id="editProyecto" name="proyecto">
-          </div>
-          <div class="mb-3">
-            <label for="editStart" class="form-label">Inicio</label>
-            <input type="date" class="form-control" id="editStart" name="start">
-          </div>
-          <div class="mb-3">
-            <label for="editEnd" class="form-label">Fin</label>
-            <input type="date" class="form-control" id="editEnd" name="end">
-          </div>
-          <div class="mb-3">
-            <label for="editConfirmado" class="form-label">¿Confirmado?</label>
-            <select id="editConfirmado" name="confirmado" class="form-control">
-              <option value="False">No</option>
-              <option value="True">Sí</option>
-            </select>
-          </div>
-          <input type="hidden" id="editOperationId" name="id" value="">
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" onclick="saveOperation()">Guardar cambios</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-    <section class="mt-2">
-        <!-------------------------------------------- Actividades ------------------------------------------------------------>
-
-        <div class="operation-filters mb-3">
-            {% if show_past %}
-                <a href="{% url 'ope:operation-list' %}" class="btn btn-primary">Ver Operaciones Actuales</a>
-            {% else %}
-                <a href="?show_past=true" class="btn btn-primary">Ver Operaciones Anteriores</a>
-            {% endif %}
-        </div>
-
-
-        <table class="table-list table-detail no-hover">
-            <thead>
-                <tr>
-                    <th colspan="7">
-                        Operaciones
-                        <button class="badge rounded-pill text-bg-secondary" data-bs-toggle="modal" data-bs-target="#addOperationModal">Añadir Operación</button>
-                    </th>
-                </tr>
-                <tr>
-                    <th>Proyecto</th>
-                    <th>Equipo</th>
-                    <th>Fecha inicio</th>
-                    <th>Fecha de finalización</th>
-                    <th>Requerimientos</th>
-                    <th>Avance</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                    {% for operacion in operaciones %}
-                        <tr id="row{{ forloop.counter }}" onclick="toggleDetails('details{{ forloop.counter }}', this, event)">
-                            <td>{{ operacion.proyecto }}{% if not operacion.confirmado %}(Tentativa){% endif %}</td>
-                            <td>{{ operacion.asset }}</td>
-                            <td>{{ operacion.start|date:"d/m/Y" }}</td>
-                            <td>{{ operacion.end|date:"d/m/Y" }}</td>
-                            <td>{{ operacion.requirement_set.count }}</td>
-                            <td>
-                                {% if operacion.requirements_progress is not None %}
-                                    {{ operacion.requirements_progress }}%
-                                {% else %}
-                                    <!-- No mostramos nada -->
-                                {% endif %}
-                            </td>
-                            
-                            <td>
-                                <a href="{% url 'ope:operation-update' operacion.id %}"><i class="bi bi-pen"></i></a>
-                                <a href="{% url 'ope:operation-delete' operacion.id %}"><i class="bi bi-file-earmark-minus-fill"></i></a>
-                                <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#addRequirementModal{{ operacion.id }}">Añadir Requerimiento</button>
-                            </td>
-                        </tr>
-                  
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <!-- Al final de la tabla de operaciones -->
-
-        <!-- Paginación -->
-        <div class="pagination">
-            <span class="step-links">
-                {% if operaciones.has_previous %}
-                    <a href="?page=1">&laquo; primera</a>
-                    <a href="?page={{ operaciones.previous_page_number }}">anterior</a>
-                {% endif %}
-
-                <span class="current">
-                    Página {{ operaciones.number }} de {{ operaciones.paginator.num_pages }}.
-                </span>
-
-                {% if operaciones.has_next %}
-                    <a href="?page={{ operaciones.next_page_number }}">siguiente</a>
-                    <a href="?page={{ operaciones.paginator.num_pages }}">última &raquo;</a>
-                {% endif %}
-            </span>
-        </div>
-
-    </section>
 
     <!-- Modal -->
     <div class="modal fade" id="addOperationModal" tabindex="-1" aria-labelledby="addOperationModalLabel" aria-hidden="true">
@@ -197,8 +40,8 @@
                     <h5 class="modal-title" id="addOperationModalLabel">Nueva Operación</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="post" action="">
-                    {% csrf_token %}
+                <form method="post" action="">{% csrf_token %}
+                    <input type="hidden" name="create_operation" value="1"/>
                     <div class="form-group" style="margin: 15px">
                         {{ operation_form }}
                     </div>
@@ -211,7 +54,85 @@
         </div>
     </div>
 
-    {% if modal_open %}
+    <!-- Modal para editar operación -->
+    <div class="modal fade" id="editOperationModal" tabindex="-1" aria-labelledby="editOperationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editOperationModalLabel">
+                        Editar Operación - <span id="editAssetLabel"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Aquí pondremos un formulario o una vista parcial. -->
+                    <form id="editOperationForm">{% csrf_token %}
+                        <!-- Campos que se llenarán vía JS -->
+                        <div class="mb-3">
+                            <label for="editProyecto" class="form-label">Proyecto</label>
+                            <input type="text" class="form-control" id="editProyecto" name="proyecto">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editStart" class="form-label">Inicio</label>
+                            <input type="date" class="form-control" id="editStart" name="start">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEnd" class="form-label">Fin</label>
+                            <input type="date" class="form-control" id="editEnd" name="end">
+                        </div>
+                        
+                        <!-- 4) Campo "requirements" (texto) -->
+                        <div class="mb-3">
+                            <label for="editRequirements" class="form-label">Requerimientos</label>
+                            <textarea class="form-control" id="editRequirements" name="requirements" rows="3"></textarea>
+                        </div>
+
+                        <!-- 6) Confirmado -->
+                        <div class="mb-3">
+                            <label for="editConfirmado" class="form-label">¿Confirmado?</label>
+                            <select id="editConfirmado" name="confirmado" class="form-control">
+                                <option value="False">No</option>
+                                <option value="True">Sí</option>
+                            </select>
+                        </div>
+                        <input type="hidden" id="editOperationId" name="id" value="">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" onclick="showDeleteConfirm()">
+                        Eliminar
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveOperation()">Guardar cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación de borrado -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmLabel">Confirmar eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que deseas eliminar esta operación?</p>
+                </div>
+                <div class="modal-footer">
+                    <!-- form que apunta a /ope/operation/<id>/delete/ con método POST -->
+                    <form id="deleteOperationForm" method="post" action="">{% csrf_token %}
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar definitivamente</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{% if modal_open %}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var myModal = new bootstrap.Modal(document.getElementById('addOperationModal'), {
@@ -225,338 +146,359 @@
             });
         });
     </script>
-    {% endif %}
-
-
-
-
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
-    <script type="text/javascript">
-        function toggleDetails(detailId, trigger, event) {
-            if (event.target.closest('.dropdown') || event.target.closest('.dropdown-toggle') || event.target.closest('.btn')) {
-                return;
-            }
-            var detailRow = document.getElementById(detailId);
-            detailRow.style.display = (detailRow.style.display === 'none' || detailRow.style.display === '') ? 'table-row' : 'none';
-            trigger.style.fontWeight = (detailRow.style.display === 'none') ? 'normal' : 'bold';
-        }
-
-        function getFirstAndLastDayOfCurrentMonth() {
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
-            return [firstDay, lastDay];
-        }
-
-        function getMonthName(year, month) {
-            const date = new Date(year, month - 1);
-            return date.toLocaleString('default', { month: 'long' });
-        }
-
-        function updateChartTitle(year, month) {
-            const monthName = getMonthName(year, month);
-            document.getElementById('chartTitle').innerText = `Proyectos de ${monthName} ${year}`;
-        }
-
-        const [firstDay, lastDay] = getFirstAndLastDayOfCurrentMonth();
-        const currentYear = new Date().getFullYear();
-        const currentMonth = new Date().getMonth() + 1;
-
-        updateChartTitle(currentYear, currentMonth);
-
-        const backgroundColors = [];
-        const borderColors = [];
-        const dataPoints = [];
-
-        {% for item in operations_data %}
-            {% for operation in item.operations %}
-                dataPoints.push({
-                    x: ["{{ operation.start|date:'Y-m-d' }}", "{{ operation.end|date:'Y-m-d' }}"],
-                    y: "{{ item.asset.name|escapejs }}",
-                    proyecto: "{{ operation.proyecto|escapejs }}",
-                    requirements: "{{ operation.requirements|escapejs }}",
-                    operation_id: {{ operation.id }},
-                    confirmado: {% if operation.confirmado %}true{% else %}false{% endif %}
-                });
-
-                // Determinar el color según si es tentativa o no
-                {% if not operation.confirmado %}
-                    backgroundColors.push('rgba(255, 205, 86, 0.6)');  // Amarillo
-                    borderColors.push('rgba(255, 205, 86, 1)');
-                {% else %}
-                    backgroundColors.push('rgba(54, 162, 235, 0.2)');  // Azul
-                    borderColors.push('rgba(54, 162, 235, 1)');
-                {% endif %}
-            {% endfor %}
-            {% if not item.operations %}
-                dataPoints.push({
-                    x: [null, null],
-                    y: "{{ item.asset.name|escapejs }}",
-                });
-                backgroundColors.push('rgba(255, 255, 255, 0)');
-                borderColors.push('rgba(255, 255, 255, 0)');
-            {% endif %}
-        {% endfor %}
-
-
-        const data = {
-            datasets: [{
-                label: 'Cronograma de proyectos',
-                data: dataPoints,
-                backgroundColor: backgroundColors,
-                borderColor: borderColors,
-                borderWidth: 1,
-                borderSkipped: false,
-                borderRadius: 15,
-                barPercentage: 0.5,
-            }]
-        }
-
-        console.log(data);
-
-
-
-        const todayLine = {
-            id: 'todayLine',
-            afterDatasetsDraw(chart, arg, pluginOptions) {
-                const {ctx, data, chartArea: {top, bottom, left, right }, scales: {x, y} } = chart;
-                ctx.save();
-
-                if(x.getPixelForValue(new Date()) >= left && x.getPixelForValue(new Date()) <= right) {
-
-                    ctx.beginPath();
-                    ctx.lineWidth = 3;
-                    ctx.strokeStyle = 'rgba(102, 102, 10, 1)';
-                    ctx.setLineDash([6, 6]);
-                    ctx.moveTo(x.getPixelForValue(new Date()), top);
-                    ctx.lineTo(x.getPixelForValue(new Date()), bottom);
-                    ctx.stroke();
-                    ctx.restore();
-
-                    ctx.setLineDash([]);
-
-                    ctx.beginPath();
-                    ctx.lineWidth = 1;
-                    ctx.strokeStyle = 'rgba(102, 102, 102, 1)';
-                    ctx.fillStyle = 'rgba(102, 102, 102, 1)';
-                    ctx.moveTo(x.getPixelForValue(new Date()), top + 3);
-                    ctx.lineTo(x.getPixelForValue(new Date()) - 8, top - 8);
-                    ctx.lineTo(x.getPixelForValue(new Date()) + 8, top - 8);
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.fill();
-                    ctx.restore();
-
-                    ctx.font = 'bold 16px sans-serif';
-                    ctx.fillStyle = 'rgba(102, 102, 102, 1)';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Hoy', x.getPixelForValue(new Date()), bottom + 20);
-                    ctx.restore();
-                }     
-            }
-        }
-
-        const weekend = {
-            id: 'weekend',
-            beforeDatasetsDraw(chart, args, pluginOptions) {
-                const {ctx, chartArea: {top, bottom, left, right, width, height }, scales: {x, y}} = chart;
-                ctx.save();
-
-                x.ticks.forEach((tick, index) => {
-                    const day = new Date(tick.value).getDay();
-                    if(day === 6 || day === 0) {
-                        ctx.fillStyle = 'rgba(102, 102, 102, 0.2)';
-                        ctx.fillRect(x.getPixelForValue(tick.value), top, x.getPixelForValue(new Date(tick.value).setHours(24)) - x.getPixelForValue(tick.value), height);
-                    }
-                })
-            }
-        }
-
-        // config 
-        const config = {
-            type: 'bar',
-            data,
-            options: {
-                responsive: true,
-                onClick: (evt, elements) => {
-                    if (elements.length > 0) {
-                        // elements[0] contiene datasetIndex y index
-                        const datasetIndex = elements[0].datasetIndex;
-                        const index = elements[0].index;
-                        const dataPoint = data.datasets[datasetIndex].data[index];
-                        
-                        // Llamamos a una función para abrir el modal de edición
-                        openEditOperationModal(dataPoint.operation_id);
-                    }
-                },
-                indexAxis: 'y',
-                layout: {
-                    padding: {
-                        left: 50,
-                        right: 100,
-                        bottom: 30
-                    },
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        position: 'top',
-                        type: 'time',
-                        time: {
-                            displayFormats: {
-                                day: 'd'
-                            }
-                        },
-                        min: firstDay,
-                        max: lastDay,
-                        padding: {top: 20, left: 0, right: 0, bottom: 0}
-                    },
-                    y: {
-                        display: true,
-                        position: 'left',
-                        ticks: {
-                            font: {
-                                size: 16,  
-                                weight: 'bold', 
-                            }
-                        }
-                    },
-                },
-                
-                plugins: {
-                    tooltip: {
-                        enabled: true,
-                        callbacks: {
-                            title: function(tooltipItems, data) {
-                                return tooltipItems[0].raw.activityDescription;
-                            },
-                            label: function(context) {
-                                var dataPoint = context.raw;
-                                return [
-                                    `Responsable: ${dataPoint.proyecto}`,
-                                    `Fecha inicio: ${dataPoint.x[0]}`,
-                                    `Fecha fin: ${dataPoint.x[1]}`,
-                                ];
-                            }
-                        }
-                    },
-                    legend: {
-                        display: false
-                    },
-                },
-
-            },
-            plugins: [
-                todayLine, weekend,
-            ]
-        };
-
-        const myChart = new Chart(
-        document.getElementById('myChart'),
-        config
-        );
-
-        const chartVersion = document.getElementById('chartVersion');
-        chartVersion.innerText = Chart.version;
-
-        function chartFilter(date) {
-            const year = date.value.substring(0, 4);
-            const month = date.value.substring(5, 7);
-            const lastDay = (y, m) => {
-                return new Date(y, m, 0).getDate();
-            }
-
-            const startDate = `${year}-${month}-01`;
-            const endDate = `${year}-${month}-${lastDay(year, month)}`;
-
-            updateChartTitle(year, month);
-
-            myChart.config.options.scales.x.min = startDate;
-            myChart.config.options.scales.x.max = endDate;
-            myChart.update();
-        }
-    </script>
+{% endif %}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
 
 <script>
-function openEditOperationModal(operationId) {
-    // O bien traes la info via AJAX: fetch("/ope/operation/ID/json")...
-    // O, si la tenías en dataPoint, rellenas directamente:
+    /********************************************************
+    *  1. Variables globales y datos iniciales
+    ********************************************************/
+    let chartCurrentYear = new Date().getFullYear();
+    let chartCurrentMonth = new Date().getMonth() + 1;
 
-    // Deberías buscar en data.datasets => dataPoint con operationId
-    // (O lo guardaste al hacer click, en dataPoint)
-    // Por simplicidad, el dataPoint ya está en la variable dataPoint en onClick. 
-    // Llamaremos a openEditOperationModal(dataPoint.operation_id, dataPoint).
+    // Arrays para Chart.js
+    const backgroundColors = [];
+    const borderColors = [];
+    const dataPoints = [];
 
-    // Para simplicidad, asume que ya tienes la data del operation (en variables globales o algo).
-    // Este es un ejemplo sencillo:
+    // (A) Se inyectan los dataPoints con Django
+    {% for item in operations_data %}
+        {% for operation in item.operations %}
+            dataPoints.push({
+                x: ["{{ operation.start|date:'Y-m-d' }}", "{{ operation.end|date:'Y-m-d' }}"],
+                y: "{{ item.asset.name|escapejs }}",
+                asset_name: "{{ item.asset.name|escapejs }}",
+                proyecto: "{{ operation.proyecto|escapejs }}",
+                requirements: "{{ operation.requirements|escapejs }}",
+                operation_id: {{ operation.id }},
+                confirmado: {% if operation.confirmado %}true{% else %}false{% endif %}
+            });
+            {% if not operation.confirmado %}
+                backgroundColors.push('rgba(255, 205, 86, 0.6)');  // Amarillo (tentativa)
+                borderColors.push('rgba(255, 205, 86, 1)');
+            {% else %}
+                backgroundColors.push('rgba(54, 162, 235, 0.2)');  // Azul (confirmado)
+                borderColors.push('rgba(54, 162, 235, 1)');
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
 
-    const operation = getOperationById(operationId);
-    document.getElementById("editOperationId").value = operationId;
-    document.getElementById("editProyecto").value = operation.proyecto;
-    document.getElementById("editStart").value = operation.x[0]; // Fecha inicio
-    document.getElementById("editEnd").value = operation.x[1];   // Fecha fin
-    document.getElementById("editConfirmado").value = operation.confirmado;
+    /********************************************************
+    *  3. Configuración y creación de la gráfica Chart.js
+    ********************************************************/
+    const data = {
+        datasets: [{
+            label: 'Cronograma de proyectos',
+            data: dataPoints,
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
+            borderWidth: 1,
+            borderSkipped: false,
+            borderRadius: 15,
+            barPercentage: 0.5,
+        }]
+    };
 
-    // Mostrar el modal
-    let modalEl = document.getElementById('editOperationModal');
-    let modal = new bootstrap.Modal(modalEl, {});
-    modal.show();
-}
+    // Plugin para dibujar línea "Hoy"
+    const todayLine = {
+        id: 'todayLine',
+        afterDatasetsDraw(chart) {
+            const {ctx, chartArea: {top, bottom, left, right}, scales: {x}} = chart;
+            ctx.save();
+            const todayPx = x.getPixelForValue(new Date());
+            if (todayPx >= left && todayPx <= right) {
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(102, 102, 10, 1)';
+                ctx.setLineDash([6, 6]);
+                ctx.moveTo(todayPx, top);
+                ctx.lineTo(todayPx, bottom);
+                ctx.stroke();
+                ctx.restore();
 
-// Función de ejemplo para obtener la data del operation a partir de su ID
-function getOperationById(operationId) {
-    // Buscar en data.datasets[0].data
-    for (let dp of data.datasets[0].data) {
-        if (dp.operation_id === operationId) {
-            return dp;
+                // flechita de arriba
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(102, 102, 102, 1)';
+                ctx.fillStyle = 'rgba(102, 102, 102, 1)';
+                ctx.moveTo(todayPx, top + 3);
+                ctx.lineTo(todayPx - 8, top - 8);
+                ctx.lineTo(todayPx + 8, top - 8);
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fill();
+                ctx.restore();
+
+                // Texto Hoy
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillStyle = 'rgba(102, 102, 102, 1)';
+                ctx.textAlign = 'center';
+                ctx.fillText('Hoy', todayPx, bottom + 20);
+                ctx.restore();
+            }
         }
-    }
-    return null;
-}
+    };
 
-function saveOperation() {
-    // Tomamos los valores del form
-    const operationId = document.getElementById("editOperationId").value;
-    const proyecto = document.getElementById("editProyecto").value;
-    const start = document.getElementById("editStart").value;
-    const end = document.getElementById("editEnd").value;
-    const confirmado = document.getElementById("editConfirmado").value;
+    // Plugin para sombrear fines de semana
+    const weekend = {
+        id: 'weekend',
+        beforeDatasetsDraw(chart) {
+            const {ctx, chartArea: {top, bottom}, scales: {x}} = chart;
+            ctx.save();
+            x.ticks.forEach((tick) => {
+                const day = new Date(tick.value).getDay();
+                if (day === 6 || day === 0) {
+                    const startPx = x.getPixelForValue(tick.value);
+                    const endPx = x.getPixelForValue(new Date(tick.value).setHours(24));
+                    ctx.fillStyle = 'rgba(102, 102, 102, 0.2)';
+                    ctx.fillRect(startPx, top, endPx - startPx, bottom - top);
+                }
+            });
+        }
+    };
 
-    // Podrías hacer un POST con fetch a /ope/operation/<id>/update/ en AJAX
-    // Pasando {proyecto, start, end, confirmado} y el csrf_token
-    // Luego, si todo ok, recargas la página o actualizas la data en tu chart
+    // 1) definimos algunas variables globales para el plugin
+    let oldMonthLabel = null; 
+    let newMonthLabel = null; 
+    let animInProgress = false;
 
-    const csrfToken = "{{ csrf_token }}"; // O recupéralo de un <meta> en tu HTML
+    const monthHeaderPlugin = {
+        id: 'monthHeader',
+        afterDatasetsDraw(chart, args, options) {
+            const { ctx, chartArea: { top, left, right }, scales: {x} } = chart;
 
-    fetch(`/ope/operation/${operationId}/update/`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRFToken": csrfToken
+            // Calcula la posición para el recuadro
+            // Por ejemplo, 30px de alto, 5px de margen
+            const boxHeight = 80;
+            const margin = 2;
+            const boxTop = top - boxHeight - margin; 
+            if (boxTop < 0) return; // Evitar que se salga de la zona visible
+
+            // Dibuja rectángulo
+            ctx.save();
+            ctx.fillStyle = 'rgba(220,220,220,0.3)'; // color suave
+            ctx.fillRect(left, boxTop, right - left, boxHeight);
+
+            // Traza bordes
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+            ctx.strokeRect(left, boxTop, right - left, boxHeight);
+
+            // Texto mes/año
+            ctx.font = 'bold 16px sans-serif';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Reusa tu getMonthName
+            const monthName = getMonthName(chartCurrentYear, chartCurrentMonth);
+            const label = monthName + " " + chartCurrentYear;
+
+            ctx.fillText(label, (left + right)/2, boxTop + boxHeight/2);
+            ctx.restore();
+        }
+    };
+
+
+    // Config general
+    const config = {
+        type: 'bar',
+        data,
+        options: {
+            responsive: true,
+            onClick: (evt, elements) => {
+                if (elements.length > 0) {
+                    const { datasetIndex, index } = elements[0];
+                    const dataPoint = data.datasets[datasetIndex].data[index];
+                    openEditOperationModal(dataPoint.operation_id);
+                }
+            },
+            indexAxis: 'y',
+            layout: {padding: {top: 60, left: 50, right: 100, bottom: 30 },},
+            scales: {
+                x: {
+                    display: true,
+                    position: 'top',
+                    type: 'time',
+                    time: {displayFormats: { day: 'd' }}
+                },
+                y: {
+                    display: true,
+                    position: 'left',
+                    ticks: {font: { size: 16, weight: 'bold' }}
+                },
+            },
+            plugins: {
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label(context) {
+                            const dataPoint = context.raw;
+                            return [
+                                `Proyecto: ${dataPoint.proyecto}`,
+                                `Inicia: ${dataPoint.x[0]}`,
+                                `Termina: ${dataPoint.x[1]}`
+                            ];
+                        }
+                    }
+                },
+                legend: { display: false },
+            },
         },
-        body: new URLSearchParams({
-            proyecto: proyecto,
-            start: start,
-            end: end,
-            confirmado: confirmado
-        })
-    })
-    .then(resp => {
-        if (resp.ok) {
-            // Cerrar modal, recargar la página, etc.
-            location.reload(); 
-        } else {
-            alert("Error al actualizar la operación. Verifique los campos.");
-        }
-    })
-    .catch(err => {
-        console.error(err);
-    });
-}
-</script>
+        plugins: [todayLine, weekend, monthHeaderPlugin]
+    };
 
+    /********************************************************
+    *  4. Al cargar la página, creamos la gráfica
+    *     y ajustamos el rango (min, max) según el mes actual
+    ********************************************************/
+    document.addEventListener('DOMContentLoaded', () => {
+        window.myChart = new Chart(document.getElementById('myChart'), config);
+        updateChartMonth();
+    });
+
+    /********************************************************
+    *  5. Funciones de navegación de Mes
+    ********************************************************/
+    function prevMonth() {
+        chartCurrentMonth--;
+        if (chartCurrentMonth < 1) {
+            chartCurrentMonth = 12;
+            chartCurrentYear--;
+        }
+        updateChartMonth();
+    }
+
+    function nextMonth() {
+    chartCurrentMonth++;
+        if (chartCurrentMonth > 12) {
+            chartCurrentMonth = 1;
+            chartCurrentYear++;
+        }
+        updateChartMonth();
+    }
+
+    function updateChartMonth() {
+        const startDate = formatDate(chartCurrentYear, chartCurrentMonth, 1);
+        const endDate = formatDate(chartCurrentYear, chartCurrentMonth, lastDayOfMonth(chartCurrentYear, chartCurrentMonth));
+
+        myChart.config.options.scales.x.min = startDate;
+        myChart.config.options.scales.x.max = endDate;
+        myChart.update();
+    }
+
+    /********************************************************
+    *  6. Helpers para fecha y nombre de mes
+    ********************************************************/
+    function getMonthName(year, month) {
+        const date = new Date(year, month - 1, 1);
+        return date.toLocaleString('default', { month: 'long' });
+    }
+    function lastDayOfMonth(year, month) {
+        return new Date(year, month, 0).getDate();
+    }
+    function formatDate(year, month, day) {
+        const mm = String(month).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        return `${year}-${mm}-${dd}`;
+    }
+
+    /********************************************************
+    *  7. Modal de edición de operaciones (ejemplo)
+    ********************************************************/
+    function openEditOperationModal(operationId) {
+        const operation = getOperationById(operationId);
+        if (!operation) return;
+
+        // operation.x => ["YYYY-MM-DD", "YYYY-MM-DD"]
+        // operation.asset => por ejemplo "C3" (abbreviation)
+        // operation.requirements => texto
+        // etc.
+
+        document.getElementById("editOperationId").value = operationId;
+        document.getElementById("editProyecto").value    = operation.proyecto;
+        document.getElementById("editStart").value       = operation.x[0];
+        document.getElementById("editEnd").value         = operation.x[1];
+        document.getElementById("editRequirements").value = operation.requirements || "";
+        document.getElementById("editConfirmado").value  = operation.confirmado;
+
+        document.getElementById("editAssetLabel").textContent = operation.asset_name;
+        const modalEl = document.getElementById('editOperationModal');
+        const modal   = new bootstrap.Modal(modalEl, {});
+        modal.show();
+    }
+
+    function getOperationById(operationId) {
+        for (const dp of dataPoints) {
+            if (dp.operation_id === operationId) return dp;
+        }
+        return null;
+    }
+
+    function saveOperation() {
+        const operationId  = document.getElementById("editOperationId").value;
+        const proyecto     = document.getElementById("editProyecto").value;
+        const start        = document.getElementById("editStart").value;
+        const end          = document.getElementById("editEnd").value;
+        const requirements = document.getElementById("editRequirements").value;
+        const confirmado   = document.getElementById("editConfirmado").value;
+
+        const csrfToken = "{{ csrf_token }}";
+
+        fetch(`/ope/operation/${operationId}/update/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": csrfToken
+            },
+            body: new URLSearchParams({
+                proyecto,
+                start,
+                end,
+                requirements,
+                confirmado
+            })
+        })
+        .then(resp => {
+            if (!resp.ok) {
+                alert("Ocurrió un error al actualizar la operación (código HTTP " + resp.status + ")");
+            }
+            return resp.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Éxito => recargamos
+                location.reload();
+            } else {
+                // data.success = false => mostrar data.errors
+                console.log(data.errors);
+                alert("Error de validación: " + JSON.stringify(data.errors));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error inesperado al actualizar.");
+        });
+    }
+
+    // Exponemos las funciones globalmente
+    window.prevMonth = prevMonth;
+    window.nextMonth = nextMonth;
+    window.openEditOperationModal = openEditOperationModal;
+    window.saveOperation = saveOperation;
+
+    function showDeleteConfirm() {
+        // Toma el id actual
+        const operationId = document.getElementById("editOperationId").value;
+        // Ajusta la acción del form
+        document.getElementById('deleteOperationForm').action = `/ope/operation/${operationId}/delete/`;
+        // Muestra el modal de confirmación
+        const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'), {});
+        modal.show();
+    }
+
+</script>
 
 {% endblock %}

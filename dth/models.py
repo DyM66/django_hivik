@@ -1,6 +1,51 @@
+# dth/models.py
 from django.db import models
 from django.contrib.auth.models import User
 from got.paths import get_upload_path
+from decimal import Decimal
+
+
+class Department(models.Model):
+    """
+    Representa un departamento dentro de la empresa.
+    Cada departamento puede tener muchas personas asociadas (Nomina).
+    """
+    name = models.CharField(max_length=100, unique=True, help_text="Nombre del departamento.")
+
+    def __str__(self):
+        return self.name
+
+
+class Nomina(models.Model):
+    """
+    Representa la tabla de nómina de personal.
+    - doc_number: Número de documento de la persona (no confundir con la pk).
+    - name: Nombre(s).
+    - surname: Apellido(s).
+    - position: Cargo o puesto específico.
+    - salary: Monto salarial en pesos colombianos.
+    - dpto: Relación con la tabla Department, un empleado pertenece a un solo departamento.
+    - category: Clasificación en 'Administrativo', 'Operativo' o 'Mixto'.
+    """
+
+    CATEGORIA_CHOICES = [
+        ('Administrativo', 'Administrativo'),
+        ('Operativo', 'Operativo'),
+        ('Mixto', 'Mixto'),
+    ]
+
+    # "doc_number" para evitar choques con la pk interna de Django
+    doc_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado (no es pk).")
+    name = models.CharField(max_length=100, help_text="Nombre del empleado.")
+    surname = models.CharField(max_length=100, help_text="Apellido del empleado.")
+    position = models.CharField(max_length=100, help_text="Cargo o puesto.")
+    salary = models.DecimalField(max_digits=12, decimal_places=2, help_text="Salario en pesos colombianos.")
+    # dpto = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='personas', help_text="Departamento al que pertenece el empleado.")
+    category = models.CharField(max_length=15, choices=CATEGORIA_CHOICES, default='Operativo', help_text="Categoria del empleado.")
+
+    def __str__(self):
+        return f"{self.name} {self.surname} - {self.position}"
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
@@ -50,3 +95,204 @@ class Overtime(models.Model):
     class Meta:
         db_table = 'got_overtime'
         permissions = [('can_approve_overtime', 'Puede aprobar horas extras'),]
+
+
+class NominaReport(models.Model):
+    """
+    Registros mensuales de nómina con diversos códigos y valores monetarios.
+    """
+
+    # Campos base
+    mes = models.PositiveSmallIntegerField(help_text="Mes (1-12).")
+    anio = models.PositiveSmallIntegerField(help_text="Año.")
+    nomina = models.ForeignKey(
+        'dth.Nomina',  # Ajustar la ruta si tu modelo 'Nomina' está en el mismo archivo
+        on_delete=models.CASCADE,
+        related_name='reportes',
+        help_text="Empleado asociado a este registro de nómina."
+    )
+
+    # Campos monetarios con sus códigos
+    dv01 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Sueldo básico (código dv01)."
+    )
+    dv25 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Pago Vacaciones (código dv25)."
+    )
+    dv03 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Subsidio de transporte (código dv03)."
+    )
+    dv103 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Licencia de la familia (código dv103)."
+    )
+    dv27 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Intereses de cesantías año anterior (código dv27)."
+    )
+    dv30 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Cesantías (código dv30)."
+    )
+    dx03 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Pensión (código dx03)."
+    )
+    dx05 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Solidaridad (código dx05)."
+    )
+    dx01 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Retención en la fuente (código dx01)."
+    )
+    dx07 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Exequias Lordoy (código dx07)."
+    )
+    dx12 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Descuento pensión voluntaria (código dx12)."
+    )
+    dx63 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Banco de Occidente (código dx63)."
+    )
+    dx64 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Confenalco (código dx64)."
+    )
+    dx66 = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Préstamo empleado (código dx66)."
+    )
+
+    # ---------- Propiedades Dinámicas ----------
+    @property
+    def dias_sueldo_basico(self):
+        """
+        (dv01 / 30) * salary del registro de Nomina
+        """
+        if self.nomina.salary == 0:
+            return Decimal('0.00')
+        return (self.dv01 / Decimal('30.00')) * self.nomina.salary
+
+    @property
+    def dias_vacaciones(self):
+        """
+        (dv25 / 30) * salary del registro de Nomina
+        """
+        if self.nomina.salary == 0:
+            return Decimal('0.00')
+        return (self.dv25 / Decimal('30.00')) * self.nomina.salary
+
+    @property
+    def provision_vacaciones(self):
+        """
+        dv25 (Pago Vacaciones) * 4.17%
+        """
+        return self.dv25 * Decimal('0.0417')
+
+    @property
+    def prima_servicio(self):
+        """
+        (dv01 + dv25 + dv03) * 8.33%
+        """
+        subtotal = self.dv01 + self.dv25 + self.dv03
+        return subtotal * Decimal('0.0833')
+
+    @property
+    def intereses_cesantias(self):
+        """
+        dv30 (Cesantías) * 1%
+        """
+        return self.dv30 * Decimal('0.01')
+
+    @property
+    def salud_aporte(self):
+        """
+        (dv01 + dv25) * 4%
+        """
+        subtotal = self.dv01 + self.dv25
+        return subtotal * Decimal('0.04')
+
+    @property
+    def pension_aporte_empleador(self):
+        """
+        (dv01 + dv25) * 12%
+        """
+        subtotal = self.dv01 + self.dv25
+        return subtotal * Decimal('0.12')
+
+    @property
+    def arl_aporte(self):
+        """
+        dv01 * 6.96%
+        """
+        return self.dv01 * Decimal('0.0696')
+
+    @property
+    def caja_compensacion_aporte(self):
+        """
+        (dv01 + dv25) * 4%
+        """
+        subtotal = self.dv01 + self.dv25
+        return subtotal * Decimal('0.04')
+
+    @property
+    def neto_a_pagar(self):
+        """
+        neto_a_pagar = (dv01 + dv25 + dv03 + dv27)
+                       - [salud_aporte + dx03 + dx05 + dx01 + dx07 + dx12 + dx63 + dx64 + dx66]
+        """
+        # Lo que se suma:
+        ingreso_bruto = self.dv01 + self.dv25 + self.dv03 + self.dv27
+
+        # Restas (aportes y descuentos)
+        descuentos = (
+            self.salud_aporte +
+            self.dx03 +    # Pensión
+            self.dx05 +    # Solidaridad
+            self.dx01 +    # Retención en la fuente
+            self.dx07 +    # Exequias Lordoy
+            self.dx12 +    # Descuento pensión voluntaria
+            self.dx63 +    # Banco de Occidente
+            self.dx64 +    # Confenalco
+            self.dx66      # Préstamo empleado
+        )
+
+        return ingreso_bruto - descuentos
+
+    def __str__(self):
+        return f"NominaReport {self.mes}/{self.anio} - {self.nomina}"
