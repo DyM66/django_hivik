@@ -19,95 +19,143 @@
         <button id="btnPrevMonth" class="month-nav-btn" onclick="prevMonth()">
             <i class="fa fa-chevron-left"></i>
         </button>      
-            {% comment %} <span id="chartMonthLabel" class="fw-bold fs-5"></span> {% endcomment %}
         <div class="chartContainer">
             <canvas id="myChart"></canvas>
         </div>
-        <!-- Botón Siguiente Mes -->
         <button id="btnNextMonth" class="month-nav-btn" onclick="nextMonth()">
             <i class="fa fa-chevron-right"></i>
         </button>
     </div>
-
 </main>
 
-
-    <!-- Modal -->
-    <div class="modal fade" id="addOperationModal" tabindex="-1" aria-labelledby="addOperationModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addOperationModalLabel">Nueva Operación</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Modal -->
+<div class="modal fade" id="addOperationModal" tabindex="-1" aria-labelledby="addOperationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addOperationModalLabel">Nuevo Proyecto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="">{% csrf_token %}
+                <input type="hidden" name="create_operation" value="1"/>
+                
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div>
+                                <h5>Seleccionar Equipo:</h5>
+                                {% for radio in creation_operation_form.asset %}
+                                    <div>
+                                        <label>
+                                            {{ radio.tag }}
+                                            {{ radio.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                                {% if creation_operation_form.asset.errors %}
+                                    <div class="text-danger">
+                                        {{ creation_operation_form.asset.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <h6>Detalles de la Operación</h6>
+                            <div class="form-group" style="margin: 15px">
+                                <div class="mb-3">
+                                    {{ creation_operation_form.proyecto.label_tag }}
+                                    {{ creation_operation_form.proyecto }}
+                                    {{ creation_operation_form.proyecto.errors }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ creation_operation_form.start.label_tag }}
+                                    {{ creation_operation_form.start }}
+                                    {{ creation_operation_form.start.errors }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ creation_operation_form.end.label_tag }}
+                                    {{ creation_operation_form.end }}
+                                    {{ creation_operation_form.end.errors }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ creation_operation_form.requirements.label_tag }}
+                                    {{ creation_operation_form.requirements }}
+                                    {{ creation_operation_form.requirements.errors }}
+                                </div>
+                                <div>
+                                    <label>{{ creation_operation_form.confirmado.label }}</label>
+                                    {{ radio }}
+                                    <label>{{ radio.choice_label }}</label>
+                                    {{ creation_operation_form.confirmado.errors }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <form method="post" action="">{% csrf_token %}
-                    <input type="hidden" name="create_operation" value="1"/>
-                    <div class="form-group" style="margin: 15px">
-                        {{ operation_form }}
+
+                <div class="form-group" style="margin: 10px">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" name="create_operation">Crear Proyecto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar operación -->
+<div class="modal fade" id="editOperationModal" tabindex="-1" aria-labelledby="editOperationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editOperationModalLabel">
+                    Editar Operación - <span id="editAssetLabel"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Aquí pondremos un formulario o una vista parcial. -->
+                <form id="editOperationForm">{% csrf_token %}
+                    <!-- Campos que se llenarán vía JS -->
+                    <div class="mb-3">
+                        <label for="editProyecto" class="form-label">Proyecto</label>
+                        <input type="text" class="form-control" id="editProyecto" name="proyecto">
                     </div>
-                    <div class="form-group" style="margin: 10px">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Operación</button>
+                    <div class="mb-3">
+                        <label for="editStart" class="form-label">Inicio</label>
+                        <input type="date" class="form-control" id="editStart" name="start">
                     </div>
+                    <div class="mb-3">
+                        <label for="editEnd" class="form-label">Fin</label>
+                        <input type="date" class="form-control" id="editEnd" name="end">
+                    </div>
+                        
+                    <!-- 4) Campo "requirements" (texto) -->
+                    <div class="mb-3">
+                        <label for="editRequirements" class="form-label">Requerimientos</label>
+                        <textarea class="form-control" id="editRequirements" name="requirements" rows="3"></textarea>
+                    </div>
+
+                    <!-- 6) Confirmado -->
+                    <div class="mb-3">
+                        <label for="editConfirmado" class="form-label">¿Confirmado?</label>
+                        <select id="editConfirmado" name="confirmado" class="form-control">
+                            <option value="False">No</option>
+                            <option value="True">Sí</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="editOperationId" name="id" value="">
                 </form>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal para editar operación -->
-    <div class="modal fade" id="editOperationModal" tabindex="-1" aria-labelledby="editOperationModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editOperationModalLabel">
-                        Editar Operación - <span id="editAssetLabel"></span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- Aquí pondremos un formulario o una vista parcial. -->
-                    <form id="editOperationForm">{% csrf_token %}
-                        <!-- Campos que se llenarán vía JS -->
-                        <div class="mb-3">
-                            <label for="editProyecto" class="form-label">Proyecto</label>
-                            <input type="text" class="form-control" id="editProyecto" name="proyecto">
-                        </div>
-                        <div class="mb-3">
-                            <label for="editStart" class="form-label">Inicio</label>
-                            <input type="date" class="form-control" id="editStart" name="start">
-                        </div>
-                        <div class="mb-3">
-                            <label for="editEnd" class="form-label">Fin</label>
-                            <input type="date" class="form-control" id="editEnd" name="end">
-                        </div>
-                        
-                        <!-- 4) Campo "requirements" (texto) -->
-                        <div class="mb-3">
-                            <label for="editRequirements" class="form-label">Requerimientos</label>
-                            <textarea class="form-control" id="editRequirements" name="requirements" rows="3"></textarea>
-                        </div>
-
-                        <!-- 6) Confirmado -->
-                        <div class="mb-3">
-                            <label for="editConfirmado" class="form-label">¿Confirmado?</label>
-                            <select id="editConfirmado" name="confirmado" class="form-control">
-                                <option value="False">No</option>
-                                <option value="True">Sí</option>
-                            </select>
-                        </div>
-                        <input type="hidden" id="editOperationId" name="id" value="">
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" onclick="showDeleteConfirm()">
-                        Eliminar
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-primary" onclick="saveOperation()">Guardar cambios</button>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="showDeleteConfirm()">
+                    Eliminar
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="saveOperation()">Guardar cambios</button>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Modal de confirmación de borrado -->
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
@@ -130,6 +178,43 @@
             </div>
         </div>
     </div>
+
+
+{% if unconfirmed_ops %}
+    <!-- Modal de Confirmación de Operaciones -->
+    <div class="modal fade" id="confirmOpsModal" tabindex="-1" aria-labelledby="confirmOpsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="confirmOpsModalLabel">Operaciones pendientes de Confirmación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Las siguientes operaciones tienen fecha de inicio anterior a hoy y aún no están confirmadas. Por favor, confirma cada operación.</p>
+                    <div class="list-group">
+                        {% for op in unconfirmed_ops %}
+                            <a href="{% url 'ope:operation_update' op.id %}" class="list-group-item list-group-item-action">
+                                {{ op.proyecto }} (Inicio: {{ op.start|date:"d/m/Y" }})
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Confirmar más tarde</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function(){
+            // Si hay operaciones sin confirmar, mostramos el modal
+            {% if unconfirmed_ops|length > 0 %}
+                var confirmOpsModal = new bootstrap.Modal(document.getElementById('confirmOpsModal'), { backdrop: 'static' });
+                confirmOpsModal.show();
+            {% endif %}
+        });
+    </script>
+{% endif %}
 
 
 {% if modal_open %}
@@ -297,6 +382,40 @@
             const label = monthName + " " + chartCurrentYear;
 
             ctx.fillText(label, (left + right)/2, boxTop + boxHeight/2);
+            ctx.restore();
+        }
+    };
+
+    const barLabelPlugin = {
+        id: 'barLabelPlugin',
+        afterDatasetsDraw(chart) {
+            const { ctx, chartArea: {left, right, top, bottom}, scales: {x, y} } = chart;
+            ctx.save();
+            // Itera sobre cada barra de la primera dataset
+            chart.getDatasetMeta(0).data.forEach((bar, index) => {
+                const dataPoint = data.datasets[0].data[index];
+                if (!dataPoint || !dataPoint.proyecto) return;
+                let label = dataPoint.proyecto;
+                // Calcula el ancho disponible para la barra
+                const barRect = bar.getProps(['x', 'base'], true);
+                const barWidth = barRect.base - barRect.x;
+                ctx.font = "12px sans-serif";
+                const textWidth = ctx.measureText(label).width;
+                if (textWidth > barWidth) {
+                    while (ctx.measureText(label + '...').width > barWidth && label.length > 0) {
+                        label = label.slice(0, -1);
+                    }
+                    label += '...';
+                }
+                // Posicionar el texto en el centro de la barra horizontal
+                const centerX = barRect.x + barWidth / 2;
+                // Para barras horizontales, el centro vertical puede calcularse a partir del objeto bar
+                const centerY = bar.getCenter().y;
+                ctx.fillStyle = "rgba(0,0,0,0.8)";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(label, centerX, centerY);
+            });
             ctx.restore();
         }
     };

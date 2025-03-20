@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import Prefetch
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
@@ -11,44 +12,27 @@ from django.contrib.auth.decorators import permission_required
 from django.http import JsonResponse
 
 from .models import *
-from .forms import OperationForm, RequirementForm, FullRequirementForm, LimitedRequirementForm
+from .forms import (
+    OperationUpdateForm, OperationCreateForm, RequirementForm, FullRequirementForm, LimitedRequirementForm
+)
 from got.forms import UploadImages
 
+TODAY = timezone.now().date()
 
-class OperationListView(TemplateView):
+class OperationListView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    permission_required = 'got.view_operation'
     template_name = 'operations/operation_list.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         assets = Asset.objects.filter(area='a', show=True)
 
-        today = timezone.now().date()
-        show_past = self.request.GET.get('show_past', 'false').lower() == 'true'
-        if show_past:
-            operaciones_list = Operation.objects.order_by('start').prefetch_related(
-                Prefetch(
-                    'requirement_set',
-                    queryset=Requirement.objects.order_by('responsable')
-                )
-            )
+        # Lógica para usuarios del grupo comercial_members:
+        if self.request.user.groups.filter(name="comercial_members").exists():
+            unconfirmed_ops = Operation.objects.filter(start__lt=TODAY, confirmado=False)
+            context['unconfirmed_ops'] = unconfirmed_ops
         else:
-            operaciones_list = Operation.objects.filter(end__gte=today).order_by('start').prefetch_related(
-                Prefetch(
-                    'requirement_set',
-                    queryset=Requirement.objects.order_by('responsable')
-                )
-            )
-
-        # Paginación
-        page = self.request.GET.get('page', 1)
-        paginator = Paginator(operaciones_list, 40)
-
-        try:
-            operaciones = paginator.page(page)
-        except PageNotAnInteger:
-            operaciones = paginator.page(1)
-        except EmptyPage:
-            operaciones = paginator.page(paginator.num_pages)
+            context['unconfirmed_ops'] = None
 
         operations_data = []
         for asset in assets:
@@ -61,40 +45,25 @@ class OperationListView(TemplateView):
                 'operations': list(asset_operations)
             })
 
-        # 4) Si en self.kwargs o context hay un form con errores del post, lo usamos;
-        #    de lo contrario creamos uno vacío
-        operation_form = kwargs.get('operation_form') or OperationForm()
-
         context['operations_data'] = operations_data
-        context['operation_form'] = operation_form
+        context['creation_operation_form'] = kwargs.get('create_operation_form') or OperationCreateForm()
         context['modal_open'] = kwargs.get('modal_open', False)
-        context['operaciones'] = operaciones
         context['requirement_form'] = RequirementForm()
-        context['show_past'] = show_past
-        context['assets'] = Asset.objects.filter(area='a', show=True)
+        context['assets'] = assets
         return context
 
     def post(self, request, *args, **kwargs):
-        """
-        Maneja la creación de una operación cuando se hace post.
-        """
-        # Verificamos si el POST viene con el name 'create_operation'
-        # o un <input type="hidden" name="create_operation" ...> en el modal
         if 'create_operation' in request.POST:
-            form = OperationForm(request.POST)
+            form = OperationCreateForm(request.POST)
             if form.is_valid():
                 form.save()
                 return redirect(request.path)  # Redirige a la misma vista
             else:
-                # Si no es válido, re-renderizamos con errores:
-                #   - le pasamos el form con errores
-                #   - le pasamos modal_open=True para que abra el modal
-                return self.render_to_response(
-                    self.get_context_data(operation_form=form, modal_open=True)
-                )
+                return self.render_to_response(self.get_context_data(creation_operation_form=form, modal_open=True))
+        return super().post(request, *args, **kwargs)
 
         # Si no es un POST de creación, llamamos a super:
-        return super().post(request, *args, **kwargs)
+        # return super().post(request, *args, **kwargs)
 
 
 @require_POST  # Asegura que sólo responda a POST
@@ -104,7 +73,7 @@ def update_operation(request, pk):
     y actualiza la operación con id=pk, retorna JSON con éxito o error.
     """
     operation = get_object_or_404(Operation, pk=pk)
-    form = OperationForm(request.POST, instance=operation)
+    form = OperationUpdateForm(request.POST, instance=operation)
     if form.is_valid():
         form.save()
         return JsonResponse({'success': True})

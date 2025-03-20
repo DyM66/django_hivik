@@ -219,8 +219,8 @@ class SalidaUpdateView(LoginRequiredMixin, View):
             #         )
 
             # Manejo de imágenes
-            # for file in request.FILES.getlist('file_field'):
-            #     Image.objects.create(salida=salida, image=file)
+            for file in request.FILES.getlist('file_field'):
+                Image.objects.create(salida=salida, image=file)
 
             # # Enviar correo electrónico con el PDF adjunto
             # pdf_buffer = salida_email_pdf(salida.pk)
