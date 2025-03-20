@@ -6,8 +6,8 @@ class UserProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'cargo')
 
 class NominaAdmin(admin.ModelAdmin):
-    list_display = ('doc_number', 'name', 'surname', 'position', 'salary', 'category')
-    search_fields = ('doc_number', 'name', 'surname', 'position', 'category')
+    list_display = ('doc_number', 'name', 'surname', 'position', 'salary')
+    search_fields = ('doc_number', 'name', 'surname', 'position')
 
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(Nomina, NominaAdmin)

@@ -216,7 +216,7 @@
                                 <th>Apellidos</th>
                                 <th>Cargo</th>
                                 <th>Salario</th>
-                                <th>Departamento</th>
+                                <th>Categoria ARL</th>
                                 <th>Acciones</th><!-- Editar / Eliminar -->
                             </tr>
                         </thead>
@@ -228,7 +228,7 @@
                                     <td>{{ item.surname }}</td>
                                     <td>{{ item.position }}</td>
                                     <td>{{ item.salary|floatformat:2 }}</td>
-                                    <td>{{ item.category }}</td>
+                                    <td>{{ item.risk_class }}</td>
                                     <td>
                                         <!-- Ícono editar: redirigir a una vista o abrir otro modal, etc. -->
                                         <a href="{% url 'dth:nomina_edit' item.pk %}" class="text-primary me-2">

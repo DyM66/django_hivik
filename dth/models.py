@@ -3,7 +3,13 @@ from django.db import models
 from django.contrib.auth.models import User
 from got.paths import get_upload_path
 from decimal import Decimal
+from django.utils import timezone
+from datetime import date
 
+def get_default_admission():
+    """Retorna el 1 de enero del año actual."""
+    now = timezone.now()
+    return date(now.year, 1, 1)
 
 class Department(models.Model):
     """
@@ -17,31 +23,15 @@ class Department(models.Model):
 
 
 class Nomina(models.Model):
-    """
-    Representa la tabla de nómina de personal.
-    - doc_number: Número de documento de la persona (no confundir con la pk).
-    - name: Nombre(s).
-    - surname: Apellido(s).
-    - position: Cargo o puesto específico.
-    - salary: Monto salarial en pesos colombianos.
-    - dpto: Relación con la tabla Department, un empleado pertenece a un solo departamento.
-    - category: Clasificación en 'Administrativo', 'Operativo' o 'Mixto'.
-    """
-
-    CATEGORIA_CHOICES = [
-        ('Administrativo', 'Administrativo'),
-        ('Operativo', 'Operativo'),
-        ('Mixto', 'Mixto'),
-    ]
-
-    # "doc_number" para evitar choques con la pk interna de Django
-    doc_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado (no es pk).")
+    RISK_CLASS_CHOICES = [('I', 'I'), ('II', 'II'), ('III', 'III'), ('IV', 'IV'), ('V', 'V'),]
+    doc_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado.")
     name = models.CharField(max_length=100, help_text="Nombre del empleado.")
     surname = models.CharField(max_length=100, help_text="Apellido del empleado.")
     position = models.CharField(max_length=100, help_text="Cargo o puesto.")
-    salary = models.DecimalField(max_digits=12, decimal_places=2, help_text="Salario en pesos colombianos.")
-    # dpto = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='personas', help_text="Departamento al que pertenece el empleado.")
-    category = models.CharField(max_length=15, choices=CATEGORIA_CHOICES, default='Operativo', help_text="Categoria del empleado.")
+    salary = models.DecimalField(max_digits=18, decimal_places=2, help_text="Salario en COP.")
+    admission = models.DateField(default=get_default_admission, help_text="Fecha de ingreso del empleado. (Obligatoria)")
+    expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")
+    risk_class = models.CharField(max_length=3, choices=RISK_CLASS_CHOICES, blank=True, null=True, help_text="Clase de riesgo laboral.")
 
     def __str__(self):
         return f"{self.name} {self.surname} - {self.position}"

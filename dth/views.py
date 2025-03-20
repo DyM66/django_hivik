@@ -535,7 +535,6 @@ def calcular_horas_extras(fecha, hora_inicio, hora_fin):
     return overtime_periods
 
 
-
 def gerencia_nomina_view(request):
     """
     Vista exclusiva para la gerencia (Jennifer Padilla).

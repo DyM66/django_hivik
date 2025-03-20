@@ -4,6 +4,7 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 import got.models
+from decimal import Decimal
 
 class Migration(migrations.Migration):
     initial = True
@@ -44,5 +45,28 @@ class Migration(migrations.Migration):
                 'db_table': 'got_overtime',
                 'permissions': [('can_approve_overtime', 'Puede aprobar horas extras')],
             },
+        ),
+        migrations.CreateModel(
+            name='NominaReport',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('mes', models.PositiveSmallIntegerField(help_text='Mes (1-12).')),
+                ('anio', models.PositiveSmallIntegerField(help_text='Año.')),
+                ('dv01', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Sueldo básico (código dv01).', max_digits=18)),
+                ('dv25', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Pago Vacaciones (código dv25).', max_digits=18)),
+                ('dv03', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Subsidio de transporte (código dv03).', max_digits=18)),
+                ('dv103', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Licencia de la familia (código dv103).', max_digits=18)),
+                ('dv27', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Intereses de cesantías año anterior (código dv27).', max_digits=18)),
+                ('dv30', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Cesantías (código dv30).', max_digits=18)),
+                ('dx03', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Pensión (código dx03).', max_digits=18)),
+                ('dx05', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Solidaridad (código dx05).', max_digits=18)),
+                ('dx01', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Retención en la fuente (código dx01).', max_digits=18)),
+                ('dx07', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Exequias Lordoy (código dx07).', max_digits=18)),
+                ('dx12', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Descuento pensión voluntaria (código dx12).', max_digits=18)),
+                ('dx63', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Banco de Occidente (código dx63).', max_digits=18)),
+                ('dx64', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Confenalco (código dx64).', max_digits=18)),
+                ('dx66', models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Préstamo empleado (código dx66).', max_digits=18)),
+                ('nomina', models.ForeignKey(help_text='Empleado asociado a este registro de nómina.', on_delete=django.db.models.deletion.CASCADE, related_name='reportes', to='dth.nomina')),
+            ],
         ),
     ]
