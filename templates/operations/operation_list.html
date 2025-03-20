@@ -44,14 +44,16 @@
                         <div class="col-md-4">
                             <div>
                                 <h5>Seleccionar Equipo:</h5>
-                                {% for radio in creation_operation_form.asset %}
-                                    <div>
+                                <ul class="list-group">
+                                    {% for radio in creation_operation_form.asset %}
                                         <label>
-                                            {{ radio.tag }}
-                                            {{ radio.choice_label }}
+                                            <li class="list-group-item">
+                                                {{ radio.tag }}
+                                                {{ radio.choice_label }}
+                                            </li>
                                         </label>
-                                    </div>
-                                {% endfor %}
+                                    {% endfor %}
+                                </ul>
                                 {% if creation_operation_form.asset.errors %}
                                     <div class="text-danger">
                                         {{ creation_operation_form.asset.errors }}
@@ -61,41 +63,38 @@
                         </div>
                         <div class="col-md-8">
                             <h6>Detalles de la Operación</h6>
-                            <div class="form-group" style="margin: 15px">
-                                <div class="mb-3">
+                            <div class="mb-3">
                                     {{ creation_operation_form.proyecto.label_tag }}
                                     {{ creation_operation_form.proyecto }}
                                     {{ creation_operation_form.proyecto.errors }}
-                                </div>
-                                <div class="mb-3">
+                            </div>
+                            <div class="mb-3">
                                     {{ creation_operation_form.start.label_tag }}
                                     {{ creation_operation_form.start }}
                                     {{ creation_operation_form.start.errors }}
-                                </div>
-                                <div class="mb-3">
+                            </div>
+                            <div class="mb-3">
                                     {{ creation_operation_form.end.label_tag }}
                                     {{ creation_operation_form.end }}
                                     {{ creation_operation_form.end.errors }}
-                                </div>
-                                <div class="mb-3">
+                            </div>
+                            <div class="mb-3">
                                     {{ creation_operation_form.requirements.label_tag }}
                                     {{ creation_operation_form.requirements }}
                                     {{ creation_operation_form.requirements.errors }}
-                                </div>
-                                <div>
-                                    <label>{{ creation_operation_form.confirmado.label }}</label>
-                                    {{ radio }}
-                                    <label>{{ radio.choice_label }}</label>
-                                    {{ creation_operation_form.confirmado.errors }}
-                                </div>
+                            </div>
+                            <div>
+                                {{ creation_operation_form.confirmado.label_tag }}
+                                {{ creation_operation_form.confirmado }}
+                                {{ creation_operation_form.confirmado.errors }}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group" style="margin: 10px">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" name="create_operation">Crear Proyecto</button>
+                    <button type="submit" name="create_operation" class="btn btn-primary">Crear Proyecto</button>
                 </div>
             </form>
         </div>
@@ -180,7 +179,7 @@
     </div>
 
 
-{% if unconfirmed_ops %}
+{% comment %} {% if unconfirmed_ops %}
     <!-- Modal de Confirmación de Operaciones -->
     <div class="modal fade" id="confirmOpsModal" tabindex="-1" aria-labelledby="confirmOpsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -214,7 +213,7 @@
             {% endif %}
         });
     </script>
-{% endif %}
+{% endif %} {% endcomment %}
 
 
 {% if modal_open %}

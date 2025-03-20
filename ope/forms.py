@@ -18,7 +18,7 @@ class OperationUpdateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(OperationUpdateForm, self).__init__(*args, **kwargs)
-        self.fields['confirmado'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
+        # self.fields['confirmado'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
 
     def clean(self):
         cleaned_data = super().clean()
@@ -67,11 +67,10 @@ class OperationUpdateForm(forms.ModelForm):
 
 class OperationCreateForm(forms.ModelForm):
     confirmado = forms.ChoiceField(choices=[(True, 'Sí'), (False, 'No')], widget=forms.RadioSelect, label='Proyecto confirmado', initial=False, required=False)
-    asset = forms.ModelChoiceField(queryset=Asset.objects.filter(area__in=['a', 'b']), widget=forms.RadioSelect, empty_label=None, label='Equipo')
+    asset = forms.ModelChoiceField(queryset=Asset.objects.filter(area__in=['a', 'c'], show=True), widget=forms.RadioSelect, empty_label=None, label='Equipo')
 
     def __init__(self, *args, **kwargs):
         super(OperationCreateForm, self).__init__(*args, **kwargs)
-        self.fields['asset'].queryset = Asset.objects.filter(area__in=['a', 'b'])
         self.fields['confirmado'].widget.attrs.update({'class': 'btn-group-toggle', 'data-toggle': 'buttons'})
 
     def clean(self):
@@ -107,9 +106,10 @@ class OperationCreateForm(forms.ModelForm):
             'requirements': 'Requerimientos',
         }
         widgets = {
+            'proyecto': forms.TextInput(attrs={'class': 'form-control'}),
             'asset': forms.RadioSelect(attrs={'class': 'form-check'}),
-            'start': XYZ_DateInput(format=['%Y-%m-%d'],),
-            'end': XYZ_DateInput(format=['%Y-%m-%d'],),
+            'start': XYZ_DateInput(format=['%Y-%m-%d'], attrs={'class': 'form-control'}),
+            'end': XYZ_DateInput(format=['%Y-%m-%d'], attrs={'class': 'form-control'}),
             'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
