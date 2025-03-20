@@ -2,7 +2,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from got.models import Asset
-from .models import Operation
+from .models import Operation, Requirement
 from got.forms import XYZ_DateInput
 
 
@@ -63,4 +63,67 @@ class OperationForm(forms.ModelForm):
             'start': 'Fecha de Inicio',
             'end': 'Fecha de Fin',
             'requirements': 'Requerimientos',
+        }
+
+
+class RequirementForm(forms.ModelForm):
+    approved = forms.ChoiceField(
+        choices=[(True, 'Sí'), (False, 'No')],
+        widget=forms.RadioSelect,
+        label='Realizado',
+        initial=False,
+        required=False
+    )
+    class Meta:
+        model = Requirement
+        fields = ['text', 'responsable']  # Incluimos 'responsable'
+        widgets = {
+            'text': forms.Textarea(attrs={'class': 'form-control'}),
+            'responsable': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'text': 'Detalle del requerimiento',
+            'responsable': 'Responsable',
+        }
+
+
+class FullRequirementForm(forms.ModelForm):
+    approved = forms.ChoiceField(
+        choices=[(True, 'Sí'), (False, 'No')],
+        widget=forms.RadioSelect,
+        label='Realizado',
+        initial=False,
+        required=False
+    )
+    class Meta:
+        model = Requirement
+        fields = ['text', 'responsable', 'approved', 'novedad']
+        widgets = {
+            'text': forms.Textarea(attrs={'class': 'form-control'}),
+            'responsable': forms.TextInput(attrs={'class': 'form-control'}),
+            'novedad': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'text': 'Detalle del requerimiento',
+            'responsable': 'Responsable',
+            'novedad': 'Novedad',
+        }
+
+
+class LimitedRequirementForm(forms.ModelForm):
+    approved = forms.ChoiceField(
+        choices=[(True, 'Sí'), (False, 'No')],
+        widget=forms.RadioSelect,
+        label='Realizado',
+        initial=False,
+        required=False
+    )
+    class Meta:
+        model = Requirement
+        fields = ['novedad', 'approved']
+        widgets = {
+            'novedad': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'novedad': 'Novedad',
         }

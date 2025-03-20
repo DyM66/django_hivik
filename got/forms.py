@@ -6,12 +6,10 @@ from django.forms.widgets import ClearableFileInput
 from django.utils.text import get_valid_filename 
 from django.utils.safestring import mark_safe
 from taggit.forms import TagWidget
-from ope.models import *
 
 from got.models import *
 from dth.forms import UserChoiceField
 from inv.models import Solicitud
-
 
 class XYZ_DateInput(forms.DateInput):  # Campo de fecha personalizado para el formato YYYY-MM-DD
     input_type = 'date'
@@ -683,69 +681,6 @@ class ActivityForm(forms.Form):
 
 class CustomSignatureForm(forms.Form):
     signature = forms.CharField(widget=forms.HiddenInput())
-
-
-class RequirementForm(forms.ModelForm):
-    approved = forms.ChoiceField(
-        choices=[(True, 'Sí'), (False, 'No')],
-        widget=forms.RadioSelect,
-        label='Realizado',
-        initial=False,
-        required=False
-    )
-    class Meta:
-        model = Requirement
-        fields = ['text', 'responsable']  # Incluimos 'responsable'
-        widgets = {
-            'text': forms.Textarea(attrs={'class': 'form-control'}),
-            'responsable': forms.TextInput(attrs={'class': 'form-control'}),
-        }
-        labels = {
-            'text': 'Detalle del requerimiento',
-            'responsable': 'Responsable',
-        }
-
-
-class FullRequirementForm(forms.ModelForm):
-    approved = forms.ChoiceField(
-        choices=[(True, 'Sí'), (False, 'No')],
-        widget=forms.RadioSelect,
-        label='Realizado',
-        initial=False,
-        required=False
-    )
-    class Meta:
-        model = Requirement
-        fields = ['text', 'responsable', 'approved', 'novedad']
-        widgets = {
-            'text': forms.Textarea(attrs={'class': 'form-control'}),
-            'responsable': forms.TextInput(attrs={'class': 'form-control'}),
-            'novedad': forms.Textarea(attrs={'class': 'form-control'}),
-        }
-        labels = {
-            'text': 'Detalle del requerimiento',
-            'responsable': 'Responsable',
-            'novedad': 'Novedad',
-        }
-
-
-class LimitedRequirementForm(forms.ModelForm):
-    approved = forms.ChoiceField(
-        choices=[(True, 'Sí'), (False, 'No')],
-        widget=forms.RadioSelect,
-        label='Realizado',
-        initial=False,
-        required=False
-    )
-    class Meta:
-        model = Requirement
-        fields = ['novedad', 'approved']
-        widgets = {
-            'novedad': forms.Textarea(attrs={'class': 'form-control'}),
-        }
-        labels = {
-            'novedad': 'Novedad',
-        }
 
 
 class MaintenanceRequirementForm(forms.ModelForm):

@@ -11,8 +11,8 @@ from django.contrib.auth.decorators import permission_required
 from django.http import JsonResponse
 
 from .models import *
-from .forms import OperationForm
-from got.forms import RequirementForm, UploadImages, FullRequirementForm, LimitedRequirementForm
+from .forms import OperationForm, RequirementForm, FullRequirementForm, LimitedRequirementForm
+from got.forms import UploadImages
 
 
 class OperationListView(TemplateView):
