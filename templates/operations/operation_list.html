@@ -422,7 +422,9 @@
         document.getElementById("editStart").value       = operation.x[0];
         document.getElementById("editEnd").value         = operation.x[1];
         document.getElementById("editRequirements").value = operation.requirements || "";
-        document.getElementById("editConfirmado").value  = operation.confirmado;
+        // Supongamos que operation.confirmado es un booleano
+        document.getElementById("editConfirmado").value = operation.confirmado ? "True" : "False";
+
 
         document.getElementById("editAssetLabel").textContent = operation.asset_name;
         const modalEl = document.getElementById('editOperationModal');
