@@ -1,3 +1,4 @@
+# dth/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -33,7 +34,6 @@ from django.http import JsonResponse
 # Horarios de trabajo
 WEEKDAY_START = time(7, 30)
 WEEKDAY_END = time(17, 0)
-
 SATURDAY_START = time(8, 0)
 SATURDAY_END = time(12, 0)
 
@@ -777,13 +777,13 @@ def export_gerencia_nomina_excel(request):
     
     # 3) Definir encabezados y configurar estilos
     headers = [
-        "Cédula del empleado", "Nombre del Empleado", "Cargo", "MES", "AÑO", "Salario",
+        "Cédula", "Nombre", "Cargo", "MES", "AÑO", "Salario",
         "# días sueldo básico", "Sueldo Básico (dv01)", "# días vacaciones", "Pago Vacaciones (dv25)",
-        "Subsidio transporte (dv03)", "Licencia familia (dv103)", "Provisión vacaciones",
-        "DV27 Intereses Ces. Ant", "Prima de Servicio", "Cesantías (dv30)",
-        "Intereses de Cesantías", "Salud colab.", "Pensión colab (dx03)",
-        "Fdo. solidar. (dx05)", "Pensión empleador", "ARL empleador",
-        "Caja comp.", "Ret. Fuente", "Exequias Lordoy (dx07)",
+        "Subsidio transporte (dv03)", "Licencia familia (dv103)", "Provisión vacaciones (4.17%)",
+        "DV27 Intereses Ces. Ant", "Prima de Servicio (8.33%)", "Cesantías (dv30)",
+        "Intereses de Cesantías (1%)", "Salud colab. (4%)", "Pensión colab (dx03)",
+        "Fdo. solidar. (dx05)", "Pensión empleador (12%)", "ARL empleador (6.96%)",
+        "Caja comp. (4%)", "Ret. Fuente", "Exequias Lordoy (dx07)",
         "Desc. pensión voluntaria (dx12)", "Banco Occidente (dx63)",
         "Confenalco (dx64)", "Préstamo (dx66)", "Neto a pagar"
     ]

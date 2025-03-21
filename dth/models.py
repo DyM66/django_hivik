@@ -6,8 +6,9 @@ from decimal import Decimal
 from django.utils import timezone
 from datetime import date
 
+RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
+
 def get_default_admission():
-    """Retorna el 1 de enero del año actual."""
     now = timezone.now()
     return date(now.year, 1, 1)
 
@@ -23,13 +24,14 @@ class Department(models.Model):
 
 
 class Nomina(models.Model):
-    RISK_CLASS_CHOICES = [('I', 'I'), ('II', 'II'), ('III', 'III'), ('IV', 'IV'), ('V', 'V'),]
+    # RISK_CLASS_CHOICES = [('I', 0.00522), ('II', 0.01044), ('III', 0.02436), ('IV', 0.0435), ('V', 0.0696),]
+    RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
     doc_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado.")
     name = models.CharField(max_length=100, help_text="Nombre del empleado.")
     surname = models.CharField(max_length=100, help_text="Apellido del empleado.")
     position = models.CharField(max_length=100, help_text="Cargo o puesto.")
     salary = models.DecimalField(max_digits=18, decimal_places=2, help_text="Salario en COP.")
-    admission = models.DateField(default=get_default_admission, help_text="Fecha de ingreso del empleado. (Obligatoria)")
+    admission = models.DateField(help_text="Fecha de ingreso del empleado. (Obligatoria)")
     expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")
     risk_class = models.CharField(max_length=3, choices=RISK_CLASS_CHOICES, blank=True, null=True, help_text="Clase de riesgo laboral.")
 
@@ -88,45 +90,14 @@ class Overtime(models.Model):
 
 
 class NominaReport(models.Model):
-    """
-    Registros mensuales de nómina con diversos códigos y valores monetarios.
-    """
-
-    # Campos base
     mes = models.PositiveSmallIntegerField(help_text="Mes (1-12).")
     anio = models.PositiveSmallIntegerField(help_text="Año.")
-    nomina = models.ForeignKey(
-        'dth.Nomina',  # Ajustar la ruta si tu modelo 'Nomina' está en el mismo archivo
-        on_delete=models.CASCADE,
-        related_name='reportes',
-        help_text="Empleado asociado a este registro de nómina."
-    )
-
-    # Campos monetarios con sus códigos
-    dv01 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Sueldo básico (código dv01)."
-    )
-    dv25 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Pago Vacaciones (código dv25)."
-    )
-    dv03 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Subsidio de transporte (código dv03)."
-    )
-    dv103 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Licencia de la familia (código dv103)."
-    )
+    nomina = models.ForeignKey('dth.Nomina', on_delete=models.CASCADE, related_name='reportes')
+    current_salary = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Salario Actual")
+    dv01 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Sueldo básico.")
+    dv25 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Pago Vacaciones")
+    dv03 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Subsidio de transporte")
+    dv103 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Licencia de la familia")
     dv27 = models.DecimalField(
         max_digits=18,
         decimal_places=2,
@@ -247,10 +218,15 @@ class NominaReport(models.Model):
 
     @property
     def arl_aporte(self):
-        """
-        dv01 * 6.96%
-        """
-        return self.dv01 * Decimal('0.0696')
+        print(self.nomina.risk_class)
+        if not self.nomina.risk_class:
+            return Decimal('0')
+        try:
+            value = Decimal(self.nomina.get_risk_class_display().replace('%', '').strip())
+            rc = value / Decimal('100')
+        except Exception:
+            rc = Decimal('0')
+        return self.dv01 * rc
 
     @property
     def caja_compensacion_aporte(self):

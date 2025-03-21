@@ -4,10 +4,8 @@
 
 {% block title %}Vista Exclusiva{% endblock %}
 {% block headtag %}
-    {% comment %} {% include "got/assets/asset_list_styles.html" %} {% endcomment %}
-    
+    {% include "dth/gerencia_nomina_styles.html" %}
 {% endblock %}
-
 {% block content %}
 <main class="px-3">
 
@@ -39,121 +37,95 @@
         <button type="submit" id="btnUpload">Procesar Archivo</button>
     </form>
 
+    <hr>
+    <!-- Botón para descargar la tabla en Excel -->
+    <a href="{% url 'dth:gerencia_nomina_export' %}" class="btn btn-info" style="margin-bottom:10px">
+        Descargar Tabla en Excel
+    </a>
 
-<hr>
 
-<!-- Botón para descargar la tabla en Excel -->
-<a href="{% url 'dth:gerencia_nomina_export' %}" class="btn btn-info" style="margin-bottom:10px">
-    Descargar Tabla en Excel
-</a>
-
-<style>
-.maineable {
-    display: block; /* This is needed for scrollbar */
-    width: 100%; 
-    max-width: -moz-max-content;
-    max-width: max-content; 
-    margin: 0 auto; /* this centers the table */
-    overflow-x: auto; /* This is needed for scrollbar */
-}
-.maineable thead tr {
-    background-color: #f2f2f2;
-}
-.maineable thead th {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: center;
-}
-.maineable tbody td {
-    border: 1px solid #ddd;
-    padding: 8px;
-}
-.title-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-</style>
-
-<!-- TABLA DE RESULTADOS -->
-<table class="maineable">
-    <thead>
-        <tr>
-            <th>Cédula</th>
-            <th>Nombre</th>
-            <th>Cargo</th>
-            <th>Mes</th>
-            <th>Año</th>
-            <th>Salario</th>
-            <th>#días sueldo básico</th>
-            <th>Sueldo Básico (DV01)</th>
-            <th>#días vacaciones</th>
-            <th>Pago Vacaciones (DV25)</th>
-            <th>Subsidio de transporte (DV03)</th>
-            <th>Licencia de la familia (DV103)</th>
-            <th>Provisión de vacaciones (4.17%)</th>
-            <th>Intereses Ces. Año Ant. (DV27)</th>
-            <th>Prima de Servicio (8.33%)</th>
-            <th>Cesantías (DV30)</th>
-            <th>Intereses de Cesantías (1%)</th>
-            <th>Salud Aporte colaborador (4%)</th>
-            <th>Pensión aporte colaborador (DX03)</th>
-            <th>Fdo. solidaridad colaborador (1%)</th>
-            <th>Pensión aporte empleador (12%)</th>
-            <th>ARL aporte empleador (6.96%)</th>
-            <th>Caja de compensación (4%)</th>
-            <th>Retención en la fuente (DX01)</th>
-            <th>Exequias Lordoy (DX07)</th>
-            <th>Desc. pensión voluntaria (DX12)</th>
-            <th>Banco de Occidente (DX63)</th>
-            <th>Confenalco (DX64)</th>
-            <th>Préstamo empleado (DX66)</th>
-            <th>Neto a pagar</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in processed_reports %}
-            {% with nr=item.report employee=item.report.nomina %}
-                <tr>
-                    <td>{{ employee.doc_number }}</td>
-                    <td class="nowrap">{{ employee.name }} {{ employee.surname }}</td>
-                    <td>{{ employee.position }}</td>
-                    <td>{{ nr.mes }}</td>
-                    <td>{{ nr.anio }}</td>
-                    <td class="nowrap">{{ employee.salary|currency }}</td>
-                    <td>{{ item.dias_sueldo_basico }}</td>
-                    <td class="nowrap">{{ nr.dv01|currency }}</td>
-                    <td>{{ item.dias_vacaciones }}</td>
-                    <td class="nowrap">{{ nr.dv25|currency }}</td>
-                    <td class="nowrap">{{ nr.dv03|currency }}</td>
-                    <td class="nowrap">{{ nr.dv103|currency }}</td>
-                    <td class="nowrap">{{ nr.provision_vacaciones|currency }}</td>
-                    <td class="nowrap">{{ nr.dv27|currency }}</td>
-                    <td class="nowrap">{{ nr.prima_servicio|currency }}</td>
-                    <td class="nowrap">{{ nr.dv30|currency }}</td>
-                    <td class="nowrap">{{ nr.intereses_cesantias|currency }}</td>
-                    <td class="nowrap">{{ nr.salud_aporte|currency }}</td>
-                    <td class="nowrap">{{ nr.dx03|currency }}</td>
-                    <td class="nowrap">{{ nr.dx05|currency }}</td>
-                    <td class="nowrap">{{ nr.pension_aporte_empleador|currency }}</td>
-                    <td class="nowrap">{{ nr.arl_aporte|currency }}</td>
-                    <td class="nowrap">{{ nr.caja_compensacion_aporte|currency }}</td>
-                    <td class="nowrap">{{ nr.dx01|currency }}</td>
-                    <td class="nowrap">{{ nr.dx07|currency }}</td>
-                    <td class="nowrap">{{ nr.dx12|currency }}</td>
-                    <td class="nowrap">{{ nr.dx63|currency }}</td>
-                    <td class="nowrap">{{ nr.dx64|currency }}</td>
-                    <td class="nowrap">{{ nr.dx66|currency }}</td>
-
-                    <!-- neto_a_pagar -->
-                    <td class="nowrap">{{ nr.neto_a_pagar|currency }}</td>
-                </tr>
-            {% endwith %}
-        {% endfor %}
-    </tbody>
-</table>
-
+    <!-- TABLA DE RESULTADOS -->
+    <table class="maineable">
+        <thead>
+            <tr>
+                <td colspan="12" style="border: none; background: #fff;"></td>
+                <th colspan="5" class="prestaciones">
+                    PRESTACIONES SOCIALES 
+                </th>
+            </tr>
+            
+            <tr>
+                <th>Cédula</th>
+                <th>Nombre</th>
+                <th>Cargo</th>
+                <th>Mes</th>
+                <th>Año</th>
+                <th>Salario</th>
+                <th>#días sueldo básico</th>
+                <th>Sueldo Básico (DV01)</th>
+                <th>#días vacaciones</th>
+                <th>Pago Vacaciones (DV25)</th>
+                <th>Subsidio de transporte (DV03)</th>
+                <th>Licencia de la familia (DV103)</th>
+                <th class="prestaciones">Provisión de vacaciones (4.17%)</th> 
+                <th class="prestaciones">Intereses Ces. Año Ant. (DV27)</th> 
+                <th class="prestaciones">Prima de Servicio (8.33%)</th> 
+                <th class="prestaciones">Cesantías (DV30)</th> 
+                <th class="prestaciones">Intereses de Cesantías (1%)</th> 
+                <th>Salud Aporte colaborador (4%)</th>
+                <th>Pensión aporte colaborador (DX03)</th>
+                <th>Fdo. solidaridad colaborador (1%)</th>
+                <th>Pensión aporte empleador (12%)</th>
+                <th>ARL aporte empleador</th>
+                <th>Caja de compensación (4%)</th>
+                <th>Retención en la fuente (DX01)</th>
+                <th>Exequias Lordoy (DX07)</th>
+                <th>Desc. pensión voluntaria (DX12)</th>
+                <th>Banco de Occidente (DX63)</th>
+                <th>Confenalco (DX64)</th>
+                <th>Préstamo empleado (DX66)</th>
+                <th>Neto a pagar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in processed_reports %}
+                {% with nr=item.report employee=item.report.nomina %}
+                    <tr>
+                        <td>{{ employee.doc_number }}</td>
+                        <td class="nowrap">{{ employee.name }} {{ employee.surname }}</td>
+                        <td>{{ employee.position }}</td>
+                        <td>{{ nr.mes }}</td>
+                        <td>{{ nr.anio }}</td>
+                        <td class="nowrap">{{ employee.salary|currency }}</td>
+                        <td>{{ item.dias_sueldo_basico }}</td>
+                        <td class="nowrap">{{ nr.dv01|currency }}</td>
+                        <td>{{ item.dias_vacaciones }}</td>
+                        <td class="nowrap">{{ nr.dv25|currency }}</td>
+                        <td class="nowrap">{{ nr.dv03|currency }}</td>
+                        <td class="nowrap">{{ nr.dv103|currency }}</td>
+                        <td class="nowrap">{{ nr.provision_vacaciones|currency }}</td>
+                        <td class="nowrap">{{ nr.dv27|currency }}</td>
+                        <td class="nowrap">{{ nr.prima_servicio|currency }}</td>
+                        <td class="nowrap">{{ nr.dv30|currency }}</td>
+                        <td class="nowrap">{{ nr.intereses_cesantias|currency }}</td>
+                        <td class="nowrap">{{ nr.salud_aporte|currency }}</td>
+                        <td class="nowrap">{{ nr.dx03|currency }}</td>
+                        <td class="nowrap">{{ nr.dx05|currency }}</td>
+                        <td class="nowrap">{{ nr.pension_aporte_empleador|currency }}</td>
+                        <td class="nowrap">{{ nr.arl_aporte|currency }} ({{employee.get_risk_class_display}})</td>
+                        <td class="nowrap">{{ nr.caja_compensacion_aporte|currency }}</td>
+                        <td class="nowrap">{{ nr.dx01|currency }}</td>
+                        <td class="nowrap">{{ nr.dx07|currency }}</td>
+                        <td class="nowrap">{{ nr.dx12|currency }}</td>
+                        <td class="nowrap">{{ nr.dx63|currency }}</td>
+                        <td class="nowrap">{{ nr.dx64|currency }}</td>
+                        <td class="nowrap">{{ nr.dx66|currency }}</td>
+                        <td class="nowrap">{{ nr.neto_a_pagar|currency }}</td>
+                    </tr>
+                {% endwith %}
+            {% endfor %}
+        </tbody>
+    </table>
 </main>
 
 
@@ -285,73 +257,65 @@
         // Cambiar texto o mostrar un mensaje de "procesando..."
         btnUpload.textContent = 'Procesando...';
     });
-</script>
 
-<script>
     // Almaceno variables globales para saber cuál PK estamos por borrar
     let pkToDelete = null;
     let rowToRemove = null; // referencia a la <tr> a eliminar
-    
     function onDeleteNomina(pk, linkElement) {
-      // Guardar PK en variable global
-      pkToDelete = pk;
-      // linkElement es <a>. Su ancestro <tr> es la fila que quitaremos tras borrar
-      rowToRemove = linkElement.closest('tr');
-    
-      // Abrir el modal de confirmación
-      const myModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'), {});
-      myModal.show();
+        // Guardar PK en variable global
+        pkToDelete = pk;
+        rowToRemove = linkElement.closest('tr');
+        const myModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'), {});
+        myModal.show();
     }
     
     // Cuando el usuario hace clic en "Eliminar" en el modal:
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     confirmDeleteBtn.addEventListener('click', function() {
-      if (!pkToDelete) return;
+        if (!pkToDelete) return;
+        // Construimos la URL de edición: /nomina/<pk>/edit/
+        const url = `/dth/nomina/${pkToDelete}/edit/`;
+        
+        // Montamos form data
+        const formData = new FormData();
+        formData.append('action', 'delete'); // Indica que queremos borrar
+        // CSRF token:
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+            'X-Requested-With': 'XMLHttpRequest' // Para que la vista sepa que es AJAX
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error al eliminar: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.deleted) {
+                // Eliminado con éxito
+                // Cerramos modal
+                const myModalEl = document.getElementById('deleteConfirmModal');
+                const modalInstance = bootstrap.Modal.getInstance(myModalEl);
+                modalInstance.hide();
     
-      // Construimos la URL de edición: /nomina/<pk>/edit/
-      const url = `/dth/nomina/${pkToDelete}/edit/`;  // Ajusta si tu path base no es /dth
-    
-      // Montamos form data
-      const formData = new FormData();
-      formData.append('action', 'delete'); // Indica que queremos borrar
-      // CSRF token:
-      formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-    
-      fetch(url, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest' // Para que la vista sepa que es AJAX
-        }
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Error al eliminar: ${response.status} ${response.statusText}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.deleted) {
-          // Eliminado con éxito
-          // Cerramos modal
-          const myModalEl = document.getElementById('deleteConfirmModal');
-          const modalInstance = bootstrap.Modal.getInstance(myModalEl);
-          modalInstance.hide();
-    
-          // Quitamos la fila del DOM
-          if (rowToRemove) {
-            rowToRemove.remove();
-          }
-          // Podemos mostrar un mensaje toast o alert
-          alert('Registro eliminado exitosamente');
-        } else {
-          alert('No se pudo eliminar el registro (respuesta inesperada).');
-        }
-      })
-      .catch(err => {
-        alert('Error al intentar eliminar: ' + err);
-      });
+                // Quitamos la fila del DOM
+                if (rowToRemove) {
+                    rowToRemove.remove();
+                }
+                // Podemos mostrar un mensaje toast o alert
+                alert('Registro eliminado exitosamente');
+            } else {
+                alert('No se pudo eliminar el registro (respuesta inesperada).');
+            }
+        })
+        .catch(err => {
+            alert('Error al intentar eliminar: ' + err);
+        });
     });
-    </script>
-    
+</script>    
 {% endblock %}

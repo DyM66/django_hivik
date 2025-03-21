@@ -2,7 +2,7 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
-
+import dth.models
 
 class Migration(migrations.Migration):
 
@@ -22,13 +22,14 @@ class Migration(migrations.Migration):
             name='Nomina',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('doc_number', models.CharField(help_text='Identificación del empleado (no es pk).', max_length=50, verbose_name='Número de documento')),
+                ('doc_number', models.CharField(help_text='Identificación del empleado.', max_length=50, verbose_name='Número de documento')),
                 ('name', models.CharField(help_text='Nombre del empleado.', max_length=100)),
                 ('surname', models.CharField(help_text='Apellido del empleado.', max_length=100)),
                 ('position', models.CharField(help_text='Cargo o puesto.', max_length=100)),
-                ('salary', models.DecimalField(decimal_places=2, help_text='Salario en pesos colombianos.', max_digits=12)),
-                ('category', models.CharField(choices=[('Administrativo', 'Administrativo'), ('Operativo', 'Operativo'), ('Mixto', 'Mixto')], default='Operativo', help_text='Categoria del empleado.', max_length=15)),
-                ('dpto', models.ForeignKey(help_text='Departamento al que pertenece el empleado.', on_delete=django.db.models.deletion.CASCADE, related_name='personas', to='dth.department')),
+                ('salary', models.DecimalField(decimal_places=2, help_text='Salario en COP.', max_digits=18)),
+                ('admission', models.DateField(default=dth.models.get_default_admission, help_text='Fecha de ingreso del empleado. (Obligatoria)')),
+                ('expiration', models.DateField(blank=True, help_text='Fecha de expiración del contrato, si aplica.', null=True)),
+                ('risk_class', models.CharField(blank=True, choices=[('I', 'I'), ('II', 'II'), ('III', 'III'), ('IV', 'IV'), ('V', 'V')], help_text='Clase de riesgo laboral.', max_length=3, null=True)),
             ],
         ),
     ]
