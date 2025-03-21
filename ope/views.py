@@ -57,13 +57,10 @@ class OperationListView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVie
             form = OperationCreateForm(request.POST)
             if form.is_valid():
                 form.save()
-                return redirect(request.path)  # Redirige a la misma vista
+                return redirect(request.path)
             else:
                 return self.render_to_response(self.get_context_data(create_operation_form=form, modal_open=True))
         return super().post(request, *args, **kwargs)
-
-        # Si no es un POST de creación, llamamos a super:
-        # return super().post(request, *args, **kwargs)
 
 
 @require_POST  # Asegura que sólo responda a POST

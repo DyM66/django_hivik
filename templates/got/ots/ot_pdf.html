@@ -186,7 +186,7 @@
     </tr>
 </table>
 
-{% if has_evidence %}
+{% comment %} {% if has_evidence %}
 <br>
 <table class="deta">
     <tbody>
@@ -211,5 +211,38 @@
         {% endif %}
     </tbody>
 </table>
+{% endif %} {% endcomment %}
+
+
+{% if has_evidence %}
+<br>
+<table class="deta">
+    <tbody>
+        <tr>
+            <th colspan="3" style="text-align: center;">
+                <h2>EVIDENCIAS</h2>
+            </th>
+        </tr>
+        {% for date, images in evidence_by_date.items %}
+            {% for i in images %}
+                {% if forloop.counter0|divisibleby:3 %}
+                    <tr>
+                {% endif %}
+                <td style="text-align: center; padding: 5px;">
+                    <img src="{{ i }}" alt="Evidence" style="width:200px; height:auto;">
+                </td>
+                {% if forloop.counter|divisibleby:3 or forloop.last %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            <tr>
+                <td colspan="3" style="background-color:#f2f2f2; text-align:center; font-size: 0.9em; font-style: italic;">
+                    Fecha: {{ date|date:"d/m/Y" }}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endif %}
+
 {% endblock %}

@@ -504,7 +504,6 @@ class Task(models.Model):
         ordering = ['-priority', '-start_date'] 
 
 
-
 # class ActivityHistory(models.Model):
 #     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='history_notes')
 #     note = models.TextField(help_text="Descripción de la novedad o incidencia registrada")

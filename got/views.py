@@ -192,6 +192,179 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
             return render(request, self.template_name, context)
 
 
+'OTS VIEWS'
+class OtListView(LoginRequiredMixin, generic.ListView):
+    model = Ot
+    paginate_by = 18
+    template_name = 'got/ots/ot_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        asset_id = self.request.GET.get('asset_id')
+        if asset_id:
+            systems = System.objects.filter(asset_id=asset_id)
+            context['systems'] = systems
+            context['selected_asset_id'] = asset_id
+        else:
+            context['systems'] = System.objects.none()
+            context['selected_asset_id'] = None
+
+        user = self.request.user
+        user_groups = user.groups.values_list('name', flat=True)
+
+        if 'buzos_members' in user_groups:
+            info_filter = Asset.objects.filter(area='b', show=True)
+        elif 'maq_members' in user_groups:
+            info_filter = Asset.objects.none() 
+        else:
+            info_filter = Asset.objects.filter(show=True)
+        context['asset'] = info_filter
+
+        super_group = Group.objects.get(name='mto_members')
+        users_in_group = super_group.user_set.all()
+        context['mto_members'] = users_in_group
+
+        queryset = self.get_queryset()
+        total_ots_en_ejecucion = queryset.filter(state='x').count()
+        context['total_ots_en_ejecucion'] = total_ots_en_ejecucion
+        return context
+
+    def get_queryset(self):
+        queryset = Ot.objects.all().select_related('system', 'system__asset')
+        user = self.request.user
+        user_groups = user.groups.values_list('name', flat=True)
+
+        if 'maq_members' in user_groups:
+            supervised_assets = Asset.objects.filter(Q(supervisor=user) | Q(capitan=user))
+            queryset = queryset.filter(system__asset__in=supervised_assets)
+        elif 'buzos_members' in user_groups:
+            supervised_assets = Asset.objects.filter(area='b')
+            queryset = queryset.filter(system__asset__in=supervised_assets)
+        elif any(group in user_groups for group in ['mto_members', 'serport_members', 'gerencia', 'operaciones']):
+            pass
+        else:
+            queryset = queryset.none()
+
+        state = self.request.GET.get('state')
+        asset_id = self.request.GET.get('asset_id')
+        responsable = self.request.GET.get('responsable')
+        num_ot = self.request.GET.get('num_ot')
+        system_id = self.request.GET.get('system_id')
+        keyword = self.request.GET.get('keyword')
+
+        if state:
+            queryset = queryset.filter(state=state)
+        if asset_id:
+            queryset = queryset.filter(system__asset_id=asset_id)
+        if responsable:
+            queryset = queryset.filter(supervisor__icontains=responsable)
+        if num_ot:
+            queryset = queryset.filter(num_ot=num_ot)
+        if system_id:
+            queryset = queryset.filter(system_id=system_id)
+        if keyword:
+            queryset = queryset.filter(description__icontains=keyword)
+
+        queryset = queryset.annotate(
+            unfinished_tasks=Count('task', filter=Q(task__finished=False)),
+            is_pausado=Case(
+                When(Q(state='x') & Q(unfinished_tasks=0), then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            state_order=Case(
+                When(state='x', then=1),            # En ejecución
+                When(is_pausado=True, then=2),      # Pausado
+                When(state='a', then=3),            # Abierto
+                When(state='f', then=4),            # Finalizado
+                When(state='c', then=5),            # Cancelado
+                default=6,
+                output_field=IntegerField(),
+            )
+        ).order_by('state_order', '-creation_date', '-num_ot')
+
+        return queryset
+
+
+def ot_pdf(request, num_ot):
+    ot_info = get_object_or_404(Ot, num_ot=num_ot)
+    rutas = Ruta.objects.filter(ot=ot_info)
+    rutina = rutas.exists()
+    fallas = FailureReport.objects.filter(related_ot=ot_info)
+    failure = fallas.exists()
+
+    tareas = Task.objects.filter(ot=ot_info).select_related('responsible', 'responsible__profile').order_by('start_date')
+    usuarios_participacion_dict = {}
+
+    for tarea in tareas:
+        if tarea.responsible:
+            user = tarea.responsible
+            if user.id not in usuarios_participacion_dict:
+                usuarios_participacion_dict[user.id] = {
+                    'nombre': f"{user.first_name} {user.last_name}",
+                    'cargo': user.profile.cargo if hasattr(user, 'profile') else '',
+                    'earliest_start_date': tarea.start_date,
+                    'latest_final_date': tarea.final_date,
+                }
+            else:
+                # Actualizar earliest_start_date
+                if tarea.start_date and (usuarios_participacion_dict[user.id]['earliest_start_date'] is None or tarea.start_date < usuarios_participacion_dict[user.id]['earliest_start_date']):
+                    usuarios_participacion_dict[user.id]['earliest_start_date'] = tarea.start_date
+                # Actualizar latest_final_date
+                if tarea.final_date and (usuarios_participacion_dict[user.id]['latest_final_date'] is None or tarea.final_date > usuarios_participacion_dict[user.id]['latest_final_date']):
+                    usuarios_participacion_dict[user.id]['latest_final_date'] = tarea.final_date
+    
+
+    usuarios_participacion = []
+    for user_id, info in usuarios_participacion_dict.items():
+        if info['earliest_start_date'] and info['latest_final_date']:
+            total_execution_time = info['latest_final_date'] - info['earliest_start_date']
+            total_execution_time_display = f"{total_execution_time.days} días"
+        else:
+            total_execution_time_display = "N/A"
+        
+        usuarios_participacion.append({
+            'nombre': info['nombre'],
+            'cargo': info['cargo'],
+            'start_date': info['earliest_start_date'],
+            'final_date': info['latest_final_date'],
+            'total': total_execution_time_display
+        })
+
+    # Aquí se agrupan las imágenes por fecha
+    images_qs = Image.objects.filter(task__ot=ot_info).order_by('creation')
+    has_evidence = images_qs.exists()
+    evidence_by_date = defaultdict(list)
+    for image in images_qs:
+        evidence_by_date[image.creation].append(image.image.url)
+    
+    # Obtener una lista de todas las URLs de las imágenes
+    # evidence_images = [image.image.url for image in images_qs]
+    context = {
+        'ot': ot_info,
+        'fallas': fallas,
+        'failure': failure,
+        'rutas': rutas,
+        'rutina': rutina,
+        'users': usuarios_participacion,
+        'has_evidence': has_evidence,
+        # 'evidence_images': evidence_images,
+        'evidence_by_date': dict(evidence_by_date),
+        'tareas': tareas
+    }
+    template_path = 'got/ots/ot_pdf.html'
+    download = request.GET.get('download', None)
+    response = render_to_pdf(template_path, context)
+    filename = f'orden_de_trabajo_{num_ot}.pdf'
+    if download:
+        content = f'attachment; filename="{filename}"'
+    else:
+        content = f'inline; filename="{filename}"'
+    response['Content-Disposition'] = content
+    return response
+
+
 class MaintenancePlanPDFExportView(View):
     def get(self, request, asset_abbr):
         # Obtener el asset a exportar
@@ -219,8 +392,6 @@ class MaintenancePlanPDFExportView(View):
         filename = f"maintenance_plan_{asset_abbr}_{date.today().strftime('%Y%m%d')}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
-
-
 
 
 class MaintenancePlanExcelExportView(View):
@@ -1363,101 +1534,6 @@ def asociar_ot_failure_report(request, fail_id):
         return redirect('got:failure-report-detail', pk=fail_id)
 
 
-'OTS VIEWS'
-class OtListView(LoginRequiredMixin, generic.ListView):
-    model = Ot
-    paginate_by = 16
-    template_name = 'got/ots/ot_list.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        asset_id = self.request.GET.get('asset_id')
-        if asset_id:
-            systems = System.objects.filter(asset_id=asset_id)
-            context['systems'] = systems
-            context['selected_asset_id'] = asset_id
-        else:
-            context['systems'] = System.objects.none()
-            context['selected_asset_id'] = None
-
-        user = self.request.user
-        user_groups = user.groups.values_list('name', flat=True)
-
-        if 'buzos_members' in user_groups:
-            info_filter = Asset.objects.filter(area='b', show=True)
-        elif 'maq_members' in user_groups:
-            info_filter = Asset.objects.none() 
-        else:
-            info_filter = Asset.objects.filter(show=True)
-        context['asset'] = info_filter
-
-        super_group = Group.objects.get(name='mto_members')
-        users_in_group = super_group.user_set.all()
-        context['mto_members'] = users_in_group
-
-        queryset = self.get_queryset()
-        total_ots_en_ejecucion = queryset.filter(state='x').count()
-        context['total_ots_en_ejecucion'] = total_ots_en_ejecucion
-        return context
-
-    def get_queryset(self):
-        queryset = Ot.objects.all().select_related('system', 'system__asset')
-        user = self.request.user
-        user_groups = user.groups.values_list('name', flat=True)
-
-        if 'maq_members' in user_groups:
-            supervised_assets = Asset.objects.filter(Q(supervisor=user) | Q(capitan=user))
-            queryset = queryset.filter(system__asset__in=supervised_assets)
-        elif 'buzos_members' in user_groups:
-            supervised_assets = Asset.objects.filter(area='b')
-            queryset = queryset.filter(system__asset__in=supervised_assets)
-        elif any(group in user_groups for group in ['mto_members', 'serport_members', 'gerencia', 'operaciones']):
-            pass
-        else:
-            queryset = queryset.none()
-
-        state = self.request.GET.get('state')
-        asset_id = self.request.GET.get('asset_id')
-        responsable = self.request.GET.get('responsable')
-        num_ot = self.request.GET.get('num_ot')
-        system_id = self.request.GET.get('system_id')
-        keyword = self.request.GET.get('keyword')
-
-        if state:
-            queryset = queryset.filter(state=state)
-        if asset_id:
-            queryset = queryset.filter(system__asset_id=asset_id)
-        if responsable:
-            queryset = queryset.filter(supervisor__icontains=responsable)
-        if num_ot:
-            queryset = queryset.filter(num_ot=num_ot)
-        if system_id:
-            queryset = queryset.filter(system_id=system_id)
-        if keyword:
-            queryset = queryset.filter(description__icontains=keyword)
-
-        queryset = queryset.annotate(
-            unfinished_tasks=Count('task', filter=Q(task__finished=False)),
-            is_pausado=Case(
-                When(Q(state='x') & Q(unfinished_tasks=0), then=Value(True)),
-                default=Value(False),
-                output_field=BooleanField(),
-            ),
-            state_order=Case(
-                When(state='x', then=1),            # En ejecución
-                When(is_pausado=True, then=2),      # Pausado
-                When(state='a', then=3),            # Abierto
-                When(state='f', then=4),            # Finalizado
-                When(state='c', then=5),            # Cancelado
-                default=6,
-                output_field=IntegerField(),
-            )
-        ).order_by('state_order', '-creation_date', '-num_ot')
-
-        return queryset
-
-
 @login_required
 def download_ot_task_images(request, ot_num):
     """
@@ -1657,79 +1733,6 @@ class OtDelete(DeleteView):
     model = Ot
     success_url = reverse_lazy('got:ot-list')
     template_name = 'got/ots/ot_confirm_delete.html'
-
-
-def ot_pdf(request, num_ot):
-    ot_info = get_object_or_404(Ot, num_ot=num_ot)
-    rutas = Ruta.objects.filter(ot=ot_info)
-    rutina = rutas.exists()
-    fallas = FailureReport.objects.filter(related_ot=ot_info)
-    failure = fallas.exists()
-
-    tareas = Task.objects.filter(ot=ot_info).select_related('responsible', 'responsible__profile').order_by('start_date')
-    usuarios_participacion_dict = {}
-
-    for tarea in tareas:
-        if tarea.responsible:
-            user = tarea.responsible
-            if user.id not in usuarios_participacion_dict:
-                usuarios_participacion_dict[user.id] = {
-                    'nombre': f"{user.first_name} {user.last_name}",
-                    'cargo': user.profile.cargo if hasattr(user, 'profile') else '',
-                    'earliest_start_date': tarea.start_date,
-                    'latest_final_date': tarea.final_date,
-                }
-            else:
-                # Actualizar earliest_start_date
-                if tarea.start_date and (usuarios_participacion_dict[user.id]['earliest_start_date'] is None or tarea.start_date < usuarios_participacion_dict[user.id]['earliest_start_date']):
-                    usuarios_participacion_dict[user.id]['earliest_start_date'] = tarea.start_date
-                # Actualizar latest_final_date
-                if tarea.final_date and (usuarios_participacion_dict[user.id]['latest_final_date'] is None or tarea.final_date > usuarios_participacion_dict[user.id]['latest_final_date']):
-                    usuarios_participacion_dict[user.id]['latest_final_date'] = tarea.final_date
-    
-
-    usuarios_participacion = []
-    for user_id, info in usuarios_participacion_dict.items():
-        if info['earliest_start_date'] and info['latest_final_date']:
-            total_execution_time = info['latest_final_date'] - info['earliest_start_date']
-            total_execution_time_display = f"{total_execution_time.days} días"
-        else:
-            total_execution_time_display = "N/A"
-        
-        usuarios_participacion.append({
-            'nombre': info['nombre'],
-            'cargo': info['cargo'],
-            'start_date': info['earliest_start_date'],
-            'final_date': info['latest_final_date'],
-            'total': total_execution_time_display
-        })
-
-    images_qs = Image.objects.filter(task__ot=ot_info)
-    has_evidence = images_qs.exists()
-    
-    # Obtener una lista de todas las URLs de las imágenes
-    evidence_images = [image.image.url for image in images_qs]
-    context = {
-        'ot': ot_info,
-        'fallas': fallas,
-        'failure': failure,
-        'rutas': rutas,
-        'rutina': rutina,
-        'users': usuarios_participacion,
-        'has_evidence': has_evidence,
-        'evidence_images': evidence_images,
-        'tareas': tareas
-    }
-    template_path = 'got/ots/ot_pdf.html'
-    download = request.GET.get('download', None)
-    response = render_to_pdf(template_path, context)
-    filename = f'orden_de_trabajo_{num_ot}.pdf'
-    if download:
-        content = f'attachment; filename="{filename}"'
-    else:
-        content = f'inline; filename="{filename}"'
-    response['Content-Disposition'] = content
-    return response
 
 
 'TASKS VIEW'

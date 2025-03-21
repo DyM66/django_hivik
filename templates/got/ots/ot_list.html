@@ -1,8 +1,15 @@
-{% extends "got/base/base_generic.html" %}
+<!-- got/ots/ot_list.html -->
+{% extends "base/base_generic.html" %}
 {% load my_tags %}
+
+{% block title %}Listado de ordenes de trabajo{% endblock %}
+{% block headtag %}
+    {% include "got/ots/ot_list_styles.html" %}
+{% endblock %}
+
 {% block content %}
 <main class="px-3">
-    <h1>
+    <h1 class="mt-4">
         Ordenes de trabajo
         {% if request.GET.asset_id %}
             - {{ request.GET.asset_id }}
@@ -11,15 +18,6 @@
             - "{{ request.GET.keyword }}"
         {% endif %}
     </h1>
-
-    <style>
-        .indicador {
-            /* background-color: var(--color-finalizado);  */
-            background: linear-gradient(45deg, var(--color-primary), #0157a4);
-            padding: 0 10px;
-            color: #fff;
-        }
-    </style>
 
     <div class="row">
         <div class="col-auto mb-2">
@@ -129,9 +127,11 @@
                         <p class="status 
                         {% if ot.state == 'f' %}green-state
                         {% elif ot.state == 'c' %}red-state
-                        {% elif ot.is_pausado %}tramitado
+                        {% elif ot.is_pausado %}yellow-state
                         {% elif ot.state == 'x' %}violet-state
-                        {% elif ot.state == 'a' %}blue-state{% else %}orange-state{% endif %}">
+                        {% elif ot.state == 'a' %}blue-state
+                        {% else %}orange-state
+                        {% endif %}">
                             {% if ot.is_pausado %}
                                 Pausado
                             {% else %}
