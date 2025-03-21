@@ -98,30 +98,10 @@ class NominaReport(models.Model):
     dv25 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Pago Vacaciones")
     dv03 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Subsidio de transporte")
     dv103 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Licencia de la familia")
-    dv27 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Intereses de cesantías año anterior (código dv27)."
-    )
-    dv30 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Cesantías (código dv30)."
-    )
-    dx03 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Pensión (código dx03)."
-    )
-    dx05 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Solidaridad (código dx05)."
-    )
+    dv27 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Intereses de cesantías año anterior.")
+    dv30 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Cesantías.")
+    dx03 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Pensión.")
+    dx05 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Solidaridad.")
     dx01 = models.DecimalField(
         max_digits=18,
         decimal_places=2,

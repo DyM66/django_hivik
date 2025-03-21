@@ -173,23 +173,31 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         context['page_obj'] = systems.order_by('name')
         context['items_by_subsystem'] = consumibles_summary(asset)
         context['fechas'] = fechas_range()
-        # context['consumos_grafica'] = consumos_combustible_asset(asset)
         context['horas_grafica'] = horas_total_asset(asset)
         context['sys_form'] = SysForm()
         return context
 
     def post(self, request, *args, **kwargs):
         asset = self.get_object()
-        sys_form = SysForm(request.POST)
+
+        if request.POST.get('action') == 'delete_system':
+            sys_id = request.POST.get('sys_id')
+            system = get_object_or_404(System, id=sys_id, asset=asset)
+            system_name = system.name
+            system.delete()
+            messages.success(request, f'El sistema "{system_name}" ha sido eliminado correctamente.')
+            return redirect(request.path)
         
+        sys_form = SysForm(request.POST)
         if sys_form.is_valid():
             sys = sys_form.save(commit=False)
             sys.asset = asset
             sys.save()
             return redirect(request.path)
-        else:
-            context = {'asset': asset, 'sys_form': sys_form}
-            return render(request, self.template_name, context)
+
+        context = self.get_context_data()
+        context['sys_form'] = sys_form
+        return render(request, self.template_name, context)
 
 
 'OTS VIEWS'
@@ -809,22 +817,6 @@ class SysUpdate(UpdateView):
         system.modified_by = self.request.user
         system.save()
         return super().form_valid(form)
-
-
-class SysDelete(DeleteView):
-    model = System
-    template_name = 'got/systems/system_confirm_delete.html'
-
-    def delete(self, request, *args, **kwargs):
-        system = self.get_object()
-        system.modified_by = request.user
-        return super().delete(request, *args, **kwargs)
-
-    def get_success_url(self):
-        asset_code = self.object.asset.abbreviation
-        success_url = reverse_lazy(
-            'got:asset-detail', kwargs={'pk': asset_code})
-        return str(success_url)
     
 
 class EquipoDetailView(LoginRequiredMixin, generic.DetailView):

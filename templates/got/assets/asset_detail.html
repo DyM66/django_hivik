@@ -52,10 +52,10 @@
 							            </li>
 							        {% endif %}
                                     {% if perms.got.delete_system %}
-								        <li>
-								            <a class="dropdown-item" href="{% url 'got:sys-delete' sys.id %}">Eliminar</a>
-							            </li>
-							        {% endif %}
+                                        <li>
+                                            <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deleteSysModal" data-sys-id="{{ sys.id }}" data-sys-name="{{ sys.name }}">Eliminar</button>
+                                        </li>
+                                    {% endif %}
 						        </ul>
 					        </div>
 				        </td>
@@ -223,4 +223,42 @@
     {% include 'got/assets/graps.html' %}
 {% endif %}
 
+
+<!-- Modal Confirmación de Eliminación -->
+<div class="modal fade" id="deleteSysModal" tabindex="-1" aria-labelledby="deleteSysModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">{% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteSysModalLabel">Eliminar Sistema</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro de que deseas eliminar el sistema <strong id="modal-sys-name"></strong>? Esta acción no se puede deshacer.
+                    <input type="hidden" name="sys_id" id="modal-sys-id">
+                    <input type="hidden" name="action" value="delete_system">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    var deleteSysModal = document.getElementById('deleteSysModal');
+    deleteSysModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var sysId = button.getAttribute('data-sys-id');
+        var sysName = button.getAttribute('data-sys-name');
+    
+        var modalSysIdInput = deleteSysModal.querySelector('#modal-sys-id');
+        var modalSysName = deleteSysModal.querySelector('#modal-sys-name');
+    
+        modalSysIdInput.value = sysId;
+        modalSysName.textContent = sysName;
+    });
+</script>    
 {% endblock %}

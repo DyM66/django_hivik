@@ -12,7 +12,6 @@ urlpatterns = [
 
     path("systems/<int:pk>/", views.SysDetailView.as_view(), name="sys-detail"),
     path('system/<int:pk>/update/', views.SysUpdate.as_view(), name='sys-update'),
-    path('system/<int:pk>/delete/', views.SysDelete.as_view(), name='sys-delete'),
     
     path('Equipment/<str:pk>/', views.EquipoDetailView.as_view(), name='equipo-detail'),
     path('equipo/<str:pk>/delete/', views.EquipoDelete.as_view(), name='equipo-delete'),
