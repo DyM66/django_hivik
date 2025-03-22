@@ -224,6 +224,11 @@
             </th>
         </tr>
         {% for date, images in evidence_by_date.items %}
+        <tr>
+            <td colspan="3" style="background-color:#f2f2f2; text-align:center; font-size: 1em; font-style: italic;">
+                Fecha: {{ date|date:"d/m/Y" }}
+            </td>
+        </tr>
             {% for i in images %}
                 {% if forloop.counter0|divisibleby:3 %}
                     <tr>
@@ -235,11 +240,7 @@
                     </tr>
                 {% endif %}
             {% endfor %}
-            <tr>
-                <td colspan="3" style="background-color:#f2f2f2; text-align:center; font-size: 0.9em; font-style: italic;">
-                    Fecha: {{ date|date:"d/m/Y" }}
-                </td>
-            </tr>
+
         {% endfor %}
     </tbody>
 </table>
