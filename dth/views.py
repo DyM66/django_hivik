@@ -6,7 +6,7 @@ from dth.forms import UserProfileForm
 from dth.models import UserProfile
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.views.generic import ListView
+from django.views.generic import ListView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import permission_required, login_required
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -68,16 +68,8 @@ def profile_update(request):
     return render(request, 'dth/profile_update.html', {'form': form})
 
 
-def hours_to_hhmm(total_hours):
-    """Convierte total_hours (float) en un string 'X horas y Y minutos'."""
-    hours = int(total_hours)
-    minutes = int(round((total_hours - hours) * 60))
-    return f"{hours}:{minutes}"
-
-class OvertimeListView(LoginRequiredMixin, ListView):
-    model = Overtime
+class OvertimeListView(LoginRequiredMixin, TemplateView):
     template_name = 'dth/overtime_list.html'
-    paginate_by = 25
 
     def get_default_date_range(self):
         today = date.today()
@@ -116,39 +108,50 @@ class OvertimeListView(LoginRequiredMixin, ListView):
         else:
             start_date, end_date = self.get_default_date_range()
         return start_date, end_date
-
+    
     def get_queryset(self):
         start_date, end_date = self.parse_date_range()
-        queryset = Overtime.objects.filter(fecha__gte=start_date, fecha__lt=end_date)
+        return OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['projects'] = self.get_queryset()
+        context['start_date'], context['end_date'] = self.parse_date_range()
+        print(context)
+        return context
+
+    # def get_queryset(self):
+    #     start_date, end_date = self.parse_date_range()
+    #     queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
 
         # Filtros específicos
-        person_name = self.request.GET.get('name', '').strip()
-        cedula = self.request.GET.get('cedula', '').strip()
-        asset_name = self.request.GET.get('asset', '').strip()
-        aprobado_filter = self.request.GET.get('estado', 'all')
+        # person_name = self.request.GET.get('name', '').strip()
+        # cedula = self.request.GET.get('cedula', '').strip()
+        # asset_name = self.request.GET.get('asset', '').strip()
+        # aprobado_filter = self.request.GET.get('estado', 'all')
 
-        if person_name:
-            queryset = queryset.filter(nombre_completo__icontains=person_name)
-        if cedula:
-            queryset = queryset.filter(cedula__icontains=cedula)
-        if asset_name:
-            queryset = queryset.filter(asset__name__icontains=asset_name)
-        if aprobado_filter == 'aprobado':
-            queryset = queryset.filter(approved=True)
-        elif aprobado_filter == 'no_aprobado':
-            queryset = queryset.filter(approved=False)
+        # if person_name:
+        #     queryset = queryset.filter(nombre_completo__icontains=person_name)
+        # if cedula:
+        #     queryset = queryset.filter(cedula__icontains=cedula)
+        # if asset_name:
+        #     queryset = queryset.filter(asset__name__icontains=asset_name)
+        # if aprobado_filter == 'aprobado':
+        #     queryset = queryset.filter(approved=True)
+        # elif aprobado_filter == 'no_aprobado':
+        #     queryset = queryset.filter(approved=False)
 
         # Filtros por grupo de usuario
-        current_user = self.request.user
-        if current_user.groups.filter(name='mto_members').exists():
-            pass  # Sin filtro adicional
-        elif current_user.groups.filter(name='maq_members').exists():
-            asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()
-            queryset = queryset.filter(asset=asset)
-        elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
-            queryset = queryset.none()
+        # current_user = self.request.user
+        # if current_user.groups.filter(name='mto_members').exists():
+        #     pass  # Sin filtro adicional
+        # elif current_user.groups.filter(name='maq_members').exists():
+        #     asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()
+        #     queryset = queryset.filter(asset=asset)
+        # elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
+        #     queryset = queryset.none()
 
-        return queryset.order_by('-fecha', 'asset', 'hora_inicio', 'justificacion')
+        # return queryset.order_by('-report_date', 'asset', 'ovetime_set_start')
 
     def get_total_hours(self, queryset):
         total_seconds = 0
@@ -182,45 +185,45 @@ class OvertimeListView(LoginRequiredMixin, ListView):
     #     return round(total_seconds / 3600, 2)
 
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        queryset = self.get_queryset()
-        start_date, end_date = self.parse_date_range()
-        context['start_date'] = start_date.strftime('%Y-%m-%d')
-        context['end_date'] = end_date.strftime('%Y-%m-%d')
-        context['date_range'] = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-        context['name'] = self.request.GET.get('name', '')
-        context['cedula'] = self.request.GET.get('cedula', '')
-        context['asset_filter'] = self.request.GET.get('asset', '')
-        context['estado'] = self.request.GET.get('estado', 'all')
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     start_date, end_date = self.parse_date_range()
+    #     context['start_date'] = start_date.strftime('%Y-%m-%d')
+    #     context['end_date'] = end_date.strftime('%Y-%m-%d')
+    #     context['date_range'] = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
+    #     context['name'] = self.request.GET.get('name', '')
+    #     context['cedula'] = self.request.GET.get('cedula', '')
+    #     context['asset_filter'] = self.request.GET.get('asset', '')
+    #     context['estado'] = self.request.GET.get('estado', 'all')
         
-        total_hours = self.get_total_hours(queryset)
-        context['total_hours'] = total_hours  # Valor numérico, por ejemplo 12.5
-        context['total_hours_hhmm'] = hours_to_hhmm(total_hours)  # Formato HH:MM, por ejemplo "12:30"
+    #     queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
+    #     total_hours = self.get_total_hours(queryset)
+    #     context['total_hours'] = total_hours  # Valor numérico, por ejemplo 12.5
+    #     context['total_hours_hhmm'] = hours_to_hhmm(total_hours)  # Formato HH:MM, por ejemplo "12:30"
         
-        context['total_sunday_holiday_hours'] = hours_to_hhmm(self.get_total_sunday_holiday_hours(queryset))
-        # context['total_nocturnal_hours'] = self.get_total_nocturnal_hours(queryset)
+    #     context['total_sunday_holiday_hours'] = hours_to_hhmm(self.get_total_sunday_holiday_hours(queryset))
+    #     # context['total_nocturnal_hours'] = self.get_total_nocturnal_hours(queryset)
     
-        page_obj = context['page_obj']
-        date_asset_justification_groups = []
-        for fecha, fecha_entries in groupby(page_obj.object_list, key=attrgetter('fecha')):
-            asset_groups = []
-            fecha_entries = list(fecha_entries)
-            for asset, asset_entries in groupby(fecha_entries, key=attrgetter('asset')):
-                asset_entries = list(asset_entries)
-                for justificacion, justificacion_entries in groupby(asset_entries, key=attrgetter('justificacion')):
-                    justificacion_entries = list(justificacion_entries)
-                    asset_groups.append({
-                        'asset': asset,
-                        'justificacion': justificacion,
-                        'entries': justificacion_entries
-                    })
-            date_asset_justification_groups.append({'fecha': fecha, 'assets': asset_groups})
-        context['date_asset_groups'] = date_asset_justification_groups
-        # También enviamos la lista de activos para el select (assets de área 'a')
-        context['assets'] = Asset.objects.filter(area='a', show=True).order_by('name')
-        context['holiday_dates'] = json.dumps([d.strftime('%Y-%m-%d') for d in colombia_holidays.keys()])
-        return context
+    #     page_obj = context['page_obj']
+    #     date_asset_justification_groups = []
+    #     for fecha, fecha_entries in groupby(page_obj.object_list, key=attrgetter('fecha')):
+    #         asset_groups = []
+    #         fecha_entries = list(fecha_entries)
+    #         for asset, asset_entries in groupby(fecha_entries, key=attrgetter('asset')):
+    #             asset_entries = list(asset_entries)
+    #             for justificacion, justificacion_entries in groupby(asset_entries, key=attrgetter('justificacion')):
+    #                 justificacion_entries = list(justificacion_entries)
+    #                 asset_groups.append({
+    #                     'asset': asset,
+    #                     'justificacion': justificacion,
+    #                     'entries': justificacion_entries
+    #                 })
+    #         date_asset_justification_groups.append({'fecha': fecha, 'assets': asset_groups})
+    #     context['date_asset_groups'] = date_asset_justification_groups
+    #     # También enviamos la lista de activos para el select (assets de área 'a')
+    #     context['assets'] = Asset.objects.filter(area='a', show=True).order_by('name')
+    #     context['holiday_dates'] = json.dumps([d.strftime('%Y-%m-%d') for d in colombia_holidays.keys()])
+    #     return context
 
 
 @login_required
@@ -602,7 +605,7 @@ def gerencia_nomina_view(request):
                 # Iterar sobre las filas (omitir la primera, que es encabezado)
                 for row in sheet.iter_rows(min_row=2, values_only=True):
                     # Tomar valores de la fila según las columnas
-                    empleado = row[headers["Empleado"] - 1]          # doc_number
+                    empleado = row[headers["Empleado"] - 1]
                     fecha_mov = row[headers["FechaMovimiento"] - 1]  # string con fecha
 
                     fecha_celda = row[headers["FechaMovimiento"] - 1]
@@ -650,11 +653,11 @@ def gerencia_nomina_view(request):
                     valor_devengo = row[headers["ValorDevengo"] - 1] or 0
                     valor_deduccion = row[headers["ValorDeduccion"] - 1] or 0
 
-                    # Verificamos si hay doc_number en Nomina
+                    # Verificamos si hay en Nomina
                     if empleado is None:
                         continue  # Ignorar filas vacías
                     try:
-                        nomina_obj = Nomina.objects.get(doc_number=str(empleado))
+                        nomina_obj = Nomina.objects.get(id_number=str(empleado))
                     except Nomina.DoesNotExist:
                         # Si no existe en Nomina, puedes decidir crearlo o ignorarlo
                         # Aquí optamos por ignorar y continuar
@@ -822,7 +825,7 @@ def export_gerencia_nomina_excel(request):
             dias_vac = nr.dv25 / (Decimal(emp.salary) / Decimal('30'))
         
         data_row = [
-            emp.doc_number,
+            emp.id_number,
             f"{emp.name} {emp.surname}",
             emp.position,
             nr.mes,

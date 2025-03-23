@@ -44,7 +44,7 @@ class Command(BaseCommand):
                 # Rompe el bucle y pasa a la siguiente lógica
                 break
 
-            (doc_number, name, surname, admission_str, expiration_str,
+            (id_number, name, surname, admission_str, expiration_str,
              cost_center, cargo, salary) = row
 
             # Convertir las fechas (si no están vacías)
@@ -57,9 +57,9 @@ class Command(BaseCommand):
             if expiration_str:
                 expiration_date = datetime.strptime(str(expiration_str), "%Y/%m/%d").date()
 
-            # Buscar si existe un registro con ese doc_number
+            # Buscar si existe un registro con ese
             try:
-                nomina_obj = Nomina.objects.get(doc_number=doc_number)
+                nomina_obj = Nomina.objects.get(id_number=id_number)
                 # Verificar qué campos difieren y actualizarlos
                 changed = False
 
@@ -91,15 +91,15 @@ class Command(BaseCommand):
                 if changed:
                     nomina_obj.save()
                     self.stdout.write(self.style.SUCCESS(
-                        f"Registro actualizado para {doc_number}"
+                        f"Registro actualizado para {id_number}"
                     ))
                 else:
-                    self.stdout.write(f"Sin cambios para {doc_number}")
+                    self.stdout.write(f"Sin cambios para {id_number}")
 
             except Nomina.DoesNotExist:
                 # Crear un nuevo registro si no existe
                 Nomina.objects.create(
-                    doc_number=doc_number,
+                    id_number=id_number,
                     name=name,
                     surname=surname,
                     admission=admission_date,
@@ -108,7 +108,7 @@ class Command(BaseCommand):
                     salary=salary
                 )
                 self.stdout.write(self.style.SUCCESS(
-                    f"Registro creado para {doc_number}"
+                    f"Registro creado para {id_number}"
                 ))
 
         if found_blank_row:

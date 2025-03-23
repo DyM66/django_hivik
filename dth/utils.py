@@ -1,5 +1,11 @@
 from datetime import timedelta, datetime, time
 
+def hours_to_hhmm(total_hours):
+    """Convierte total_hours (float) en un string 'X horas y Y minutos'."""
+    hours = int(total_hours)
+    minutes = int(round((total_hours - hours) * 60))
+    return f"{hours}:{minutes}"
+
 def overlap_interval(report_start, report_end, period_start, period_end):
     """
     Retorna el solapamiento (timedelta) entre el intervalo del reporte y el intervalo

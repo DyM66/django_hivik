@@ -38,18 +38,18 @@ class Command(BaseCommand):
                 ))
                 break
 
-            doc_number = row[0]
+            id_number = row[0]
             name_in_excel = row[1]
             percentage_val = row[2]
 
-            if not doc_number:
+            if not id_number:
                 self.stdout.write(self.style.WARNING(
-                    "doc_number vacío. Se detiene el proceso."
+                    "id_number vacío. Se detiene el proceso."
                 ))
                 break
 
             if percentage_val is None:
-                self.stdout.write(f"Omitiendo {doc_number}: no hay valor en '%'.")
+                self.stdout.write(f"Omitiendo {id_number}: no hay valor en '%'.")
                 continue
 
             # Verificamos si es float o string
@@ -66,14 +66,14 @@ class Command(BaseCommand):
 
             except ValueError:
                 self.stdout.write(self.style.ERROR(
-                    f"No se pudo convertir '{percentage_val}' a float. Fila con doc_number={doc_number}"
+                    f"No se pudo convertir '{percentage_val}' a float. Fila con id_number={id_number}"
                 ))
                 continue
 
             # Ahora buscamos val_rounded en el diccionario
             if val_rounded not in risk_mapping:
                 self.stdout.write(self.style.ERROR(
-                    f"El valor {val_rounded} no está definido en el mapping para doc_number={doc_number}."
+                    f"El valor {val_rounded} no está definido en el mapping para id_number={id_number}."
                 ))
                 continue
 
@@ -81,10 +81,10 @@ class Command(BaseCommand):
 
             # Buscar en Nomina
             try:
-                nomina_obj = Nomina.objects.get(doc_number=str(doc_number))
+                nomina_obj = Nomina.objects.get(id_number=str(id_number))
             except Nomina.DoesNotExist:
                 self.stdout.write(self.style.WARNING(
-                    f"No existe registro en Nomina con doc_number={doc_number}. Se omite."
+                    f"No existe registro en Nomina con id_number={id_number}. Se omite."
                 ))
                 continue
 
@@ -94,11 +94,11 @@ class Command(BaseCommand):
                 nomina_obj.risk_class = new_risk_class
                 nomina_obj.save()
                 self.stdout.write(self.style.SUCCESS(
-                    f"Actualizado doc_number={doc_number} de '{old_value}' a '{new_risk_class}'."
+                    f"Actualizado id_number={id_number} de '{old_value}' a '{new_risk_class}'."
                 ))
             else:
                 self.stdout.write(
-                    f"Sin cambios para doc_number={doc_number} (risk_class ya es '{new_risk_class}')."
+                    f"Sin cambios para id_number={id_number} (risk_class ya es '{new_risk_class}')."
                 )
 
         self.stdout.write(self.style.SUCCESS("Proceso finalizado."))

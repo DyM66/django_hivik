@@ -91,7 +91,7 @@
             {% for item in processed_reports %}
                 {% with nr=item.report employee=item.report.nomina %}
                     <tr>
-                        <td>{{ employee.doc_number }}</td>
+                        <td>{{ employee.id_number }}</td>
                         <td class="nowrap">{{ employee.name }} {{ employee.surname }}</td>
                         <td>{{ employee.position }}</td>
                         <td>{{ nr.mes }}</td>
@@ -153,8 +153,8 @@
                     <div class="card card-body mb-4">
                         <form action="{% url 'dth:nomina_create' %}" method="POST">{% csrf_token %}
                             <div class="mb-3">
-                                <label for="doc_number" class="form-label">Cédula</label>
-                                <input type="text" class="form-control" id="doc_number" name="doc_number" required>
+                                <label for="id_number" class="form-label">Cédula</label>
+                                <input type="text" class="form-control" id="id_number" name="id_number" required>
                             </div>
                             <div class="mb-3">
                                 <label for="name" class="form-label">Nombre</label>
@@ -195,7 +195,7 @@
                         <tbody>
                             {% for item in nomina_list %}
                                 <tr>
-                                    <td>{{ item.doc_number }}</td>
+                                    <td>{{ item.id_number }}</td>
                                     <td>{{ item.name }}</td>
                                     <td>{{ item.surname }}</td>
                                     <td>{{ item.position }}</td>

@@ -2,7 +2,6 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
-import dth.models
 
 class Migration(migrations.Migration):
 
@@ -27,7 +26,7 @@ class Migration(migrations.Migration):
                 ('surname', models.CharField(help_text='Apellido del empleado.', max_length=100)),
                 ('position', models.CharField(help_text='Cargo o puesto.', max_length=100)),
                 ('salary', models.DecimalField(decimal_places=2, help_text='Salario en COP.', max_digits=18)),
-                ('admission', models.DateField(default=dth.models.get_default_admission, help_text='Fecha de ingreso del empleado. (Obligatoria)')),
+                ('admission', models.DateField(help_text='Fecha de ingreso del empleado. (Obligatoria)')),
                 ('expiration', models.DateField(blank=True, help_text='Fecha de expiración del contrato, si aplica.', null=True)),
                 ('risk_class', models.CharField(blank=True, choices=[('I', 'I'), ('II', 'II'), ('III', 'III'), ('IV', 'IV'), ('V', 'V')], help_text='Clase de riesgo laboral.', max_length=3, null=True)),
             ],

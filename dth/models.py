@@ -8,10 +8,6 @@ from datetime import date
 
 RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
 
-def get_default_admission():
-    now = timezone.now()
-    return date(now.year, 1, 1)
-
 class Department(models.Model):
     """
     Representa un departamento dentro de la empresa.
@@ -24,9 +20,8 @@ class Department(models.Model):
 
 
 class Nomina(models.Model):
-    # RISK_CLASS_CHOICES = [('I', 0.00522), ('II', 0.01044), ('III', 0.02436), ('IV', 0.0435), ('V', 0.0696),]
     RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
-    doc_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado.")
+    id_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado.")
     name = models.CharField(max_length=100, help_text="Nombre del empleado.")
     surname = models.CharField(max_length=100, help_text="Apellido del empleado.")
     position = models.CharField(max_length=100, help_text="Cargo o puesto.")
@@ -54,32 +49,32 @@ class UserProfile(models.Model):
         return f"{self.user.username}'s profile"
     
 
+class OvertimeProject(models.Model):
+    description = models.TextField()
+    asset = models.ForeignKey('got.Asset', on_delete=models.CASCADE, null=True, blank=True)
+    reported_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    report_date = models.DateField(null=True, blank=True)
+
+
 class Overtime(models.Model):
-    CARGO = (
-        ('a', 'Capitán'),
-        ('b', 'Primer Oficial de Puente'),
-        ('c', 'Marino'),
-        ('d', 'Jefe de Máquinas'),
-        ('e', 'Primer Oficial de Máquinas'),
-        ('f', 'Maquinista'),
-        ('g', 'Otro'),
-    )
-
     # Información común
-    fecha = models.DateField()
-    hora_inicio = models.TimeField()
+    STATE = (('a', 'Aprobado'), ('b', 'No aprobado'), ('c', 'Pendiente'))
+    start = models.TimeField()
     hora_fin = models.TimeField()
-    justificacion = models.TextField()
+    worker = models.ForeignKey(Nomina, on_delete=models.CASCADE, null=True, blank=True)
+    state = models.CharField(max_length=1, choices=STATE, default='c')
+    project = models.ForeignKey(OvertimeProject, on_delete=models.CASCADE, null=True, blank=True)
 
-    # Información específica por persona
+    # OBSOLETO
+    fecha = models.DateField()
+    justificacion = models.TextField()
+    approved = models.BooleanField(default=False)
+    asset = models.ForeignKey('got.Asset', on_delete=models.SET_NULL, null=True, blank=True)
+    reportado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    CARGO = (('a', 'Capitán'),('b', 'Primer Oficial de Puente'),('c', 'Marino'),('d', 'Jefe de Máquinas'),('e', 'Primer Oficial de Máquinas'),('f', 'Maquinista'),('g', 'Otro'),)
     nombre_completo = models.CharField(max_length=200, default='')
     cedula = models.CharField(max_length=20, default='')
     cargo = models.CharField(max_length=1, choices=CARGO)
-
-    # Información adicional
-    reportado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    approved = models.BooleanField(default=False)
-    asset = models.ForeignKey('got.Asset', on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre_completo} - {self.get_cargo_display()} ({self.fecha})"
@@ -102,42 +97,12 @@ class NominaReport(models.Model):
     dv30 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Cesantías.")
     dx03 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Pensión.")
     dx05 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Solidaridad.")
-    dx01 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Retención en la fuente (código dx01)."
-    )
-    dx07 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Exequias Lordoy (código dx07)."
-    )
-    dx12 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Descuento pensión voluntaria (código dx12)."
-    )
-    dx63 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Banco de Occidente (código dx63)."
-    )
-    dx64 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Confenalco (código dx64)."
-    )
-    dx66 = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        help_text="Préstamo empleado (código dx66)."
-    )
+    dx01 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Retención en la fuente.")
+    dx07 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Exequias Lordoy.")
+    dx12 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Descuento pensión voluntaria.")
+    dx63 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Banco de Occidente.")
+    dx64 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Confenalco.")
+    dx66 = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal('0.00'), help_text="Préstamo empleado.")
 
     # ---------- Propiedades Dinámicas ----------
     @property
@@ -198,7 +163,6 @@ class NominaReport(models.Model):
 
     @property
     def arl_aporte(self):
-        print(self.nomina.risk_class)
         if not self.nomina.risk_class:
             return Decimal('0')
         try:

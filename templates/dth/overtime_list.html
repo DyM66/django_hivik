@@ -1,6 +1,7 @@
 <!-- dth/overtime_list.html -->
-{% extends 'got/base/base_generic.html' %}
+{% extends 'base/base_generic.html' %}
 
+{% block title %}Listado de horas extras{% endblock %}
 {% block headtag %}
     <style>
         .main-menu {
@@ -18,6 +19,12 @@
             /* Puedes ajustar márgenes, fuente o colores según tu diseño */
             background-color: #fff;
             border: 1px solid #ccc;
+        }
+        /* Estilos para marcar los días festivos */
+        .flatpickr-day.holiday {
+            background-color: #ffcccc;  /* Fondo rojo claro */
+            border: 1px solid #ff0000;  /* Borde rojo */
+            color: #ff0000;             /* Texto rojo */
         }
     </style>
 {% endblock %}
@@ -97,15 +104,47 @@
         </div>
     </div>
 
-<style>
-    /* Estilos para marcar los días festivos */
-    .flatpickr-day.holiday {
-        background-color: #ffcccc;  /* Fondo rojo claro */
-        border: 1px solid #ff0000;  /* Borde rojo */
-        color: #ff0000;             /* Texto rojo */
-    }
 
-</style>
+    <table class="table-list deta mt-2">
+        <thead>
+            <tr>
+                <th>Solicitud</th>
+                <th>Centro de costos</th>
+                <th>Reportado por</th>
+                <th>Justificación</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+                <tr>
+                    <td data-cell="Fecha">
+                        <h6>{{ project.report_date|date:"d/m/Y" }}</h6>
+                    </td>
+                    <td data-cell="Centro de costos"><strong>{{ project.asset.name }}</strong></td>
+                    <td data-cell="Reportado por">
+                        <strong>{{ project.reported_by.get_full_name }}</strong>
+                    </td>
+                    <td data-cell="Justificación">
+                        {{ project.description|linebreaksbr }}
+                    </td>
+                </tr>
+                <tr>
+                    <td data-cell="Detalles" class="full-width-cell solicitud-cell" colspan="4">
+                        <ul style="list-style: none; padding-left: 0;">
+                            {% for entry in project.overtime_set.all %}
+                                {% if entry.worker %}
+                                    <li>{{ entry.worker }}</li>
+                                {% else %}
+                                    <li style="color: red">{{ entry.nombre_completo }} - {{ entry.cedula }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
 <!-- Inclusión de Flatpickr en modo "range", en español, siempre visible -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -134,139 +173,7 @@
             }
         }
     });
-</script>
 
-    <table class="table-list deta mt-2">
-            <thead>
-                <tr>
-                    <th>Solicitud</th>
-                    <th>Centro de costos</th>
-                    <th>Reportado por</th>
-                    <th>Justificación</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for date_group in date_asset_groups %}
-                    {% for asset_group in date_group.assets %}
-                        <tr>
-                            <td data-cell="Fecha">
-                                <h6>{{ date_group.fecha|date:"d/m/Y" }}</h6>
-                            </td>
-                            <td data-cell="Centro de costos"><strong>{{ asset_group.asset.name }}</strong></td>
-                            <td data-cell="Reportado por">
-                                <strong>{{ asset_group.entries.0.reportado_por.get_full_name }}</strong>
-                            </td>
-                            <td data-cell="Justificación">
-                                {{ asset_group.justificacion|linebreaksbr }}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td data-cell="Detalles" class="full-width-cell solicitud-cell" colspan="4">
-                                <ul style="list-style: none; padding-left: 0;">
-                                    {% for entry in asset_group.entries %}
-                                        <li id="entry.id">
-                                            <strong>{{ entry.nombre_completo }}</strong> - {{ entry.get_cargo_display }}
-                                            {% if perms.overtime.change_overtime %}
-                                                <a href="#" data-bs-toggle="modal" data-bs-target="#editEntryModal{{ entry.id }}">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                            {% endif %}
-                                        
-                                            Cédula: {{ entry.cedula }}<br>
-                                            Horario: {{ entry.hora_inicio|time:"h:i A" }} - {{ entry.hora_fin|time:"h:i A" }}
-                                            {% if entry.approved %}
-                                                <span class="status aprobado">Aprobado</span>
-                                            {% else %}
-                                                <span class="status orange-state">No aprobado</span>
-                                            {% endif %}
-                                            <br>
-                                            {% if perms.got.can_approve_overtime %}
-                                            <form method="post" action="{% url 'dth:approve_overtime' entry.id %}#{{entry.id}}" style="display:inline;">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                                {% if not entry.approved %}
-                                                    <button type="submit" class="btn btn-sm btn-primary">Aprobar</button>
-                                                {% endif %}
-                                            </form>
-                                            {% endif %}
-                                        </li>
-                                        {% if not forloop.last %}
-                                            <hr>
-                                        {% endif %}
-        
-        
-                                        <div class="modal fade" id="editEntryModal{{ entry.id }}" tabindex="-1" aria-labelledby="editEntryModalLabel{{ entry.id }}" aria-hidden="true">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <form method="post" action="{% url 'dth:edit_overtime' entry.id %}">{% csrf_token %}
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="editEntryModalLabel{{ entry.id }}">Editar Registro de Horas Extras</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <div class="mb-3">
-                                                                <label for="nombre_completo{{ entry.id }}" class="form-label">Nombre completo</label>
-                                                                <input type="text" class="form-control" id="nombre_completo{{ entry.id }}" name="nombre_completo" value="{{ entry.nombre_completo }}">
-                                                            </div>
-                                                            <div class="mb-3">
-                                                                <label for="cedula{{ entry.id }}" class="form-label">Cédula</label>
-                                                                <input type="text" class="form-control" id="cedula{{ entry.id }}" name="cedula" value="{{ entry.cedula }}">
-                                                            </div>
-                                                            <div class="mb-3">
-                                                                <label for="hora_inicio{{ entry.id }}" class="form-label">Hora de inicio</label>
-                                                                <input type="text" class="form-control timepicker" id="hora_inicio{{ entry.id }}" name="hora_inicio" value="{{ entry.hora_inicio|time:'h:i A' }}">
-                                                            </div>
-                                                            <div class="mb-3">
-                                                                <label for="hora_fin{{ entry.id }}" class="form-label">Hora de fin</label>
-                                                                <input type="text" class="form-control timepicker" id="hora_fin{{ entry.id }}" name="hora_fin" value="{{ entry.hora_fin|time:'h:i A' }}">
-                                                            </div>
-                                                            <div class="mb-3">
-                                                                <label for="justificacion{{ entry.id }}" class="form-label">Justificación</label>
-                                                                <textarea class="form-control" id="justificacion{{ entry.id }}" name="justificacion" rows="4">{{ entry.justificacion }}</textarea>
-                                                            </div>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <!-- Botón para eliminar el registro -->
-                                                                <button type="button" class="btn btn-danger" onclick="deleteEntry{{ entry.id }}()">Eliminar</button>
-                                                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
-                                                        </div>
-                                                    </form>
-                                                    <!-- Formulario oculto para eliminar el registro -->
-                                                    <form method="post" action="{% url 'dth:delete_overtime' entry.id %}" id="deleteForm{{ entry.id }}" style="display:none;">
-                                                        {% csrf_token %}
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-        
-                                        <!-- Script para manejar la eliminación -->
-                                        <script>
-                                            function deleteEntry{{ entry.id }}() {
-                                                if(confirm('¿Estás seguro de que deseas eliminar este registro?')) {
-                                                    document.getElementById('deleteForm{{ entry.id }}').submit();
-                                                }
-                                            }
-                                        </script>
-        
-        
-                                    {% endfor %}
-                                </ul>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    {% empty %}
-                    <tr>
-                        <td colspan="4">No hay solicitudes de horas extras registradas.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-
-</div>
-
-
-<script>
     document.addEventListener('DOMContentLoaded', function() {
         flatpickr(".timepicker", {
             enableTime: true,
