@@ -187,6 +187,19 @@
     @media (max-width: 991px) {
         .mega-menu-desktop {display: none !important; /* no se usa en móviles */}
     }
+    @media (max-width: 991px) {
+        /* Asegura que el submenú móvil se muestre en flujo normal y ocupe todo el ancho */
+        .mega-menu-mobile {
+            position: static !important;
+            width: 100% !important;
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+        /* Opcional: si el contenedor del enlace dropdown también influye, se fuerza que ocupe el ancho completo */
+        .navbar-nav .nav-item.dropdown.mega-dropdown {
+            width: 100%;
+        }
+    }
     .page-link {
         color: var(--color-primary);
     }

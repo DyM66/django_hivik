@@ -1,32 +1,24 @@
 # dth/views.py
-from django.shortcuts import render, redirect, get_object_or_404, get_list_or_404
+from django.contrib.auth.decorators import permission_required, login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from dth.forms import UserProfileForm
-from dth.models import UserProfile
-from django.contrib.auth.models import User
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.http import HttpResponse, JsonResponse
+from django.urls import reverse_lazy, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import CreateView, TemplateView
 from django.views.decorators.http import require_POST
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import permission_required, login_required
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import render, get_object_or_404, redirect
-from django.core.paginator import Paginator
-from datetime import date
-from django.urls import reverse_lazy, reverse
-from dateutil.relativedelta import relativedelta
-from django.core.paginator import Paginator
-import openpyxl
-from django.http import HttpResponse
-from datetime import timedelta, datetime, time, date
-from django.contrib import messages
-from datetime import time
-from django.http import JsonResponse
-from openpyxl.utils import get_column_letter
 
 import json
+import openpyxl
+from openpyxl.utils import get_column_letter
+from datetime import timedelta, datetime, time, date
+from dateutil.relativedelta import relativedelta
+
 from got.models import Asset
+from dth.forms import UserProfileForm
 from .models import *
 from .forms import *
 from .utils import *
@@ -104,18 +96,29 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
     
     def get_queryset(self):
         start_date, end_date = self.parse_date_range()
-        return OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
+
+        queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
+
+        # Filtros por grupo de usuario
+        current_user = self.request.user
+        if current_user.groups.filter(name='mto_members').exists():
+            pass  # Sin filtro adicional
+        elif current_user.groups.filter(name='maq_members').exists():
+            asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()
+            queryset = queryset.filter(asset=asset)
+        elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
+            queryset = queryset.none()
+
+        return queryset.order_by('-report_date', 'asset', 'ovetime_set_start')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['projects'] = self.get_queryset()
         context['start_date'], context['end_date'] = self.parse_date_range()
-        print(context)
         return context
 
     # def get_queryset(self):
     #     start_date, end_date = self.parse_date_range()
-    #     queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
 
         # Filtros específicos
         # person_name = self.request.GET.get('name', '').strip()
@@ -133,18 +136,6 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
         #     queryset = queryset.filter(approved=True)
         # elif aprobado_filter == 'no_aprobado':
         #     queryset = queryset.filter(approved=False)
-
-        # Filtros por grupo de usuario
-        # current_user = self.request.user
-        # if current_user.groups.filter(name='mto_members').exists():
-        #     pass  # Sin filtro adicional
-        # elif current_user.groups.filter(name='maq_members').exists():
-        #     asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()
-        #     queryset = queryset.filter(asset=asset)
-        # elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
-        #     queryset = queryset.none()
-
-        # return queryset.order_by('-report_date', 'asset', 'ovetime_set_start')
 
     def get_total_hours(self, queryset):
         total_seconds = 0

@@ -120,9 +120,6 @@
         <div class="table-responsive flex-grow-1">
             <table class="table-list deta mt-2">
                 <thead>
-                    <!-- <tr>
-
-                    </tr> -->
                     <tr>
                         <th>Solicitud</th>
                         <th>Centro de costos</th>
@@ -142,7 +139,6 @@
                             {% endif %}
                         </th>
                     </tr>
-                    
                 </thead>
                 <tbody>
                     {% for project in projects %}
@@ -162,21 +158,23 @@
                             <td colspan="5">
                                 <table class="table-detail">
                                     {% for entry in project.overtime_set.all %}
-                                    <tr>
+                                    <tr class="clickable-row">
                                         <td>
-                                            {% if entry.worker %}
-                                                {{ entry.worker }}
-                                            {% else %}
-                                                <span style="color: red">
-                                                    {{ entry.nombre_completo }} - {{ entry.cedula }} - {{ entry.get_cargo_display }}
-                                                </span>
-                                            {% endif %}
+                                            <!-- <label style="cursor: pointer;"> -->
+                                                {% if entry.state == 'c' %}
+                                                    <input type="checkbox" class="overtime-checkbox" style="display:none;" value="{{ entry.id }}">
+                                                {% endif %}
+                                                {% if entry.worker %}
+                                                    {{ entry.worker }}
+                                                {% else %}
+                                                    <span style="color: red">
+                                                        {{ entry.nombre_completo }} - {{ entry.cedula }} - {{ entry.get_cargo_display }}
+                                                    </span>
+                                                {% endif %}
+                                            <!-- </label> -->
                                         </td>
                                         <td>
-                                            - {{ entry.start|time:"h:i A" }} - {{ entry.end|time:"h:i A" }} 
-                                            {% if entry.state == 'c' %}
-                                                <input type="checkbox" class="overtime-checkbox" style="display:none;" value="{{ entry.id }}">
-                                            {% endif %}
+                                            {{ entry.start|time:"h:i A" }} - {{ entry.end|time:"h:i A" }} 
                                         </td>
                                         
                                         <td>
@@ -381,49 +379,77 @@
     
         toggleBtn.onclick = () => {
             checkboxesVisible = !checkboxesVisible;
-            checkboxes.forEach(cb => {
+            document.querySelectorAll('.overtime-checkbox').forEach(cb => {
                 cb.style.display = checkboxesVisible ? 'inline-block' : 'none';
                 cb.checked = false;
+                cb.closest('.clickable-row').classList.remove('selected-row');
             });
             approveBtn.style.display = rejectBtn.style.display = checkboxesVisible ? 'inline-block' : 'none';
         };
+
+        document.querySelectorAll('.clickable-row').forEach(row => {
+            row.addEventListener('click', function(event) {
+                if (!checkboxesVisible) return;
+
+                const target = event.target;
+                if (target.tagName.toLowerCase() === 'button' || target.closest('button') || target.tagName.toLowerCase() === 'i') {
+                    return; // Ignora botones e íconos
+                }
+
+                const checkbox = row.querySelector('.overtime-checkbox');
+                if (checkbox) {
+                    if (target !== checkbox) {  // Evita doble toggle
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    row.classList.toggle('selected-row', checkbox.checked);
+                }
+            });
+
+            // Asegura que clic directamente en checkbox también marque la fila
+            const checkbox = row.querySelector('.overtime-checkbox');
+            if (checkbox) {
+                checkbox.addEventListener('click', (event) => {
+                    row.classList.toggle('selected-row', checkbox.checked);
+                    event.stopPropagation();  // Evita conflicto con clic en fila
+                });
+            }
+        });
     
         function updateModal(modalBodyId, containerId) {
-    const selected = Array.from(document.querySelectorAll('.overtime-checkbox:checked'));
-    let container = document.getElementById(containerId);
-    container.innerHTML = '';
+            const selected = Array.from(document.querySelectorAll('.overtime-checkbox:checked'));
+            let container = document.getElementById(containerId);
+            container.innerHTML = '';
 
-    if (selected.length > 0) {
-        let html = '<ul class="list-group">';
-        selected.forEach(cb => {
-            const row = cb.closest('tr'); // ahora cada checkbox está en una fila <tr>
-            const workerInfo = row.cells[0].innerText.trim();
-            const timeInfo = row.cells[1].innerText.trim();
-            const statusInfo = row.cells[2].innerText.trim();
+            if (selected.length > 0) {
+                let html = '<ul class="list-group">';
+                selected.forEach(cb => {
+                    const row = cb.closest('tr'); // ahora cada checkbox está en una fila <tr>
+                    const workerInfo = row.cells[0].innerText.trim();
+                    const timeInfo = row.cells[1].innerText.trim();
+                    const statusInfo = row.cells[2].innerText.trim();
 
-            html += `
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${workerInfo}</strong><br>
-                        <small>${timeInfo}</small>
-                    </div>
-                    <span class="badge bg-secondary">${statusInfo}</span>
-                </li>
-            `;
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${workerInfo}</strong><br>
+                                <small>${timeInfo}</small>
+                            </div>
+                            <span class="badge bg-secondary">${statusInfo}</span>
+                        </li>
+                    `;
 
-            const inputHidden = document.createElement('input');
-            inputHidden.type = 'hidden';
-            inputHidden.name = 'selected_overtime';
-            inputHidden.value = cb.value;
-            container.appendChild(inputHidden);
-        });
-        html += '</ul>';
-        document.getElementById(modalBodyId).innerHTML = html;
-    } else {
-        document.getElementById(modalBodyId).innerHTML = '<p class="text-danger">No has seleccionado ningún registro.</p>';
-    }
-}
-
+                    const inputHidden = document.createElement('input');
+                    inputHidden.type = 'hidden';
+                    inputHidden.name = 'selected_overtime';
+                    inputHidden.value = cb.value;
+                    container.appendChild(inputHidden);
+                });
+                html += '</ul>';
+                document.getElementById(modalBodyId).innerHTML = html;
+            } else {
+                document.getElementById(modalBodyId).innerHTML = '<p class="text-danger">No has seleccionado ningún registro.</p>';
+            }
+        }
 
         // Ajuste para los botones modales:
         approveBtn.onclick = () => updateModal('approveModalBody', 'approve-selected-container');
@@ -453,8 +479,22 @@
         };
     });
 
-
 </script>
-    
+
+<style>
+.clickable-row {
+    cursor: pointer;
+}
+
+.overtime-checkbox {
+    cursor: pointer;
+}
+
+.selected-row {
+    background-color: #d1e7dd !important;
+}
+
+
+</style>
 
 {% endblock %}
