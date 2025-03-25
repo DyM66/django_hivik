@@ -97,8 +97,9 @@
                             <label class="form-label">Estado</label>
                             <select class="form-select" name="estado">
                                 <option value="all" {% if estado == "all" %}selected{% endif %}>Todos</option>
-                                <option value="approved" {% if estado == "approved" %}selected{% endif %}>Aprobados</option>
-                                <option value="no_aprobado" {% if estado == "no_aprobado" %}selected{% endif %}>No Aprobados</option>
+                                <option value="a" {% if estado == "a" %}selected{% endif %}>Aprobados (state='a')</option>
+                                <option value="b" {% if estado == "b" %}selected{% endif %}>No Aprobados (state='b')</option>
+                                <option value="c" {% if estado == "c" %}selected{% endif %}>Pendientes (state='c')</option>
                             </select>
                         </div>
                     </div>
@@ -159,7 +160,7 @@
                         </tr>
                         <tr>
                             <td colspan="5">
-                                <table>
+                                <table class="table-detail">
                                     {% for entry in project.overtime_set.all %}
                                     <tr>
                                         <td>

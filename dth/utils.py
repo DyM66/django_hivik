@@ -49,8 +49,38 @@ def calcular_horas_extras(fecha, hora_inicio, hora_fin):
 
     if hora_inicio >= end_work or hora_fin <= start_work:
         overtime_periods.append((hora_inicio, hora_fin))
-
     return overtime_periods
+
+
+def subtract_time_ranges(new_start, new_end, existing_ranges):
+    if new_start >= new_end:
+        return []
+
+    # Empezamos con la lista "result" con un solo intervalo (new_start, new_end)
+    result = [(new_start, new_end)]
+
+    for (ex_start, ex_end) in existing_ranges:
+        tmp = []
+        for (cur_start, cur_end) in result:
+            # Si no hay solapamiento, lo dejamos igual
+            if ex_end <= cur_start or ex_start >= cur_end:
+                # [ex_start,ex_end] está totalmente fuera de [cur_start,cur_end]
+                tmp.append((cur_start, cur_end))
+            else:
+                # Se solapan => dividir
+                # Parte izquierda (si existe)
+                if ex_start > cur_start:
+                    tmp.append((cur_start, ex_start))
+                # Parte derecha (si existe)
+                if ex_end < cur_end:
+                    tmp.append((ex_end, cur_end))
+        result = tmp
+        if not result:
+            # Ya no queda nada, podemos cortar
+            break
+
+    return result
+
 
 def hours_to_hhmm(total_hours):
     """Convierte total_hours (float) en un string 'X horas y Y minutos'."""

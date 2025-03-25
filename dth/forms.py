@@ -86,39 +86,38 @@ class OvertimeEditForm(forms.ModelForm):
             'cedula': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
-
+from datetime import date
 class OvertimeProjectForm(forms.ModelForm):
-    start = forms.TimeField(label="Hora de Inicio", widget=forms.TimeInput(attrs={'type':'time'}))
-    end = forms.TimeField(label="Hora de Fin", widget=forms.TimeInput(attrs={'type':'time'}))
+    start = forms.TimeField(label="Hora de Inicio")
+    end = forms.TimeField(label="Hora de Fin")
     cedulas = forms.CharField(widget=forms.HiddenInput(), required=False)
-    personas_externas = forms.CharField(widget=forms.HiddenInput(), required=False)  # Añadir esto
+    personas_externas = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     class Meta:
         model = OvertimeProject
         fields = ['report_date', 'description', 'asset']
-        widgets = {
-            'report_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        }
 
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user')
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if user.groups.filter(name='maq_members').exists():
-            self.fields.pop('asset')
+        # Cambiar la etiqueta de 'description'
+        self.fields['description'].label = "Justificación"
 
+        # Si el usuario es maq_members, remover asset
+        if user and user.groups.filter(name='maq_members').exists():
+            self.fields.pop('asset', None)
+        else:
+            # Solo mostrar assets con show=True
+            self.fields['asset'].queryset = Asset.objects.filter(show=True)
+            self.fields['asset'].label = "Centro de costos"
+        
+        # Ajustar la etiqueta de 'report_date' si deseas (por defecto dice 'Report date')
+        self.fields['report_date'].label = "Fecha"
 
-    # def clean(self):
-    #     cleaned_data = super().clean()
-    #     report_date = cleaned_data.get('report_date')
-    #     start = cleaned_data.get('start')
-    #     end = cleaned_data.get('end')
-    #     cedulas = cleaned_data.get('cedulas')
-
-    #     if not cedulas:
-    #         raise forms.ValidationError("Debes agregar al menos una persona.")
-
-    #     if start >= end:
-    #         raise forms.ValidationError("La hora de fin debe ser posterior a la hora de inicio.")
+    def clean_report_date(self):
+        data = self.cleaned_data['report_date']
+        if data > date.today():
+            raise forms.ValidationError("No puedes reportar horas en una fecha futura.")
+        return data
 
     #     try:
     #         cedulas = json.loads(cedulas)

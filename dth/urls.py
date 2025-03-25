@@ -8,8 +8,8 @@ urlpatterns = [
 
     path('', views.OvertimeListView.as_view(), name='overtime_list'),
     path('approve/', views.approve_overtime, name='approve_overtime'),
+    path('crear-overtime/', views.OvertimeProjectCreateView.as_view(), name='overtime_report'),
 
-    path('crear-overtime/', views.create_overtime_report, name='overtime_report'),
     path('buscar-nomina/', views.buscar_nomina, name='buscar_nomina'),
 
     path('edit-overtime/', views.edit_overtime, name='edit_overtime'),
