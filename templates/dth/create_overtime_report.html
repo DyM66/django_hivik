@@ -24,7 +24,9 @@
 
         <div id="personList" class="mt-3"></div>
 
+        <!-- Campos ocultos para almacenar datos generados por JavaScript -->
         {{ form.cedulas }}
+        {{ form.personas_externas }}
 
         <button type="submit" class="btn btn-primary mt-3">Enviar Reporte</button>
     </form>
@@ -36,83 +38,110 @@
         const personList = document.getElementById('personList');
         const cedulasInput = document.getElementById('id_cedulas');
         const externosInput = document.getElementById('id_personas_externas');
+    
         let cedulasArray = [];
         let externosArray = [];
     
         addPersonBtn.onclick = function() {
-            const div = document.createElement('div');
-            div.className = 'input-group my-2';
+            const personDiv = document.createElement('div');
+            personDiv.className = 'input-group my-3';
     
-            div.innerHTML = `
+            personDiv.innerHTML = `
                 <input type="text" class="form-control cedula-input" placeholder="Cédula">
                 <button class="btn btn-outline-secondary buscar-btn" type="button">Buscar</button>
-                <span class="input-group-text result-span"></span>
+                <div class="result-section w-100 mt-2"></div>
             `;
     
-            personList.appendChild(div);
+            personList.appendChild(personDiv);
     
-            const buscarBtn = div.querySelector('.buscar-btn');
-            
+            const buscarBtn = personDiv.querySelector('.buscar-btn');
+            const cedulaInput = personDiv.querySelector('.cedula-input');
+            const resultSection = personDiv.querySelector('.result-section');
+    
             buscarBtn.onclick = function() {
-                const cedulaInput = div.querySelector('.cedula-input');
                 const cedula = cedulaInput.value.trim();
-                const resultSpan = div.querySelector('.result-span');
     
                 if (!cedula) {
-                    resultSpan.textContent = 'Ingresa una cédula válida.';
+                    resultSection.innerHTML = '<div class="alert alert-warning">Ingresa una cédula válida.</div>';
                     return;
                 }
     
-                fetch("{% url 'dth:buscar_nomina' %}?cedula=" + cedula)
-                    .then(response => response.json())
+                fetch(`{% url 'dth:buscar_nomina' %}?cedula=${cedula}`)
+                    .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            if (!cedulasArray.includes(cedula)) {
-                                resultSpan.textContent = data.name + ' (' + data.position + ')';
+                            if (cedulasArray.includes(cedula)) {
+                                resultSection.innerHTML = `<div class="alert alert-info">Persona ya agregada: ${data.name} (${data.position})</div>`;
+                            } else {
+                                resultSection.innerHTML = `<div class="alert alert-success">Encontrado: ${data.name} (${data.position})</div>`;
                                 cedulasArray.push(cedula);
                                 cedulasInput.value = JSON.stringify(cedulasArray);
-                            } else {
-                                resultSpan.textContent = 'Esta persona ya fue agregada.';
                             }
                         } else {
-                            resultSpan.innerHTML = `
-                                Persona no registrada. 
-                                <button class="btn btn-sm btn-link agregar-externo">Registrar manualmente</button>
+                            resultSection.innerHTML = `
+                                <div class="alert alert-danger">
+                                    Persona no registrada. 
+                                    <button class="btn btn-sm btn-link registrar-manual">Registrar manualmente</button>
+                                </div>
                             `;
-                            
-                            div.querySelector('.agregar-externo').onclick = () => {
-                                registrarExterno(cedula, resultSpan);
+                            const registrarManualBtn = resultSection.querySelector('.registrar-manual');
+                            registrarManualBtn.onclick = function() {
+                                mostrarFormularioManual(cedula, resultSection);
+                                registrarManualBtn.disabled = true;
                             };
                         }
                     })
                     .catch(() => {
-                        resultSpan.textContent = 'Error al buscar.';
+                        resultSection.innerHTML = '<div class="alert alert-danger">Error al realizar la búsqueda.</div>';
                     });
             };
         };
     
-        function registrarExterno(cedula, resultSpan) {
-            const nombre_completo = prompt("Ingrese el nombre completo:");
-            if (!nombre_completo || nombre_completo.trim() === "") {
-                alert("El nombre es obligatorio.");
-                return;
-            }
+        function mostrarFormularioManual(cedula, container) {
+            const formManual = document.createElement('div');
+            formManual.className = 'card p-3 mt-2 bg-light';
     
-            const cargo = prompt("Ingrese el cargo:\n(a) Capitán\n(b) Primer Oficial de Puente\n(c) Marino\n(d) Jefe de Máquinas\n(e) Primer Oficial de Máquinas\n(f) Maquinista\n(g) Otro");
-            if (!cargo || !['a','b','c','d','e','f','g'].includes(cargo)) {
-                alert("Cargo inválido o no seleccionado correctamente.");
-                return;
-            }
+            formManual.innerHTML = `
+                <div class="mb-2">
+                    <label>Nombre Completo</label>
+                    <input type="text" class="form-control nombre-completo">
+                </div>
+                <div class="mb-2">
+                    <label>Cargo</label>
+                    <select class="form-select cargo">
+                        <option value="">Selecciona un cargo</option>
+                        <option value="a">Capitán</option>
+                        <option value="b">Primer Oficial de Puente</option>
+                        <option value="c">Marino</option>
+                        <option value="d">Jefe de Máquinas</option>
+                        <option value="e">Primer Oficial de Máquinas</option>
+                        <option value="f">Maquinista</option>
+                        <option value="g">Otro</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-success agregar-externo">Agregar</button>
+            `;
     
-            externosArray.push({
-                nombre_completo: nombre_completo.trim(),
-                cedula: cedula,
-                cargo: cargo
-            });
+            container.appendChild(formManual);
     
-            externosInput.value = JSON.stringify(externosArray);
+            formManual.querySelector('.agregar-externo').onclick = function() {
+                const nombre = formManual.querySelector('.nombre-completo').value.trim();
+                const cargo = formManual.querySelector('.cargo').value;
     
-            resultSpan.textContent = nombre_completo + ' (Cargo: ' + cargo + ') agregado manualmente.';
+                if (!nombre || !cargo) {
+                    alert('Por favor completa todos los campos.');
+                    return;
+                }
+    
+                externosArray.push({ nombre_completo: nombre, cedula: cedula, cargo: cargo });
+                externosInput.value = JSON.stringify(externosArray);
+    
+                formManual.innerHTML = `
+                    <div class="alert alert-success">
+                        Agregado: ${nombre} (Cargo: ${formManual.querySelector('.cargo option:checked').textContent})
+                    </div>
+                `;
+            };
         }
     });
     </script>
