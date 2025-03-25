@@ -26,6 +26,16 @@
             border: 1px solid #ff0000;  /* Borde rojo */
             color: #ff0000;             /* Texto rojo */
         }
+        #side-menu {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0,0,0,.2);
+            padding: 10px;
+            border-radius: 8px;
+            width: 180px;
+        }
+
+
     </style>
 {% endblock %}
 {% block content %}
@@ -105,46 +115,218 @@
     </div>
 
 
-    <table class="table-list deta mt-2">
-        <thead>
-            <tr>
-                <th>Solicitud</th>
-                <th>Centro de costos</th>
-                <th>Reportado por</th>
-                <th>Justificación</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for project in projects %}
-                <tr>
-                    <td data-cell="Fecha">
-                        <h6>{{ project.report_date|date:"d/m/Y" }}</h6>
-                    </td>
-                    <td data-cell="Centro de costos"><strong>{{ project.asset.name }}</strong></td>
-                    <td data-cell="Reportado por">
-                        <strong>{{ project.reported_by.get_full_name }}</strong>
-                    </td>
-                    <td data-cell="Justificación">
-                        {{ project.description|linebreaksbr }}
-                    </td>
-                </tr>
-                <tr>
-                    <td data-cell="Detalles" class="full-width-cell solicitud-cell" colspan="4">
-                        <ul style="list-style: none; padding-left: 0;">
-                            {% for entry in project.overtime_set.all %}
-                                {% if entry.worker %}
-                                    <li>{{ entry.worker }}</li>
-                                {% else %}
-                                    <li style="color: red">{{ entry.nombre_completo }} - {{ entry.cedula }}</li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="d-flex position-relative mt-4">
+        <div class="table-responsive flex-grow-1">
+            <table class="table-list deta mt-2">
+                <thead>
+                    <!-- <tr>
+
+                    </tr> -->
+                    <tr>
+                        <th>Solicitud</th>
+                        <th>Centro de costos</th>
+                        <th>Reportado por</th>
+                        <th>Justificación</th>
+                        <th>
+                            {% if perms.got.can_approve_overtime %}
+                                <button id="toggle-checkboxes" class="btn btn-sm btn-primary">
+                                    Seleccionar
+                                </button> 
+                                <button id="approve-btn" class="btn btn-success btn-sm" style="display:none;" data-bs-toggle="modal" data-bs-target="#approveModal">
+                                    Aprobar
+                                </button>
+                                <button id="reject-btn" class="btn btn-danger btn-sm" style="display:none;" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                                    No Aprobar
+                                </button>
+                            {% endif %}
+                        </th>
+                    </tr>
+                    
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                        <tr>
+                            <td data-cell="Fecha">
+                                <h6>{{ project.report_date|date:"d/m/Y" }}</h6>
+                            </td>
+                            <td data-cell="Centro de costos"><strong>{{ project.asset.name }}</strong></td>
+                            <td data-cell="Reportado por">
+                                <strong>{{ project.reported_by.get_full_name }}</strong>
+                            </td>
+                            <td data-cell="Justificación" colspan="2">
+                                {{ project.description|linebreaksbr }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="5">
+                                <table>
+                                    {% for entry in project.overtime_set.all %}
+                                    <tr>
+                                        <td>
+                                            {% if entry.worker %}
+                                                {{ entry.worker }}
+                                            {% else %}
+                                                <span style="color: red">
+                                                    {{ entry.nombre_completo }} - {{ entry.cedula }} - {{ entry.get_cargo_display }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            - {{ entry.start|time:"h:i A" }} - {{ entry.end|time:"h:i A" }} 
+                                            {% if entry.state == 'c' %}
+                                                <input type="checkbox" class="overtime-checkbox" style="display:none;" value="{{ entry.id }}">
+                                            {% endif %}
+                                        </td>
+                                        
+                                        <td>
+                                            {% if entry.state == 'a' %}
+                                                <span class="status green-state">Aprobado</span>
+                                            {% elif entry.state == 'b' %}
+                                                <span class="status red-state">No aprobado</span>
+                                            {% else %}
+                                                <span class="status orange-state">Pendiente por revisar</span>
+                                            {% endif %}
+
+                                            <!-- Icono editar -->
+                                            <button class="btn btn-link text-primary p-0 ms-2 edit-overtime-btn" data-id="{{ entry.id }}" data-start="{{ entry.start }}" data-end="{{ entry.end }}"
+                                                data-state="{{ entry.state }}" data-remarks="{{ entry.remarks|default:'' }}" data-bs-toggle="modal" data-bs-target="#editOvertimeModal">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="5">No existen registros de horas extras en este proyecto.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">No existen registros de horas extras.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal para aprobar -->
+    <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="post" action="{% url 'dth:approve_overtime' %}">{% csrf_token %}
+                <input type="hidden" name="action" value="approve">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div id="approve-selected-container"></div>
+
+                <div class="modal-content rounded shadow">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">✅ Confirmar Aprobación de Horas Extras</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="approveModalBody"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Aprobar Selección</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para rechazar -->
+    <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="post" action="{% url 'dth:approve_overtime' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div id="reject-selected-container"></div>
+
+                <div class="modal-content rounded shadow">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">⚠️ Rechazar Horas Extras</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="rejectModalBody"></div>
+                        <label class="form-label mt-3">Justificación del rechazo:</label>
+                        <textarea class="form-control" name="remarks" placeholder="Escribe la razón del rechazo..." required></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar Rechazo</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+
+<!-- Modal Editar -->
+<div class="modal fade" id="editOvertimeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'dth:edit_overtime' %}">
+            {% csrf_token %}
+            <input type="hidden" id="edit-overtime-id" name="overtime_id">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Horas Extras</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label>Inicio</label>
+                    <input type="time" id="edit-start" name="start" class="form-control" required>
+
+                    <label>Fin</label>
+                    <input type="time" id="edit-end" name="end" class="form-control" required>
+
+                    <label>Estado</label>
+                    <select id="edit-state" name="state" class="form-select">
+                        <option value="a">Aprobado</option>
+                        <option value="b">No aprobado</option>
+                        <option value="c">Pendiente</option>
+                    </select>
+
+                    <label>Observaciones</label>
+                    <textarea id="edit-remarks" name="remarks" class="form-control"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="delete-btn" class="btn btn-danger">Eliminar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'dth:delete_overtime' %}">
+            {% csrf_token %}
+            <input type="hidden" id="delete-overtime-id" name="overtime_id">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro que deseas eliminar este registro?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <!-- Inclusión de Flatpickr en modo "range", en español, siempre visible -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -185,5 +367,93 @@
         });
     });
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggleBtn = document.getElementById('toggle-checkboxes');
+        const approveBtn = document.getElementById('approve-btn');
+        const rejectBtn = document.getElementById('reject-btn');
+        const checkboxes = document.querySelectorAll('.overtime-checkbox');
+    
+        // Control de checkbox inicial (ocultos)
+        let checkboxesVisible = false;
+    
+        toggleBtn.onclick = () => {
+            checkboxesVisible = !checkboxesVisible;
+            checkboxes.forEach(cb => {
+                cb.style.display = checkboxesVisible ? 'inline-block' : 'none';
+                cb.checked = false;
+            });
+            approveBtn.style.display = rejectBtn.style.display = checkboxesVisible ? 'inline-block' : 'none';
+        };
+    
+        function updateModal(modalBodyId, containerId) {
+    const selected = Array.from(document.querySelectorAll('.overtime-checkbox:checked'));
+    let container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    if (selected.length > 0) {
+        let html = '<ul class="list-group">';
+        selected.forEach(cb => {
+            const row = cb.closest('tr'); // ahora cada checkbox está en una fila <tr>
+            const workerInfo = row.cells[0].innerText.trim();
+            const timeInfo = row.cells[1].innerText.trim();
+            const statusInfo = row.cells[2].innerText.trim();
+
+            html += `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${workerInfo}</strong><br>
+                        <small>${timeInfo}</small>
+                    </div>
+                    <span class="badge bg-secondary">${statusInfo}</span>
+                </li>
+            `;
+
+            const inputHidden = document.createElement('input');
+            inputHidden.type = 'hidden';
+            inputHidden.name = 'selected_overtime';
+            inputHidden.value = cb.value;
+            container.appendChild(inputHidden);
+        });
+        html += '</ul>';
+        document.getElementById(modalBodyId).innerHTML = html;
+    } else {
+        document.getElementById(modalBodyId).innerHTML = '<p class="text-danger">No has seleccionado ningún registro.</p>';
+    }
+}
+
+
+        // Ajuste para los botones modales:
+        approveBtn.onclick = () => updateModal('approveModalBody', 'approve-selected-container');
+        rejectBtn.onclick = () => updateModal('rejectModalBody', 'reject-selected-container');
+
+
+        // Editar horas extras
+        document.querySelectorAll('.edit-overtime-btn').forEach(btn => {
+            btn.onclick = function() {
+                document.getElementById('edit-overtime-id').value = this.dataset.id;
+                document.getElementById('edit-start').value = this.dataset.start;
+                document.getElementById('edit-end').value = this.dataset.end;
+                document.getElementById('edit-state').value = this.dataset.state;
+                document.getElementById('edit-remarks').value = this.dataset.remarks;
+            };
+        });
+
+        // Eliminar registro desde el modal de edición
+        document.getElementById('delete-btn').onclick = function() {
+            const overtimeId = document.getElementById('edit-overtime-id').value;
+            document.getElementById('delete-overtime-id').value = overtimeId;
+            const editModal = bootstrap.Modal.getInstance(document.getElementById('editOvertimeModal'));
+            editModal.hide();
+
+            const deleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+            deleteModal.show();
+        };
+    });
+
+
+</script>
+    
 
 {% endblock %}

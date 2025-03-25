@@ -57,24 +57,21 @@ class OvertimeProject(models.Model):
 
 
 class Overtime(models.Model):
-    # Información común
     STATE = (('a', 'Aprobado'), ('b', 'No aprobado'), ('c', 'Pendiente'))
     start = models.TimeField()
-    hora_fin = models.TimeField()
+    end = models.TimeField()
     worker = models.ForeignKey(Nomina, on_delete=models.CASCADE, null=True, blank=True)
     state = models.CharField(max_length=1, choices=STATE, default='c')
     project = models.ForeignKey(OvertimeProject, on_delete=models.CASCADE, null=True, blank=True)
+    remarks = models.TextField(null=True, blank=True)
 
     # OBSOLETO
-    fecha = models.DateField()
-    justificacion = models.TextField()
     approved = models.BooleanField(default=False)
-    asset = models.ForeignKey('got.Asset', on_delete=models.SET_NULL, null=True, blank=True)
     reportado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     CARGO = (('a', 'Capitán'),('b', 'Primer Oficial de Puente'),('c', 'Marino'),('d', 'Jefe de Máquinas'),('e', 'Primer Oficial de Máquinas'),('f', 'Maquinista'),('g', 'Otro'),)
-    nombre_completo = models.CharField(max_length=200, default='')
-    cedula = models.CharField(max_length=20, default='')
-    cargo = models.CharField(max_length=1, choices=CARGO)
+    nombre_completo = models.CharField(max_length=200, default='', null=True, blank=True)
+    cedula = models.CharField(max_length=20, default='', null=True, blank=True)
+    cargo = models.CharField(max_length=1, choices=CARGO, null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre_completo} - {self.get_cargo_display()} ({self.fecha})"

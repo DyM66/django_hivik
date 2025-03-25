@@ -1,0 +1,121 @@
+{% extends 'base/base_generic.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2>Crear Reporte de Horas Extras</h2>
+
+    <form method="post" id="overtimeForm">{% csrf_token %}
+        {{ form.report_date.label_tag }} {{ form.report_date }}
+        <br>
+        {{ form.description.label_tag }} {{ form.description }}
+        <br>
+        
+        {% if form.asset %}
+            {{ form.asset.label_tag }} {{ form.asset }}
+            <br>
+        {% endif %}
+
+        {{ form.start.label_tag }} {{ form.start }}
+        <br>
+        {{ form.end.label_tag }} {{ form.end }}
+        <br>
+
+        <button type="button" id="addPersonBtn" class="btn btn-secondary">Agregar Persona</button>
+
+        <div id="personList" class="mt-3"></div>
+
+        {{ form.cedulas }}
+
+        <button type="submit" class="btn btn-primary mt-3">Enviar Reporte</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addPersonBtn = document.getElementById('addPersonBtn');
+        const personList = document.getElementById('personList');
+        const cedulasInput = document.getElementById('id_cedulas');
+        const externosInput = document.getElementById('id_personas_externas');
+        let cedulasArray = [];
+        let externosArray = [];
+    
+        addPersonBtn.onclick = function() {
+            const div = document.createElement('div');
+            div.className = 'input-group my-2';
+    
+            div.innerHTML = `
+                <input type="text" class="form-control cedula-input" placeholder="Cédula">
+                <button class="btn btn-outline-secondary buscar-btn" type="button">Buscar</button>
+                <span class="input-group-text result-span"></span>
+            `;
+    
+            personList.appendChild(div);
+    
+            const buscarBtn = div.querySelector('.buscar-btn');
+            
+            buscarBtn.onclick = function() {
+                const cedulaInput = div.querySelector('.cedula-input');
+                const cedula = cedulaInput.value.trim();
+                const resultSpan = div.querySelector('.result-span');
+    
+                if (!cedula) {
+                    resultSpan.textContent = 'Ingresa una cédula válida.';
+                    return;
+                }
+    
+                fetch("{% url 'dth:buscar_nomina' %}?cedula=" + cedula)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (!cedulasArray.includes(cedula)) {
+                                resultSpan.textContent = data.name + ' (' + data.position + ')';
+                                cedulasArray.push(cedula);
+                                cedulasInput.value = JSON.stringify(cedulasArray);
+                            } else {
+                                resultSpan.textContent = 'Esta persona ya fue agregada.';
+                            }
+                        } else {
+                            resultSpan.innerHTML = `
+                                Persona no registrada. 
+                                <button class="btn btn-sm btn-link agregar-externo">Registrar manualmente</button>
+                            `;
+                            
+                            div.querySelector('.agregar-externo').onclick = () => {
+                                registrarExterno(cedula, resultSpan);
+                            };
+                        }
+                    })
+                    .catch(() => {
+                        resultSpan.textContent = 'Error al buscar.';
+                    });
+            };
+        };
+    
+        function registrarExterno(cedula, resultSpan) {
+            const nombre_completo = prompt("Ingrese el nombre completo:");
+            if (!nombre_completo || nombre_completo.trim() === "") {
+                alert("El nombre es obligatorio.");
+                return;
+            }
+    
+            const cargo = prompt("Ingrese el cargo:\n(a) Capitán\n(b) Primer Oficial de Puente\n(c) Marino\n(d) Jefe de Máquinas\n(e) Primer Oficial de Máquinas\n(f) Maquinista\n(g) Otro");
+            if (!cargo || !['a','b','c','d','e','f','g'].includes(cargo)) {
+                alert("Cargo inválido o no seleccionado correctamente.");
+                return;
+            }
+    
+            externosArray.push({
+                nombre_completo: nombre_completo.trim(),
+                cedula: cedula,
+                cargo: cargo
+            });
+    
+            externosInput.value = JSON.stringify(externosArray);
+    
+            resultSpan.textContent = nombre_completo + ' (Cargo: ' + cargo + ') agregado manualmente.';
+        }
+    });
+    </script>
+    
+    
+{% endblock %}

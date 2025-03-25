@@ -1,4 +1,56 @@
+import holidays
 from datetime import timedelta, datetime, time
+
+# Horarios de trabajo
+WEEKDAY_START = time(7, 30)
+WEEKDAY_END = time(17, 0)
+SATURDAY_START = time(8, 0)
+SATURDAY_END = time(12, 0)
+
+COLOMBIA_HOLIDAYS = holidays.Colombia()
+
+def calcular_horas_extras(fecha, hora_inicio, hora_fin):
+    overtime_periods = []
+    day_type = None  # 'weekday', 'saturday', 'sunday', 'holiday'
+
+    if fecha in COLOMBIA_HOLIDAYS:
+        day_type = 'holiday'
+    elif fecha.weekday() == 6:  # Domingo
+        day_type = 'sunday'
+    elif fecha.weekday() == 5:  # Sábado
+        day_type = 'saturday'
+    else:
+        day_type = 'weekday'
+
+    # Definir el horario laboral según el tipo de día
+    if day_type == 'weekday':
+        start_work = WEEKDAY_START
+        end_work = WEEKDAY_END
+    elif day_type == 'saturday':
+        start_work = SATURDAY_START
+        end_work = SATURDAY_END
+    else:
+        # Domingos y festivos: todo es horas extras
+        if hora_inicio < hora_fin:
+            overtime_periods.append((hora_inicio, hora_fin))
+        return overtime_periods
+
+    # Horas antes del inicio de la jornada laboral
+    if hora_inicio < start_work:
+        overtime_periods.append((hora_inicio, min(hora_fin, start_work)))
+
+    # Horas después del fin de la jornada laboral
+    if hora_fin > end_work:
+        overtime_periods.append((max(hora_inicio, end_work), hora_fin))
+
+    # Horas completamente fuera del horario laboral
+    if hora_inicio >= hora_fin:
+        return overtime_periods
+
+    if hora_inicio >= end_work or hora_fin <= start_work:
+        overtime_periods.append((hora_inicio, hora_fin))
+
+    return overtime_periods
 
 def hours_to_hhmm(total_hours):
     """Convierte total_hours (float) en un string 'X horas y Y minutos'."""

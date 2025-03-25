@@ -65,33 +65,5 @@ class Migration(migrations.Migration):
             name='dx07',
             field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Exequias Lordoy.', max_digits=18),
         ),
-        migrations.AlterField(
-            model_name='nominareport',
-            name='dx12',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Descuento pensión voluntaria.', max_digits=18),
-        ),
-        migrations.AlterField(
-            model_name='nominareport',
-            name='dx63',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Banco de Occidente.', max_digits=18),
-        ),
-        migrations.AlterField(
-            model_name='nominareport',
-            name='dx64',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Confenalco.', max_digits=18),
-        ),
-        migrations.AlterField(
-            model_name='nominareport',
-            name='dx66',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), help_text='Préstamo empleado.', max_digits=18),
-        ),
-        migrations.CreateModel(
-            name='OvertimeProject',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('description', models.TextField()),
-                ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.asset')),
-                ('reported_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
+
     ]

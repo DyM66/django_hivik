@@ -1,5 +1,5 @@
 # dth/views.py
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404, get_list_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from dth.forms import UserProfileForm
@@ -7,6 +7,7 @@ from dth.models import UserProfile
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.views.generic import ListView, TemplateView
+from django.views.decorators.http import require_POST
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import permission_required, login_required
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -15,29 +16,21 @@ from django.core.paginator import Paginator
 from datetime import date
 from itertools import groupby
 from dateutil.relativedelta import relativedelta
-from operator import attrgetter
 from django.core.paginator import Paginator
-from .models import *
-from .forms import *
-from .utils import *
 import openpyxl
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 from datetime import timedelta, datetime, time, date
-import holidays
 from django.contrib import messages
 from datetime import time
 import json
 from got.models import Asset
 from django.http import JsonResponse
 
-# Horarios de trabajo
-WEEKDAY_START = time(7, 30)
-WEEKDAY_END = time(17, 0)
-SATURDAY_START = time(8, 0)
-SATURDAY_END = time(12, 0)
+from .models import *
+from .forms import *
+from .utils import *
 
-colombia_holidays = holidays.Colombia()
 
 @login_required
 def profile_update(request):
@@ -169,7 +162,7 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
             dt_end = datetime.combine(entry.fecha, entry.hora_fin)
             diff = dt_end - dt_start
             # Si la fecha es domingo o festiva, sumar la totalidad de la duración
-            if entry.fecha.weekday() == 6 or entry.fecha in colombia_holidays:
+            if entry.fecha.weekday() == 6 or entry.fecha in COLOMBIA_HOLIDAYS:
                 total_seconds += diff.total_seconds()
         return round(total_seconds / 3600, 2)
 
@@ -225,42 +218,51 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
     #     context['holiday_dates'] = json.dumps([d.strftime('%Y-%m-%d') for d in colombia_holidays.keys()])
     #     return context
 
-
+from django.urls import reverse
 @login_required
 @permission_required('got.can_approve_overtime', raise_exception=True)
-def approve_overtime(request, pk):
-    if request.method == 'POST':
-        overtime_entry = get_object_or_404(Overtime, pk=pk)
-        # Cambiar el estado de aprobación
-        overtime_entry.approved = not overtime_entry.approved
-        overtime_entry.save()
+@require_POST
+def approve_overtime(request):
+    action = request.POST.get('action')
+    remarks = request.POST.get('remarks', '')
+    selected_overtime_ids = request.POST.getlist('selected_overtime')
+
+    overtimes = Overtime.objects.filter(id__in=selected_overtime_ids)
+
+    if action == 'approve':
+        overtimes_updated_count = overtimes.update(state='a')
+        messages.success(request, f"Se han aprobado {overtimes_updated_count} registros de horas extras correctamente.")
         
-        next_url = request.POST.get('next')
-        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
-            return redirect(next_url)
-        else:
-            return redirect('dth:overtime_list')
-    return redirect('dth:overtime_list')
+    elif action == 'reject':
+        overtimes_updated_count = overtimes.update(state='b', remarks=remarks)
+        messages.success(request, f"Se han rechazado {overtimes_updated_count} registros de horas extras correctamente.")
+
+    next_url = request.POST.get('next', reverse('dth:overtime_list'))
+    return redirect(next_url)
 
 
 @login_required
-def edit_overtime(request, pk):
-    overtime_entry = get_object_or_404(Overtime, pk=pk)
-    if request.method == 'POST':
-        form = OvertimeEditForm(request.POST, instance=overtime_entry)
-        if form.is_valid():
-            form.save()
-            return redirect('dth:overtime_list')
-    return redirect('dth:overtime_list')
-
+@require_POST
+def edit_overtime(request):
+    overtime = get_object_or_404(Overtime, id=request.POST.get('overtime_id'))
+    overtime.start = request.POST.get('start')
+    overtime.end = request.POST.get('end')
+    overtime.state = request.POST.get('state')
+    overtime.remarks = request.POST.get('remarks', '')
+    if overtime.start >= overtime.end:
+        messages.error(request, "La hora de inicio no puede ser posterior a la hora final.")
+    else:
+        overtime.save()
+        messages.success(request, "Horas extras actualizadas.")
+    return redirect(request.POST.get('next', '/'))
 
 @login_required
-def delete_overtime(request, pk):
-    overtime_entry = get_object_or_404(Overtime, pk=pk)
-    if request.method == 'POST':
-        overtime_entry.delete()
-        return redirect('dth:overtime_list')
-    return redirect('dth:overtime_list')
+@require_POST
+def delete_overtime(request):
+    overtime = get_object_or_404(Overtime, id=request.POST.get('overtime_id'))
+    overtime.delete()
+    messages.success(request, "Registro eliminado correctamente.")
+    return redirect(request.POST.get('next', '/'))
 
 
 def get_default_date_range():
@@ -383,159 +385,155 @@ def export_overtime_excel(request):
 
 
 @login_required
-def overtime_report(request):
+def buscar_nomina(request):
+    cedula = request.GET.get('cedula')
+    try:
+        persona = Nomina.objects.get(id_number=cedula)
+        return JsonResponse({'success': True, 'name': f"{persona.name} {persona.surname}", 'position': persona.position})
+    except Nomina.DoesNotExist:
+        return JsonResponse({'success': False})
+
+@login_required
+def create_overtime_report(request):
     if request.method == 'POST':
-        common_form = OvertimeCommonForm(request.POST)
-        person_formset = OvertimePersonFormSet(request.POST)
-
-        if common_form.is_valid() and person_formset.is_valid():
-
-            try:
-                asset = Asset.objects.filter(models.Q(supervisor=request.user) | models.Q(capitan=request.user)).first()
-            except Asset.DoesNotExist:
-                asset = None 
-                
-            # Guardar los datos comunes
-            fecha = common_form.cleaned_data['fecha']
-            hora_inicio = common_form.cleaned_data['hora_inicio']
-            hora_fin = common_form.cleaned_data['hora_fin']
-            justificacion = common_form.cleaned_data['justificacion']
-            overtime_periods = calcular_horas_extras(fecha, hora_inicio, hora_fin)
+        form = OvertimeProjectForm(request.POST, user=request.user)
+        if form.is_valid():
+            report_date = form.cleaned_data['report_date']
+            overtime_periods = calcular_horas_extras(
+                report_date, form.cleaned_data['start'], form.cleaned_data['end']
+            )
 
             if not overtime_periods:
-                messages.warning(request, 'Las horas reportadas no califican como horas extras.')
-                return redirect('overtime:overtime_report')
-            
-            def subtract_time_ranges(desired_start, desired_end, existing_ranges):
-                intervals = [(desired_start, desired_end)]
-                for ex_start, ex_end in existing_ranges:
-                    new_intervals = []
-                    for interval_start, interval_end in intervals:
-                        # No hay solapamiento
-                        if ex_end <= interval_start or ex_start >= interval_end:
-                            new_intervals.append((interval_start, interval_end))
-                        else:
-                            # Hay solapamiento, ajustamos los intervalos
-                            if ex_start > interval_start:
-                                new_intervals.append((interval_start, ex_start))
-                            if ex_end < interval_end:
-                                new_intervals.append((ex_end, interval_end))
-                    intervals = new_intervals
-                return intervals
+                messages.error(request, "Las horas ingresadas no califican como horas extras.")
+                return render(request, 'dth/create_overtime_report.html', {'form': form})
 
-            for person_form in person_formset:
-                nombre_completo = person_form.cleaned_data.get('nombre_completo')
-                cedula = person_form.cleaned_data.get('cedula')
-                cargo = person_form.cleaned_data.get('cargo')
+            project = form.save(commit=False)
+            project.reported_by = request.user
 
-                if not nombre_completo and not cargo:
-                    continue
+            if request.user.groups.filter(name='maq_members').exists():
+                asset = Asset.objects.filter(Q(supervisor=request.user) | Q(capitan=request.user)).first()
+                project.asset = asset
 
-                # Obtener los registros existentes para la cédula y fecha
-                existing_entries = Overtime.objects.filter(
-                    cedula=cedula,
-                    fecha=fecha,
-                ).order_by('hora_inicio')
+            project.save()
 
-                existing_ranges = [(entry.hora_inicio, entry.hora_fin) for entry in existing_entries]
+            cedulas_json = form.cleaned_data.get('cedulas', '[]')
+            cedulas = json.loads(cedulas_json) if cedulas_json.strip() else []
+            trabajadores = Nomina.objects.filter(id_number__in=cedulas)
 
-                created_any = False  # Para verificar si se creó al menos un registro
+            externos_json = form.cleaned_data.get('personas_externas', '[]')
+            externos = json.loads(externos_json) if externos_json.strip() else []
 
-                for period_start, period_end in overtime_periods:
-                    # Restar los intervalos existentes
-                    non_overlapping_intervals = subtract_time_ranges(period_start, period_end, existing_ranges)
-                    if not non_overlapping_intervals:
-                        messages.warning(request, f'Todas las horas reportadas para {nombre_completo} ({cedula}) en el periodo {period_start.strftime("%I:%M %p")} - {period_end.strftime("%I:%M %p")} ya han sido registradas.')
-                        continue
-                    for interval_start, interval_end in non_overlapping_intervals:
+            creados, omitidos = 0, 0
+
+            # Crear overtime para trabajadores registrados
+            for trabajador in trabajadores:
+                for ot_start, ot_end in overtime_periods:
+                    conflicto = Overtime.objects.filter(
+                        worker=trabajador, project__report_date=report_date
+                    ).filter(Q(start__lt=ot_end, end__gt=ot_start)).exists()
+
+                    if not conflicto:
                         Overtime.objects.create(
-                            fecha=fecha,
-                            hora_inicio=interval_start,
-                            hora_fin=interval_end,
-                            justificacion=justificacion,
-                            nombre_completo=nombre_completo,
-                            cedula=cedula,
-                            cargo=cargo,
-                            reportado_por=request.user,
-                            asset=asset,
-                            approved=False 
+                            start=ot_start, end=ot_end, worker=trabajador,
+                            state='c', project=project
                         )
-                        # Añadir el nuevo intervalo a la lista de existentes
-                        existing_ranges.append((interval_start, interval_end))
-                        existing_ranges.sort(key=lambda x: x[0])  # Ordenar por hora de inicio
-                        created_any = True
-                    if len(non_overlapping_intervals) < len(overtime_periods):
-                        messages.warning(request, f'Algunas horas reportadas para {nombre_completo} ({cedula}) en el periodo {period_start.strftime("%I:%M %p")} - {period_end.strftime("%I:%M %p")} ya han sido registradas y fueron excluidas.')
-                if created_any:
-                    messages.success(request, f'Reporte de horas extras para {nombre_completo} ({cedula}) ha sido registrado.')
+                        creados += 1
+                    else:
+                        omitidos += 1
+
+            # Crear overtime para personas externas
+            for persona in externos:
+                nombre_completo = persona['nombre_completo']
+                cedula_ext = persona['cedula']
+                cargo = persona['cargo']
+
+                conflicto = Overtime.objects.filter(
+                    cedula=cedula_ext, project__report_date=report_date
+                ).filter(Q(start__lt=overtime_periods[-1][1], end__gt=overtime_periods[0][0])).exists()
+
+                if not conflicto:
+                    for ot_start, ot_end in overtime_periods:
+                        Overtime.objects.create(
+                            start=ot_start, end=ot_end, worker=None, nombre_completo=nombre_completo,
+                            cedula=cedula_ext, cargo=cargo, state='c', project=project
+                        )
+                    creados += 1
                 else:
-                    messages.warning(request, f'No se pudo registrar ninguna hora extra para {nombre_completo} ({cedula}).')
+                    omitidos += 1
 
-            return redirect('dth:overtime_success')
+            if creados:
+                messages.success(request, f"Reporte creado. {creados} registros generados, {omitidos} omitidos por conflicto.")
+            else:
+                project.delete()
+                messages.error(request, "Ningún registro creado por conflictos.")
+
+            return redirect('dth:overtime_list')
+        else:
+            # Depuración del formulario
+            print(form.errors)
+            messages.error(request, f"Error en el formulario: {form.errors.as_json()}")
     else:
-        common_form = OvertimeCommonForm()
-        person_formset = OvertimePersonFormSet()
+        form = OvertimeProjectForm(user=request.user)
 
-    current_year = date.today().year
-    next_year = current_year + 1
-    colombia_holidays = holidays.Colombia(years=[current_year, next_year])
-    # Obtener las fechas en formato 'YYYY-MM-DD'
-    holiday_dates = [h.strftime('%Y-%m-%d') for h in colombia_holidays.keys()]
-
-    context = {
-        'common_form': common_form,
-        'person_formset': person_formset,
-        'holiday_dates': json.dumps(holiday_dates),
-    }
-    return render(request, 'dth/overtime_report.html', context)
+    return render(request, 'dth/create_overtime_report.html', {'form': form})
 
 
-def overtime_success(request):
-    return render(request, 'dth/overtime_success.html')
+    #             # Obtener los registros existentes para la cédula y fecha
+    #             existing_entries = Overtime.objects.filter(
+    #                 cedula=cedula,
+    #                 fecha=fecha,
+    #             ).order_by('hora_inicio')
 
+    #             existing_ranges = [(entry.hora_inicio, entry.hora_fin) for entry in existing_entries]
 
-def calcular_horas_extras(fecha, hora_inicio, hora_fin):
-    overtime_periods = []
-    day_type = None  # 'weekday', 'saturday', 'sunday', 'holiday'
+    #             created_any = False  # Para verificar si se creó al menos un registro
 
-    if fecha in colombia_holidays:
-        day_type = 'holiday'
-    elif fecha.weekday() == 6:  # Domingo
-        day_type = 'sunday'
-    elif fecha.weekday() == 5:  # Sábado
-        day_type = 'saturday'
-    else:
-        day_type = 'weekday'
+    #             for period_start, period_end in overtime_periods:
+    #                 # Restar los intervalos existentes
+    #                 non_overlapping_intervals = subtract_time_ranges(period_start, period_end, existing_ranges)
+    #                 if not non_overlapping_intervals:
+    #                     messages.warning(request, f'Todas las horas reportadas para {nombre_completo} ({cedula}) en el periodo {period_start.strftime("%I:%M %p")} - {period_end.strftime("%I:%M %p")} ya han sido registradas.')
+    #                     continue
+    #                 for interval_start, interval_end in non_overlapping_intervals:
+    #                     Overtime.objects.create(
+    #                         fecha=fecha,
+    #                         hora_inicio=interval_start,
+    #                         hora_fin=interval_end,
+    #                         justificacion=justificacion,
+    #                         nombre_completo=nombre_completo,
+    #                         cedula=cedula,
+    #                         cargo=cargo,
+    #                         reportado_por=request.user,
+    #                         asset=asset,
+    #                         approved=False 
+    #                     )
+    #                     # Añadir el nuevo intervalo a la lista de existentes
+    #                     existing_ranges.append((interval_start, interval_end))
+    #                     existing_ranges.sort(key=lambda x: x[0])  # Ordenar por hora de inicio
+    #                     created_any = True
+    #                 if len(non_overlapping_intervals) < len(overtime_periods):
+    #                     messages.warning(request, f'Algunas horas reportadas para {nombre_completo} ({cedula}) en el periodo {period_start.strftime("%I:%M %p")} - {period_end.strftime("%I:%M %p")} ya han sido registradas y fueron excluidas.')
+    #             if created_any:
+    #                 messages.success(request, f'Reporte de horas extras para {nombre_completo} ({cedula}) ha sido registrado.')
+    #             else:
+    #                 messages.warning(request, f'No se pudo registrar ninguna hora extra para {nombre_completo} ({cedula}).')
 
-    # Definir el horario laboral según el tipo de día
-    if day_type == 'weekday':
-        start_work = WEEKDAY_START
-        end_work = WEEKDAY_END
-    elif day_type == 'saturday':
-        start_work = SATURDAY_START
-        end_work = SATURDAY_END
-    else:
-        # Domingos y festivos: todo es horas extras
-        if hora_inicio < hora_fin:
-            overtime_periods.append((hora_inicio, hora_fin))
-        return overtime_periods
+    #         return redirect('dth:overtime_success')
+    # else:
+    #     common_form = OvertimeCommonForm()
+    #     person_formset = OvertimePersonFormSet()
 
-    # Horas antes del inicio de la jornada laboral
-    if hora_inicio < start_work:
-        overtime_periods.append((hora_inicio, min(hora_fin, start_work)))
+    # current_year = date.today().year
+    # next_year = current_year + 1
+    # colombia_holidays = holidays.Colombia(years=[current_year, next_year])
+    # # Obtener las fechas en formato 'YYYY-MM-DD'
+    # holiday_dates = [h.strftime('%Y-%m-%d') for h in colombia_holidays.keys()]
 
-    # Horas después del fin de la jornada laboral
-    if hora_fin > end_work:
-        overtime_periods.append((max(hora_inicio, end_work), hora_fin))
-
-    # Horas completamente fuera del horario laboral
-    if hora_inicio >= hora_fin:
-        return overtime_periods
-
-    if hora_inicio >= end_work or hora_fin <= start_work:
-        overtime_periods.append((hora_inicio, hora_fin))
-
-    return overtime_periods
+    # context = {
+    #     'common_form': common_form,
+    #     'person_formset': person_formset,
+    #     'holiday_dates': json.dumps(holiday_dates),
+    # }
 
 
 def gerencia_nomina_view(request):

@@ -297,12 +297,17 @@ class OtListView(LoginRequiredMixin, generic.ListView):
 
 def ot_pdf(request, num_ot):
     ot_info = get_object_or_404(Ot, num_ot=num_ot)
+
+    # Filtrar solo tareas entre el 23 y 24 de marzo de 2025
+    start_date_filter = datetime(2025, 3, 23)
+    end_date_filter = datetime(2025, 3, 24, 23, 59, 59)
+
     rutas = Ruta.objects.filter(ot=ot_info)
     rutina = rutas.exists()
     fallas = FailureReport.objects.filter(related_ot=ot_info)
     failure = fallas.exists()
 
-    tareas = Task.objects.filter(ot=ot_info).select_related('responsible', 'responsible__profile').order_by('start_date')
+    tareas = Task.objects.filter(ot=ot_info, start_date__gte=start_date_filter, start_date__lte=end_date_filter).select_related('responsible', 'responsible__profile').order_by('start_date')
     usuarios_participacion_dict = {}
 
     for tarea in tareas:
@@ -341,7 +346,7 @@ def ot_pdf(request, num_ot):
         })
 
     # Aquí se agrupan las imágenes por fecha
-    images_qs = Image.objects.filter(task__ot=ot_info).order_by('creation')
+    images_qs = Image.objects.filter(task__ot=ot_info, creation__gte=start_date_filter.date(), creation__lte=end_date_filter.date()).order_by('creation')
     has_evidence = images_qs.exists()
     evidence_by_date = defaultdict(list)
     for image in images_qs:

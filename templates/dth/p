@@ -1,0 +1,72 @@
+
+                            <td data-cell="Detalles" class="full-width-cell solicitud-cell" colspan="4">
+                                <ul style="list-style: none; padding-left: 0;">
+                                    {% for entry in asset_group.entries %}
+                                        <li id="entry.id">
+
+
+                                            {% if perms.overtime.change_overtime %}
+                                                <a href="#" data-bs-toggle="modal" data-bs-target="#editEntryModal{{ entry.id }}">
+                                                    <i class="fas fa-edit"></i> 
+                                                </a>
+                                            {% endif %}
+                                            
+                                        </li>
+
+        
+        
+                                        <div class="modal fade" id="editEntryModal{{ entry.id }}" tabindex="-1" aria-labelledby="editEntryModalLabel{{ entry.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <form method="post" action="{% url 'dth:edit_overtime' entry.id %}">{% csrf_token %}
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="editEntryModalLabel{{ entry.id }}">Editar Registro de Horas Extras</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label for="nombre_completo{{ entry.id }}" class="form-label">Nombre completo</label>
+                                                                <input type="text" class="form-control" id="nombre_completo{{ entry.id }}" name="nombre_completo" value="{{ entry.nombre_completo }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="cedula{{ entry.id }}" class="form-label">Cédula</label>
+                                                                <input type="text" class="form-control" id="cedula{{ entry.id }}" name="cedula" value="{{ entry.cedula }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="hora_inicio{{ entry.id }}" class="form-label">Hora de inicio</label>
+                                                                <input type="text" class="form-control timepicker" id="hora_inicio{{ entry.id }}" name="hora_inicio" value="{{ entry.hora_inicio|time:'h:i A' }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="hora_fin{{ entry.id }}" class="form-label">Hora de fin</label>
+                                                                <input type="text" class="form-control timepicker" id="hora_fin{{ entry.id }}" name="hora_fin" value="{{ entry.hora_fin|time:'h:i A' }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="justificacion{{ entry.id }}" class="form-label">Justificación</label>
+                                                                <textarea class="form-control" id="justificacion{{ entry.id }}" name="justificacion" rows="4">{{ entry.justificacion }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <!-- Botón para eliminar el registro -->
+                                                                <button type="button" class="btn btn-danger" onclick="deleteEntry{{ entry.id }}()">Eliminar</button>
+                                                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                                                        </div>
+                                                    </form>
+                                                    <!-- Formulario oculto para eliminar el registro -->
+                                                    <form method="post" action="{% url 'dth:delete_overtime' entry.id %}" id="deleteForm{{ entry.id }}" style="display:none;">
+                                                        {% csrf_token %}
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+        
+                                        <!-- Script para manejar la eliminación -->
+                                        <script>
+                                            function deleteEntry{{ entry.id }}() {
+                                                if(confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+                                                    document.getElementById('deleteForm{{ entry.id }}').submit();
+                                                }
+                                            }
+                                        </script>
+        
+        
+                                    {% endfor %}

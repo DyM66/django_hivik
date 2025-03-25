@@ -1,9 +1,16 @@
-{% extends 'got/base/base_generic.html' %}
+<!-- dth/overtime_report.html -->
+{% extends 'base/base_generic.html' %}
 
+{% block title %}Reportar Horas Extras{% endblock %}
+{% block headtag %}
+    <style>
+    </style>
+{% endblock %}
 {% block content %}
-<main class="px-3 mt-4">
 
-	<h2>Reporte de Horas Extras</h2>
+<main class="px-3">
+
+	<h2 class="mt-4">Reporte de Horas Extras</h2>
     <form method="post">{% csrf_token %}
         <fieldset>
         <legend>Información de solicitud</legend>
