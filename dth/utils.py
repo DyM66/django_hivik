@@ -1,5 +1,6 @@
 import holidays
-from datetime import timedelta, datetime, time
+from datetime import timedelta, datetime, time, date
+from dateutil.relativedelta import relativedelta
 
 # Horarios de trabajo
 WEEKDAY_START = time(7, 30)
@@ -7,9 +8,9 @@ WEEKDAY_END = time(17, 0)
 SATURDAY_START = time(8, 0)
 SATURDAY_END = time(12, 0)
 
-COLOMBIA_HOLIDAYS = holidays.Colombia()
+COLOMBIA_HOLIDAYS = holidays.Colombia(years=[2025, 2026, 2027, 2028])
 
-def calcular_horas_extras(fecha, hora_inicio, hora_fin):
+def calculate_overtime(fecha, hora_inicio, hora_fin):
     overtime_periods = []
     day_type = None  # 'weekday', 'saturday', 'sunday', 'holiday'
 
@@ -144,3 +145,41 @@ def get_nocturnal_overlap(dt_start, dt_end):
     return total
 
 
+def get_default_date_range():
+    today = date.today()
+    if today.day < 21:
+        start_date = (today - relativedelta(months=1)).replace(day=21)
+        end_date = today.replace(day=21)
+    else:
+        start_date = today.replace(day=21)
+        end_date = (today + relativedelta(months=1)).replace(day=21)
+    return start_date, end_date
+
+
+def parse_date_range(request):
+    date_range_str = request.GET.get('date_range', '')
+    if date_range_str:
+        # Detecta separadores posibles
+        if " to " in date_range_str:
+            dates = date_range_str.split(" to ")
+        elif " a " in date_range_str:
+            dates = date_range_str.split(" a ")
+        elif "," in date_range_str:
+            dates = date_range_str.split(",")
+        else:
+            dates = []
+        if len(dates) == 2:
+            try:
+                start_date = datetime.strptime(dates[0].strip(), '%Y-%m-%d').date()
+                end_date = datetime.strptime(dates[1].strip(), '%Y-%m-%d').date()
+            except ValueError:
+                start_date, end_date = get_default_date_range()
+        else:
+            try:
+                start_date = datetime.strptime(date_range_str.strip(), '%Y-%m-%d').date()
+                end_date = start_date + timedelta(days=1)
+            except ValueError:
+                start_date, end_date = get_default_date_range()
+    else:
+        start_date, end_date = get_default_date_range()
+    return start_date, end_date

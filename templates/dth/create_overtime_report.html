@@ -3,268 +3,261 @@
 
 {% block title %}Reportar Horas Extras{% endblock %}
 {% block headtag %}
-    <style>
-    </style>
+<style>
+    /* Colorear el fondo de la ventana del calendario */
+    .flatpickr-calendar {
+        background-color: #f6f6ff !important; /* un azul clarito */
+    }
+    /* Aumentar el espacio entre los días */
+    .flatpickr-day {
+        /* margin: 5px !important; NO USAR JAMAS*/ 
+        width: 2.3em !important;
+        height: 2.3em !important;
+        line-height: 2.3em !important;
+    }
+    .flatpickr-sunday {
+        background-color: #ffe2e2 !important; 
+    }
+    .flatpickr-holiday {
+        background-color: #ffe2e2 !important; 
+        font-weight: bold;
+        text-decoration: underline;
+    }
+</style>
 {% endblock %}
 {% block content %}
-<div class="container my-4">
+<main class="container my-4">
 
     <h2 class="mb-4">Reportar Horas Extras</h2>
 
     <form method="post" id="overtimeForm">{% csrf_token %}
         <div class="row">
-            <!-- Columna izquierda: calendario -->
             <div class="col-md-6 mb-3">
-                <!-- Texto de la fecha seleccionada arriba del calendario -->
                 <label for="inlineCalendar" class="form-label">Fecha seleccionada</label>
-                <div class="alert alert-info" id="selectedDateText">
-                    <!-- Se llena dinámicamente con la fecha elegida -->
-                </div>
-
-                <!-- Contenedor donde estará el calendario -->
+                <div class="alert alert-info" id="selectedDateText"></div>
                 <div id="inlineCalendar" style="width: 400px;"></div>
 
-        <!-- Campo oculto real que Django usará para la fecha -->
-        {{ form.report_date|add_class:"d-none" }}
+                {{ form.report_date|add_class:"d-none" }}
 
-        <small class="text-muted">
-          Solo se permiten fechas hasta hoy. Haz clic para seleccionar el día.
-        </small>
-      </div>
+                <small class="text-muted">
+                    Solo se permiten fechas hasta hoy. Haz clic para seleccionar el día.
+                </small>
+            </div>
 
-      <!-- Columna derecha: Justificación -->
-      <div class="col-md-6 mb-3">
-        {{ form.description.label_tag }}
-        {{ form.description|add_class:"form-control"|attr:"style:height:200px;" }}
-      </div>
-    </div>
+            <!-- Columna derecha: Justificación -->
+            <div class="col-md-6 mb-3">
+                {{ form.description.label_tag }}
+                {{ form.description|add_class:"form-control"|attr:"style:height:200px;" }}
+            </div>
+        </div>
 
-    <!-- 3) Centro de costos (asset) - si está en el form -->
-    {% if form.asset %}
-      <div class="mb-3">
-        {{ form.asset.label_tag }}
-        {{ form.asset|add_class:"form-select" }}
-      </div>
-    {% endif %}
+        <!-- 3) Centro de costos (asset) - si está en el form -->
+        {% if form.asset %}
+            <div class="mb-3">
+                {{ form.asset.label_tag }}
+                {{ form.asset|add_class:"form-select" }}
+            </div>
+        {% endif %}
 
-    <!-- Hora inicio y fin -->
-    <div class="row">
-      <div class="col-sm-6 mb-3">
-        <label class="form-label">{{ form.start.label }}</label>
-        {{ form.start|add_class:"form-control" }}
-      </div>
-      <div class="col-sm-6 mb-3">
-        <label class="form-label">{{ form.end.label }}</label>
-        {{ form.end|add_class:"form-control" }}
-      </div>
-    </div>
+        <!-- Hora inicio y fin -->
+        <div class="row">
+            <div class="col-sm-6 mb-3">
+                <label class="form-label">{{ form.start.label }}</label>
+                {{ form.start|add_class:"form-control" }}
+            </div>
+            <div class="col-sm-6 mb-3">
+                <label class="form-label">{{ form.end.label }}</label>
+                {{ form.end|add_class:"form-control" }}
+            </div>
+        </div>
 
-    <!-- 4) Listado de personas -->
-    <div id="personList" class="mb-3"></div>
+        <!-- 4) Listado de personas -->
+        <div id="personList" class="mb-3"></div>
 
-    <!-- 5) Botón "Agregar Persona" -->
-    <div class="d-grid mb-3">
-      <button type="button" id="addPersonBtn" class="btn btn-secondary btn-lg">
-        Agregar Persona
-      </button>
-    </div>
+        <!-- 5) Botón "Agregar Persona" -->
+        <div class="d-grid mb-3">
+            <button type="button" id="addPersonBtn" class="btn btn-secondary btn-lg">
+                Agregar Colaborador
+            </button>
+        </div>
 
-    <!-- Campos ocultos (arrays de cédulas y externos) -->
-    {{ form.cedulas }}
-    {{ form.personas_externas }}
+        <!-- Campos ocultos (arrays de cédulas y externos) -->
+        {{ form.cedulas }}
+        {{ form.personas_externas }}
 
-    <!-- Botón final -->
-    <button type="submit" class="btn btn-primary mt-3">
-      Enviar Reporte
-    </button>
-  </form>
-</div>
+        <!-- Botón final -->
+        <button type="submit" class="btn btn-primary mt-3">
+            Enviar Reporte
+        </button>
+    </form>
+</main>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // holidayDates e initialDate
-  var holidayDates = {{ holiday_dates|safe }} || [];
-  var initialDate = "{{ initial_date|date:'Y-m-d' }}";
+    document.addEventListener('DOMContentLoaded', function() {
+        // holidayDates e initialDate
+        var holidayDates = {{ holiday_dates|safe }} || [];
+        var initialDate = "{{ initial_date|date:'Y-m-d' }}";
 
-  // Ajustar el primer día de la semana a domingo
-  flatpickr.l10ns.es.firstDayOfWeek = 0;
+        // Ajustar el primer día de la semana a domingo
+        flatpickr.l10ns.es.firstDayOfWeek = 0;
 
-    flatpickr("#inlineCalendar", {
-        inline: true,
-        dateFormat: "Y-m-d",
-        maxDate: "today",
-        locale: "es",   // ya modificamos .l10ns.es arriba
-        defaultDate: initialDate,
-        onChange: function(selectedDates, dateStr) {
-            document.getElementById("id_report_date").value = dateStr;
-            document.getElementById("selectedDateText").textContent = dateStr;
-        },
-        onDayCreate: function(dObj, dStr, fp, dayElem) {
-            let localNoon = new Date(dayElem.dateObj);
-            localNoon.setHours(12, 0, 0, 0);
+        flatpickr("#inlineCalendar", {
+            inline: true,
+            dateFormat: "Y-m-d",
+            maxDate: "today",
+            locale: "es",   // ya modificamos .l10ns.es arriba
+            defaultDate: initialDate,
+            onChange: function(selectedDates, dateStr) {
+                document.getElementById("id_report_date").value = dateStr;
+                document.getElementById("selectedDateText").textContent = dateStr;
+            },
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                let localNoon = new Date(dayElem.dateObj.getTime());
+                localNoon.setHours(12, 0, 0, 0);
 
-            // Si es domingo
-            if (localNoon.getDay() === 0) {
-            dayElem.classList.add("flatpickr-sunday");
+                // Si es domingo
+                if (localNoon.getDay() === 0) {
+                    dayElem.classList.add("flatpickr-sunday");
+                }
+
+                // AAAA-MM-DD para festivos
+                const y = localNoon.getFullYear();
+                const m = String(localNoon.getMonth() + 1).padStart(2, "0");
+                const d = String(localNoon.getDate()).padStart(2, "0");
+                const dateString = `${y}-${m}-${d}`;
+                if (holidayDates.includes(dateString)) {
+                    dayElem.classList.add("flatpickr-holiday");
+                }
             }
+        });
 
-            // AAAA-MM-DD para festivos
-            const y = localNoon.getFullYear();
-            const m = String(localNoon.getMonth() + 1).padStart(2, "0");
-            const d = String(localNoon.getDate()).padStart(2, "0");
-            const dateString = `${y}-${m}-${d}`;
-            if (holidayDates.includes(dateString)) {
-            dayElem.classList.add("flatpickr-holiday");
-            }
+        // Timepickers
+        flatpickr("#id_start", {
+            locale: 'es',
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true
+        });
+        flatpickr("#id_end", {
+            locale: 'es',
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true
+        });
+
+        // 4) Manejamos la lógica de agregar persona
+        const addPersonBtn = document.getElementById('addPersonBtn');
+        const personList = document.getElementById('personList');
+        const cedulasInput = document.getElementById('id_cedulas');
+        const externosInput = document.getElementById('id_personas_externas');
+
+        let cedulasArray = [];
+        let externosArray = [];
+
+        addPersonBtn.onclick = function() {
+            const personDiv = document.createElement('div');
+            personDiv.className = 'input-group my-3';
+
+            personDiv.innerHTML = `
+                <input type="text" class="form-control cedula-input" placeholder="Cédula">
+                <button class="btn btn-outline-secondary buscar-btn" type="button">Buscar</button>
+                <div class="result-section w-100 mt-2"></div>
+            `;
+            // Insertamos el nuevo bloque en personList
+            personList.appendChild(personDiv);
+
+            const buscarBtn = personDiv.querySelector('.buscar-btn');
+            const cedulaInput = personDiv.querySelector('.cedula-input');
+            const resultSection = personDiv.querySelector('.result-section');
+
+            buscarBtn.onclick = function() {
+                const cedula = cedulaInput.value.trim();
+                if (!cedula) {
+                    resultSection.innerHTML = '<div class="alert alert-warning">Ingresa una cédula válida.</div>';
+                    return;
+                }
+
+                fetch("{% url 'dth:buscar_nomina' %}?cedula=" + cedula)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (cedulasArray.includes(cedula)) {
+                            resultSection.innerHTML = `<div class="alert alert-info">Persona ya agregada: ${data.name} (${data.position})</div>`;
+                        } else {
+                            resultSection.innerHTML = `<div class="alert alert-success">Encontrado: ${data.name} (${data.position})</div>`;
+                            cedulasArray.push(cedula);
+                            cedulasInput.value = JSON.stringify(cedulasArray);
+                        }
+                    } else {
+                        resultSection.innerHTML = `
+                            <div class="alert alert-danger">
+                            Persona no registrada.
+                            <button class="btn btn-sm btn-link registrar-manual">Registrar manualmente</button>
+                            </div>
+                        `;
+                        const registrarManualBtn = resultSection.querySelector('.registrar-manual');
+                        registrarManualBtn.onclick = function() {
+                            mostrarFormularioManual(cedula, resultSection);
+                            registrarManualBtn.disabled = true;
+                        };
+                    }
+                })
+                .catch(() => {
+                    resultSection.innerHTML = '<div class="alert alert-danger">Error al realizar la búsqueda.</div>';
+                });
+            };
+        };
+
+        function mostrarFormularioManual(cedula, container) {
+            const formManual = document.createElement('div');
+            formManual.className = 'card p-3 mt-2 bg-light';
+
+            formManual.innerHTML = `
+                <div class="mb-2">
+                <label>Nombre Completo</label>
+                <input type="text" class="form-control nombre-completo">
+                </div>
+                <div class="mb-2">
+                <label>Cargo</label>
+                <select class="form-select cargo">
+                    <option value="">Selecciona un cargo</option>
+                    <option value="a">Capitán</option>
+                    <option value="b">Primer Oficial de Puente</option>
+                    <option value="c">Marino</option>
+                    <option value="d">Jefe de Máquinas</option>
+                    <option value="e">Primer Oficial de Máquinas</option>
+                    <option value="f">Maquinista</option>
+                    <option value="g">Otro</option>
+                </select>
+                </div>
+                <button type="button" class="btn btn-success agregar-externo">Agregar</button>
+            `;
+            container.appendChild(formManual);
+
+            formManual.querySelector('.agregar-externo').onclick = function() {
+                const nombre = formManual.querySelector('.nombre-completo').value.trim();
+                const cargo = formManual.querySelector('.cargo').value;
+
+                if (!nombre || !cargo) {
+                    alert('Por favor completa todos los campos.');
+                    return;
+                }
+                externosArray.push({ nombre_completo: nombre, cedula: cedula, cargo: cargo });
+                externosInput.value = JSON.stringify(externosArray);
+
+                formManual.innerHTML = `
+                <div class="alert alert-success">
+                    Agregado: ${nombre} (Cargo: ${formManual.querySelector('.cargo option:checked').textContent})
+                </div>
+                `;
+            };
         }
     });
-
-  // Timepickers
-  flatpickr("#id_start", {
-    locale: 'es',
-    enableTime: true,
-    noCalendar: true,
-    dateFormat: "H:i",
-    time_24hr: true
-  });
-  flatpickr("#id_end", {
-    locale: 'es',
-    enableTime: true,
-    noCalendar: true,
-    dateFormat: "H:i",
-    time_24hr: true
-  });
-
-    // 4) Manejamos la lógica de agregar persona
-    const addPersonBtn = document.getElementById('addPersonBtn');
-    const personList = document.getElementById('personList');
-    const cedulasInput = document.getElementById('id_cedulas');
-    const externosInput = document.getElementById('id_personas_externas');
-
-    let cedulasArray = [];
-    let externosArray = [];
-
-    addPersonBtn.onclick = function() {
-      const personDiv = document.createElement('div');
-      personDiv.className = 'input-group my-3';
-
-      personDiv.innerHTML = `
-        <input type="text" class="form-control cedula-input" placeholder="Cédula">
-        <button class="btn btn-outline-secondary buscar-btn" type="button">Buscar</button>
-        <div class="result-section w-100 mt-2"></div>
-      `;
-      // Insertamos el nuevo bloque en personList
-      personList.appendChild(personDiv);
-
-      const buscarBtn = personDiv.querySelector('.buscar-btn');
-      const cedulaInput = personDiv.querySelector('.cedula-input');
-      const resultSection = personDiv.querySelector('.result-section');
-
-      buscarBtn.onclick = function() {
-        const cedula = cedulaInput.value.trim();
-        if (!cedula) {
-          resultSection.innerHTML = '<div class="alert alert-warning">Ingresa una cédula válida.</div>';
-          return;
-        }
-        fetch("{% url 'dth:buscar_nomina' %}?cedula=" + cedula)
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              if (cedulasArray.includes(cedula)) {
-                resultSection.innerHTML = `<div class="alert alert-info">Persona ya agregada: ${data.name} (${data.position})</div>`;
-              } else {
-                resultSection.innerHTML = `<div class="alert alert-success">Encontrado: ${data.name} (${data.position})</div>`;
-                cedulasArray.push(cedula);
-                cedulasInput.value = JSON.stringify(cedulasArray);
-              }
-            } else {
-              resultSection.innerHTML = `
-                <div class="alert alert-danger">
-                  Persona no registrada.
-                  <button class="btn btn-sm btn-link registrar-manual">Registrar manualmente</button>
-                </div>
-              `;
-              const registrarManualBtn = resultSection.querySelector('.registrar-manual');
-              registrarManualBtn.onclick = function() {
-                mostrarFormularioManual(cedula, resultSection);
-                registrarManualBtn.disabled = true;
-              };
-            }
-          })
-          .catch(() => {
-            resultSection.innerHTML = '<div class="alert alert-danger">Error al realizar la búsqueda.</div>';
-          });
-      };
-    };
-
-    function mostrarFormularioManual(cedula, container) {
-      const formManual = document.createElement('div');
-      formManual.className = 'card p-3 mt-2 bg-light';
-
-      formManual.innerHTML = `
-        <div class="mb-2">
-          <label>Nombre Completo</label>
-          <input type="text" class="form-control nombre-completo">
-        </div>
-        <div class="mb-2">
-          <label>Cargo</label>
-          <select class="form-select cargo">
-            <option value="">Selecciona un cargo</option>
-            <option value="a">Capitán</option>
-            <option value="b">Primer Oficial de Puente</option>
-            <option value="c">Marino</option>
-            <option value="d">Jefe de Máquinas</option>
-            <option value="e">Primer Oficial de Máquinas</option>
-            <option value="f">Maquinista</option>
-            <option value="g">Otro</option>
-          </select>
-        </div>
-        <button type="button" class="btn btn-success agregar-externo">Agregar</button>
-      `;
-      container.appendChild(formManual);
-
-      formManual.querySelector('.agregar-externo').onclick = function() {
-        const nombre = formManual.querySelector('.nombre-completo').value.trim();
-        const cargo = formManual.querySelector('.cargo').value;
-
-        if (!nombre || !cargo) {
-          alert('Por favor completa todos los campos.');
-          return;
-        }
-        externosArray.push({ nombre_completo: nombre, cedula: cedula, cargo: cargo });
-        externosInput.value = JSON.stringify(externosArray);
-
-        formManual.innerHTML = `
-          <div class="alert alert-success">
-            Agregado: ${nombre} (Cargo: ${formManual.querySelector('.cargo option:checked').textContent})
-          </div>
-        `;
-      };
-    }
-  });
 </script>
 
-<!-- Estilos extra para el calendario -->
-<style>
-  /* Colorear el fondo de la ventana del calendario */
-  .flatpickr-calendar {
-    background-color: #f6f6ff !important; /* un azul clarito */
-  }
-  /* Aumentar el espacio entre los días */
-  .flatpickr-day {
-    /* margin: 5px !important; */
-    /* width: 2.3em !important;
-    height: 2.3em !important;
-    line-height: 2.3em !important; */
-  }
-  .flatpickr-sunday {
-    background-color: #ffe2e2 !important; 
-  }
-  .flatpickr-holiday {
-    background-color: #ffe2e2 !important; 
-    font-weight: bold;
-    text-decoration: underline;
-  }
-</style>
-
+<script>
+console.log("URL generada:", "{% url 'dth:buscar_nomina' %}?cedula=foo");
+</script>
 {% endblock %}

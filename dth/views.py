@@ -55,48 +55,9 @@ def profile_update(request):
 
 class OvertimeListView(LoginRequiredMixin, TemplateView):
     template_name = 'dth/overtime_list.html'
-
-    def get_default_date_range(self):
-        today = date.today()
-        if today.day < 21:
-            start_date = (today - relativedelta(months=1)).replace(day=21)
-            end_date = today.replace(day=21)
-        else:
-            start_date = today.replace(day=21)
-            end_date = (today + relativedelta(months=1)).replace(day=21)
-        return start_date, end_date
-    
-    def parse_date_range(self):
-        date_range_str = self.request.GET.get('date_range', '')
-        if date_range_str:
-            # Detecta separadores posibles
-            if " to " in date_range_str:
-                dates = date_range_str.split(" to ")
-            elif " a " in date_range_str:
-                dates = date_range_str.split(" a ")
-            elif "," in date_range_str:
-                dates = date_range_str.split(",")
-            else:
-                dates = []
-            if len(dates) == 2:
-                try:
-                    start_date = datetime.strptime(dates[0].strip(), '%Y-%m-%d').date()
-                    end_date = datetime.strptime(dates[1].strip(), '%Y-%m-%d').date()
-                except ValueError:
-                    start_date, end_date = self.get_default_date_range()
-            else:
-                try:
-                    start_date = datetime.strptime(date_range_str.strip(), '%Y-%m-%d').date()
-                    end_date = start_date + timedelta(days=1)
-                except ValueError:
-                    start_date, end_date = self.get_default_date_range()
-        else:
-            start_date, end_date = self.get_default_date_range()
-        return start_date, end_date
     
     def get_queryset(self):
-        start_date, end_date = self.parse_date_range()
-
+        start_date, end_date = parse_date_range(self.request)
         queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
 
         # Filtros por grupo de usuario
@@ -109,12 +70,12 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
         elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
             queryset = queryset.none()
 
-        return queryset.order_by('-report_date', 'asset') # , 'ovetime_set_start'
+        return queryset.order_by('-report_date', 'asset')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['projects'] = self.get_queryset()
-        context['start_date'], context['end_date'] = self.parse_date_range()
+        context['start_date'], context['end_date'] = parse_date_range(self.request)
         return context
 
     # def get_queryset(self):
@@ -255,44 +216,6 @@ def delete_overtime(request):
     return redirect(request.POST.get('next', '/'))
 
 
-def get_default_date_range():
-    today = date.today()
-    if today.day < 21:
-        start_date = (today - relativedelta(months=1)).replace(day=21)
-        end_date = today.replace(day=21)
-    else:
-        start_date = today.replace(day=21)
-        end_date = (today + relativedelta(months=1)).replace(day=21)
-    return start_date, end_date
-
-def parse_date_range(request):
-    date_range_str = request.GET.get('date_range', '')
-    if date_range_str:
-        # Detecta separadores posibles
-        if " to " in date_range_str:
-            dates = date_range_str.split(" to ")
-        elif " a " in date_range_str:
-            dates = date_range_str.split(" a ")
-        elif "," in date_range_str:
-            dates = date_range_str.split(",")
-        else:
-            dates = []
-        if len(dates) == 2:
-            try:
-                start_date = datetime.strptime(dates[0].strip(), '%Y-%m-%d').date()
-                end_date = datetime.strptime(dates[1].strip(), '%Y-%m-%d').date()
-            except ValueError:
-                start_date, end_date = get_default_date_range()
-        else:
-            try:
-                start_date = datetime.strptime(date_range_str.strip(), '%Y-%m-%d').date()
-                end_date = start_date + timedelta(days=1)
-            except ValueError:
-                start_date, end_date = get_default_date_range()
-    else:
-        start_date, end_date = get_default_date_range()
-    return start_date, end_date
-
 def filter_overtime_queryset(request):
     # Rango de fechas
     start_date, end_date = parse_date_range(request)
@@ -388,63 +311,40 @@ class OvertimeProjectCreateView(LoginRequiredMixin, CreateView):
     model = OvertimeProject
     form_class = OvertimeProjectForm
     template_name = "dth/create_overtime_report.html"
-    success_url = reverse_lazy("dth:overtime_list")  # Ajusta con tu URL de éxito
+    success_url = reverse_lazy("dth:overtime_list")
 
     def get_form_kwargs(self):
-        """
-        Inyectar el 'user' al formulario para que 
-        OvertimeProjectForm pueda ocultar/mostrar el asset si es maq_members.
-        """
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
 
     def get_context_data(self, **kwargs):
-        """
-        Añadimos:
-          - La lista de festivos en 'holiday_dates'.
-          - La fecha inicial que usará el calendario en 'initial_date'.
-        """
         context = super().get_context_data(**kwargs)
 
-        # 1) Festivos
         current_year = date.today().year
         next_year = current_year + 1
+        all_holidays = holidays.Colombia(years=range(current_year, next_year+1))
+
         holiday_list = []
-        for hol_date in COLOMBIA_HOLIDAYS:
-            if hol_date.year in [current_year, next_year]:
-                holiday_list.append(hol_date.isoformat())
+        for hol_date in all_holidays:
+            holiday_list.append(hol_date.isoformat())
         context["holiday_dates"] = json.dumps(holiday_list)
 
-        # 2) Determinar la fecha inicial (si ya llenaron el form o no).
-        #    Si el form tiene un .instance con .report_date, la usamos.
-        #    Si no, usamos la fecha de hoy.
         chosen_date = None
         form = context.get("form")
         if form and form.instance and form.instance.report_date:
             chosen_date = form.instance.report_date
         if not chosen_date:
             chosen_date = date.today()  # por defecto, hoy
-
         context["initial_date"] = chosen_date
-
         return context
 
     def form_valid(self, form):
-        """
-        Lógica principal para:
-          - Guardar el proyecto (commit=False primero)
-          - Validar horas extras, cédulas, etc.
-          - Crear los sub-intervalos (Overtime)
-        """
         project = form.save(commit=False)
         project.reported_by = self.request.user
 
-        # Asignar asset si user es maq_members
-        if self.request.user.groups.filter(name='maq_members').exists():
-            asset = Asset.objects.filter(
-                Q(supervisor=self.request.user) | Q(capitan=self.request.user)
-            ).first()
+        if self.request.user.groups.filter(name='maq_members').exists(): # Asignar asset si user es maq_members
+            asset = Asset.objects.filter(Q(supervisor=self.request.user) | Q(capitan=self.request.user)).first()
             project.asset = asset
 
         # Datos del formulario
@@ -453,7 +353,7 @@ class OvertimeProjectCreateView(LoginRequiredMixin, CreateView):
         end_time    = form.cleaned_data['end']
 
         # Calcular intervalos válidos
-        overtime_periods = calcular_horas_extras(report_date, start_time, end_time)
+        overtime_periods = calculate_overtime(report_date, start_time, end_time)
         if not overtime_periods:
             messages.error(self.request, "Las horas ingresadas no califican como horas extras.")
             return self.form_invalid(form)  # Re-renderiza con errores
@@ -561,15 +461,11 @@ class OvertimeProjectCreateView(LoginRequiredMixin, CreateView):
             project.delete()
             messages.error(
                 self.request,
-                "No se pudo crear ninguna hora extra (todos los intervalos estaban solapados)."
+                "E1: No se pudo crear ninguna hora extra."
             )
             return self.form_invalid(form)
 
     def form_invalid(self, form):
-        """
-        Si el form no es válido (o detectamos un error manual en form_valid),
-        se re-renderiza la plantilla con los mismos datos y los mensajes de error.
-        """
         return super().form_invalid(form)
 
 

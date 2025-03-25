@@ -5,7 +5,6 @@ from django.db.models import Q
 import json
 
 from dth.models import UserProfile, Overtime, OvertimeProject, Nomina
-from dth.utils import calcular_horas_extras
 from got.models import Asset
 
 class UploadNominaReportForm(forms.Form):
