@@ -109,7 +109,7 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
         elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
             queryset = queryset.none()
 
-        return queryset.order_by('-report_date', 'asset', 'ovetime_set_start')
+        return queryset.order_by('-report_date', 'asset') # , 'ovetime_set_start'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
