@@ -34,8 +34,6 @@
             border-radius: 8px;
             width: 180px;
         }
-
-
     </style>
 {% endblock %}
 {% block content %}
@@ -95,11 +93,11 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Estado</label>
-                            <select class="form-select" name="estado">
+                            <select class="form-select" name="state">
                                 <option value="all" {% if estado == "all" %}selected{% endif %}>Todos</option>
-                                <option value="a" {% if estado == "a" %}selected{% endif %}>Aprobados (state='a')</option>
-                                <option value="b" {% if estado == "b" %}selected{% endif %}>No Aprobados (state='b')</option>
-                                <option value="c" {% if estado == "c" %}selected{% endif %}>Pendientes (state='c')</option>
+                                <option value="a" {% if estado == "a" %}selected{% endif %}>Aprobados</option>
+                                <option value="b" {% if estado == "b" %}selected{% endif %}>No Aprobados</option>
+                                <option value="c" {% if estado == "c" %}selected{% endif %}>Pendientes</option>
                             </select>
                         </div>
                     </div>
@@ -157,7 +155,13 @@
                         <tr>
                             <td colspan="5">
                                 <table class="table-detail">
-                                    {% for entry in project.overtime_set.all %}
+                                    {% if state == "all" %}
+                                        {% with project.overtime_set.all as children %}
+                                    {% else %}
+                                        {% set children = project.overtime_set.filter(state=state) %}
+                                    {% endif %}
+                    
+                                    {% for entry in children %}
                                     <tr class="clickable-row">
                                         <td>
                                             <!-- <label style="cursor: pointer;"> -->

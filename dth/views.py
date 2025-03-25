@@ -59,6 +59,17 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
     def get_queryset(self):
         start_date, end_date = parse_date_range(self.request)
         queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
+        
+        state_filter = self.request.GET.get('state', 'all')
+        if state_filter in ['a','b','c']:
+            queryset = queryset.filter(overtime__state=state_filter).distinct()
+
+        if state_filter == 'a':
+            queryset = queryset.filter(state='a')
+        elif state_filter == 'b':
+            queryset = queryset.filter(state='b')
+        elif state_filter == 'c':
+            queryset = queryset.filter(state='c')
 
         # Filtros por grupo de usuario
         current_user = self.request.user
@@ -76,16 +87,13 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['projects'] = self.get_queryset()
         context['start_date'], context['end_date'] = parse_date_range(self.request)
+        context['state'] = self.request.GET.get('state', 'all')
         return context
-
-    # def get_queryset(self):
-    #     start_date, end_date = self.parse_date_range()
 
         # Filtros específicos
         # person_name = self.request.GET.get('name', '').strip()
         # cedula = self.request.GET.get('cedula', '').strip()
         # asset_name = self.request.GET.get('asset', '').strip()
-        # aprobado_filter = self.request.GET.get('estado', 'all')
 
         # if person_name:
         #     queryset = queryset.filter(nombre_completo__icontains=person_name)
@@ -139,7 +147,6 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
     #     context['name'] = self.request.GET.get('name', '')
     #     context['cedula'] = self.request.GET.get('cedula', '')
     #     context['asset_filter'] = self.request.GET.get('asset', '')
-    #     context['estado'] = self.request.GET.get('estado', 'all')
         
     #     queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
     #     total_hours = self.get_total_hours(queryset)
