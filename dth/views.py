@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Q, Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -45,11 +46,7 @@ def profile_update(request):
         else:
             messages.error(request, 'Por favor corrige los errores indicados.')
     else:
-        form = UserProfileForm(instance=profile, user=user, initial={
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'email': user.email,
-        })
+        form = UserProfileForm(instance=profile, user=user, initial={'first_name': user.first_name, 'last_name': user.last_name, 'email': user.email,})
     return render(request, 'dth/profile_update.html', {'form': form})
 
 
@@ -58,18 +55,34 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
     
     def get_queryset(self):
         start_date, end_date = parse_date_range(self.request)
-        queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
-        
+        asset_id = self.request.GET.get('asset', '')
         state_filter = self.request.GET.get('state', 'all')
-        if state_filter in ['a','b','c']:
-            queryset = queryset.filter(overtime__state=state_filter).distinct()
+        name_filter = self.request.GET.get('name', '').strip()
+        cedula_filter = self.request.GET.get('cedula', '').strip()
+        qs = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
 
-        if state_filter == 'a':
-            queryset = queryset.filter(state='a')
-        elif state_filter == 'b':
-            queryset = queryset.filter(state='b')
-        elif state_filter == 'c':
-            queryset = queryset.filter(state='c')
+        if name_filter:
+            qs = qs.filter(
+                Q(overtime__worker__name__icontains=name_filter) | Q(overtime__worker__surname__icontains=name_filter) |
+                Q(overtime__nombre_completo__icontains=name_filter)
+            ).distinct()
+        if cedula_filter:
+            qs = qs.filter(
+                Q(overtime__worker__id_number__icontains=cedula_filter) |
+                Q(overtime__cedula__icontains=cedula_filter)
+            ).distinct()
+        if asset_id:
+            qs = qs.filter(asset__abbreviation=asset_id)
+        if state_filter in ['a','b','c']:
+            qs = qs.filter(overtime__state=state_filter).distinct()
+            filtered_overtime = Overtime.objects.filter(state=state_filter)
+            prefetch = Prefetch('overtime_set', queryset=filtered_overtime, to_attr='filtered_overtimes')
+            qs = qs.prefetch_related(prefetch)
+        else:
+            qs = qs.filter(overtime__isnull=False).distinct()
+            filtered_overtime = Overtime.objects.all()
+            prefetch = Prefetch('overtime_set', queryset=filtered_overtime, to_attr='filtered_overtimes')
+            qs = qs.prefetch_related(prefetch)
 
         # Filtros por grupo de usuario
         current_user = self.request.user
@@ -77,105 +90,25 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
             pass  # Sin filtro adicional
         elif current_user.groups.filter(name='maq_members').exists():
             asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()
-            queryset = queryset.filter(asset=asset)
+            qs = qs.filter(asset=asset)
         elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
-            queryset = queryset.none()
-
-        return queryset.order_by('-report_date', 'asset')
+            qs = qs.none()
+        return qs.order_by('-report_date', 'asset')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['projects'] = self.get_queryset()
-        context['start_date'], context['end_date'] = parse_date_range(self.request)
+        start_date, end_date = parse_date_range(self.request)
+        context['start_date'] = start_date.strftime('%Y-%m-%d')
+        context['end_date'] = end_date.strftime('%Y-%m-%d')
         context['state'] = self.request.GET.get('state', 'all')
+        context['asset_id'] = self.request.GET.get('asset', '')
+        context['assets'] = Asset.objects.filter(show=True).order_by('name')
+        context['name'] = self.request.GET.get('name', '')
+        context['cedula'] = self.request.GET.get('cedula', '')
+        context['holiday_dates'] = json.dumps([d.strftime('%Y-%m-%d') for d in COLOMBIA_HOLIDAYS.keys()])
         return context
-
-        # Filtros específicos
-        # person_name = self.request.GET.get('name', '').strip()
-        # cedula = self.request.GET.get('cedula', '').strip()
-        # asset_name = self.request.GET.get('asset', '').strip()
-
-        # if person_name:
-        #     queryset = queryset.filter(nombre_completo__icontains=person_name)
-        # if cedula:
-        #     queryset = queryset.filter(cedula__icontains=cedula)
-        # if asset_name:
-        #     queryset = queryset.filter(asset__name__icontains=asset_name)
-        # if aprobado_filter == 'aprobado':
-        #     queryset = queryset.filter(approved=True)
-        # elif aprobado_filter == 'no_aprobado':
-        #     queryset = queryset.filter(approved=False)
-
-    def get_total_hours(self, queryset):
-        total_seconds = 0
-        for entry in queryset:
-            dt_start = datetime.combine(entry.fecha, entry.hora_inicio)
-            dt_end = datetime.combine(entry.fecha, entry.hora_fin)
-            diff = dt_end - dt_start
-            total_seconds += diff.total_seconds()
-        return round(total_seconds / 3600, 2)  # Total en horas
-
-    def get_total_sunday_holiday_hours(self, queryset):
-        total_seconds = 0
-        for entry in queryset:
-            dt_start = datetime.combine(entry.fecha, entry.hora_inicio)
-            dt_end = datetime.combine(entry.fecha, entry.hora_fin)
-            diff = dt_end - dt_start
-            # Si la fecha es domingo o festiva, sumar la totalidad de la duración
-            if entry.fecha.weekday() == 6 or entry.fecha in COLOMBIA_HOLIDAYS:
-                total_seconds += diff.total_seconds()
-        return round(total_seconds / 3600, 2)
-
-    # def get_total_nocturnal_hours(self, queryset):
-    #     total_seconds = 0
-    #     for entry in queryset:
-    #         dt_start = datetime.combine(entry.fecha, entry.hora_inicio)
-    #         dt_end = datetime.combine(entry.fecha, entry.hora_fin)
-    #         if dt_end <= dt_start:
-    #             dt_end += timedelta(days=1)
-    #         overlap = get_nocturnal_overlap(dt_start, dt_end)
-    #         total_seconds += overlap.total_seconds()
-    #     return round(total_seconds / 3600, 2)
-
-
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     start_date, end_date = self.parse_date_range()
-    #     context['start_date'] = start_date.strftime('%Y-%m-%d')
-    #     context['end_date'] = end_date.strftime('%Y-%m-%d')
-    #     context['date_range'] = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-    #     context['name'] = self.request.GET.get('name', '')
-    #     context['cedula'] = self.request.GET.get('cedula', '')
-    #     context['asset_filter'] = self.request.GET.get('asset', '')
-        
-    #     queryset = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
-    #     total_hours = self.get_total_hours(queryset)
-    #     context['total_hours'] = total_hours  # Valor numérico, por ejemplo 12.5
-    #     context['total_hours_hhmm'] = hours_to_hhmm(total_hours)  # Formato HH:MM, por ejemplo "12:30"
-        
-    #     context['total_sunday_holiday_hours'] = hours_to_hhmm(self.get_total_sunday_holiday_hours(queryset))
-    #     # context['total_nocturnal_hours'] = self.get_total_nocturnal_hours(queryset)
     
-    #     page_obj = context['page_obj']
-    #     date_asset_justification_groups = []
-    #     for fecha, fecha_entries in groupby(page_obj.object_list, key=attrgetter('fecha')):
-    #         asset_groups = []
-    #         fecha_entries = list(fecha_entries)
-    #         for asset, asset_entries in groupby(fecha_entries, key=attrgetter('asset')):
-    #             asset_entries = list(asset_entries)
-    #             for justificacion, justificacion_entries in groupby(asset_entries, key=attrgetter('justificacion')):
-    #                 justificacion_entries = list(justificacion_entries)
-    #                 asset_groups.append({
-    #                     'asset': asset,
-    #                     'justificacion': justificacion,
-    #                     'entries': justificacion_entries
-    #                 })
-    #         date_asset_justification_groups.append({'fecha': fecha, 'assets': asset_groups})
-    #     context['date_asset_groups'] = date_asset_justification_groups
-    #     # También enviamos la lista de activos para el select (assets de área 'a')
-    #     context['assets'] = Asset.objects.filter(area='a', show=True).order_by('name')
-    #     context['holiday_dates'] = json.dumps([d.strftime('%Y-%m-%d') for d in colombia_holidays.keys()])
-    #     return context
 
 @login_required
 @permission_required('got.can_approve_overtime', raise_exception=True)
@@ -213,6 +146,7 @@ def edit_overtime(request):
         overtime.save()
         messages.success(request, "Horas extras actualizadas.")
     return redirect(request.POST.get('next', '/'))
+
 
 @login_required
 @require_POST
@@ -256,6 +190,7 @@ def filter_overtime_queryset(request):
         qs = qs.none()
 
     return qs.order_by('-fecha', 'asset', 'hora_inicio', 'justificacion')
+
 
 @login_required
 def export_overtime_excel(request):

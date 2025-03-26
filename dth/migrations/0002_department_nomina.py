@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             name='Nomina',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('doc_number', models.CharField(help_text='Identificación del empleado.', max_length=50, verbose_name='Número de documento')),
+                ('id_number', models.CharField(help_text='Identificación del empleado.', max_length=50, verbose_name='Número de documento')),
                 ('name', models.CharField(help_text='Nombre del empleado.', max_length=100)),
                 ('surname', models.CharField(help_text='Apellido del empleado.', max_length=100)),
                 ('position', models.CharField(help_text='Cargo o puesto.', max_length=100)),
@@ -32,3 +32,10 @@ class Migration(migrations.Migration):
             ],
         ),
     ]
+
+
+    # dependencies = [
+    #     ('dth', '0003_nominareport_current_salary_alter_nomina_admission_and_more'),
+    #     ('got', '0005_alter_equipo_date_inv_alter_equipo_estado_and_more'),
+    #     migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    # ]

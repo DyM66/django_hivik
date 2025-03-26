@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from got.paths import get_upload_path
 from decimal import Decimal
 from django.utils import timezone
-from datetime import date
+from dth.utils import *
 
 RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
 
@@ -29,6 +29,7 @@ class Nomina(models.Model):
     admission = models.DateField(help_text="Fecha de ingreso del empleado. (Obligatoria)")
     expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")
     risk_class = models.CharField(max_length=3, choices=RISK_CLASS_CHOICES, blank=True, null=True, help_text="Clase de riesgo laboral.")
+    is_driver = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.name} {self.surname} - {self.position}"
@@ -66,12 +67,56 @@ class Overtime(models.Model):
     remarks = models.TextField(null=True, blank=True)
 
     # OBSOLETO
-    approved = models.BooleanField(default=False)
-    reportado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     CARGO = (('a', 'Capitán'),('b', 'Primer Oficial de Puente'),('c', 'Marino'),('d', 'Jefe de Máquinas'),('e', 'Primer Oficial de Máquinas'),('f', 'Maquinista'),('g', 'Otro'),)
     nombre_completo = models.CharField(max_length=200, default='', null=True, blank=True)
     cedula = models.CharField(max_length=20, default='', null=True, blank=True)
     cargo = models.CharField(max_length=1, choices=CARGO, null=True, blank=True)
+
+    @property
+    def total_hours_festive(self):
+        """
+        Si la fecha del proyecto es domingo/festivo, 
+        TODO el intervalo (start->end) se considera festivo.
+        De lo contrario, 0.
+        """
+        if not self.project or not self.project.report_date:
+            return 0.0
+        if is_sunday_or_holiday(self.project.report_date):
+            return diff_in_hours(self.start, self.end)
+        return 0.0
+
+    @property
+    def total_hours_ordinary(self):
+        """
+        Si NO es domingo/festivo => horas diurnas (06:00 a 21:00).
+        Si es domingo/festivo => 0
+        """
+        if not self.project or not self.project.report_date:
+            return 0.0
+        if is_sunday_or_holiday(self.project.report_date):
+            return 0.0
+        # Calcular las horas de solapamiento con [06:00, 21:00)
+        ordinary_hours = overlap_in_hours(self.start, self.end, DAY_START, NIGHT_START)
+        return ordinary_hours
+
+    @property
+    def total_hours_night(self):
+        """
+        Si NO es domingo/festivo => horas nocturnas (21:00-24:00 y 0:00-06:00).
+        (Aquí consideramos el caso simple: start->end en el mismo día.)
+        """
+        if not self.project or not self.project.report_date:
+            return 0.0
+        if is_sunday_or_holiday(self.project.report_date):
+            return 0.0
+        # Horas en [21:00, 24:00)
+        part1 = overlap_in_hours(self.start, self.end, NIGHT_START, time(23,59,59))
+        # Horas en [0:00, 06:00)
+        # Para modelar 0:00, podemos usar time(0,0), y se asume si end<start un cruce de medianoche
+        # pero si tu app no maneja cruces de medianoche, bastará con la 2ª franja.
+        # Aun así, un approach simple => definimos time(0,0) a time(6,0) en el mismo "día"
+        part2 = overlap_in_hours(self.start, self.end, time(0,0), DAY_START)
+        return part1 + part2
 
     def __str__(self):
         return f"{self.nombre_completo} - {self.get_cargo_display()} ({self.fecha})"

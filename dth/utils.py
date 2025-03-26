@@ -7,6 +7,8 @@ WEEKDAY_START = time(7, 30)
 WEEKDAY_END = time(17, 0)
 SATURDAY_START = time(8, 0)
 SATURDAY_END = time(12, 0)
+DAY_START = time(6, 0)   # 6:00 AM
+NIGHT_START = time(21, 0)  # 9:00 PM
 
 COLOMBIA_HOLIDAYS = holidays.Colombia(years=[2025, 2026, 2027, 2028])
 
@@ -79,7 +81,6 @@ def subtract_time_ranges(new_start, new_end, existing_ranges):
         if not result:
             # Ya no queda nada, podemos cortar
             break
-
     return result
 
 
@@ -89,60 +90,52 @@ def hours_to_hhmm(total_hours):
     minutes = int(round((total_hours - hours) * 60))
     return f"{hours}:{minutes}"
 
-def overlap_interval(report_start, report_end, period_start, period_end):
-    """
-    Retorna el solapamiento (timedelta) entre el intervalo del reporte y el intervalo
-    de período nocturno.
-    """
-    latest_start = max(report_start, period_start)
-    earliest_end = min(report_end, period_end)
-    delta = earliest_end - latest_start
-    return max(delta, timedelta(0))
+
+def is_sunday_or_holiday(date_):
+    """Devuelve True si la fecha es domingo o festivo en Colombia."""
+    if date_.weekday() == 6:  # domingo => weekday() == 6
+        return True
+    return date_ in COLOMBIA_HOLIDAYS
 
 
-def get_nocturnal_overlap(dt_start, dt_end):
+def diff_in_hours(tstart, tend):
     """
-    Calcula el total de tiempo (timedelta) del intervalo [dt_start, dt_end]
-    que cae en el período nocturno, definido como de 22:00 a 06:00 del día siguiente.
-    Se considera que si el reporte ocurre en un solo día y está entre 00:00 y 06:00,
-    se calcula usando ese intervalo.
+    Calcula la diferencia en horas (float) entre tstart y tend,
+    asumiendo que están el mismo día y tend >= tstart.
+    Si tend < tstart, se asume que cruza medianoche y se suma 1 día.
     """
-    total = timedelta(0)
-    # Si el reporte cruza la medianoche, ajustamos dt_end
-    if dt_end <= dt_start:
+    dt1 = datetime.combine(datetime.min.date(), tstart)
+    dt2 = datetime.combine(datetime.min.date(), tend)
+    if dt2 < dt1:
+        # caso: end es "después de medianoche"
+        dt2 += timedelta(days=1)
+    diff = (dt2 - dt1).total_seconds() / 3600
+    return diff
+
+
+
+def overlap_in_hours(start, end, range_start, range_end):
+    """
+    Devuelve la cantidad de horas que el intervalo [start,end] 
+    solapa con [range_start, range_end] (en el mismo día).
+    """
+    # Convertimos a datetime min
+    dt_start = datetime.combine(datetime.min.date(), start)
+    dt_end = datetime.combine(datetime.min.date(), end)
+    dt_rstart = datetime.combine(datetime.min.date(), range_start)
+    dt_rend = datetime.combine(datetime.min.date(), range_end)
+
+    # Ajuste si dt_end < dt_start => +1 día
+    if dt_end < dt_start:
         dt_end += timedelta(days=1)
-    
-    # Caso 1: El reporte ocurre en un solo día
-    if dt_start.date() == dt_end.date():
-        # Si el reporte ocurre en la madrugada (antes de las 06:00)
-        if dt_start.hour < 6:
-            nocturnal_period = (
-                datetime.combine(dt_start.date(), time(0, 0)),
-                datetime.combine(dt_start.date(), time(6, 0))
-            )
-            total += overlap_interval(dt_start, dt_end, *nocturnal_period)
-        # Si el reporte ocurre en la noche (a partir de las 22:00)
-        if dt_start.hour >= 22:
-            nocturnal_period = (
-                datetime.combine(dt_start.date(), time(21, 0)),
-                datetime.combine(dt_start.date(), time(23, 59, 59))
-            )
-            total += overlap_interval(dt_start, dt_end, *nocturnal_period)
+
+    # Hallar la intersección
+    latest_start = max(dt_start, dt_rstart)
+    earliest_end = min(dt_end, dt_rend)
+    if earliest_end > latest_start:
+        return (earliest_end - latest_start).total_seconds() / 3600
     else:
-        # Reporte que abarca dos días
-        # Parte del primer día (a partir de las 22:00)
-        nocturnal_first = (
-            datetime.combine(dt_start.date(), time(21, 0)),
-            datetime.combine(dt_start.date(), time(23, 59, 59))
-        )
-        total += overlap_interval(dt_start, dt_end, *nocturnal_first)
-        # Parte del segundo día (hasta las 06:00)
-        nocturnal_second = (
-            datetime.combine(dt_end.date(), time(0, 0)),
-            datetime.combine(dt_end.date(), time(6, 0))
-        )
-        total += overlap_interval(dt_start, dt_end, *nocturnal_second)
-    return total
+        return 0
 
 
 def get_default_date_range():
