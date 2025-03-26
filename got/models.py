@@ -557,7 +557,7 @@ class FailureReport(models.Model):
 class Suministro(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00')) 
-    Solicitud = models.ForeignKey('inv.solicitud', on_delete=models.CASCADE, null=True, blank=True)
+    Solicitud = models.ForeignKey('inv.solicitud', on_delete=models.CASCADE, null=True, blank=True) #Obsoleto
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
 
