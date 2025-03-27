@@ -91,17 +91,20 @@
                             <label for="cedula" class="form-label">Cedula</label>
                             <input type="text" class="form-control" id="cedula" name="cedula" value="{{ cedula }}" placeholder="Buscar por Cedula">
                         </div>
-                        <div class="mb-3">
-                            <label for="asset" class="form-label">Centro de costos</label>
-                            <select class="form-select" id="asset" name="asset">
-                                <option value="">Todos</option>
-                                {% for asset in assets %}
-                                    <option value="{{ asset.abbreviation }}" {% if asset_id == asset.abbreviation %}selected{% endif %}>
-                                        {{ asset.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        
+                        {% if perms.got.access_all_assets %}
+                            <div class="mb-3">
+                                <label for="asset" class="form-label">Centro de costos</label>
+                                <select class="form-select" id="asset" name="asset">
+                                    <option value="">Todos</option>
+                                    {% for asset in assets %}
+                                        <option value="{{ asset.abbreviation }}" {% if asset_id == asset.abbreviation %}selected{% endif %}>
+                                            {{ asset.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
                         <div class="mb-3">
                             <label class="form-label">Estado</label>
                             <select class="form-select" name="state">
@@ -135,7 +138,7 @@
                         <th>Reportado por</th>
                         <th>Justificación</th>
                         <th>
-                            {% if perms.got.can_approve_overtime %}
+                            {% if perms.dth.can_approve_overtime %}
                                 <button id="toggle-checkboxes" class="btn btn-sm btn-primary">
                                     Seleccionar
                                 </button> 
@@ -202,11 +205,13 @@
                                                 <span class="status orange-state">Pendiente por revisar</span>
                                             {% endif %}
 
-                                            <!-- Icono editar -->
-                                            <button class="btn btn-link text-primary p-0 ms-2 edit-overtime-btn" data-id="{{ entry.id }}" data-start="{{ entry.start }}" data-end="{{ entry.end }}"
-                                                data-state="{{ entry.state }}" data-remarks="{{ entry.remarks|default:'' }}" data-bs-toggle="modal" data-bs-target="#editOvertimeModal">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
+                                            {% if perms.dth.can_change_overtime %}
+                                                <!-- Icono editar -->
+                                                <button class="btn btn-link text-primary p-0 ms-2 edit-overtime-btn" data-id="{{ entry.id }}" data-start="{{ entry.start }}" data-end="{{ entry.end }}"
+                                                    data-state="{{ entry.state }}" data-remarks="{{ entry.remarks|default:'' }}" data-bs-toggle="modal" data-bs-target="#editOvertimeModal">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% empty %}

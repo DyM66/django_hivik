@@ -19,7 +19,7 @@
                             {{ asset_del_supervisor.name }}
                         </a>
                     </li>
-                {% elif perms.got.view_asset %}
+                {% elif perms.got.access_all_assets %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'asset-list' %}active{% endif %}" href="{% url 'got:asset-list' %}">
                             Equipos

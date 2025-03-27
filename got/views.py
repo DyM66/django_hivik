@@ -1503,7 +1503,7 @@ def fail_pdf(request, pk):
     return render_to_pdf('got/fail/fail_pdf.html', context)
 
 
-@permission_required('got.can_see_completely')
+@permission_required('got.access_all_assets')
 def crear_ot_failure_report(request, fail_id):
     fail = get_object_or_404(FailureReport, pk=fail_id)
     nueva_ot = Ot(
@@ -1521,7 +1521,7 @@ def crear_ot_failure_report(request, fail_id):
     return redirect('got:ot-detail', pk=nueva_ot.pk)
 
 
-@permission_required('got.can_see_completely')
+@permission_required('got.access_all_assets')
 def asociar_ot_failure_report(request, fail_id):
     if request.method == 'POST':
         ot_id = request.POST.get('ot_id')

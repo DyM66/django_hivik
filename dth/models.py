@@ -3,8 +3,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from got.paths import get_upload_path
 from decimal import Decimal
-from django.utils import timezone
-from dth.utils import *
+# from django.utils import timezone
+from dth.utils import is_sunday_or_holiday, diff_in_hours, overlap_in_hours, DAY_START, NIGHT_START
+from datetime import time
 
 RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
 
@@ -32,7 +33,7 @@ class Nomina(models.Model):
     is_driver = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.name} {self.surname} - {self.position}"
+        return f"{self.name} {self.surname} - {self.id_number} - {self.position}"
 
 
 class UserProfile(models.Model):
@@ -74,11 +75,6 @@ class Overtime(models.Model):
 
     @property
     def total_hours_festive(self):
-        """
-        Si la fecha del proyecto es domingo/festivo, 
-        TODO el intervalo (start->end) se considera festivo.
-        De lo contrario, 0.
-        """
         if not self.project or not self.project.report_date:
             return 0.0
         if is_sunday_or_holiday(self.project.report_date):
@@ -87,10 +83,6 @@ class Overtime(models.Model):
 
     @property
     def total_hours_ordinary(self):
-        """
-        Si NO es domingo/festivo => horas diurnas (06:00 a 21:00).
-        Si es domingo/festivo => 0
-        """
         if not self.project or not self.project.report_date:
             return 0.0
         if is_sunday_or_holiday(self.project.report_date):
@@ -101,20 +93,11 @@ class Overtime(models.Model):
 
     @property
     def total_hours_night(self):
-        """
-        Si NO es domingo/festivo => horas nocturnas (21:00-24:00 y 0:00-06:00).
-        (Aquí consideramos el caso simple: start->end en el mismo día.)
-        """
         if not self.project or not self.project.report_date:
             return 0.0
         if is_sunday_or_holiday(self.project.report_date):
             return 0.0
-        # Horas en [21:00, 24:00)
         part1 = overlap_in_hours(self.start, self.end, NIGHT_START, time(23,59,59))
-        # Horas en [0:00, 06:00)
-        # Para modelar 0:00, podemos usar time(0,0), y se asume si end<start un cruce de medianoche
-        # pero si tu app no maneja cruces de medianoche, bastará con la 2ª franja.
-        # Aun así, un approach simple => definimos time(0,0) a time(6,0) en el mismo "día"
         part2 = overlap_in_hours(self.start, self.end, time(0,0), DAY_START)
         return part1 + part2
 

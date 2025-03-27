@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db import transaction
+from django.db import transaction, models
 from django.db.models import Q, Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse_lazy, reverse
@@ -19,10 +19,9 @@ from datetime import timedelta, datetime, time, date
 from dateutil.relativedelta import relativedelta
 
 from got.models import Asset
-from dth.forms import UserProfileForm
-from .models import *
-from .forms import *
-from .utils import *
+from .models import Nomina, NominaReport, OvertimeProject, Overtime, UserProfile
+from dth.forms import UserProfileForm, UploadNominaReportForm, NominaForm, OvertimeProjectForm
+from .utils import parse_date_range, calculate_overtime, subtract_time_ranges, COLOMBIA_HOLIDAYS
 
 
 @login_required
@@ -50,50 +49,64 @@ def profile_update(request):
     return render(request, 'dth/profile_update.html', {'form': form})
 
 
+def filter_overtime_queryset(request):
+    start_date, end_date = parse_date_range(request)
+    asset_id = request.GET.get('asset', '')
+    state_filter = request.GET.get('state', 'all')
+    name_filter = request.GET.get('name', '').strip()
+    cedula_filter = request.GET.get('cedula', '').strip()
+
+    qs = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
+
+    # Filtrar por nombre
+    if name_filter:
+        qs = qs.filter(
+            Q(overtime__worker__name__icontains=name_filter) |
+            Q(overtime__worker__surname__icontains=name_filter) |
+            Q(overtime__nombre_completo__icontains=name_filter)
+        ).distinct()
+    # Filtrar por cédula
+    if cedula_filter:
+        qs = qs.filter(
+            Q(overtime__worker__id_number__icontains=cedula_filter) |
+            Q(overtime__cedula__icontains=cedula_filter)
+        ).distinct()
+    # Filtrar por asset (abbreviation)
+    if asset_id:
+        qs = qs.filter(asset__abbreviation=asset_id)
+    # Filtrar por estado
+    if state_filter in ['a','b','c']:
+        qs = qs.filter(overtime__state=state_filter).distinct()
+        filtered_overtime = Overtime.objects.filter(state=state_filter)
+        prefetch = Prefetch('overtime_set', queryset=filtered_overtime, to_attr='filtered_overtimes')
+        qs = qs.prefetch_related(prefetch)
+    else:
+        # state = 'all'
+        qs = qs.filter(overtime__isnull=False).distinct()
+        filtered_overtime = Overtime.objects.all()
+        prefetch = Prefetch('overtime_set', queryset=filtered_overtime, to_attr='filtered_overtimes')
+        qs = qs.prefetch_related(prefetch)
+
+    # Filtros por grupo de usuario:
+    current_user = request.user
+    if current_user.groups.filter(name='mto_members').exists():
+        pass
+    elif current_user.groups.filter(name='maq_members').exists():
+        asset = Asset.objects.filter(
+            Q(supervisor=current_user) | Q(capitan=current_user)
+        ).first()
+        qs = qs.filter(asset=asset)
+    elif current_user.groups.filter(name__in=['buzos_members','serport_members']).exists():
+        qs = qs.none()
+
+    return qs.order_by('-report_date', 'asset')
+
+
 class OvertimeListView(LoginRequiredMixin, TemplateView):
     template_name = 'dth/overtime_list.html'
     
     def get_queryset(self):
-        start_date, end_date = parse_date_range(self.request)
-        asset_id = self.request.GET.get('asset', '')
-        state_filter = self.request.GET.get('state', 'all')
-        name_filter = self.request.GET.get('name', '').strip()
-        cedula_filter = self.request.GET.get('cedula', '').strip()
-        qs = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
-
-        if name_filter:
-            qs = qs.filter(
-                Q(overtime__worker__name__icontains=name_filter) | Q(overtime__worker__surname__icontains=name_filter) |
-                Q(overtime__nombre_completo__icontains=name_filter)
-            ).distinct()
-        if cedula_filter:
-            qs = qs.filter(
-                Q(overtime__worker__id_number__icontains=cedula_filter) |
-                Q(overtime__cedula__icontains=cedula_filter)
-            ).distinct()
-        if asset_id:
-            qs = qs.filter(asset__abbreviation=asset_id)
-        if state_filter in ['a','b','c']:
-            qs = qs.filter(overtime__state=state_filter).distinct()
-            filtered_overtime = Overtime.objects.filter(state=state_filter)
-            prefetch = Prefetch('overtime_set', queryset=filtered_overtime, to_attr='filtered_overtimes')
-            qs = qs.prefetch_related(prefetch)
-        else:
-            qs = qs.filter(overtime__isnull=False).distinct()
-            filtered_overtime = Overtime.objects.all()
-            prefetch = Prefetch('overtime_set', queryset=filtered_overtime, to_attr='filtered_overtimes')
-            qs = qs.prefetch_related(prefetch)
-
-        # Filtros por grupo de usuario
-        current_user = self.request.user
-        if current_user.groups.filter(name='mto_members').exists():
-            pass  # Sin filtro adicional
-        elif current_user.groups.filter(name='maq_members').exists():
-            asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()
-            qs = qs.filter(asset=asset)
-        elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
-            qs = qs.none()
-        return qs.order_by('-report_date', 'asset')
+        return filter_overtime_queryset(self.request)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -117,7 +130,6 @@ def approve_overtime(request):
     action = request.POST.get('action')
     remarks = request.POST.get('remarks', '')
     selected_overtime_ids = request.POST.getlist('selected_overtime')
-
     overtimes = Overtime.objects.filter(id__in=selected_overtime_ids)
 
     if action == 'approve':
@@ -157,45 +169,11 @@ def delete_overtime(request):
     return redirect(request.POST.get('next', '/'))
 
 
-def filter_overtime_queryset(request):
-    # Rango de fechas
-    start_date, end_date = parse_date_range(request)
-    qs = Overtime.objects.filter(fecha__gte=start_date, fecha__lt=end_date)
-
-    # Filtros por nombre, cédula y asset
-    person_name = request.GET.get('name', '').strip()
-    cedula = request.GET.get('cedula', '').strip()
-    asset_name = request.GET.get('asset', '').strip()
-    estado = request.GET.get('estado', 'all')
-
-    if person_name:
-        qs = qs.filter(nombre_completo__icontains=person_name)
-    if cedula:
-        qs = qs.filter(cedula__icontains=cedula)
-    if asset_name:
-        qs = qs.filter(asset__name__icontains=asset_name)
-    if estado == 'approved':
-        qs = qs.filter(approved=True)
-    elif estado == 'no_aprobado':
-        qs = qs.filter(approved=False)
-
-    # Filtros según grupo de usuario
-    current_user = request.user
-    if current_user.groups.filter(name='mto_members').exists():
-        pass  # Sin filtro adicional
-    elif current_user.groups.filter(name='maq_members').exists():
-        asset = Asset.objects.filter(models.Q(supervisor=current_user) | models.Q(capitan=current_user)).first()
-        qs = qs.filter(asset=asset)
-    elif current_user.groups.filter(name__in=['buzos_members', 'serport_members']).exists():
-        qs = qs.none()
-
-    return qs.order_by('-fecha', 'asset', 'hora_inicio', 'justificacion')
-
-
 @login_required
 def export_overtime_excel(request):
     qs = filter_overtime_queryset(request)
 
+    # Crear workbook
     wb = openpyxl.Workbook()
     ws = wb.active
 
@@ -203,38 +181,59 @@ def export_overtime_excel(request):
     last_month = today - relativedelta(months=1)
     report_title = f"REPORTE 24 {last_month.strftime('%B')} hasta 24 {today.strftime('%B')} {today.year}"
     ws.append([report_title])
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=8)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=7)
     ws.cell(row=1, column=1).font = openpyxl.styles.Font(size=14, bold=True)
 
-    headers = ['Nombre completo', 'Cédula', 'Fecha', 'Justificación', 'Hora inicio', 'Hora fin', 'Aprueba', 'Transporte']
+    headers = [
+        'Nombre completo', 'Fecha', 'Justificación',
+        'Hora inicio', 'Hora fin', 'Estado', 'Transporte'
+    ]
     ws.append(headers)
-
     for col_num, column_title in enumerate(headers, 1):
-        cell = ws.cell(row=2, column=col_num)
+        cell = ws.cell(row=2, column=col_num, value=column_title)
         cell.font = openpyxl.styles.Font(bold=True)
         ws.column_dimensions[get_column_letter(col_num)].width = 20
 
-    # Añadir los datos
-    for entry in qs:
-        # Calcular transporte (puedes ajustar esta lógica según lo necesites)
-        transporte = 'Sí' if entry.hora_fin >= time(19, 0) else 'No'
+    row_idx = 3
+    for project in qs:
+        # Recordar que el queryset filtra OvertimeProject con 'filtered_overtimes'
+        # => Si es 'all', vendrá todo en project.filtered_overtimes
+        # => si no, vendrá sólo lo que cumpla.
+        for entry in project.filtered_overtimes:
+            # Ejemplo de "transporte" => si la hora fin >= 19 => 'Sí'
+            # Ajustar la hora de fin. 
+            # (Asumiendo 'end' es un timefield en Python)
+            transporte = 'Sí' if entry.end >= time(19,0) else 'No'
 
-        row = [
-            entry.nombre_completo,
-            entry.cedula,
-            entry.fecha.strftime('%d/%m/%Y') if entry.fecha else '',
-            entry.justificacion,
-            entry.hora_inicio.strftime('%I:%M %p') if entry.hora_inicio else '',
-            entry.hora_fin.strftime('%I:%M %p') if entry.hora_fin else '',
-            'Sí' if entry.approved else 'No',
-            transporte,
-        ]
-        ws.append(row)
+            if entry.worker:
+                cell_val = f"{entry.worker.name} {entry.worker.surname} - {entry.worker.id_number}"
+            else:
+                cell_val = f"{entry.nombre_completo} - {entry.cedula}"
+            ws.cell(row=row_idx, column=1, value=cell_val)
+            # ws.cell(row=row_idx, column=2, value=(entry.worker.id_number if entry.worker else entry.cedula))
+            ws.cell(row=row_idx, column=2, value=project.report_date.strftime('%d/%m/%Y') if project.report_date else '')
+            ws.cell(row=row_idx, column=3, value=project.description or '')
+            ws.cell(row=row_idx, column=4, value=entry.start.strftime('%I:%M %p') if entry.start else '')
+            ws.cell(row=row_idx, column=5, value=entry.end.strftime('%I:%M %p') if entry.end else '')
 
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            # Estado
+            state_text = ''
+            if entry.state == 'a':
+                state_text = "Aprobado"
+            elif entry.state == 'b':
+                state_text = "No aprobado"
+            else:
+                state_text = "Pendiente"
+            ws.cell(row=row_idx, column=6, value=state_text)
+
+            ws.cell(row=row_idx, column=7, value=transporte)
+            row_idx += 1
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     filename = f"Reporte_Horas_Extras_{today.strftime('%Y%m%d')}.xlsx"
-    response['Content-Disposition'] = f'attachment; filename={filename}'
-
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
 
@@ -263,12 +262,8 @@ class OvertimeProjectCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        current_year = date.today().year
-        next_year = current_year + 1
-        all_holidays = holidays.Colombia(years=range(current_year, next_year+1))
-
         holiday_list = []
-        for hol_date in all_holidays:
+        for hol_date in COLOMBIA_HOLIDAYS:
             holiday_list.append(hol_date.isoformat())
         context["holiday_dates"] = json.dumps(holiday_list)
 
@@ -317,24 +312,15 @@ class OvertimeProjectCreateView(LoginRequiredMixin, CreateView):
         if not cedulas_list and not externos_list:
             messages.error(self.request, "Debes ingresar al menos una persona (cédula o registro manual).")
             return self.form_invalid(form)
-
-        # Guardar el proyecto
         project.save()
 
         # Función local para crear los sub-intervalos no solapados
         def create_intervals_for_overtime(worker_obj, ext_nombre, ext_cedula, ext_cargo):
             created_count = 0
             if worker_obj:
-                existing = Overtime.objects.filter(
-                    worker=worker_obj,
-                    project__report_date=report_date
-                ).order_by('start')
+                existing = Overtime.objects.filter(worker=worker_obj, project__report_date=report_date)
             else:
-                existing = Overtime.objects.filter(
-                    cedula=ext_cedula,
-                    project__report_date=report_date
-                ).order_by('start')
-
+                existing = Overtime.objects.filter(cedula=ext_cedula, project__report_date=report_date)
             existing_ranges = [(ov.start, ov.end) for ov in existing]
 
             for (ot_start, ot_end) in overtime_periods:
@@ -394,17 +380,11 @@ class OvertimeProjectCreateView(LoginRequiredMixin, CreateView):
 
         # Mensajes finales
         if total_created > 0:
-            messages.success(
-                self.request,
-                f"Reporte creado. Se generaron {total_created} registros de horas extras. Omitidos: {total_omitted}."
-            )
+            messages.success(self.request, f"Reporte creado. Se generaron {total_created} registros de horas extras. Omitidos: {total_omitted}.")
             return super().form_valid(form)
         else:
             project.delete()
-            messages.error(
-                self.request,
-                "E1: No se pudo crear ninguna hora extra."
-            )
+            messages.error(self.request, "E1: No se pudo crear ninguna hora extra.")
             return self.form_invalid(form)
 
     def form_invalid(self, form):

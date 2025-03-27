@@ -10,6 +10,7 @@ SATURDAY_END = time(12, 0)
 DAY_START = time(6, 0)   # 6:00 AM
 NIGHT_START = time(21, 0)  # 9:00 PM
 
+# current_year = date.today().year # next_year = current_year + 1
 COLOMBIA_HOLIDAYS = holidays.Colombia(years=[2025, 2026, 2027, 2028])
 
 def calculate_overtime(fecha, hora_inicio, hora_fin):
@@ -111,7 +112,6 @@ def diff_in_hours(tstart, tend):
         dt2 += timedelta(days=1)
     diff = (dt2 - dt1).total_seconds() / 3600
     return diff
-
 
 
 def overlap_in_hours(start, end, range_start, range_end):

@@ -1,11 +1,10 @@
 from django import forms
-from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.db.models import Q
-import json
+from datetime import date
 
 from dth.models import UserProfile, Overtime, OvertimeProject, Nomina
 from got.models import Asset
+
 
 class UploadNominaReportForm(forms.Form):
     excel_file = forms.FileField(
@@ -85,7 +84,7 @@ class OvertimeEditForm(forms.ModelForm):
             'cedula': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
-from datetime import date
+
 class OvertimeProjectForm(forms.ModelForm):
     start = forms.TimeField(label="Hora de Inicio")
     end = forms.TimeField(label="Hora de Fin")
