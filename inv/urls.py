@@ -13,8 +13,6 @@ urlpatterns = [
 
 
     path('activos/<str:abbreviation>/export_excel/', export_equipment_supplies, name='export_equipment_supplies'),
-    # path('activos/<str:abbreviation>/export_excel/', export_inventario_excel, name='export_equipment_supplies'),
-
 
     path('activos/<str:abbreviation>/create_supply/', create_supply_view, name='create_supply'),
 

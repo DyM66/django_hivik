@@ -28,7 +28,8 @@ class Migration(migrations.Migration):
                 ('salary', models.DecimalField(decimal_places=2, help_text='Salario en COP.', max_digits=18)),
                 ('admission', models.DateField(help_text='Fecha de ingreso del empleado. (Obligatoria)')),
                 ('expiration', models.DateField(blank=True, help_text='Fecha de expiración del contrato, si aplica.', null=True)),
-                ('risk_class', models.CharField(blank=True, choices=[('I', 'I'), ('II', 'II'), ('III', 'III'), ('IV', 'IV'), ('V', 'V')], help_text='Clase de riesgo laboral.', max_length=3, null=True)),
+                ('risk_class', models.CharField(blank=True, choices=[('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%')], help_text='Clase de riesgo laboral.', max_length=3, null=True)), 
+                ('is_driver', models.BooleanField(default=False)), 
             ],
         ),
     ]

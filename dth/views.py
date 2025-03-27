@@ -2,26 +2,29 @@
 from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.core.paginator import Paginator
-from django.db import transaction, models
+from django.db import transaction
 from django.db.models import Q, Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse_lazy, reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import CreateView, TemplateView
 from django.views.decorators.http import require_POST
 from django.shortcuts import render, get_object_or_404, redirect
 
 import json
 import openpyxl
+from decimal import Decimal
 from openpyxl.utils import get_column_letter
-from datetime import timedelta, datetime, time, date
+from openpyxl.styles import Alignment, Font, PatternFill, Border, Side, NamedStyle
+from datetime import datetime, time, date
 from dateutil.relativedelta import relativedelta
+from collections import defaultdict
 
 from got.models import Asset
-from .models import Nomina, NominaReport, OvertimeProject, Overtime, UserProfile
+from .models.overtime import OvertimeProject, Overtime
+from .models import Nomina, NominaReport, UserProfile
 from dth.forms import UserProfileForm, UploadNominaReportForm, NominaForm, OvertimeProjectForm
 from .utils import parse_date_range, calculate_overtime, subtract_time_ranges, COLOMBIA_HOLIDAYS
+from ntf.models import Notification
 
 
 @login_required
@@ -55,7 +58,6 @@ def filter_overtime_queryset(request):
     state_filter = request.GET.get('state', 'all')
     name_filter = request.GET.get('name', '').strip()
     cedula_filter = request.GET.get('cedula', '').strip()
-
     qs = OvertimeProject.objects.filter(report_date__gte=start_date, report_date__lt=end_date)
 
     # Filtrar por nombre
@@ -92,13 +94,10 @@ def filter_overtime_queryset(request):
     if current_user.groups.filter(name='mto_members').exists():
         pass
     elif current_user.groups.filter(name='maq_members').exists():
-        asset = Asset.objects.filter(
-            Q(supervisor=current_user) | Q(capitan=current_user)
-        ).first()
+        asset = Asset.objects.filter(Q(supervisor=current_user) | Q(capitan=current_user)).first()
         qs = qs.filter(asset=asset)
     elif current_user.groups.filter(name__in=['buzos_members','serport_members']).exists():
         qs = qs.none()
-
     return qs.order_by('-report_date', 'asset')
 
 
@@ -131,6 +130,7 @@ def approve_overtime(request):
     remarks = request.POST.get('remarks', '')
     selected_overtime_ids = request.POST.getlist('selected_overtime')
     overtimes = Overtime.objects.filter(id__in=selected_overtime_ids)
+    overtimes_list = list(overtimes)
 
     if action == 'approve':
         overtimes_updated_count = overtimes.update(state='a')
@@ -139,6 +139,41 @@ def approve_overtime(request):
     elif action == 'reject':
         overtimes_updated_count = overtimes.update(state='b', remarks=remarks)
         messages.success(request, f"Se han rechazado {overtimes_updated_count} registros de horas extras correctamente.")
+
+    user_overtimes_map = defaultdict(list)
+    for ov in overtimes_list:
+        if ov.project and ov.project.reported_by:
+            user_overtimes_map[ov.project.reported_by].append(ov)
+
+    for user_to_notify, ov_list in user_overtimes_map.items():
+        if not ov_list:
+            continue
+
+        earliest_start = min([ov.start for ov in ov_list])
+        latest_end = max([ov.end for ov in ov_list])
+
+        first_project = min(ov_list, key=lambda o: (o.project.id if o.project else 9999999)).project
+        if not first_project:
+            continue
+
+        earliest_str = earliest_start.strftime('%H:%M') if earliest_start else ''
+        latest_str = latest_end.strftime('%H:%M') if latest_end else ''
+
+        if action == 'approve':
+            body_action = "aprobado"
+            title = "Aprobación de Horas Extras"
+        else:
+            body_action = "rechazado"
+            title = "Rechazo de Horas Extras"
+
+        message_lines = []
+        message_lines.append(f"Se han {body_action} las horas extras de {earliest_str} a {latest_str}.")
+        if action == 'reject' and remarks:
+            message_lines.append(f"Observación: {remarks}")
+        message_final = "\n".join(message_lines)
+        redirect_url = reverse('dth:overtime_list') + f"#project_{first_project.id}"
+
+        Notification.objects.create(user=user_to_notify, title=title, message=message_final, redirect_url=redirect_url)
 
     next_url = request.POST.get('next', reverse('dth:overtime_list'))
     return redirect(next_url)
@@ -196,13 +231,7 @@ def export_overtime_excel(request):
 
     row_idx = 3
     for project in qs:
-        # Recordar que el queryset filtra OvertimeProject con 'filtered_overtimes'
-        # => Si es 'all', vendrá todo en project.filtered_overtimes
-        # => si no, vendrá sólo lo que cumpla.
         for entry in project.filtered_overtimes:
-            # Ejemplo de "transporte" => si la hora fin >= 19 => 'Sí'
-            # Ajustar la hora de fin. 
-            # (Asumiendo 'end' es un timefield en Python)
             transporte = 'Sí' if entry.end >= time(19,0) else 'No'
 
             if entry.worker:
@@ -229,9 +258,7 @@ def export_overtime_excel(request):
             ws.cell(row=row_idx, column=7, value=transporte)
             row_idx += 1
 
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     filename = f"Reporte_Horas_Extras_{today.strftime('%Y%m%d')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
@@ -392,10 +419,6 @@ class OvertimeProjectCreateView(LoginRequiredMixin, CreateView):
 
 
 def gerencia_nomina_view(request):
-    """
-    Vista exclusiva para la gerencia (Jennifer Padilla).
-    Permite subir un Excel y procesar la creación/actualización de NominaReport.
-    """
     template_name = "dth/gerencia_nomina.html"
 
     if request.method == "POST":
@@ -403,11 +426,6 @@ def gerencia_nomina_view(request):
         if form.is_valid():
             # Se extrae el archivo excel
             excel_file = request.FILES['excel_file']
-
-            # Deshabilitar el botón y mostrar mensaje de "procesando..."
-            # -> Esto se maneja desde el template con JavaScript, ver ejemplo abajo.
-
-            # Lógica para procesar el archivo
             try:
                 # Abrimos el workbook con openpyxl
                 wb = openpyxl.load_workbook(excel_file, data_only=True)
@@ -608,13 +626,6 @@ def gerencia_nomina_view(request):
     return render(request, template_name, context)
 
 
-# dth/views.py (continuación)
-
-import openpyxl
-from openpyxl.styles import Alignment, Font, PatternFill, Border, Side, NamedStyle
-from decimal import Decimal
-from django.http import HttpResponse
-
 @login_required
 def export_gerencia_nomina_excel(request):
     """
@@ -732,6 +743,7 @@ def export_gerencia_nomina_excel(request):
     wb.save(response)
     return response
 
+
 @login_required
 def nomina_edit(request, pk):
     """
@@ -769,12 +781,9 @@ def nomina_edit(request, pk):
     else:
         # GET => mostrar el formulario (opcional si deseas cargar un template)
         form = NominaForm(instance=nomina_obj)
-
-    # Podrías renderizar un template si deseas un formulario de edición fuera del modal
     return render(request, 'dth/nomina_form.html', {'form': form, 'object': nomina_obj})
 
 
-# dth/views.py (complemento)
 @login_required
 def nomina_create(request):
     """

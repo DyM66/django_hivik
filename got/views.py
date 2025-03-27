@@ -166,7 +166,6 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
         user = self.request.user
         systems = get_full_systems(asset, user)
         rotativos = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
-        
         context['rotativos'] = rotativos
         context['view_type'] = 'detail'
         context['consumibles'] = Suministro.objects.filter(asset=asset).exists()

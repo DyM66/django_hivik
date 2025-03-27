@@ -6,14 +6,10 @@
     <style>
         .main-menu {
             background-color: var(--secondary-color);
-            padding: 20px;
-            border: 2px solid #191645; /* Contorno fino y notable */
+            padding: 10px;
+            border: 1px solid #191645; /* Contorno fino y notable */
             border-radius: 10px;
             box-shadow: 0 8px 10px rgba(0, 0, 0, 0.1);
-        }
-        .header-container {
-            /* Asegura que el contenedor ocupe todo el ancho y separe el título de los cuadros */
-            width: 100%;
         }
         .info-cards .card {
             /* Puedes ajustar márgenes, fuente o colores según tu diseño */
@@ -37,11 +33,9 @@
         .clickable-row {
             cursor: pointer;
         }
-
         .overtime-checkbox {
             cursor: pointer;
         }
-
         .selected-row {
             background-color: #d1e7dd !important;
         }
@@ -119,14 +113,20 @@
 
                 <div class="mt-2 text-end">
                     <button type="submit" class="btn btn-primary">Filtrar</button>
-                    <a href="{% url 'dth:export_overtime_excel' %}?name={{ name }}&cedula={{ cedula }}&asset={{ asset_filter }}&estado={{ estado }}&date_range={{ date_range }}" class="btn btn-secondary ms-2">Descargar Excel</a>
-
-                    <!-- <a href="#?person_name={{ person_name }}&asset={{ asset_filter }}&start_date={{ start_date }}&end_date={{ end_date }}&estado={{ estado }}" class="btn btn-outline-primary ms-2">Generar PDF</a> -->
+                    <a href="{% url 'dth:export_overtime_excel' %}?
+                        date_range={{ start_date }} to {{ end_date }}
+                        &name={{ name }}
+                        &cedula={{ cedula }}
+                        &asset={{ asset_id }}
+                        &state={{ state }}"
+                        class="btn btn-secondary ms-2"
+                    >
+                        Descargar Excel
+                    </a>
                 </div>      
             </form>
         </div>
     </div>
-
 
     <div class="d-flex position-relative mt-4">
         <div class="table-responsive flex-grow-1">
@@ -154,7 +154,7 @@
                 </thead>
                 <tbody>
                     {% for project in projects %}
-                        <tr>
+                        <tr id="project_{{ project.id }}">
                             <td data-cell="Fecha">
                                 <h6>{{ project.report_date|date:"d/m/Y" }}</h6>
                             </td>
