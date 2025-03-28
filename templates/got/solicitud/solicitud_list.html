@@ -24,7 +24,7 @@
         </h1> 
     
         <aside>
-            {% if perms.got.can_view_all_rqs %}
+            {% if perms.got.access_all_assets %}
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                         Filtrar por equipo
@@ -121,11 +121,11 @@
                         <td data-cell="Estado">
                             <div class="dropdown">
                                 <button class="btn status
-                                    {% if rq.estado == 'Cancelado' %}cancelado
-                                    {% elif rq.estado == 'Recibido' %}recibido
-                                    {% elif rq.estado == 'Parcialmente' %}parcialmente
-                                    {% elif rq.estado == 'Tramitado' %}tramitado
-                                    {% elif rq.estado == 'Aprobado' %}aprobado
+                                    {% if rq.estado == 'Cancelado' %}red-state
+                                    {% elif rq.estado == 'Recibido' %}green-state
+                                    {% elif rq.estado == 'Parcialmente' %}yellow-state
+                                    {% elif rq.estado == 'Tramitado' %}blue-state
+                                    {% elif rq.estado == 'Aprobado' %}violet-state
                                     {% elif rq.estado == 'No aprobado' %}orange-state
                                     {% else %}red-state{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                                     {{ rq.estado }}
