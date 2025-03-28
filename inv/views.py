@@ -33,7 +33,7 @@ from openpyxl.drawing.image import Image as ExcelImage
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
-from got.models import Asset, System, Equipo, Suministro, Item
+from got.models import Asset, System, Equipo, Suministro, Item, Image
 from got.utils import *
 from got.forms import ItemForm, UploadImages
 from inv.utils import enviar_correo_transferencia
