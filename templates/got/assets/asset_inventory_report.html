@@ -12,7 +12,7 @@
         {% endif %}
     </h1>
 
-    {% if perms.got.can_add_supply %}
+    {% if perms.inv.can_add_supply %}
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSuministroModal">
             Añadir Suministro
         </button>
@@ -73,7 +73,7 @@
                     <tr>
                         <th scope="col">Descripción</th>
                         <th scope="col">Última cantidad reportada</th>
-                        {% if perms.got.can_add_supply %}
+                        {% if perms.inv.can_add_supply %}
                             <th scope="col">Cantidad Ingresada</th>
                         {% endif %}
                         {% if group_by != 'presentacion' %}
@@ -90,7 +90,7 @@
                         <tr>
                             <td data-cell="Articulo">{{ suministro.item }} ({{ suministro.item.presentacion }})</td>
                             <td data-cell="Ultima cantidad reportada">{{ suministro.cantidad|floatformat:2 }}</td>
-                            {% if perms.got.can_add_supply %}
+                            {% if perms.inv.can_add_supply %}
                                 <td data-cell="Cantidad ingresada"><input class="form-control cantidad-ingresada" type="number" name="ingresado_{{ suministro.id }}" value="0.00" min="0" step="any" data-cantidad-actual="{{ suministro.cantidad }}" data-row-id="{{ suministro.id }}"></td>
                             {% endif %}
                             {% if group_by != 'presentacion' %}
