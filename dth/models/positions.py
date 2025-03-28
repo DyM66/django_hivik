@@ -2,8 +2,10 @@
 from django.db import models
 
 class Position(models.Model):
+    CATEGORY_CHOICES = [('o', 'Operativo'), ('a', 'Administrativo'), ('m', 'Mixto')]
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=1, choices=CATEGORY_CHOICES, blank=True, null=True)
 
     def __str__(self):
         return self.name

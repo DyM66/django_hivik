@@ -132,6 +132,7 @@ class TransferenciaForm(forms.ModelForm):
 
     class Meta:
          model = Transferencia
+        #  model = Transference
          fields = ['destino', 'receptor', 'observaciones']
 
     def __init__(self, *args, **kwargs):

@@ -38,6 +38,7 @@ class Nomina(models.Model):
     name = models.CharField(max_length=100, help_text="Nombre del empleado.")
     surname = models.CharField(max_length=100, help_text="Apellido del empleado.")
     position = models.CharField(max_length=100, help_text="Cargo o puesto.")
+    position_id = models.ForeignKey('dth.Position', on_delete=models.SET_NULL, null=True, blank=True, related_name='employees')
     salary = models.DecimalField(max_digits=18, decimal_places=2, help_text="Salario en COP.")
     admission = models.DateField(help_text="Fecha de ingreso del empleado. (Obligatoria)")
     expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")

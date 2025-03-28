@@ -46,6 +46,7 @@ class EquipoCodeCounter(models.Model):
         return f"{self.asset_abbr}-{self.tipo}: {self.last_seq}"
     
 
+# class Transference(models.Model):
 class Transferencia(models.Model):
     fecha = models.DateField(auto_now_add=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)

@@ -28,7 +28,8 @@ from django.utils.http import urlencode
 from django.db import transaction, IntegrityError
 
 from openpyxl import Workbook
-from openpyxl.drawing.image import Image
+from openpyxl.drawing.image import Image as ExcelImage
+
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
@@ -616,10 +617,10 @@ def export_equipment_supplies(request, abbreviation):
     img_response = requests.get(url)
     if img_response.status_code == 200:
         image_data = BytesIO(img_response.content)
-        from openpyxl.drawing.image import Image
+        # from openpyxl.drawing.image import Image
         image_data.name = "Logo.png"  # Asignar un nombre con la extensión adecuada
         image_data.seek(0)           # Reiniciar el puntero del archivo
-        img = Image(image_data)
+        img = ExcelImage(image_data)
         img.width = 300  # Asignar dimensiones a la imagen
         img.height = 80
         ws_equips.add_image(img, "A1")
@@ -1277,6 +1278,7 @@ def transferir_equipo(request, equipo_id):
 
             # Crea el registro de Transferencia
             transferencia = Transferencia.objects.create(
+            # transferencia = Transference.objects.create(
                 equipo=equipo,
                 responsable=f"{request.user.first_name} {request.user.last_name}",
                 receptor=receptor,

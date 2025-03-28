@@ -113,6 +113,7 @@ class Migration(migrations.Migration):
                 ('dpto', models.CharField(choices=[('m', 'Mantenimiento'), ('o', 'Operaciones')], default='m', max_length=1)),
                 ('quotation', models.CharField(blank=True, max_length=200, null=True)),
                 ('quotation_file', models.FileField(blank=True, null=True, upload_to=got.paths.get_upload_pdfs)),
+                ('total', models.DecimalField(decimal_places=2, default=0.0, max_digits=18)),
             ],
             options={
                 'db_table': 'got_solicitud',

@@ -18,19 +18,16 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='Nomina',
+            name='Position',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('id_number', models.CharField(help_text='Identificación del empleado.', max_length=50, verbose_name='Número de documento')),
-                ('name', models.CharField(help_text='Nombre del empleado.', max_length=100)),
-                ('surname', models.CharField(help_text='Apellido del empleado.', max_length=100)),
-                ('position', models.CharField(help_text='Cargo o puesto.', max_length=100)),
-                ('salary', models.DecimalField(decimal_places=2, help_text='Salario en COP.', max_digits=18)),
-                ('admission', models.DateField(help_text='Fecha de ingreso del empleado. (Obligatoria)')),
-                ('expiration', models.DateField(blank=True, help_text='Fecha de expiración del contrato, si aplica.', null=True)),
-                ('risk_class', models.CharField(blank=True, choices=[('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%')], help_text='Clase de riesgo laboral.', max_length=3, null=True)), 
-                ('is_driver', models.BooleanField(default=False)), 
+                ('name', models.CharField(max_length=100, unique=True)),
+                ('description', models.TextField(blank=True, null=True)),
             ],
+        ),
+        migrations.AlterModelOptions(
+            name='userprofile',
+            options={},
         ),
     ]
 
