@@ -1280,8 +1280,8 @@ def transferir_equipo(request, equipo_id):
                 observaciones += "\nEquipos relacionados transferidos: " + ", ".join(transferred_related_names)
 
             # Crea el registro de Transferencia
-            transferencia = Transferencia.objects.create(
-            # transferencia = Transference.objects.create(
+            # transferencia = Transferencia.objects.create(
+            transferencia = Transference.objects.create(
                 equipo=equipo,
                 responsable=f"{request.user.first_name} {request.user.last_name}",
                 receptor=receptor,

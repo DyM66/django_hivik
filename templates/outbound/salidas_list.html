@@ -78,12 +78,12 @@
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                             <li><a class="dropdown-item" href="{% url 'outbound:salida_pdf' rq.id %}">Ver detalle</a></li>
                             {% if not rq.auth %}
-                                {% if perms.got.can_approve_it %}
+                                {% if perms.outbound.can_approve_it %}
                                     <li><a class="dropdown-item" href="{% url 'outbound:approve-salida' rq.id %}">Aprobar</a></li>
                                 {% endif %}
                                 <li><a class="dropdown-item" href="{% url 'outbound:salida-update' rq.id %}">Notificar</a></li>
                             {% else %}
-                                {% if perms.got.can_approve_it %}
+                                {% if perms.outbound.can_approve_it %}
                                     <li><a class="dropdown-item" href="{% url 'outbound:approve-salida' rq.id %}">Desaprobar</a></li>
                                 {% endif %}
                             {% endif %}

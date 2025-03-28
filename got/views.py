@@ -849,7 +849,7 @@ class EquipoDetailView(LoginRequiredMixin, generic.DetailView):
         context['object'] = equipo
         context['suministros'] = Suministro.objects.filter(equipo=equipo)
         context['rutinas'] = Ruta.objects.filter(equipo=equipo)
-        context['transferencias'] = Transferencia.objects.filter(equipo=equipo)
+        context['transferencias'] = Transference.objects.filter(equipo=equipo)
 
         previous_url = self.request.GET.get('previous_url') or self.request.META.get('HTTP_REFERER', '/')
         context['previous_url'] = previous_url
@@ -879,7 +879,7 @@ class EquipoPDFView(LoginRequiredMixin, View):
             'images': images,
             'suministros': Suministro.objects.filter(equipo=equipo),
             'rutinas': rutinas,
-            'transferencias': Transferencia.objects.filter(equipo=equipo),
+            'transferencias': Transference.objects.filter(equipo=equipo),
             'today': timezone.now().date(),  # Para mostrar la fecha
         }
 
@@ -889,7 +889,7 @@ class EquipoPDFView(LoginRequiredMixin, View):
             'images': images,
             'suministros': Suministro.objects.filter(equipo=equipo),
             'rutinas': Ruta.objects.filter(Q(equipo=equipo) | Q(equipo__in=related_equipos) | Q(equipo__in=related_related_equipos) | Q(task__equipo=equipo)).distinct(),
-            'transferencias': Transferencia.objects.filter(equipo=equipo),
+            'transferencias': Transference.objects.filter(equipo=equipo),
             'today': timezone.now().date(),  # Para mostrar la fecha
         }
         

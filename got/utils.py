@@ -23,7 +23,7 @@ from inv.models import EquipoCodeCounter
 from django.db import transaction
 from preoperacionales.models import *
 from .models import *
-from inv.models import DarBaja, Transferencia
+from inv.models import DarBaja, Transference
 from dth.models import UserProfile
 from mto.utils import record_execution
 from django.db.models import Func
@@ -742,8 +742,8 @@ def update_equipo_code(old_code):
             print(f"PreoperacionalDiario actualizado: {updated_preoperacional_diario} registros")
 
             # Transferencia
-            updated_transferencia_origen = Transferencia.objects.filter(origen__equipos__code=old_code).update(origen=equipo.system)
-            updated_transferencia_destino = Transferencia.objects.filter(destino__equipos__code=old_code).update(destino=equipo.system)
+            updated_transferencia_origen = Transference.objects.filter(origen__equipos__code=old_code).update(origen=equipo.system)
+            updated_transferencia_destino = Transference.objects.filter(destino__equipos__code=old_code).update(destino=equipo.system)
             print(f"Transferencia actualizado: {updated_transferencia_origen + updated_transferencia_destino} registros")
 
             # DarBaja
