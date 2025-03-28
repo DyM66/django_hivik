@@ -29,70 +29,116 @@
                     </li>
                 {% endif %}
 
-                <!-- Dropdown de Mantenimiento -->
-                <li class="nav-item dropdown mega-dropdown">
-                    <a class="nav-link {% if request.resolver_match.url_name in 'maintenance_dashboard' %}active{% endif %}" href="#" id="maintenanceDropdown" role="button">
-                        Mantenimiento
-                    </a>
-                    <!-- Nuestro mega-menu -->
-                    <div class="mega-menu-desktop" aria-labelledby="maintenanceDropdown">
-                        <div class="container-fluid p-3 d-flex flex-wrap">
-                            <!-- Ejemplo de “columnas” dentro del mega-menu -->
-                        
-                            <div class="flex-fill me-4">
-                                <ul class="list-unstyled">
-                                {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
-                                    <li><a class="dropdown-item" href="{% url 'mto:stoytell' %}">Barcos</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'mto:maintenance_plan_all_assets' %}">Proyección</a></li>
-                                {% endif %}
-                                </ul>
-                            </div>
+                {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
+                    <!-- Dropdown de Mantenimiento -->
+                    <li class="nav-item dropdown mega-dropdown">
+                        <a class="nav-link {% if request.resolver_match.url_name in 'maintenance_dashboard' %}active{% endif %}" href="#" id="maintenanceDropdown" role="button">
+                            Mantenimiento
+                        </a>
+                        <!-- Nuestro mega-menu -->
+                        <div class="mega-menu-desktop" aria-labelledby="maintenanceDropdown">
+                            <div class="container-fluid p-3 d-flex flex-wrap">
+                                <!-- Ejemplo de “columnas” dentro del mega-menu -->
+                            
+                                <div class="flex-fill me-4">
+                                    <ul class="list-unstyled">
+                                    {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
+                                        <li><a class="dropdown-item" href="{% url 'mto:stoytell' %}">Barcos</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'mto:maintenance_plan_all_assets' %}">Proyección</a></li>
+                                    {% endif %}
+                                    </ul>
+                                </div>
 
-                            <div class="flex-fill me-4">
+                                <div class="flex-fill me-4">
+                                    <h5 class="text-white">OT y Fallas</h5>
+                                    <ul class="list-unstyled">
+                                    {% if perms.got.view_task %}
+                                        <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
+                                    {% endif %}
+                                    {% if perms.got.view_ot %}
+                                        <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
+                                    {% endif %}
+                                    {% if perms.got.view_failurereport %}
+                                        <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
+                                    {% endif %}
+                                    </ul>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- 2) Submenú MÓVIL => collapse -->
+                        <div id="megaMaintenance" class="collapse mega-menu-mobile">
+                            <div class="p-3 text-center">
+                                <!-- Mismos links que arriba -->
+                                <ul class="list-unstyled">
+                                    {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
+                                    <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
+                                    {% endif %}
+                                </ul>
+                                <hr class="my-2">
                                 <h5 class="text-white">OT y Fallas</h5>
                                 <ul class="list-unstyled">
-                                {% if perms.got.view_task %}
+                                    {% if perms.got.view_task %}
                                     <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
-                                {% endif %}
-                                {% if perms.got.view_ot %}
+                                    {% endif %}
+                                    {% if perms.got.view_ot %}
                                     <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
-                                {% endif %}
-                                {% if perms.got.view_failurereport %}
+                                    {% endif %}
+                                    {% if perms.got.view_failurereport %}
                                     <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
-                                {% endif %}
+                                    {% endif %}
                                 </ul>
                             </div>
-
                         </div>
-                    </div>
+                    </li>
+                {% endif %}
 
-                    <!-- 2) Submenú MÓVIL => collapse -->
-                    <div id="megaMaintenance" class="collapse mega-menu-mobile">
-                        <div class="p-3 text-center">
-                            <!-- Mismos links que arriba -->
-                            <ul class="list-unstyled">
-                                {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
-                                <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
-                                <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
-                                {% endif %}
-                            </ul>
-                            <hr class="my-2">
-                            <h5 class="text-white">OT y Fallas</h5>
-                            <ul class="list-unstyled">
-                                {% if perms.got.view_task %}
-                                <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
-                                {% endif %}
-                                {% if perms.got.view_ot %}
-                                <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
-                                {% endif %}
-                                {% if perms.got.view_failurereport %}
-                                <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
-                                {% endif %}
-                            </ul>
+                {% if request.user|has_group:"dth_members" %}
+                    <!-- Dropdown de Mantenimiento -->
+                    <li class="nav-item dropdown mega-dropdown">
+                        <a class="nav-link" href="#" id="dthDropdown" role="button">
+                            Talento Humano
+                        </a>
+                        <!-- Nuestro mega-menu -->
+                        <div class="mega-menu-desktop" aria-labelledby="dthDropdown">
+                            <div class="container-fluid p-3 d-flex flex-wrap">
+                                <!-- Ejemplo de “columnas” dentro del mega-menu -->
+                            
+                                <div class="flex-fill me-4">
+                                    <ul class="list-unstyled">
+                                        <li><a class="dropdown-item" href="#">Nomina</a></li>
+                                    </ul>
+                                </div>
+
+                                <div class="flex-fill me-4">
+                                    <h5 class="text-white">-</h5>
+                                    <ul class="list-unstyled">
+                                        <li><a class="dropdown-item" href="#">Item</a></li>
+                                    </ul>
+                                </div>
+
+                            </div>
                         </div>
-                    </div>
-                </li>
+
+                        <!-- 2) Submenú MÓVIL => collapse -->
+                        <div id="megaDth" class="collapse mega-menu-mobile">
+                            <div class="p-3 text-center">
+                                <!-- Mismos links que arriba -->
+                                <ul class="list-unstyled">
+                                    <li><a class="dropdown-item" href="#">Nomina</a></li>
+                                </ul>
+                                <hr class="my-2">
+                                <h5 class="text-white">-</h5>
+                                <ul class="list-unstyled">
+                                    <li><a class="dropdown-item" href="#">Actividades</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+                {% endif %}
 
                 {% if request.user|has_group:"tic_members" %}
                     <!-- Dropdown de TIC -->
@@ -129,7 +175,7 @@
                     <!-- Dropdown de TIC -->
                     <li class="nav-item dropdown mega-dropdown">
                         <a class="nav-link" href="#" id="costDropdown" role="button">
-                            Costeo
+                            Finanzas
                         </a>
 
                         <!-- Nuestro mega-menu -->
@@ -146,7 +192,7 @@
                     </li>
                 {% endif %}
 
-                {% if perms.got.view_solicitud %}
+                {% if perms.inv.view_solicitud %}
                     <li class="nav-item">
                         <a class="position-relative nav-link {% if request.resolver_match.url_name == 'rq-list' %}active{% endif %}" href="{% url 'got:rq-list' %}">
                             Solicitudes
@@ -154,7 +200,7 @@
                     </li>
                 {% endif %}
 
-                {% if perms.got.view_operation %}
+                {% if perms.ope.view_operation %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'operation-list' %}active{% endif %}" href="{% url 'ope:operation-list' %}">
                             Proyectos
@@ -162,7 +208,7 @@
                     </li>
                 {% endif %}
 
-                {% if perms.got.view_salida %}
+                {% if perms.outbound.view_outbounddelivery %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'outbound-list' %}active{% endif %}" href="{% url 'outbound:outbound-list' %}">
                             Salidas
@@ -170,7 +216,7 @@
                     </li>
                 {% endif %}
 
-                {% if perms.got.add_overtime %}
+                {% if perms.dth.add_overtime %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'overtime_report' %}active{% endif %}" href="#" id="overtimeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Horas extras
@@ -179,12 +225,6 @@
                             <li><a class="dropdown-item" href="{% url 'dth:overtime_report' %}">Reportar horas extras</a></li>
                             <li><a class="dropdown-item" href="{% url 'dth:overtime_list' %}">Mis reportes</a></li>
                         </ul>
-                    </li>
-                {% elif perms.got.view_overtime %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'overtime_list' %}active{% endif %}" href="{% url 'dth:overtime_list' %}">
-                            Horas extras
-                        </a>
                     </li>
                 {% endif %}
             
@@ -302,12 +342,14 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Llamada inicial
         adaptDropdown('maintenanceDropdown', '#megaMaintenance');
+        adaptDropdown('dthDropdown', '#megaDth');
         adaptDropdown('ticDropdown', '#megaTic');
         adaptDropdown('vehiclesDropdown', '#megaVehicles');
 
         // Escucha cambios en el tamaño de la ventana
         window.addEventListener('resize', function() {
             adaptDropdown('maintenanceDropdown', '#megaMaintenance');
+            adaptDropdown('dthDropdown', '#megaDth');
             adaptDropdown('ticDropdown', '#megaTic');
             adaptDropdown('vehiclesDropdown', '#megaVehicles');
         });

@@ -1,8 +1,19 @@
 from django.contrib import admin
+from django.contrib.auth.models import Permission
 from .models import *
 
+class PermissionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'codename', 'content_type', 'content_type_app_label', 'content_type_model')
+    list_filter = ('content_type__app_label', )
+    search_fields = ('name', 'codename')
 
+    def content_type_app_label(self, obj):
+        return obj.content_type.app_label if obj.content_type else 'None'
+    content_type_app_label.short_description = 'App'
 
+    def content_type_model(self, obj):
+        return obj.content_type.model if obj.content_type else 'None'
+    content_type_model.short_description = 'Modelo'
 
 # Definición de la clase SuministroAdmin
 class SuministroAdmin(admin.ModelAdmin):
@@ -14,20 +25,10 @@ class SuministroAdmin(admin.ModelAdmin):
         return obj.asset if obj.asset else "---"
     display_asset.short_description = 'Asset'  # Etiqueta para la columna en el admin
 
-# Registro del modelo Suministro con su clase admin personalizada
-admin.site.register(Suministro, SuministroAdmin)
-
-
 class OtAdmin(admin.ModelAdmin):
-    list_display = (
-        'num_ot',
-        'creation_date',
-        'description',
-        'system',
-        'supervisor'
-        )
+    list_display = ('num_ot', 'creation_date', 'description', 'system', 'supervisor')
 
-
+admin.site.register(Permission, PermissionAdmin)
 admin.site.register(Asset)
 admin.site.register(MaintenanceRequirement)
 admin.site.register(FailureReport)
@@ -39,41 +40,4 @@ admin.site.register(Item)
 admin.site.register(Document)
 admin.site.register(Ot, OtAdmin)
 admin.site.register(Task)
-
-
-
-# class SolicitudAdmin(admin.ModelAdmin):
-#     list_display = ('solicitante', 'ot', 'asset', 'creation_date', 'approved', 'num_sc', 'display_approval_date')
-#     list_filter = ('approved', 'creation_date', 'solicitante', 'asset')
-#     search_fields = ('solicitante__username', 'ot__description', 'asset__name', 'num_sc')
-#     date_hierarchy = 'creation_date'
-#     readonly_fields = ('creation_date',)
-
-#     fieldsets = (
-#         (None, {
-#             'fields': ('solicitante', 'ot', 'asset', 'suministros', 'num_sc', 'approved')
-#         }),
-#         ('Dates', {
-#             'fields': ('creation_date', 'approval_date', 'sc_change_date', 'cancel_date')
-#         }),
-#         ('Cancellation Details', {
-#             'fields': ('cancel', 'cancel_reason'),
-#         }),
-#     )
-
-#     def display_approval_date(self, obj):
-#         return obj.approval_date.strftime('%Y-%m-%d') if obj.approval_date else '---'
-#     display_approval_date.short_description = 'Approval Date'
-
-#     actions = ['mark_as_approved', 'mark_as_cancelled']
-
-#     def mark_as_approved(self, request, queryset):
-#         queryset.update(approved=True, approval_date=timezone.now())
-#     mark_as_approved.short_description = 'Mark selected as approved'
-
-#     def mark_as_cancelled(self, request, queryset):
-#         queryset.update(cancel=True, cancel_date=timezone.now())
-#     mark_as_cancelled.short_description = 'Mark selected as cancelled'
-
-# # Registro del modelo Solicitud con la clase SolicitudAdmin
-# admin.site.register(Solicitud, SolicitudAdmin)
+admin.site.register(Suministro, SuministroAdmin)
