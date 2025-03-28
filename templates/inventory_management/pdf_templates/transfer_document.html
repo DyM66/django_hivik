@@ -1,26 +1,43 @@
-{% load my_tags %}
+{# inventory_management/templates/inventory_management/pdf_templates/transfer_document.html #}
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Reporte de ejecución {{ date_range }}</title>
-    <meta name="description" content="Informe - Reporte de ejecución">
-
+    <title>Acta de Transferencia</title>
+    <meta name="description" content="Acta de Transferencia de Equipos">
     <style>
-
-body {
-    font-family: 'Poppins', Arial, sans-serif;
-}
-
-        @page { /* Configuración de la página y encabezado en cada hoja */
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #191645;
+            font-size: 12pt;
+            line-height: 1.5;
+        }
+        @page {
             size: A4;
-            margin: 4cm 1cm 2cm 1cm;
+            margin: 4cm 1cm 2cm 1cm; 
             @top-center {
                 content: element(header);
             }
             @bottom-center {
                 content: element(footer);
             }
+        }
+        header.page-header {
+            position: running(header);
+        }
+        header.page-header table {
+            border-collapse: collapse;
+            min-width: 715px;
+        }
+        header.page-header td, header.page-header th {
+            vertical-align: middle;
+            padding: 5px;
+        }
+        header.page-header img {
+            max-width: 220px;
         }
         footer.page-footer {
             position: running(footer);
@@ -34,40 +51,7 @@ body {
             display: block;
             margin-top: 5px;
         }
-        header.page-header {
-            position: running(header);
-        }
-        header.page-header table {
-            border-collapse: collapse;
-            min-width: 715px;
-        }
-        header.page-header td, header.page-header th {
-            vertical-align: -webkit-baseline-middle;
-            padding: 5px;
-        }
-        header.page-header img {
-            max-width: 220px;
-        }
-        thead {
-            display: table-header-group;
-        }
-        tfoot {
-            display: table-footer-group;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            color:#191645;
-
-            font-size: 12pt;
-            line-height: 1.5;
-        }
-        .content {
-            border: 2px solid #000;
-            padding: 0.5cm;
-        }
-        .watermark {  /* Marca de agua en el fondo */
+        .watermark {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -78,40 +62,46 @@ body {
             pointer-events: none;
             white-space: nowrap;
         }
-        .section {
-            margin-bottom: 20px;
-            /* Propiedad moderna: */
-            break-after: page;
-            /* O, para mayor compatibilidad: */
-            page-break-after: always;
+        .content {
+            border: 2px solid #000;
+            padding: 0.5cm;
+            margin-top: 1rem;
         }
-        .images { /* Imágenes centradas */
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
+        table.info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
         }
-        .images img {
-            max-width: 300px;
-            height: auto;
-            border: 1px solid #ccc;
-            z-index: -1000;
+        table.info-table td,
+        table.info-table th {
+            border: 1px solid #000;
+            padding: 8px;
+            vertical-align: top;
         }
-        h1 {
-            font-size: 1.5em;
-        }
-        h2 {
-            font-size: 1.2em;
-        }
-        h3 {
+        .section-title {
             font-size: 1em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .signature-line {
+            margin-top: 60px;
+            text-align: center;
+        }
+        .signature-line span {
+            display: inline-block;
+            border-top: 1px solid #000;
+            padding-top: 2px;
+            width: 200px;
+        }
+        .bold {
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <!-- Marca de agua -->
     <div class="watermark">GOT</div>
-  
+
     <!-- Encabezado que se repite en cada página -->
     <header class="page-header">
         <table>
@@ -120,72 +110,96 @@ body {
                     <td rowspan="2" style="width: 200px; text-align: center;  border: 1px solid #000;">
                         <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" alt="Logo">
                     </td>
-                    <th colspan="3" style="text-align: center; border: 1px solid #000">
-                        <h1>REPORTE DE ACTIVIDADES</h1>
+                    <th colspan="3" style="text-align: center; border: 1px solid #000; font-size: 12px;">
+                        <h1 style="margin:5px 0;">ACTA DE TRANSFERENCIA DE EQUIPOS</h1>
                     </th>
                 </tr>
                 <tr>
                     <td style="text-align: center; border: 1px solid #000; font-weight: bold; font-size: 11px;">
-                        CÓDIGO: DO-SO-MT-25
+                        CÓDIGO: 
                     </td>
                     <td style="text-align: center; border: 1px solid #000; font-weight: bold; font-size: 11px;">
-                        VERSION 001
+                        VERSIÓN 001
                     </td>
                     <td style="text-align: center; border: 1px solid #000; font-weight: bold; font-size: 11px;">
-                        FECHA DE ACTUALIZACIÓN: 26/02/2025
+                        FECHA DE ACTUALIZACIÓN: 28/03/2025
                     </td>
                 </tr>
             </thead>
         </table>
     </header>
 
-    <footer class="page-footer" style="min-width: 715px;">{{ date_range }}</footer>
+    <!-- Pie de página que se repite en cada hoja -->
+    <footer class="page-footer"></footer>
 
+    <!-- Contenido principal -->
     <div class="content">
-        {% regroup tasks by ot.system.asset as tasks_by_asset %}
-        {% for asset_group in tasks_by_asset %}
-    
-            <section class="section">
-                <div style="text-align: center;">
-                    <h2>{{ asset_group.grouper.name }} ({{ asset_group.grouper.abbreviation }})</h2>
-                    <hr>
-                </div>
-                {% regroup asset_group.list by ot as tasks_by_ot %}
-                {% for ot_group in tasks_by_ot %}
-                    <h3>OT-{{ ot_group.grouper.num_ot }}: {{ ot_group.grouper.description }}</h3>
-                    {% for task in ot_group.list %}
-                        <ul>
-                            <li><strong>Descripción de la actividad:</strong> {{ task.description|first_line }}</li>
-                            <li><strong>Responsable:</strong> {{ task.responsible.first_name }} {{ task.responsible.last_name }} - ({% if task.finished %}Finalizado{% endif %})</li>
-                            <li><strong>Tiempo de ejecución:</strong> {{ task.start_date|date:"d/m/Y" }} - {{ task.final_date|date:"d/m/Y" }}</li>
-                            <li><strong>Novedades:</strong> {{ task.news|linebreaks }}</li>
-                        </ul>
-                        <br>
-                        {% with filtered_images=task.images.all|filter_by_date_range:date_range %}
-                            {% if filtered_images %}
-                                <table style="width:100%; border:none;">
-                                    <tr>
-                                    {% for img in filtered_images %}
-                                        <td style="padding:5px;">
-                                            <img src="{{ img.image.url }}" alt="Imagen de la actividad" style="width: 200px;">
-                                        </td>
-                                        {% if forloop.counter|divisibleby:"3" and not forloop.last %}
-                                    </tr>
-                                    <tr>
-                                        {% endif %}
-                                    {% endfor %}
-                                    </tr>
-                                </table>
-                            {% endif %}
-                        {% endwith %}
-                    {% endfor %}
-                {% endfor %}
-            </section>
+        <p><strong>Fecha de transferencia:</strong> {{ transfer.fecha|date:"d/m/Y" }}</p>
 
-        {% endfor %}
+        <table class="info-table">
+            <tr>
+                <th colspan="2" class="section-title">Información del Equipo</th>
+            </tr>
+            <tr>
+                <td class="bold">Equipo:</td>
+                <td>{{ transfer.equipo.name }} 
+                  {# O si tu modelo Equipo tiene más campos, ejemplo: #}
+                  <br><span class="bold">Modelo:</span> {{ transfer.equipo.model }}
+                  <br><span class="bold">Serial:</span> {{ transfer.equipo.serial }}
+                  <br><span class="bold">Marca:</span> {{ transfer.equipo.marca }}
+                </td>
+            </tr>
+            <tr>
+                <td class="bold">Origen:</td>
+                <td>{{ transfer.origen }}</td>
+            </tr>
+            <tr>
+                <td class="bold">Destino:</td>
+                <td>{{ transfer.destino }}</td>
+            </tr>
+        </table>
+
+        <table class="info-table">
+            <tr>
+                <th colspan="2" class="section-title">Responsables</th>
+            </tr>
+            <tr>
+                <td class="bold">Responsable entrega:</td>
+                <td>{{ transfer.responsable }}</td>
+            </tr>
+            <tr>
+                <td class="bold">Responsable recibe:</td>
+                <td>{{ transfer.receptor }}</td>
+            </tr>
+        </table>
+
+        {% if transfer.observaciones %}
+        <h3>Observaciones</h3>
+        <p>{{ transfer.observaciones }}</p>
+        {% endif %}
+        
+        <br>
+        <div style="display: flex; justify-content: space-around; margin-top: 60px;">
+            <!-- Contenedor 1 -->
+            <div class="signature-line">
+                <span>{{ transfer.responsable }}</span>
+                <p>Responsable Entrega</p>
+            </div>
+            <!-- Contenedor 2 -->
+            <div class="signature-line">
+                <span>{{ transfer.receptor }}</span>
+                <p>Responsable Recibe</p>
+            </div>
+        </div>
+
+        {# Dentro de transfer_document.html, donde quieras mostrar la firma #}
+{% if transfer.signature %}
+    <div style="margin-top: 20px;">
+        <p class="bold">Firma (imagen escaneada o dibujada):</p>
+        <img src="{{ transfer.signature.url }}" alt="Firma" style="max-height: 80px;">
     </div>
+{% endif %}
 
-
+    </div>
 </body>
 </html>
-

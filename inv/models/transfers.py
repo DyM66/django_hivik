@@ -11,6 +11,7 @@ class Transference(models.Model):
     origen = models.ForeignKey(System, on_delete=models.CASCADE, related_name='origen')
     destino = models.ForeignKey(System, on_delete=models.CASCADE, related_name='destino')
     observaciones = models.TextField(null=True, blank=True)
+    signature = models.ImageField(upload_to='transference_signatures/', null=False, blank=False, help_text='Firma obligatoria en formato de imagen (jpg, png, etc.)')
 
     class Meta:
         ordering = ['-fecha']

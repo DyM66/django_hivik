@@ -1280,7 +1280,6 @@ def transferir_equipo(request, equipo_id):
                 observaciones += "\nEquipos relacionados transferidos: " + ", ".join(transferred_related_names)
 
             # Crea el registro de Transferencia
-            # transferencia = Transferencia.objects.create(
             transferencia = Transference.objects.create(
                 equipo=equipo,
                 responsable=f"{request.user.first_name} {request.user.last_name}",
@@ -1343,3 +1342,13 @@ def edit_item(request, item_id):
         form = ItemForm(instance=item)
 
     return render(request, 'got/solicitud/edit_item.html', {'form': form, 'item': item})
+
+
+class TransferPDFView(LoginRequiredMixin, View):
+    def get(self, request, pk, *args, **kwargs):
+        transfer = get_object_or_404(Transference, pk=pk)
+
+        context = {
+            'transfer': transfer
+        }
+        return pdf_render(request, 'inventory_management/pdf_templates/transfer_document.html', context, "ACTA_DE_TRANSFERENCIA_EQUIPOS.pdf")

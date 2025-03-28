@@ -64,9 +64,8 @@ class NominaUpdateView(UpdateView):
 @require_GET
 def nomina_detail_partial(request, pk):
     nomina = get_object_or_404(Nomina, pk=pk)
-    # Cargar un template parcial con la información + form, si quieres
     html = render_to_string('dth/payroll_detail.html', {'nomina': nomina}, request=request)
-    return JsonResponse({'html': html})
+    return HttpResponse(html, content_type='text/html')
 
 
 def gerencia_nomina_view(request):

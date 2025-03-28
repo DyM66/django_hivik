@@ -348,18 +348,18 @@
 							<tr>
 								<th>Fecha</th>
 								<th>Responsable</th>
-								<th>Sistema Origen</th>
-								<th>Sistema Destino</th>
+								<th>Origen</th>
+								<th>Destino</th>
 								<th>Observaciones</th>
 							</tr>
 						</thead>
 						<tbody>
 							{% for transferencia in transferencias %}
 								<tr>
-									<td>{{ transferencia.fecha|date:"d M, Y" }}</td>
+									<td class="nowrap">{{ transferencia.fecha|date:"d M, Y" }}</td>
 									<td>{{ transferencia.responsable }}</td>
-									<td>{{ transferencia.origen.asset }}</td>
-									<td>{{ transferencia.destino.asset }}</td>
+									<td class="nowrap">{{ transferencia.origen.asset }}</td>
+									<td class="nowrap">{{ transferencia.destino.asset }}</td>
 									<td>{{ transferencia.observaciones }}</td>
 								</tr>
 							{% empty %}

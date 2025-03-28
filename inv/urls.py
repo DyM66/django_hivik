@@ -29,4 +29,6 @@ urlpatterns = [
 
     path('sumi/delete/<int:sumi_id>/', delete_sumi, name='delete_sumi'),
 
+    path('transfer/<int:pk>/pdf/', TransferPDFView.as_view(), name='transfer-pdf'),
+
 ]

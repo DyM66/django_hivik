@@ -131,7 +131,6 @@ class TransferenciaForm(forms.ModelForm):
     observaciones = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Ingrese observaciones y detalles de la transferencia...'}), label="Justificación", required=False)
 
     class Meta:
-        #  model = Transferencia
          model = Transference
          fields = ['destino', 'receptor', 'observaciones']
 
