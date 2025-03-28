@@ -1,5 +1,4 @@
 {# inventory_management/templates/inventory_management/pdf_templates/transfer_document.html #}
-{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -17,7 +16,7 @@
         }
         @page {
             size: A4;
-            margin: 4cm 1cm 2cm 1cm; 
+            margin: 3cm 1cm 2cm 1cm; 
             @top-center {
                 content: element(header);
             }
@@ -179,27 +178,22 @@
         {% endif %}
         
         <br>
-        <div style="display: flex; justify-content: space-around; margin-top: 60px;">
-            <!-- Contenedor 1 -->
-            <div class="signature-line">
+        <div style="display: flex; justify-content: space-around; align-items: flex-end; margin-top: 60px;">
+            <!-- Contenedor 1: Responsable Entrega -->
+            <div class="signature-line" style="display: flex; flex-direction: column; text-align: center;">
+                <!-- Si en el futuro tienes una firma de quien entrega, puedes colocarla arriba -->
                 <span>{{ transfer.responsable }}</span>
-                <p>Responsable Entrega</p>
             </div>
-            <!-- Contenedor 2 -->
-            <div class="signature-line">
+        
+            <!-- Contenedor 2: Responsable Recibe -->
+            <div class="signature-line" style="display: flex; flex-direction: column; text-align: center;">
+                {% if transfer.signature %}
+                    <img src="{{ transfer.signature.url }}" alt="Firma del Receptor" 
+                        style="max-height: 80px; margin-bottom: 5px;">
+                {% endif %}
                 <span>{{ transfer.receptor }}</span>
-                <p>Responsable Recibe</p>
             </div>
         </div>
-
-        {# Dentro de transfer_document.html, donde quieras mostrar la firma #}
-{% if transfer.signature %}
-    <div style="margin-top: 20px;">
-        <p class="bold">Firma (imagen escaneada o dibujada):</p>
-        <img src="{{ transfer.signature.url }}" alt="Firma" style="max-height: 80px;">
-    </div>
-{% endif %}
-
     </div>
 </body>
 </html>
