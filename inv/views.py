@@ -27,13 +27,13 @@ from django.views.generic.edit import CreateView, UpdateView
 from django.utils.http import urlencode
 from django.db import transaction, IntegrityError
 
-from openpyxl import Workbook
-from openpyxl.drawing.image import Image as ExcelImage
+
 
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
-from got.models import Asset, System, Equipo, Suministro, Item, Image
+from got.models import Asset, System, Equipo, Suministro, Item#, Image
+from got.models import Image as DjangoImage
 from got.utils import *
 from got.forms import ItemForm, UploadImages
 from inv.utils import enviar_correo_transferencia
@@ -89,7 +89,7 @@ class EquipoCreateView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form, upload_form)
 
         for file in self.request.FILES.getlist('file_field'):
-            Image.objects.create(image=file, equipo=self.object)
+            DjangoImage.objects.create(image=file, equipo=self.object)
         messages.success(self.request, "Equipo creado exitosamente.")
         return response
 
@@ -188,6 +188,9 @@ class EquipoUpdate(UpdateView):
         return url
 
 
+
+from openpyxl import Workbook
+from openpyxl.drawing.image import Image as ExcelImage
 class ActivoEquipmentListView(View):
     template_name = 'inventory_management/asset_equipment_list.html'
 
