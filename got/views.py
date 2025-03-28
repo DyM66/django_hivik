@@ -2458,7 +2458,7 @@ class SolicitudesListView(LoginRequiredMixin, generic.ListView):
         if current_dpto:
             queryset = queryset.filter(dpto=current_dpto)
 
-        if user.has_perm('got.can_view_all_rqs'):
+        if user.has_perm('got.access_all_assets'):
             return queryset
         else:
             filter_condition = Q()
