@@ -20,4 +20,8 @@ urlpatterns = [
     path('gerencia/nomina/export/', views.export_gerencia_nomina_excel, name='gerencia_nomina_export'),
     path('nomina/<int:pk>/edit/', views.nomina_edit, name='nomina_edit'),
     path('nomina/create/', views.nomina_create, name='nomina_create'),
+
+    path('payroll/', views.NominaListView.as_view(), name='nomina_list'),
+    path('payroll/<int:pk>/update/', views.NominaUpdateView.as_view(), name='nomina_update'),
+    path('api/nomina/<int:pk>/detail/', views.nomina_detail_partial, name='nomina_detail_partial'),
 ]

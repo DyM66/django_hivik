@@ -150,7 +150,7 @@
 
     
                                     {% if not rq.approved %}
-                                        {% if perms.got.can_approve %}
+                                        {% if perms.inv.can_approve %}
                                             <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editSolicitudModal{{ rq.id }}">Editar</a></li>
                                             <li>
                                                 <form method="post" action="{% url 'got:approve-solicitud' rq.id %}" style="display:inline;">
@@ -163,7 +163,7 @@
                                         {% endif %}
                                     {% else %}
                                             <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#scModal{{ rq.id }}">Tramitar</a></li>
-                                            {% if perms.got.can_cancel %}
+                                            {% if perms.inv.can_cancel %}
                                                 <li><a class="dropdown-item" href="" data-bs-toggle="modal" data-bs-target="#cancelModal{{ rq.id }}">Cancelar</a></li>
                                             {% endif %}
                                     {% endif %}

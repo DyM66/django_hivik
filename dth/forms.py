@@ -19,7 +19,10 @@ class NominaForm(forms.ModelForm):
     """
     class Meta:
         model = Nomina
-        fields = ['id_number', 'name', 'surname', 'position', 'salary']
+        fields = [
+            'id_number', 'name', 'surname', 'position', 'salary', 'admission', 
+            'expiration', 'risk_class', 'is_driver', 'gender', 'photo'
+        ]
         # Si quieres personalizar etiquetas o widgets, puedes hacerlo aquí:
         labels = {
             'id_number': 'Cédula del Empleado',

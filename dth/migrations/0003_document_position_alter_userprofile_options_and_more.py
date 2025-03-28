@@ -12,14 +12,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Document',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True)),
-                ('description', models.TextField(blank=True, null=True)),
-            ],
-        ),
-        migrations.CreateModel(
             name='Position',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -30,31 +22,5 @@ class Migration(migrations.Migration):
         migrations.AlterModelOptions(
             name='userprofile',
             options={},
-        ),
-        migrations.CreateModel(
-            name='EmployeeDocument',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file', models.FileField(upload_to='employee_documents/')),
-                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
-                ('expiration_date', models.DateField(blank=True, null=True)),
-                ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='dth.document')),
-                ('employee', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='employee_documents', to='dth.nomina')),
-            ],
-            options={
-                'unique_together': {('employee', 'document')},
-            },
-        ),
-        migrations.CreateModel(
-            name='PositionDocument',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('mandatory', models.BooleanField(default=True)),
-                ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='document_positions', to='dth.document')),
-                ('position', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='position_documents', to='dth.position')),
-            ],
-            options={
-                'unique_together': {('position', 'document')},
-            },
         ),
     ]

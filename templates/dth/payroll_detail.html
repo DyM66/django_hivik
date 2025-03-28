@@ -1,0 +1,18 @@
+<!-- dth/templates/dth/partials/nomina_detail.html -->
+<div class="row">
+    <div class="col-12 col-md-4">
+        <img src="{{ nomina.photo_url }}" alt="Foto" style="width:100%;max-width:300px;">
+    </div>
+    <div class="col-12 col-md-8">
+        <h3>{{ nomina.name }} {{ nomina.surname }}</h3>
+        <p><strong>ID:</strong> {{ nomina.id_number }}</p>
+        <p><strong>Cargo:</strong> {{ nomina.position }}</p>
+        <p><strong>Salario:</strong> ${{ nomina.salary }}</p>
+        <p><strong>Fecha de Ingreso:</strong> {{ nomina.admission|date:"d/m/Y" }}</p>
+        <p><strong>Fecha de Expiración:</strong> {{ nomina.expiration|default:"N/A" }}</p>
+        <p><strong>Género:</strong> {{ nomina.get_gender_display }}</p>
+        <!-- Botón para ir al formulario de edición (puede abrir otro modal o la vista update) -->
+        <a class="btn btn-primary" href="{% url 'dth:nomina_update' nomina.id %}">Editar</a>
+    </div>
+</div>
+  
