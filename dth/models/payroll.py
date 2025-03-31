@@ -4,14 +4,20 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from got.paths import get_upload_path
 
-RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
-
+RISK_CLASS_CHOICES = [
+        ('I', '0.522%'),
+        ('II', '1.044%'),
+        ('III', '2.436%'),
+        ('IV', '4.350%'),
+        ('V', '6.96%'),
+    ]
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     cargo = models.CharField(max_length=100, null=True, blank=True)
     firma = models.ImageField(upload_to=get_upload_path, null=True, blank=True)
-    dpto = models.CharField(max_length=100, null=True, blank=True)
+    VIEW_CHOICES = [('c', 'Tarjetas'), ('t', 'Tabla')]
+    payroll_view_mode = models.CharField(max_length=1, choices=VIEW_CHOICES, default='c')
 
     class Meta:
         db_table = 'got_userprofile'
@@ -37,8 +43,7 @@ class Nomina(models.Model):
     id_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado.")
     name = models.CharField(max_length=100, help_text="Nombre del empleado.")
     surname = models.CharField(max_length=100, help_text="Apellido del empleado.")
-    position = models.CharField(max_length=100, help_text="Cargo o puesto.")
-    position_id = models.ForeignKey('dth.Position', on_delete=models.SET_NULL, null=True, blank=True, related_name='employees')
+    position_id = models.ForeignKey('dth.Position', on_delete=models.CASCADE, related_name='employees')
     salary = models.DecimalField(max_digits=18, decimal_places=2, help_text="Salario en COP.")
     admission = models.DateField(help_text="Fecha de ingreso del empleado. (Obligatoria)")
     expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")
@@ -55,9 +60,9 @@ class Nomina(models.Model):
         """
         if self.photo:
             return self.photo.url  # Foto real en S3
-        # Si no hay foto, escogemos por género (o una sola imagen si lo prefieres)
-        if self.gender == 'female':
-            return 'https://hivik.s3.us-east-2.amazonaws.com/static/ChatGPT+Image+28+mar+2025%2C+10_36_11.png'
+        # Si no hay foto, escogemos por género (o una sola imagen si lo prefieres)csratch
+        if self.gender == 'm':
+            return 'https://hivik.s3.us-east-2.amazonaws.com/static/img+generic+female.png'
         else:
             return 'https://hivik.s3.us-east-2.amazonaws.com/static/ChatGPT+Image+28+mar+2025%2C+11_04_23.png'
 

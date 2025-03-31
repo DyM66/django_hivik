@@ -44,6 +44,7 @@ urlpatterns = [
     path('cont/', include('cont.urls', namespace='cont')),
     path('tic/', include('tic.urls', namespace='tic')),
     path('ntf/', include('ntf.urls', namespace='ntf')),
+    path('permissions/', include('permissions_management.urls', namespace='permissions_management')),
     path('', RedirectView.as_view(url='got/', permanent=True)),
 
     path('', include('pwa.urls')),

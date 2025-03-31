@@ -1,0 +1,501 @@
+<!-- dth/payroll_list.html -->
+{% extends 'base/base_generic.html' %}
+
+{% block title %}Gestión de nomina{% endblock %}
+{% block headtag %}
+    {% include "dth/payroll_views/payroll_list_styles.html" %}
+{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="mb-0">Gestión de Nómina</h1>
+        <div>
+            <!-- Botón para crear Nomina -->
+            <button class="btn btn-outline-secondary btn-sm" id="btnAddNomina" title="Crear nuevo registro de nómina">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+    
+            <!-- Botón para cambiar vista (sólo ícono) -->
+            <button id="toggleViewBtn" class="btn btn-outline-secondary btn-sm" title="Cambiar vista">
+                <i class="bi bi-table"></i>
+            </button>
+        </div>
+    </div>
+    
+
+    <form method="get" class="mb-3">
+        <!-- Mantener cargos seleccionados (positions) -->
+        {% for pos_id in selected_positions %}
+            <input type="hidden" name="positions" value="{{ pos_id }}">
+        {% endfor %}
+
+        <div class="input-group">
+            <input type="text" name="search" class="form-control" placeholder="Buscar por nombre o apellido" value="{{ search_query }}">
+            <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+        </div>
+    </form>
+    
+    <div class="nomina-container">
+        {% if view_mode == 'c' %}
+            <div class="nomina-cards">
+                <div class="row">
+                    {% for nomina in nominas %}
+                        <div class="col-sm-6 col-md-4 col-lg-3 d-flex">
+                            <div class="card card-nomina">
+                                <img class="card-img-top" src="{{ nomina.photo_url }}" alt="Foto de {{ nomina.name }}">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ nomina.name }} {{ nomina.surname }}</h5>
+                                    <p class="card-text" style="margin: 0;">{{ nomina.position_id|capfirst }}</p>
+                                    <p class="card-text text-muted" style="font-size: 0.9em;">
+                                        Ingreso: {{ nomina.admission|date:"d/m/Y" }}
+                                    </p>
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#nominaDetailModal" data-nomina-id="{{ nomina.id }}">
+                                        Ver detalle
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <div class="nomina-table-view">
+                <table class="table table-hover table-striped" id="nominaTable">
+                    <thead>
+                        <tr>
+                            <th>Nombre completo</th>
+                            <th>Cargo</th>
+                            <th>Ingreso</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nomina in nominas %}
+                        <tr>
+                            <td>{{ nomina.name }} {{ nomina.surname }}</td>
+                            <td>{{ nomina.position_id|capfirst }}</td>
+                            <td>{{ nomina.admission|date:"d/m/Y" }}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#nominaDetailModal" data-nomina-id="{{ nomina.id }}">
+                                    Ver detalle
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+  
+
+        <div class="positions-table">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h4>Cargos</h4>
+                <!-- NUEVO: barra de búsqueda -->
+                <input type="text" id="positionSearch" class="form-control form-control-sm"
+                       style="max-width: 200px;"
+                       placeholder="Filtrar cargos..."/>
+            </div>
+            
+            
+            <table>
+                <thead>
+                </thead>
+                <tbody>
+                    <!-- Opción "Ver todos" -->
+                    <tr onclick="seeAllPositions()" style="cursor: pointer;">
+                        <td><strong>Ver todos</strong></td>
+                    </tr>
+
+                    {% for pos in positions %}
+                        {% if pos.id|stringformat:"s" in selected_positions %}
+                            <tr class="selected-position" onclick="togglePosition('{{ pos.id }}')">
+                        {% else %}
+                            <tr onclick="togglePosition('{{ pos.id }}')">
+                        {% endif %}
+                            <td>{{ pos.name|capfirst }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para crear nuevo registro de Nomina -->
+<div class="modal fade" id="nominaCreateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nuevo Empleado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="nominaCreateContent">
+                <p>Cargando formulario...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="saveNominaBtn">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal (pantalla completa opcional) -->
+<div class="modal fade" id="nominaDetailModal" tabindex="-1" aria-labelledby="nominaDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nominaDetailModalLabel">Detalle del Empleado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Aquí cargaremos dinámicamente la info del empleado -->
+                <div id="modalDetailContent">
+                    <p>Cargando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar nuevo cargo -->
+<div class="modal fade" id="positionModal" tabindex="-1" aria-labelledby="positionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="positionModalLabel">Agregar nuevo cargo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <!-- Aquí se cargará el formulario dinámicamente -->
+                <p>Cargando formulario...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="savePositionBtn">Guardar cargo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar cargo existente -->
+<div class="modal fade" id="positionEditModal" tabindex="-1" aria-labelledby="positionEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar cargo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="modalEditContent">
+                <p>Cargando formulario...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-danger me-auto" id="deletePositionBtn">Eliminar cargo</button>
+                <button type="button" class="btn btn-primary" id="updatePositionBtn">Actualizar cargo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar este cargo? Esta acción no se puede deshacer.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sí, eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar Nomina -->
+<div class="modal fade" id="confirmDeleteNominaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Eliminar Empleado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Para eliminar definitivamente este registro, escribe <strong>"Borrar Permanentemente"</strong>:</p>
+                <input type="text" id="deleteNominaInput" class="form-control" placeholder="Borrar Permanentemente">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteNominaBtn" disabled>Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+  
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ------------------------------------------------------------------------
+        // 1. TOGGLE VIEW (cards vs tabla)
+        // ------------------------------------------------------------------------
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+        if (toggleViewBtn) {
+            toggleViewBtn.addEventListener('click', function() {
+                const currentMode = "{{ view_mode }}";
+                const newMode = currentMode === 'c' ? 't' : 'c';
+    
+                fetch("{% url 'dth:toggle_view_mode' %}", {
+                    method: "POST",
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `mode=${newMode}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();  // Recarga la página con el nuevo modo
+                    } else {
+                        alert("Error al cambiar la vista");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Ocurrió un error inesperado al cambiar la vista.");
+                });
+            });
+        }
+    
+        // ------------------------------------------------------------------------
+        // 2. MOSTRAR DETALLE DE NOMINA (Modal)
+        // ------------------------------------------------------------------------
+        const detailModalEl = document.getElementById('nominaDetailModal');
+        const detailModalContent = document.getElementById('modalDetailContent');
+    
+        // Evento que se dispara cuando se abre el modal de detalle
+        detailModalEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;  // El botón que disparó el modal
+            const nominaId = button.getAttribute('data-nomina-id');
+    
+            detailModalContent.innerHTML = "<p>Cargando la información de la persona...</p>";
+            
+            fetch(`/dth/api/nomina/${nominaId}/detail/`, {
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(response => response.text())
+            .then(html => {
+                detailModalContent.innerHTML = html;
+            })
+            .catch(error => {
+                detailModalContent.innerHTML = `<p>Error al cargar detalle: ${error}</p>`;
+            });
+        });
+    
+        // ------------------------------------------------------------------------
+        // 3. ELIMINAR NOMINA (Con confirmación “Borrar Permanentemente”)
+        // ------------------------------------------------------------------------
+        const confirmDeleteNominaModalEl = document.getElementById('confirmDeleteNominaModal');
+        const confirmDeleteNominaModal = new bootstrap.Modal(confirmDeleteNominaModalEl);
+        const deleteNominaInput = document.getElementById('deleteNominaInput');
+        const confirmDeleteNominaBtn = document.getElementById('confirmDeleteNominaBtn');
+    
+        let currentNominaId = null;
+    
+        // Delegamos el evento click en el documento para detectar el botón "Eliminar" (id=deleteNominaBtn) 
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'deleteNominaBtn') {
+                // Botón “Eliminar” en el partial de detalle
+                currentNominaId = e.target.getAttribute('data-nomina-id');
+    
+                // Limpiar input y deshabilitar botón
+                deleteNominaInput.value = '';
+                confirmDeleteNominaBtn.disabled = true;
+    
+                // Mostrar el modal de confirmación
+                confirmDeleteNominaModal.show();
+            }
+        });
+    
+        // Habilitar o deshabilitar el botón de "Eliminar" según el texto 
+        deleteNominaInput.addEventListener('input', function() {
+            if (this.value.trim() === "Borrar Permanentemente") {
+                confirmDeleteNominaBtn.disabled = false;
+            } else {
+                confirmDeleteNominaBtn.disabled = true;
+            }
+        });
+    
+        // Cuando confirman eliminar
+        confirmDeleteNominaBtn.addEventListener('click', function() {
+            if (!currentNominaId) return;
+    
+            // Petición a la vista "nomina_edit" con action=delete
+            const url = `/dth/nomina/${currentNominaId}/edit/`;
+            const fd = new FormData();
+            fd.append('action', 'delete');
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: fd
+            })
+            .then(resp => {
+                // Revisa si la respuesta es 200 OK
+                if (!resp.ok) {
+                    throw new Error(`HTTP status ${resp.status}`);
+                }
+                return resp.json();
+            })
+            .then(data => {
+                if (data.deleted) {
+                    alert("Registro eliminado satisfactoriamente.");
+                    confirmDeleteNominaModal.hide();
+                    location.reload();
+                } else {
+                    alert("No se pudo eliminar el registro (respuesta inesperada).");
+                }
+            })
+            .catch(err => {
+                alert("Error al eliminar el registro: " + err);
+            });
+        });
+    
+        // ------------------------------------------------------------------------
+        // 4. CREAR NUEVO NOMINA
+        // ------------------------------------------------------------------------
+        const btnAddNomina = document.getElementById('btnAddNomina');
+        const nominaCreateModalEl = document.getElementById('nominaCreateModal');
+        const nominaCreateModal = new bootstrap.Modal(nominaCreateModalEl);
+        const nominaCreateContent = document.getElementById('nominaCreateContent');
+        const saveNominaBtn = document.getElementById('saveNominaBtn');
+    
+        if (btnAddNomina) {
+            // Al hacer clic en "btnAddNomina", cargamos el form via AJAX
+            btnAddNomina.addEventListener('click', () => {
+                fetch("{% url 'dth:nomina_create' %}", {
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                })
+                .then(resp => resp.json())
+                .then(data => {
+                    if (data.success) {
+                        nominaCreateContent.innerHTML = data.html;
+                        nominaCreateModal.show();
+                    } else {
+                        nominaCreateContent.innerHTML = '<p>Error: no se pudo cargar formulario.</p>';
+                    }
+                })
+                .catch(err => {
+                    nominaCreateContent.innerHTML = `<p>Error: ${err}</p>`;
+                });
+            });
+        }
+    
+        if (saveNominaBtn) {
+            // Guardar el nuevo Nomina
+            saveNominaBtn.addEventListener('click', () => {
+                const form = document.getElementById('nomina-create-form');
+                if (!form) return;
+    
+                const formData = new FormData(form);
+    
+                fetch("{% url 'dth:nomina_create' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                })
+                .then(resp => {
+                    if (!resp.ok) {
+                        throw new Error(`HTTP status ${resp.status}`);
+                    }
+                    return resp.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Cerramos modal y recargamos
+                        nominaCreateModal.hide();
+                        location.reload();
+                    } else {
+                        // Revisar el HTML con errores
+                        nominaCreateContent.innerHTML = data.html;
+                    }
+                })
+                .catch(err => {
+                    nominaCreateContent.innerHTML = `<p>Error al guardar: ${err}</p>`;
+                });
+            });
+        }
+    
+        // ------------------------------------------------------------------------
+        // 5. FILTRAR POSITIONS
+        // ------------------------------------------------------------------------
+        const positionSearchInput = document.getElementById('positionSearch');
+        const positionsTable = document.querySelector('.positions-table table tbody');
+    
+        if (positionSearchInput && positionsTable) {
+            positionSearchInput.addEventListener('keyup', () => {
+                const filter = positionSearchInput.value.toLowerCase();
+    
+                const rows = positionsTable.querySelectorAll('tr');
+                rows.forEach(row => {
+                    // Si la fila dice “Ver todos” => se deja
+                    if (row.textContent.includes('Ver todos')) {
+                        row.style.display = '';
+                        return;
+                    }
+                    const td = row.querySelector('td');
+                    if (!td) return;
+                    const txtValue = td.textContent.toLowerCase();
+                    row.style.display = txtValue.includes(filter) ? '' : 'none';
+                });
+            });
+        }
+    
+        // ------------------------------------------------------------------------
+        // 6. Toggle Positions (filtrado multi-cargo)
+        // ------------------------------------------------------------------------
+        window.togglePosition = function(pos_id) {
+            const params = new URLSearchParams(window.location.search);
+            let positions = params.getAll('positions');
+    
+            if (positions.includes(pos_id)) {
+                positions = positions.filter(item => item !== pos_id);
+            } else {
+                positions.push(pos_id);
+            }
+            // Remover "all" si estuviera
+            positions = positions.filter(item => item !== 'all');
+    
+            // Limpiamos 'positions' y reasignamos
+            params.delete('positions');
+            for (let p of positions) {
+                params.append('positions', p);
+            }
+            // Reiniciar paginación
+            params.delete('page');
+            // recargar
+            window.location.search = params.toString();
+        }
+    
+        // “Ver todos”
+        window.seeAllPositions = function() {
+            const params = new URLSearchParams(window.location.search);
+            params.delete('positions');
+            params.delete('page');
+            window.location.search = params.toString();
+        }
+    });
+    </script>
+    
+{% endblock %}

@@ -1,0 +1,41 @@
+{# dth/templates/dth/partials/employee_document_preview.html #}
+<div class="modal-header">
+  <h5 class="modal-title">Documentos Subidos</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+
+  {% if documents %}
+    <ul class="list-group">
+      {% for ed in documents %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ ed.document.name }}</strong>
+            <br>
+            <small class="text-muted">
+              Subido: {{ ed.uploaded_at|date:"d/m/Y H:i" }}
+              {% if ed.expiration_date %}
+                &nbsp; - Expira: {{ ed.expiration_date|date:"d/m/Y" }}
+              {% endif %}
+            </small>
+            <div class="mt-1">
+              <!-- Link para abrir en otra pestaña -->
+              <a href="{{ ed.file.url }}" target="_blank" class="me-2 btn btn-sm btn-outline-info">
+                <i class="bi bi-box-arrow-up-right"></i> Ver archivo
+              </a>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-danger" onclick="deleteEmployeeDocument('{{ ed.id }}')">
+            Eliminar
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">No hay documentos subidos aún.</p>
+  {% endif %}
+
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+</div>

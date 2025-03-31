@@ -3,6 +3,7 @@ from django.db.models import Q
 from datetime import date
 
 from dth.models import UserProfile, Overtime, OvertimeProject, Nomina
+from dth.models.positions import Position, Document
 from got.models import Asset
 
 
@@ -13,25 +14,73 @@ class UploadNominaReportForm(forms.Form):
     )
 
 
+class PositionForm(forms.ModelForm):
+    class Meta:
+        model = Position
+        fields = ['name', 'description', 'category']
+        labels = {
+            'name': 'Nombre del Cargo',
+            'description': 'Descripción breve',
+            'category': 'Categoria',     
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'category': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+
+class DocumentForm(forms.ModelForm):
+    class Meta:
+        model = Document
+        fields = ['name', 'description']
+        labels = {
+            'name': 'Nombre del documento',
+            'description': 'Descripción breve',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Titulo del documento'}),
+            'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+        }
+
+
 class NominaForm(forms.ModelForm):
-    """
-    Formulario para crear/editar registros de Nomina.
-    """
     class Meta:
         model = Nomina
         fields = [
-            'id_number', 'name', 'surname', 'position', 'salary', 'admission', 
-            'expiration', 'risk_class', 'is_driver', 'gender', 'photo'
+            'id_number', 'name', 'surname', 'position_id', 'salary',
+            'admission', 'expiration', 'risk_class', 'is_driver',
+            'gender', 'photo'
         ]
-        # Si quieres personalizar etiquetas o widgets, puedes hacerlo aquí:
         labels = {
-            'id_number': 'Cédula del Empleado',
-            'name': 'Nombre',
+            'id_number': 'No Cédula',
+            'name': 'Nombres',
             'surname': 'Apellidos',
-            'position': 'Cargo',
+            'position_id': 'Cargo',
+            'admission': 'Fecha de Ingreso',
+            'expiration': 'Fecha de Expiración',
             'salary': 'Salario',
-            # 'dpto': 'Departamento',
-            # 'category': 'Categoría',
+            'risk_class': 'Clase de Riesgo',
+            'is_driver': '¿Es conductor?',
+            'gender': 'Género',
+            'photo': 'Foto',
+        }
+        widgets = {
+            'id_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'surname': forms.TextInput(attrs={'class': 'form-control'}),
+            'position_id': forms.Select(attrs={'class': 'form-select'}),
+            'salary': forms.NumberInput(attrs={'class': 'form-control'}),
+            'admission': forms.DateInput(format='%Y-%m-%d', attrs={
+                'type': 'date', 'class': 'form-control'
+            }),
+            'expiration': forms.DateInput(format='%Y-%m-%d', attrs={
+                'type': 'date', 'class': 'form-control'
+            }),
+            'risk_class': forms.Select(attrs={'class': 'form-select'}),
+            'is_driver': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'photo': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
 class UserChoiceField(forms.ModelChoiceField):
@@ -119,38 +168,3 @@ class OvertimeProjectForm(forms.ModelForm):
         if data > date.today():
             raise forms.ValidationError("No puedes reportar horas en una fecha futura.")
         return data
-
-    #     try:
-    #         cedulas = json.loads(cedulas)
-    #     except json.JSONDecodeError:
-    #         raise forms.ValidationError("Error al procesar los datos del personal.")
-
-    #     trabajadores = Nomina.objects.filter(id_number__in=cedulas)
-
-    #     overtime_periods = calcular_horas_extras(report_date, start, end)
-    #     if not overtime_periods:
-    #         raise forms.ValidationError("Las horas reportadas no califican como horas extras.")
-
-    #     conflictos_totales = 0
-    #     for trabajador in trabajadores:
-    #         for ot_start, ot_end in overtime_periods:
-    #             conflictos = Overtime.objects.filter(worker=trabajador, project__report_date=report_date).filter(Q(start__lt=ot_end, end__gt=ot_start)).exists()
-    #             if conflictos:
-    #                 conflictos_totales += 1
-
-    #     if conflictos_totales == len(trabajadores) * len(overtime_periods):
-    #         raise forms.ValidationError("Todos los trabajadores tienen conflictos en las horas reportadas.")
-
-    #     cleaned_data['trabajadores'] = trabajadores
-    #     cleaned_data['overtime_periods'] = overtime_periods
-
-    #     return cleaned_data
-
-#     hora_fin = forms.TimeField(input_formats=['%I:%M %p'],
-#         widget=forms.TextInput(attrs={
-#             'class': 'form-control',
-#             'id': 'timepicker_fin',
-#             'placeholder': 'Seleccione la hora de finalización'
-#         })
-#     )
-#     # justificacion = forms.CharField(widget= )

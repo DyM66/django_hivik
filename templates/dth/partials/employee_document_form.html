@@ -1,0 +1,28 @@
+{# dth/templates/dth/partials/employee_document_form.html #}
+<div class="modal-header">
+  <h5 class="modal-title">Subir Documento Pendiente</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+</div>
+
+<div class="modal-body">
+  <form id="employee-document-form" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <input type="hidden" name="employee_id" value="{{ employee_id }}">
+    <input type="hidden" name="document_id" value="{{ document_id }}">
+
+    <div class="mb-3">
+      <label class="form-label">Archivo</label>
+      <input type="file" name="file" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Fecha de Expiración (opcional)</label>
+      <input type="date" name="expiration_date" class="form-control">
+    </div>
+  </form>
+</div>
+
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+  <button type="submit" form="employee-document-form" class="btn btn-primary" id="submitDocBtn">Guardar</button>
+</div>

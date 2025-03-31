@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'cont.apps.ContConfig', 
     'tic.apps.TicConfig', 
     'ntf.apps.NtfConfig', 
+    'permissions_management.apps.PermissionsManagementConfig', 
     'pwa',
     'storages',
     'widget_tweaks',

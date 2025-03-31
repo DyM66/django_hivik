@@ -1,0 +1,59 @@
+<form id="nomina-create-form">
+  {% csrf_token %}
+  
+  <div class="mb-3">
+    <label for="id_id_number" class="form-label">Cédula</label>
+    {{ form.id_number }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_name" class="form-label">Nombre</label>
+    {{ form.name }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_surname" class="form-label">Apellido</label>
+    {{ form.surname }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_position_id" class="form-label">Cargo</label>
+    {{ form.position_id }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_salary" class="form-label">Salario</label>
+    {{ form.salary }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_admission" class="form-label">Fecha de Ingreso</label>
+    {{ form.admission }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_expiration" class="form-label">Fecha de Expiración</label>
+    {{ form.expiration }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_risk_class" class="form-label">Clase de Riesgo</label>
+    {{ form.risk_class }}
+  </div>
+
+  <!-- "¿Es conductor?" con estilo checkbox de Bootstrap -->
+  <div class="mb-3 form-check">
+    {{ form.is_driver }}
+    <label class="form-check-label" for="id_is_driver">¿Es conductor?</label>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_gender" class="form-label">Género</label>
+    {{ form.gender }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_photo" class="form-label">Foto</label>
+    {{ form.photo }}
+  </div>
+</form>

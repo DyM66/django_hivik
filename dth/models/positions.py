@@ -1,5 +1,13 @@
 # dth/models/positions.py
 from django.db import models
+import uuid
+from datetime import datetime
+
+def get_upload_path_employee(instance, filename):
+    ext = filename.split('.')[-1].lower()
+    unique_name = f"{datetime.now():%Y%m%d%H%M%S}-{uuid.uuid4()}.{ext}"
+    # Preparamos una carpeta "employee_documents" como prefijo
+    return f"employee_documents/{unique_name}"
 
 class Position(models.Model):
     CATEGORY_CHOICES = [('o', 'Operativo'), ('a', 'Administrativo'), ('m', 'Mixto')]
@@ -31,7 +39,7 @@ class PositionDocument(models.Model):
 class EmployeeDocument(models.Model):
     employee = models.ForeignKey('Nomina', on_delete=models.CASCADE, related_name='employee_documents')
     document = models.ForeignKey(Document, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='employee_documents/')
+    file = models.FileField(upload_to=get_upload_path_employee)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     expiration_date = models.DateField(blank=True, null=True)
 

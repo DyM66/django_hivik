@@ -1,8 +1,11 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views import View
 
 from got.models import Equipo, Ruta
+from got.utils import pdf_render
 from inv.models.transfers import Transference
 from inv.forms import TransferenciaForm
 from inv.utils import enviar_correo_transferencia
@@ -71,3 +74,12 @@ def transferir_equipo(request, equipo_id):
         'next_url': next_url
     }
     return render(request, 'inventory_management/transferencias.html', context)
+
+class TransferPDFView(LoginRequiredMixin, View):
+    def get(self, request, pk, *args, **kwargs):
+        transfer = get_object_or_404(Transference, pk=pk)
+
+        context = {
+            'transfer': transfer
+        }
+        return pdf_render(request, 'inventory_management/pdf_templates/transfer_document.html', context, "ACTA_DE_TRANSFERENCIA_EQUIPOS.pdf")

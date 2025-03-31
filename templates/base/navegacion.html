@@ -109,14 +109,9 @@
                             
                                 <div class="flex-fill me-4">
                                     <ul class="list-unstyled">
-                                        <li><a class="dropdown-item" href="#">Nomina</a></li>
-                                    </ul>
-                                </div>
-
-                                <div class="flex-fill me-4">
-                                    <h5 class="text-white">-</h5>
-                                    <ul class="list-unstyled">
-                                        <li><a class="dropdown-item" href="#">Item</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'dth:nomina_list' %}">Nomina</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'dth:position_documents_list' %}">Documentos por cargo</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'dth:nomina_documents_matrix' %}">Matriz de documentos</a></li>
                                     </ul>
                                 </div>
 
@@ -128,13 +123,10 @@
                             <div class="p-3 text-center">
                                 <!-- Mismos links que arriba -->
                                 <ul class="list-unstyled">
-                                    <li><a class="dropdown-item" href="#">Nomina</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'dth:nomina_list' %}">Nomina</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'dth:position_documents_list' %}">Documentos por cargo</a></li>
                                 </ul>
                                 <hr class="my-2">
-                                <h5 class="text-white">-</h5>
-                                <ul class="list-unstyled">
-                                    <li><a class="dropdown-item" href="#">Actividades</a></li>
-                                </ul>
                             </div>
                         </div>
                     </li>

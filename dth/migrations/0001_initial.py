@@ -70,6 +70,7 @@ class Migration(migrations.Migration):
                 ('is_driver', models.BooleanField(default=False)),
                 ('gender', models.CharField(choices=[('h', 'Hombre'), ('m', 'Mujer')], default='h', max_length=1)),
                 ('photo', models.ImageField(blank=True, help_text='Fotografía del empleado.', null=True, upload_to=got.paths.get_upload_path)),
+                ('position_id', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='employees', to='dth.position')),
             ],
         ),
         migrations.CreateModel(
@@ -129,5 +130,25 @@ class Migration(migrations.Migration):
             options={
                 'unique_together': {('position', 'document')},
             },
+        ),
+        migrations.CreateModel(
+            name='Department',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(help_text='Nombre del departamento.', max_length=100, unique=True)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='Position',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100, unique=True)),
+                ('description', models.TextField(blank=True, null=True)),
+                ('category', models.CharField(blank=True, choices=[('o', 'Operativo'), ('a', 'Administrativo'), ('m', 'Mixto')], max_length=1, null=True)),
+            ],
+        ),
+        migrations.AlterModelOptions(
+            name='userprofile',
+            options={},
         ),
     ]

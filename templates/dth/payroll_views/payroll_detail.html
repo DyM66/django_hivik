@@ -1,0 +1,22 @@
+<!-- dth/templates/dth/partials/nomina_detail.html -->
+<div class="row">
+    <div class="col-md-3 text-center mb-3">
+        <img src="{{ nomina.photo_url }}" alt="Foto" class="img-fluid rounded shadow">
+    </div>
+    <div class="col-md-9">
+        <h3>{{ nomina.name }} {{ nomina.surname }}</h3>
+        <hr>
+        <p><strong>Cédula:</strong> {{ nomina.id_number }}</p>
+        <p><strong>Cargo:</strong> {{ nomina.position_id }}</p>
+        <p><strong>Salario:</strong> ${{ nomina.salary }}</p>
+        <p><strong>Ingreso:</strong> {{ nomina.admission|date:"d/m/Y" }}</p>
+        <p><strong>Expiración:</strong> {{ nomina.expiration|default:"N/A" }}</p>
+    
+        <div class="d-flex gap-2">
+            <a class="btn btn-primary btn-sm" href="{% url 'dth:nomina_update' nomina.id %}">Editar</a>
+            <button type="button" class="btn btn-danger btn-sm" id="deleteNominaBtn" data-nomina-id="{{ nomina.id }}">
+                Eliminar
+            </button>
+        </div>
+    </div>
+</div>

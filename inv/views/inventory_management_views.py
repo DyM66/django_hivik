@@ -1,248 +1,23 @@
-# inventory_management/views.py
-import base64
-import qrcode
-import qrcode.image.svg
 import re
-
-
+from datetime import datetime, date
+from decimal import Decimal
 from itertools import groupby
 from operator import attrgetter
 
 from django.contrib import messages
-from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.files.base import ContentFile
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Q, Sum, Max
-from django.http import HttpResponseRedirect, HttpResponse
+from django.views import View
 from django.shortcuts import render, get_object_or_404, redirect
-from django.template.loader import render_to_string
-from django.urls import reverse
+from django.db.models import Q, Sum, Max
+from django.http import HttpResponse
 from django.utils import timezone
-from django.views import generic, View
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import permission_required
 
-from django.views.generic.edit import CreateView, UpdateView
-
-from got.models import Asset, System, Equipo, Suministro, Item#, Image
-from got.models import Image as DjangoImage
-
-from got.forms import ItemForm, UploadImages
-
-from got.utils import *
-from inv.models import DarBaja
+from got.models import Asset, Suministro, Item
+from got.utils import get_suministros, generate_excel, render_to_pdf, handle_transfer, handle_inventory_update, handle_delete_transaction
 from ope.models import Operation
-from inv.forms import *
-
-
-class DarBajaCreateView(LoginRequiredMixin, CreateView):
-    model = DarBaja
-    form_class = DarBajaForm
-    template_name = 'inventory_management/dar_baja_form.html'
-
-    def get_equipo(self):
-        equipo_code = self.kwargs['equipo_code']
-        return get_object_or_404(Equipo, code=equipo_code)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        equipo = self.get_equipo()
-        context['equipo'] = equipo
-
-        if self.request.method == 'POST':  # Instanciar el segundo formulario (evidencias + firmas)
-            context['upload_form'] = UploadEvidenciasYFirmasForm(self.request.POST, self.request.FILES)
-        else:
-            context['upload_form'] = UploadEvidenciasYFirmasForm()
-        return context
-
-    def form_valid(self, form):
-        equipo = self.get_equipo()
-        user = self.request.user
-        form.instance.equipo = equipo
-        form.instance.reporter = user.get_full_name() or user.username
-        form.instance.activo = f"{equipo.system.asset.name} - {equipo.system.name}"
-
-        # Guardamos de forma normal
-        response = super().form_valid(form)
-
-        # 2) Procesar upload_form
-        upload_form = self.get_context_data()['upload_form']
-        if not upload_form.is_valid():
-            messages.error(self.request, "Error en el formulario de subida de archivos.")
-            self.object.delete()
-            return self.form_invalid(form)
-
-        # Tomar subidas de firma
-        fr_file = upload_form.cleaned_data.get('firma_responsable_file')
-        fa_file = upload_form.cleaned_data.get('firma_autorizado_file')
-
-        # Tomar data base64 de canvas
-        firma_responsable_data = self.request.POST.get('firma_responsable_data', '')
-        firma_autorizado_data = self.request.POST.get('firma_autorizado_data', '')
-
-        # Chequeo => O suben archivo o dibujan la firma
-        if not fr_file and not firma_responsable_data:
-            messages.error(self.request, "Debe proporcionar la firma Responsable (archivo o dibujo).")
-            self.object.delete()
-            return self.form_invalid(form)
-
-        if not fa_file and not firma_autorizado_data:
-            messages.error(self.request, "Debe proporcionar la firma Autorizado (archivo o dibujo).")
-            self.object.delete()
-            return self.form_invalid(form)
-
-        # Firma Responsable
-        if fr_file:
-            if not fr_file.content_type.startswith('image/'):
-                messages.error(self.request, "Archivo de firma responsable no es válido.")
-                self.object.delete()
-                return self.form_invalid(form)
-            self.object.firma_responsable = fr_file
-            self.object.save(update_fields=['firma_responsable'])
-        else:
-            # Canvas base64
-            fmt, imgstr = firma_responsable_data.split(';base64,')
-            ext = fmt.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr))
-            self.object.firma_responsable.save(f'firma_responsable_{self.object.pk}.{ext}', data, save=True)
-
-        # Firma Autorizado
-        if fa_file:
-            if not fa_file.content_type.startswith('image/'):
-                messages.error(self.request, "Archivo de firma autorizado no es válido.")
-                self.object.delete()
-                return self.form_invalid(form)
-            self.object.firma_autorizado = fa_file
-            self.object.save(update_fields=['firma_autorizado'])
-        else:
-            fmt, imgstr = firma_autorizado_data.split(';base64,')
-            ext = fmt.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr))
-            self.object.firma_autorizado.save(f'firma_autorizado_{self.object.pk}.{ext}', data, save=True)
-
-        # 3) Evidencias => multiple
-        evidences = upload_form.cleaned_data['file_field']  # lista de archivos
-        for file_obj in evidences:
-            if not file_obj.content_type.startswith('image/'):
-                messages.error(self.request, "Uno de los archivos de evidencia no es una imagen válida.")
-                self.object.delete()
-                return self.form_invalid(form)
-            Image.objects.create(image=file_obj, darbaja=self.object)
-
-        # 4) Eliminar rutinas/hours/etc
-        self.do_equipo_cleanup(equipo)
-
-        # 5) Mover equipo a system 445
-        new_system = System.objects.get(id=445)
-        old_system = equipo.system
-        equipo.system = new_system
-        equipo.save()
-        messages.success(self.request, f'El equipo ha sido trasladado al sistema {new_system.name}.')
-
-        # 6) Generar PDF (opcional)
-        self.generate_pdf()
-        return redirect(self.get_success_url())  # 7) Redirigir => 'activos/<str:abbreviation>/equipos/'
-
-    def do_equipo_cleanup(self, equipo):
-        # Eliminar rutinas, hours, etc.
-        ...
-        # (Idéntico a tu lógica actual)
-
-    def generate_pdf(self):
-        context = {
-            'dar_baja': self.object,
-            'equipo': self.object.equipo
-        }
-        pdf = render_to_pdf('inventory_management/dar_baja_pdf.html', context)
-        if pdf:
-            # Podrías guardarlo en disco, o en la base de datos, 
-            # o ignorarlo si solo deseas generarlo internamente
-            filename = f'dar_baja_{self.object.pk}.pdf'
-            # Ejemplo: guardarlo en un directorio local (opcional)
-            # with open(f'/tmp/{filename}', 'wb') as f:
-            #     f.write(pdf.getvalue())
-        else:
-            messages.warning(self.request, 'No se pudo generar el PDF.')
-
-    def get_success_url(self):
-        # Redirigir a: path('activos/<str:abbreviation>/equipos/', name='asset_equipment_list'),
-        # old_system.asset.abbreviation => => 'inv:asset_equipment_list'
-        abbreviation = self.object.equipo.system.asset.abbreviation
-        return reverse('inv:asset_equipment_list', kwargs={'abbreviation': abbreviation})
-
-
-def create_supply_view(request, abbreviation):
-    """
-    Crea un nuevo Suministro asociado a un Activo.
-    Opcionalmente crea un nuevo Item si el usuario marcó "is_new_item == 1".
-    """
-    asset = get_object_or_404(Asset, abbreviation=abbreviation)
-
-    if request.method == 'POST':
-        is_new_item = request.POST.get('is_new_item', '0')
-        cantidad_str = request.POST.get('cantidad')
-
-        # Validar cantidad
-        if not cantidad_str:
-            messages.error(request, "Debe especificar la cantidad.")
-            return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
-
-        try:
-            cantidad = float(cantidad_str)
-        except ValueError:
-            messages.error(request, "Cantidad inválida.")
-            return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
-
-        # Caso A: Crear artículo nuevo
-        if is_new_item == '1':
-            form_data = {
-                'name': request.POST.get('new_item_name'),
-                'reference': request.POST.get('new_item_reference'),
-                'presentacion': request.POST.get('new_item_presentacion'),
-                'code': request.POST.get('new_item_code'),
-                'seccion': request.POST.get('new_item_seccion'),
-                'unit_price': request.POST.get('new_item_unit_price') or 0.00,
-            }
-            files_data = {}
-            if 'new_item_imagen' in request.FILES:
-                files_data['imagen'] = request.FILES['new_item_imagen']
-
-            item_form = ItemForm(form_data, files_data)
-            if item_form.is_valid():
-                new_item = item_form.save(commit=False)
-                if request.user.is_authenticated:
-                    new_item.modified_by = request.user
-                new_item.save()
-                item = new_item
-                messages.success(request, f"Artículo '{item.name}' creado correctamente.")
-            else:
-                messages.error(request, f"Error al crear el artículo: {item_form.errors}")
-                return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
-
-        # Caso B: Se usa un artículo existente
-        else:
-            item_id = request.POST.get('item_id')
-            if not item_id:
-                messages.error(request, "Debe seleccionar un artículo existente o crear uno nuevo.")
-                return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
-
-            try:
-                item = Item.objects.get(id=item_id)
-            except Item.DoesNotExist:
-                messages.error(request, "El artículo seleccionado no existe.")
-                return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
-
-        # Crear el Suministro
-        Suministro.objects.create(
-            item=item,
-            cantidad=cantidad,
-            asset=asset
-        )
-        messages.success(request, f"Se ha creado un nuevo suministro de '{item.name}' para {asset.name}.")
-        return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
-
-    # Si no es POST => redirigir sin hacer nada
-    return redirect('inv:asset_equipment_list', abbreviation=abbreviation)
-
+from inv.models import Transaction
 
 class AssetInventoryBaseView(LoginRequiredMixin, View):
     template_name = 'got/assets/asset_inventory_report.html'
@@ -484,6 +259,7 @@ class AssetInventarioReportView(AssetInventoryBaseView):
         return context
     
 
+
 @permission_required('got.delete_transaction', raise_exception=True)
 def delete_transaction(request, transaction_id):
     transaccion = get_object_or_404(Transaction, id=transaction_id)
@@ -513,6 +289,8 @@ def delete_sumi(request, sumi_id):
         messages.success(request, f"se intento y no fuciono")
         return redirect(next_url)
     
+
+
 
 def export_historial_pdf(request, abbreviation):
     """
@@ -633,50 +411,3 @@ def export_historial_pdf(request, abbreviation):
 
     # Si no es POST, redirigir
     return redirect('inv:asset_inventario_report', abbreviation=abbreviation)
-
-
-
-'EXPERIMENTAL VIEWS'
-class ItemManagementView(generic.TemplateView):
-    template_name = 'inventory_management/item_management.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['items'] = Item.objects.all()
-        context['form'] = ItemForm()
-        return context
-
-    def post(self, request, *args, **kwargs):
-        form = ItemForm(request.POST, request.FILES)
-        if form.is_valid():
-            item = form.save(commit=False)
-            item.modified_by = request.user
-            form.save()
-            return redirect(reverse('inv:item_management'))
-
-        context = self.get_context_data(**kwargs)
-        context['form'] = form
-        return self.render_to_response(context)
-
-
-def edit_item(request, item_id):
-    item = get_object_or_404(Item, id=item_id)
-    if request.method == 'POST':
-        form = ItemForm(request.POST, request.FILES, instance=item)
-        if form.is_valid():
-            form.save()
-            return redirect(reverse('inv:item_management'))
-    else:
-        form = ItemForm(instance=item)
-
-    return render(request, 'got/solicitud/edit_item.html', {'form': form, 'item': item})
-
-
-class TransferPDFView(LoginRequiredMixin, View):
-    def get(self, request, pk, *args, **kwargs):
-        transfer = get_object_or_404(Transference, pk=pk)
-
-        context = {
-            'transfer': transfer
-        }
-        return pdf_render(request, 'inventory_management/pdf_templates/transfer_document.html', context, "ACTA_DE_TRANSFERENCIA_EQUIPOS.pdf")

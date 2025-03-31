@@ -1,0 +1,466 @@
+{% extends 'base/base_generic.html' %}
+{% load static %}
+
+{% block title %}Documentos por cargo{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1>Documentos por Cargo</h1>
+
+    <div class="row mt-4">
+        <!-- Cargos y documentos -->
+        <div class="col-md-7">
+            {% for group in grouped_positions %}
+                <!-- <h3 class="mt-4">{{ group.category }}</h3> -->
+                {% for position in group.positions %}
+                    <div class="card mb-3 shadow-sm position-relative">
+                        <div class="card-body">
+                            <h5 class="mb-1">{{ position.name|upper }}</h5>
+
+                            <!-- Ícono para abrir modal largo (Edit position) -->
+                            <i class="fa fa-ellipsis-h position-absolute top-0 end-0 m-2 text-muted edit-position-icon"
+                               style="cursor:pointer;"
+                               data-position-id="{{ position.id }}">
+                            </i>
+
+                            <hr>
+                            {% if position.description %}
+                                <p class="text-muted mb-2">{{ position.description }}</p>
+                            {% endif %}
+
+                            <!-- Lista resumida de documentos asociados -->
+                            {% if position.position_documents.all %}
+                                <ul>
+                                    {% for pd in position.position_documents.all %}
+                                        <li{% if pd.mandatory %} class="fw-bold"{% endif %}>
+                                            {{ pd.document.name }}
+                                            {% if pd.mandatory %}
+                                                <span class="badge bg-danger">Obligatorio</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Opcional</span>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <span class="text-muted">Sin documentos asociados</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">No hay cargos registrados en esta categoría.</p>
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- Gestión de Documentos -->
+        <div class="col-md-5">
+            <table class="table table-striped table-bordered">
+                <thead class="table-secondary">
+                    <tr>
+                        <th colspan="3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h4>Tipos de Documentos</h4>
+
+                                <button class="btn btn-sm btn-success" id="addDocumentBtn">
+                                    <i class="fa fa-plus"></i> Nuevo Documento
+                                </button>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td>{{ doc.name }}</td>
+                        <td>{{ doc.description }}</td>
+                        <td>
+                            <!-- Solo editar -->
+                            <button class="btn btn-sm btn-primary edit-doc-btn" data-id="{{ doc.id }}">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <!-- Eliminación se gestiona dentro del modal -->
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-muted">No hay documentos registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal largo para editar Position -->
+<div class="modal fade" id="positionEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">  <!-- modal-lg o modal-xl si es necesario -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Cargo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="positionEditContent">
+                Cargando...
+            </div>
+            <div class="modal-footer justify-content-between">
+                <!-- Botón de eliminar cargo (se abre confirmación) -->
+                <button class="btn btn-danger" id="deletePositionBtn">Eliminar</button>
+                <button class="btn btn-primary" id="savePositionBtn">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar Cargo -->
+<div class="modal fade" id="confirmDeletePositionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body">
+                <p>¿Seguro que deseas eliminar este cargo?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-danger" id="confirmDeletePositionBtn">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Genérico para formularios de documento -->
+<div class="modal fade" id="documentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Gestión de Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="modalBodyContent">
+                Cargando...
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+
+                <!-- Botón de Eliminar -->
+                <button type="button" class="btn btn-danger" style="display:none;" id="openDeleteDocumentConfirm">
+                    <i class="fa fa-trash"></i> Eliminar
+                </button>
+                
+                <button type="button" class="btn btn-primary" id="saveDocumentBtn">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar Documento -->
+<div class="modal fade" id="confirmDeleteDocumentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body">
+                <p>¿Seguro que deseas eliminar este documento?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-danger" id="confirmDeleteDocumentBtn">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ----------------------
+// Lógica para DOCUMENTOS
+// ----------------------
+document.addEventListener('DOMContentLoaded', function() {
+    const docModal = new bootstrap.Modal(document.getElementById('documentModal'));
+    const confirmDeleteDocModal = new bootstrap.Modal(document.getElementById('confirmDeleteDocumentModal'));
+    let currentDocId = null;
+
+    // Crear documento (abre el form vacío)
+    document.getElementById('addDocumentBtn').addEventListener('click', () => {
+        fetchForm('create_document');
+    });
+
+    // Editar documento (abre el form con data)
+    document.querySelectorAll('.edit-doc-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentDocId = btn.getAttribute('data-id');
+            fetchForm('edit_document', currentDocId);
+        });
+    });
+
+    // Al hacer clic en "Eliminar Documento" dentro del form
+    // se cierra el form y se abre el modal de confirmación
+    document.addEventListener('click', function(e) {
+        if(e.target && e.target.id === 'openDeleteDocumentConfirm') {
+            // Cerrar el modal actual
+            docModal.hide();
+            // Abrir confirm
+            confirmDeleteDocModal.show();
+        }
+    });
+
+    // Confirmar eliminación
+    document.getElementById('confirmDeleteDocumentBtn').addEventListener('click', () => {
+        fetchDeleteDocument(currentDocId);
+    });
+
+
+    function fetchForm(action, id = null) {
+    let url = "{% url 'dth:position_documents_list' %}?action=" + action;
+    if (id) url += `&id=${id}`;
+
+    fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            // Construimos HTML a mano
+            let html = buildDocumentFormHTML(data);
+            document.getElementById('modalBodyContent').innerHTML = html;
+
+            // Si data.editing es true => guardamos currentDocId para eliminar
+            if(data.editing) {
+                currentDocId = data.doc_id; // variable global
+            } else {
+                currentDocId = null;
+            }
+
+            // Mostrar/ocultar botón "Eliminar Documento"
+            const deleteBtn = document.getElementById('openDeleteDocumentConfirm');
+            if(deleteBtn) {
+                if(data.editing) {
+                    deleteBtn.style.display = 'inline-block';
+                } else {
+                    deleteBtn.style.display = 'none';
+                }
+            }
+
+            docModal.show();
+        }
+    });
+}
+
+function buildDocumentFormHTML(data) {
+    let hiddenID = data.editing 
+        ? `<input type="hidden" name="id" value="${data.doc_id}"/>`
+        : '';
+
+    return `
+    <form id="document-form">
+      ${hiddenID}
+      <div class="mb-3">
+        <label for="id_name" class="form-label">Nombre de Documento</label>
+        <input type="text" name="name" class="form-control" 
+               id="id_name" value="${data.doc_name || ''}" required>
+      </div>
+      <div class="mb-3">
+        <label for="id_description" class="form-label">Descripción</label>
+        <textarea name="description" class="form-control" id="id_description" rows="3">${data.doc_description || ''}</textarea>
+      </div>
+    </form>
+    `;
+}
+
+
+// En tu "Guardar" del documento (saveDocumentBtn)
+document.getElementById('saveDocumentBtn').addEventListener('click', () => {
+    const form = document.getElementById('document-form');
+    if(!form) return;
+    const data = new FormData(form);
+
+    // 1) Determinar la acción
+    let action = form.querySelector('input[name="id"]') 
+        ? 'edit_document' 
+        : 'create_document';
+
+    // 2) ¡Agrega el action al POST!
+    data.append('action', action);
+
+    // 3) Validar campo name
+    const nameField = form.querySelector('#id_name');
+    if (nameField && nameField.value.trim() === "") {
+        alert("El campo nombre es requerido.");
+        return;
+    }
+
+    fetch("{% url 'dth:position_documents_list' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        body: data
+    })
+    .then(resp => resp.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            // Muestra errores en el propio modal
+            document.getElementById('modalBodyContent').innerHTML = data.html || '';
+            if (data.message) alert(data.message);
+        }
+    })
+    .catch(err => console.error(err));
+});
+
+
+    function fetchDeleteDocument(docId) {
+        const formData = new FormData();
+        formData.append('action', 'delete_document');
+        formData.append('id', docId);
+
+        fetch("{% url 'dth:position_documents_list' %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                location.reload();
+            } else {
+                alert("Error al eliminar el documento: " + data.message);
+            }
+        })
+        .catch(err => console.error("Error:", err));
+    }
+});
+
+
+// ----------------------
+// Lógica para POSITIONS
+// ----------------------
+document.addEventListener('DOMContentLoaded', function() {
+    const editModal = new bootstrap.Modal(document.getElementById('positionEditModal'));
+    const confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeletePositionModal'));
+    let currentPositionId;
+
+    // Abrir modal para editar Position
+    document.querySelectorAll('.edit-position-icon').forEach(icon => {
+        icon.addEventListener('click', () => {
+            currentPositionId = icon.getAttribute('data-position-id');
+            fetchEditPositionForm(currentPositionId);
+        });
+    });
+
+    // Cargar el formulario + Sección doc en el modal
+    function fetchEditPositionForm(positionId) {
+        fetch("/dth/edit_position/" + positionId + "/", {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                document.getElementById('positionEditContent').innerHTML = data.html;
+                editModal.show();
+            } else {
+                alert("Error al cargar el formulario del cargo.");
+            }
+        })
+        .catch(err => console.error("Error AJAX:", err));
+    }
+
+    // Guardar cambios en Position
+    document.getElementById('savePositionBtn').addEventListener('click', () => {
+        const form = document.getElementById('position-form');
+        if(!form) return;
+        const formData = new FormData(form);
+
+        fetch("/dth/edit_position/" + currentPositionId + "/", {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // Se podría usar un mensaje o recargar
+                location.reload();
+            } else {
+                // re-render del form con errores
+                document.getElementById('positionEditContent').innerHTML = data.html || '';
+                if(data.message) alert(data.message);
+            }
+        })
+        .catch(err => console.error("Error:", err));
+    });
+
+    // Eliminar Position
+    document.getElementById('deletePositionBtn').addEventListener('click', () => {
+        // Ocultamos el modal de edición primero
+        editModal.hide();
+        confirmDeleteModal.show();
+    });
+
+    document.getElementById('confirmDeletePositionBtn').addEventListener('click', () => {
+        fetch("/dth/delete_position/" + currentPositionId + "/", {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                location.reload();
+            } else {
+                alert("Error al eliminar el cargo: " + (data.message || ""));
+            }
+        })
+        .catch(err => console.error("Error:", err));
+    });
+
+    // Crear asociación PositionDocument
+    document.addEventListener('click', function(e) {
+        if(e.target && e.target.id === 'btnAddDocumentAssociation') {
+            const form = document.getElementById('position-document-create-form');
+            if(!form) return;
+            const fd = new FormData(form);
+
+            fetch("{% url 'dth:create_position_document' %}", {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                body: fd
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    // Recargar el modal para ver el doc recién asociado
+                    fetchEditPositionForm(currentPositionId);
+                } else {
+                    alert(data.message || "Error al asociar el documento.");
+                }
+            })
+            .catch(err => console.error("Error AJAX:", err));
+        }
+    });
+
+    // Eliminar asociación PositionDocument
+    document.addEventListener('click', function(e) {
+        if(e.target && e.target.classList.contains('delete-association-btn')) {
+            const pdId = e.target.getAttribute('data-pd-id');
+            const conf = confirm("¿Seguro que desea desasociar este documento?");
+            if(!conf) return;
+
+            const fd = new FormData();
+            fd.append('pd_id', pdId);
+
+            fetch("{% url 'dth:delete_position_document' %}", {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                body: fd
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    // Vuelve a recargar el modal
+                    fetchEditPositionForm(currentPositionId);
+                } else {
+                    alert("Error al eliminar la asociación: " + (data.message || ""));
+                }
+            })
+            .catch(err => console.error("Error:", err));
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{# dth/templates/dth/payroll_views/payroll_update.html #}
+{% extends 'base/base_generic.html' %}
+
+
+{% block title %}Editar Registro de Nómina{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">Editar Registro de Nómina</h2>
+
+    <!-- Muestra mensajes de error global (si existen) -->
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+        
+        <!-- Ejemplo: Mostrar la foto actual si existe -->
+        {% if object.photo %}
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: bold;">Foto Actual:</label><br>
+                <img src="{{ object.photo.url }}" alt="Foto actual" style="max-width: 200px; border: 1px solid #ccc;">
+            </div>
+        {% endif %}
+        
+        <!-- Render de campos del formulario -->
+        <!-- Por simplicidad usamos 'as_p'; puedes usar tus propios 'div.form-group' si prefieres más control -->
+        {{ form.as_p }}
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'dth:nomina_list' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

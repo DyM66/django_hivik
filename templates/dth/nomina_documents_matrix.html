@@ -1,0 +1,383 @@
+{# dth/templates/dth/nomina_documents_matrix.html #}
+{% extends "base/base_generic.html" %}
+
+{% block title %}Matriz de Documentos{% endblock %}
+
+{% block headtag %}
+<style>
+:root {
+    --color-primary: #191645;
+    --color-aux: #0157a4;
+    --color-secondary: #43C6AC;
+    --color-bg: #ffffff;
+    --color-bg-aux: #D5DBDB;
+
+    --color-orange: #d78147;
+    --color-yellow: #f5da81;
+    --color-red: #d893a3;
+    --color-blue: #6fcaea;
+    --color-violet: #6f79ea;
+    --color-green: #86e49d;
+
+    /* Más variables si deseas */
+}
+
+/* Ajustamos la tabla en un contenedor con scroll */
+.table-scroll-container {
+  position: relative;
+  max-height: 70vh;
+  overflow: auto;
+  overscroll-behavior: none; /* evita gestos back/forward al hacer scroll */
+}
+
+html, body {
+  overscroll-behavior: none;
+}
+
+
+/* Definimos sticky para las 3 primeras columnas 
+   y la fila de encabezado. */
+.table thead th {
+  /* position: sticky;
+  top: 0;
+  z-index: 2; */
+  background-color: var(--color-bg); /* fondo */
+  white-space: nowrap; 
+}
+/* Para evitar que el resto de la tabla se meta "debajo", 
+   necesitamos que cada celda sticky repita el position:sticky. */
+.table tbody td {
+  white-space: nowrap; 
+}
+
+.table-scroll-container {
+  touch-action: pan-y; /* sólo scroll vertical */
+  /* si quieres igualmente horizontal, esto no evitará del todo el swipe back en iOS */
+}
+
+/* .sticky-col1 {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background-color: var(--color-bg);
+}
+.sticky-col2 {
+  position: sticky;
+  left: 8rem;
+  z-index: 3;
+  background-color: var(--color-bg);
+}
+.sticky-col3 {
+  position: sticky;
+  left: 16rem; 
+  z-index: 3;
+  background-color: var(--color-bg);
+} */
+
+/* Unas clases de badge personalizadas (además de “badge” de Bootstrap) */
+.badge {
+  display: inline-block;
+  padding: 0.35em 0.6em;
+  font-size: 0.8em;
+  font-weight: 600;
+  border-radius: 0.4rem;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Ejemplo de colores para cada estado */
+.badge-pendiente { background-color: var(--color-orange); color: #fff; }
+.badge-vencido   { background-color: var(--color-red);    color: #fff; }
+.badge-ok        { background-color: var(--color-green);  color: #000; }
+/* etc. */
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+
+  <h2>Matriz de Documentos</h2>
+
+  <!-- Buscador para filtrar por cédula, nombre completo o cargo -->
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <input type="text" id="searchNomina" class="form-control"
+             placeholder="Buscar por cédula, nombre o cargo...">
+    </div>
+  </div>
+
+  <div class="table-scroll-container">
+    <table class="table table-bordered table-sm">
+      <thead>
+        <tr>
+          <th class="sticky-col1">Cédula</th>
+          <th class="sticky-col2">Nombre</th>
+          <th class="sticky-col3">Cargo</th>
+          {% for doc in docs %}
+            <th>{{ doc.name }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody id="nominaMatrixBody">
+        {% for row in rows %}
+        <tr>
+          <!-- cédula, nombre, cargo -->
+          <td class="sticky-col1">{{ row.employee.id_number }}</td>
+          <td class="sticky-col2">
+            {{ row.employee.name }} {{ row.employee.surname }}
+          </td>
+          <td class="sticky-col3">{{ row.employee.position_id }}</td>
+
+          {% for cell in row.cells %}
+            {% if cell.state == "N/A" %}
+              <!-- No badge, solo text-muted -->
+              <td class="text-muted">N/A</td>
+            {% elif cell.state == "Pendiente" %}
+              {% if cell.highlight %}
+              <td>
+                <span class="badge badge-pendiente {% if cell.highlight %}fw-bold{% else %}opacity-75{% endif %}"
+                      style="cursor:pointer;"
+                      onclick="openDocForm('{{ cell.employee_id }}','{{ cell.document_id }}')">
+                  Pendiente
+                </span>
+              </td>
+              {% else %}
+                <td><span class="badge badge-pendiente" style="opacity:0.7">Pendiente</span></td>
+              {% endif %}
+            {% elif cell.state == "Vencido" %}
+                <td>
+                    <span class="badge badge-vencido"
+                        style="cursor:pointer;"
+                        onclick="openDocForm('{{ cell.employee_id }}','{{ cell.document_id }}')">
+                        Vencido
+                    </span>
+                </td>
+            {% elif cell.is_ok %}
+            <td>
+                <span class="badge badge-ok"
+                      style="cursor:pointer;"
+                      onclick="openDocPreview('{{ cell.employee_id }}','{{ cell.document_id }}')">
+                  {{ cell.state }}
+                </span>
+            </td>
+            {% else %}
+              <!-- Por si hay otro estado no contemplado -->
+              <td>{{ cell.state }}</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- Modal SUBIR DOC -->
+<div class="modal fade" id="modalUploadDoc" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content" id="modalUploadDocContent">
+        <!-- Aquí se inyecta partial form -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal PREVIEW DOC -->
+  <div class="modal fade" id="modalPreviewDoc" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content" id="modalPreviewDocContent">
+        <!-- Aquí se inyecta la lista de docs subidos -->
+      </div>
+    </div>
+  </div>
+  
+
+<script>
+// 1) Manejar la búsqueda: filtra filas por cédula, nombre o cargo
+document.addEventListener('DOMContentLoaded', function(){
+  const searchInput = document.getElementById('searchNomina');
+  const tableBody = document.getElementById('nominaMatrixBody');
+
+  if(searchInput && tableBody) {
+    searchInput.addEventListener('keyup', () => {
+      const filter = searchInput.value.toLowerCase();
+
+      // Recorremos cada fila
+      const rows = tableBody.querySelectorAll('tr');
+      rows.forEach(row => {
+        // Tomamos celdas: [0]=cedula, [1]=nombre, [2]=cargo
+        const tds = row.querySelectorAll('td');
+        if(tds.length < 3) return;
+
+        const cedula = tds[0].innerText.toLowerCase();
+        const nombre = tds[1].innerText.toLowerCase();
+        const cargo  = tds[2].innerText.toLowerCase();
+
+        // Si concuerda con el texto en alguno, se muestra
+        if(cedula.includes(filter) || nombre.includes(filter) || cargo.includes(filter)){
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    });
+  }
+});
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function(){
+        const container = document.querySelector('.table-scroll-container');
+    
+        // Interceptamos la rueda (o trackpad) para evitar
+        // “swipe left to go back” cuando scrollLeft=0
+        if (container) {
+          container.addEventListener('wheel', function(e) {
+            // e.deltaX < 0 => desplazamiento hacia la izquierda
+            if (e.deltaX < 0 && container.scrollLeft <= 0) {
+              // Bloqueamos
+              e.preventDefault();
+            }
+          }, { passive: false });
+        }
+    });
+
+
+    </script>
+    
+
+    <script>
+        // Llamado al hacer clic en una celda "Pendiente"/"Vencido"
+        function openDocForm(empId, docId) {
+          // Cargar partial con GET
+          fetch("{% url 'dth:employee_document_form' %}?emp="+empId+"&doc="+docId, {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+          })
+          .then(res => res.text())
+          .then(html => {
+            const modalContent = document.getElementById('modalUploadDocContent');
+            modalContent.innerHTML = html;
+            // Mostramos modal
+            const myModal = new bootstrap.Modal(document.getElementById('modalUploadDoc'));
+            myModal.show();
+        
+            // Una vez cargado el form, asignamos listener al submit
+            const form = modalContent.querySelector('#employee-document-form');
+            if(form) {
+              form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                uploadDocument(form);
+              });
+            }
+          });
+        }
+        
+        function uploadDocument(form) {
+          const formData = new FormData(form);
+          fetch("{% url 'dth:create_employee_document' %}", {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            if(data.success) {
+              // Ocultar modal y recargar la página
+              const myModal = bootstrap.Modal.getInstance(document.getElementById('modalUploadDoc'));
+              myModal.hide();
+              location.reload();
+            } else {
+              alert(data.message || 'Error al subir documento');
+            }
+          })
+          .catch(err => alert('Error: ' + err));
+        }
+        
+        
+        // Llamado al hacer clic en una celda "Ok"
+        function openDocPreview(empId, docId) {
+          // Cargar partial con GET
+          fetch("{% url 'dth:employee_document_preview' %}?emp="+empId+"&doc="+docId, {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+          })
+          .then(res => res.text())
+          .then(html => {
+            const modalContent = document.getElementById('modalPreviewDocContent');
+            modalContent.innerHTML = html;
+            const previewModal = new bootstrap.Modal(document.getElementById('modalPreviewDoc'));
+            previewModal.show();
+          });
+        }
+        
+        // Para eliminar un employeeDocument
+        function deleteEmployeeDocument(employeeDocId) {
+          if(!confirm("¿Seguro que deseas eliminar este archivo?")) return;
+          const fd = new FormData();
+          fd.append('employee_doc_id', employeeDocId);
+          fetch("{% url 'dth:delete_employee_document' %}", {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: fd
+          })
+          .then(res => res.json())
+          .then(data => {
+            if(data.success) {
+              alert(data.message);
+              // Recargar la preview
+              location.reload(); 
+              // O podrías recargar solo el modal con openDocPreview(...) 
+            } else {
+              alert('Error al eliminar: ' + (data.message || ''));
+            }
+          })
+          .catch(err => alert('Error: ' + err));
+        }
+
+        function uploadDocument(form) {
+  const formData = new FormData(form);
+
+  // Selecciona el botón "Guardar" de tu modal
+  const submitBtn = document.getElementById('submitDocBtn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Cargando...';
+  }
+
+  fetch("{% url 'dth:create_employee_document' %}", {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success) {
+      // Ocultar modal y recargar la página
+      const myModal = bootstrap.Modal.getInstance(document.getElementById('modalUploadDoc'));
+      myModal.hide();
+      location.reload();
+    } else {
+      alert(data.message || 'Error al subir documento');
+      // Reactivar botón
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Guardar';
+      }
+    }
+  })
+  .catch(err => {
+    alert('Error: ' + err);
+    // Reactivar botón
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Guardar';
+    }
+  });
+}
+
+        </script>
+        
+
+
+{% endblock %}

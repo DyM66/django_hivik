@@ -1,0 +1,17 @@
+<form id="position-form">
+    {% csrf_token %}
+    <div class="mb-3">
+        {{ form.name.label_tag }} {{ form.name }}
+        {% if form.name.errors %}
+            <div class="text-danger">{{ form.name.errors }}</div>
+        {% endif %}
+        {{ form.description.label_tag }} {{ form.description }}
+        {% if form.description.errors %}
+            <div class="text-danger">{{ form.description.errors }}</div>
+        {% endif %}
+        {{ form.category.label_tag }} {{ form.category }}
+        {% if form.category.errors %}
+            <div class="text-danger">{{ form.category.errors }}</div>
+        {% endif %}
+    </div>
+</form>
