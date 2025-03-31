@@ -98,54 +98,58 @@ html, body {
 {% block content %}
 <div class="container-fluid my-4">
 
-  <h2>Matriz de Documentos</h2>
+	<h2>Matriz de Documentos</h2>
 
-  <!-- Buscador para filtrar por cédula, nombre completo o cargo -->
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <input type="text" id="searchNomina" class="form-control"
-             placeholder="Buscar por cédula, nombre o cargo...">
-    </div>
-  </div>
+	<!-- Buscador para filtrar por cédula, nombre completo o cargo -->
+	<div class="row mb-3">
+		<div class="col-md-6">
+			<input type="text" id="searchNomina" class="form-control" placeholder="Buscar por cédula, nombre o cargo...">
+		</div>
+	</div>
 
-  <div class="table-scroll-container">
-    <table class="table table-bordered table-sm">
-      <thead>
-        <tr>
-          <th class="sticky-col1">Cédula</th>
-          <th class="sticky-col2">Nombre</th>
-          <th class="sticky-col3">Cargo</th>
-          {% for doc in docs %}
-            <th>{{ doc.name }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody id="nominaMatrixBody">
-        {% for row in rows %}
-        <tr>
-          <!-- cédula, nombre, cargo -->
-          <td class="sticky-col1">{{ row.employee.id_number }}</td>
-          <td class="sticky-col2">
-            {{ row.employee.name }} {{ row.employee.surname }}
-          </td>
-          <td class="sticky-col3">{{ row.employee.position_id }}</td>
+  	<div class="table-scroll-container">
+    	<table class="table table-bordered table-sm">
+      		<thead>
+				<tr>
+					<th class="sticky-col1">Cédula</th>
+					<th class="sticky-col2">Nombre</th>
+					<th class="sticky-col3">Cargo</th>
+					<th>Acciones</th>
+					{% for doc in docs %}
+						<th>{{ doc.name }}</th>
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody id="nominaMatrixBody">
+				{% for row in rows %}
+				<tr>
+					<!-- cédula, nombre, cargo -->
+					<td class="sticky-col1">{{ row.employee.id_number }}</td>
+					<td class="sticky-col2">
+						{{ row.employee.name }} {{ row.employee.surname }}
+					</td>
+					<td class="sticky-col3">{{ row.employee.position_id }}</td>
+					<td>
+						<button type="button" class="btn btn-sm btn-secondary" onclick="openRequestDocumentsModal('{{ row.employee.id }}')">
+						<i class="bi bi-file-earmark-plus"></i> Solicitar
+						</button>
+					</td>
 
-          {% for cell in row.cells %}
-            {% if cell.state == "N/A" %}
-              <!-- No badge, solo text-muted -->
-              <td class="text-muted">N/A</td>
-            {% elif cell.state == "Pendiente" %}
-              {% if cell.highlight %}
-              <td>
-                <span class="badge badge-pendiente {% if cell.highlight %}fw-bold{% else %}opacity-75{% endif %}"
-                      style="cursor:pointer;"
-                      onclick="openDocForm('{{ cell.employee_id }}','{{ cell.document_id }}')">
-                  Pendiente
-                </span>
-              </td>
-              {% else %}
-                <td><span class="badge badge-pendiente" style="opacity:0.7">Pendiente</span></td>
-              {% endif %}
+					{% for cell in row.cells %}
+						{% if cell.state == "N/A" %}
+							<!-- No badge, solo text-muted -->
+							<td class="text-muted">N/A</td>
+						{% elif cell.state == "Pendiente" %}
+							{% if cell.highlight %}
+							<td>
+								<span class="badge badge-pendiente {% if cell.highlight %}fw-bold{% else %}opacity-75{% endif %}"
+									style="cursor:pointer;" onclick="openDocForm('{{ cell.employee_id }}','{{ cell.document_id }}')">
+									Pendiente
+								</span>
+							</td>
+						{% else %}
+							<td><span class="badge badge-pendiente" style="opacity:0.7">Pendiente</span></td>
+						{% endif %}
             {% elif cell.state == "Vencido" %}
                 <td>
                     <span class="badge badge-vencido"
@@ -378,6 +382,34 @@ document.addEventListener('DOMContentLoaded', function(){
 
         </script>
         
-
+		<script>
+			function openRequestDocumentsModal(employeeId) {
+			  // Llamas a una vista AJAX que traiga la lista de documentos y su estado.
+			  // O puedes traer la info ya pre-procesada en la vista.  
+			  fetch("{% url 'dth:ajax_request_docs_modal' %}?employee_id="+employeeId, {
+				headers: {'X-Requested-With': 'XMLHttpRequest'}
+			  })
+			  .then(res => res.json())
+			  .then(data => {
+				// data.html => partial con el formulario de checkboxes
+				// Insertamos en un modal genérico
+				const modalContent = document.getElementById('modalRequestDocsContent');
+				modalContent.innerHTML = data.html;
+			
+				const myModal = new bootstrap.Modal(document.getElementById('modalRequestDocs'));
+				myModal.show();
+			  });
+			}
+			</script>
+			
+			<!-- Modal genérico en la plantilla, al final del <body> -->
+			<div class="modal fade" id="modalRequestDocs" tabindex="-1">
+			  <div class="modal-dialog">
+				<div class="modal-content" id="modalRequestDocsContent">
+				  <!-- contenido AJAX -->
+				</div>
+			  </div>
+			</div>
+			
 
 {% endblock %}

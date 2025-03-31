@@ -1,0 +1,70 @@
+<h2>Solicitud #{{ doc_req.pk }} - {{ doc_req.employee.name }} {{ doc_req.employee.surname }}</h2>
+<p>Cédula: {{ doc_req.employee.id_number }}</p>
+<p>Token: {{ doc_req.token }}</p>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Documento</th>
+      <th>Archivo Subido</th>
+      <th>Fecha Expiración</th>
+      <th>Aprobado?</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.document.name }}</td>
+      <td>
+        {% if item.pdf_file %}
+          <a href="{{ item.pdf_file.url }}" target="_blank">Ver PDF</a>
+        {% else %}
+          <span class="text-danger">No subido</span>
+        {% endif %}
+      </td>
+      <td>{{ item.expiration_date }}</td>
+      <td>
+        {% if item.approved %}
+          <span class="badge bg-success">Aprobado</span>
+          <p>Verificado por: {{ item.verified_by }}<br>{{ item.approved_at|date:"d/m/Y H:i" }}</p>
+        {% else %}
+          <span class="badge bg-warning">Pendiente</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if not item.approved and item.pdf_file %}
+          <button class="btn btn-sm btn-success" onclick="approveDocument('{{ item.id }}')">Aprobar</button>
+        {% else %}
+          <button class="btn btn-sm btn-secondary" disabled>Aprobar</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+function approveDocument(itemId){
+  if(!confirm("¿Aprobar este documento?")) return;
+  fetch("", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}",
+      "X-Requested-With":"XMLHttpRequest",
+      "Content-Type":"application/x-www-form-urlencoded"
+    },
+    body: "item_id=" + itemId
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success){
+      alert(data.message);
+      location.reload();
+    } else {
+      alert("Error: " + data.message);
+    }
+  })
+  .catch(err => alert("Error: " + err));
+}
+</script>

@@ -241,7 +241,7 @@ def buscar_nomina(request):
     cedula = request.GET.get('cedula')
     try:
         persona = Nomina.objects.get(id_number=cedula)
-        return JsonResponse({'success': True, 'name': f"{persona.name} {persona.surname}", 'position': persona.position})
+        return JsonResponse({'success': True, 'name': f"{persona.name} {persona.surname}", 'position': persona.position_id.name})
     except Nomina.DoesNotExist:
         return JsonResponse({'success': False})
 

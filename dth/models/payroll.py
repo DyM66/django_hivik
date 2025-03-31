@@ -67,7 +67,7 @@ class Nomina(models.Model):
             return 'https://hivik.s3.us-east-2.amazonaws.com/static/ChatGPT+Image+28+mar+2025%2C+11_04_23.png'
 
     def __str__(self):
-        return f"{self.name} {self.surname} - {self.id_number} - {self.position}"
+        return f"{self.name} {self.surname} - {self.id_number} - {self.position_id.name}"
     
 
 class NominaReport(models.Model):

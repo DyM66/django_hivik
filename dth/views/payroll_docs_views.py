@@ -1,13 +1,16 @@
 # dth/views/payroll_docs_views.py (ejemplo)
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from collections import defaultdict
 from datetime import date
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 from dth.models.positions import Document, PositionDocument, EmployeeDocument
 from dth.models.payroll import Nomina
+from dth.models.docs_requests import DocumentRequest, DocumentRequestItem
 
 @login_required
 def nomina_documents_matrix(request):
@@ -220,3 +223,258 @@ def delete_employee_document(request):
     ed = get_object_or_404(EmployeeDocument, pk=ed_id)
     ed.delete()
     return JsonResponse({'success': True, 'message': 'Documento eliminado.'})
+
+# dth/utils/documents_helpers.py
+
+from collections import defaultdict
+from datetime import date
+from dth.models.positions import PositionDocument, EmployeeDocument, Document
+
+def get_documents_states_for_employee(employee):
+    """
+    Retorna una lista de diccionarios con la forma:
+    [
+      {
+        'document': Document,
+        'state': 'Pendiente' | 'Vencido' | 'Ok'
+      },
+      ...
+    ]
+
+    Determina el estado de cada Document en base a la lógica usada en la matriz:
+      - Si employee.position_id no requiere el documento, (opcionalmente) podríamos excluirlo
+        o marcarlo como "N/A".
+      - Si no tiene ningún EmployeeDocument => 'Pendiente'
+      - Si todos los que tiene están vencidos => 'Vencido'
+      - Si hay al menos uno no vencido => 'Ok'
+    """
+
+    # 1) Conseguimos todos los Document (si quieres solo los que su cargo requiera, filtras).
+    docs = Document.objects.all().order_by('name')
+
+    # 2) Saber qué documentos requiere el cargo de este empleado
+    position = employee.position_id
+    posdocs_qs = PositionDocument.objects.filter(position=position).values('document_id', 'mandatory')
+    posdoc_map = { pd['document_id']: pd['mandatory'] for pd in posdocs_qs }
+
+    # 3) Obtener todos los EmployeeDocument de este empleado
+    empdocs_qs = EmployeeDocument.objects.filter(employee=employee).values('document_id', 'expiration_date')
+    empdoc_map = defaultdict(list)
+    for ed in empdocs_qs:
+        empdoc_map[ed['document_id']].append(ed['expiration_date'])
+
+    # 4) Revisamos cada doc y definimos el estado
+    results = []
+    today = date.today()
+
+    for doc in docs:
+        # Si quieres excluir los no requeridos, descomenta:
+        # if doc.id not in posdoc_map:
+        #     continue
+
+        # Revisa si tiene EmployeeDocument
+        if doc.id not in empdoc_map:
+            # => Pendiente
+            results.append({
+                'document': doc,
+                'state': 'Pendiente'
+            })
+        else:
+            # => Hay uno o varios ED => verificar vencimientos
+            expiration_list = empdoc_map[doc.id]  # [date1, date2, ...]
+            all_expired = True
+            for exp in expiration_list:
+                if exp is None or exp >= today:
+                    # => existe uno no vencido
+                    all_expired = False
+                    break
+            if all_expired:
+                state = 'Vencido'
+            else:
+                state = 'Ok'
+            results.append({
+                'document': doc,
+                'state': state
+            })
+
+    return results
+
+
+@login_required
+@require_http_methods(["GET"])
+def ajax_request_docs_modal(request):
+    """
+    Devuelve el HTML parcial con la lista de documentos del empleado,
+    indicando cuáles están Pendiente/Vencido/Ok y setea check por defecto.
+    """
+    employee_id = request.GET.get('employee_id')
+    employee = get_object_or_404(Nomina, pk=employee_id)
+
+    # Lógica para obtener el estado de cada documento (pendiente, vencido, ok).
+    # Podrías reusar parte de la lógica de la matriz. 
+    # O hacer un helper que retorne una lista de (document, state) para este empleado.
+    doc_states = get_documents_states_for_employee(employee)
+
+    # doc_states => lista de dicts:
+    # [
+    #   {'document': doc, 'state': 'Pendiente'|'Vencido'|'Ok'},
+    #   ...
+    # ]
+
+    context = {
+        'employee': employee,
+        'doc_states': doc_states,
+    }
+    html_form = render_to_string('dth/partials/request_docs_modal_form.html', context, request=request)
+    return JsonResponse({'html': html_form})
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_document_request(request):
+    """
+    Recibe el POST con employee_id y la lista de documents[] seleccionados.
+    Crea DocumentRequest y sus DocumentRequestItems.
+    """
+    employee_id = request.POST.get('employee_id')
+    documents_selected = request.POST.getlist('documents')  # lista de IDs de Document
+    employee = get_object_or_404(Nomina, pk=employee_id)
+
+    if not documents_selected:
+        return JsonResponse({'success': False, 'message': 'No se seleccionó ningún documento.'})
+
+    import uuid
+    token = uuid.uuid4().hex[:8]  # algo corto
+    doc_req = DocumentRequest.objects.create(
+        employee=employee,
+        token=token
+    )
+
+    for doc_id in documents_selected:
+        doc_obj = get_object_or_404(Document, pk=doc_id)
+        DocumentRequestItem.objects.create(
+            request=doc_req,
+            document=doc_obj
+        )
+
+    # Por ahora, imprime en la consola (runserver) el link único
+    link = f"https://localhost:8000/dth/document-upload/{token}"
+    print("==== LINK ÚNICO PARA SOLICITUD: ====", link)
+
+    return JsonResponse({'success': True, 'link': link})
+
+
+
+@require_http_methods(["GET", "POST"])
+def document_upload_view(request, token):
+    """
+    Vista pública (no requiere @login_required).
+    1) Muestra un form con input para la cédula (si no está “autorizado”).
+    2) Si se valida la cédula => muestra la lista de DocumentRequestItem
+       donde podrá subir pdf + fecha expiración.
+    3) Guarda los archivos en la tabla DocumentRequestItem.
+    """
+    try:
+        doc_request = DocumentRequest.objects.select_related('employee').get(token=token)
+    except DocumentRequest.DoesNotExist:
+        return render(request, 'dth/invalid_request.html', status=404)
+
+    # Fase 1: Si no se ha validado la cédula, pedimos un "PIN"
+    if 'cedula_validada' not in request.session or request.session.get('cedula_validada') != doc_request.employee.id_number:
+        if request.method == 'POST':
+            entered_id = request.POST.get('id_number')
+            if entered_id and entered_id.strip() == doc_request.employee.id_number.strip():
+                # ok, cédula coincide
+                request.session['cedula_validada'] = doc_request.employee.id_number
+                return redirect('dth:document_upload_view', token=token)
+            else:
+                context = {
+                    'error': "La cédula no coincide. Intente de nuevo."
+                }
+                return render(request, 'dth/public_docs_request/login_pin.html', context)
+        else:
+            # GET => mostrar form cédula
+            return render(request, 'dth/public_docs_request/login_pin.html')
+
+    # Fase 2: Ya validamos la cédula, mostramos la página de subida
+    items = doc_request.items.select_related('document').all()
+
+    if request.method == 'POST':
+        # Guardar los archivos subidos
+        for item in items:
+            file_field_name = f"file_{item.id}"
+            expiration_field_name = f"expiration_{item.id}"
+            f = request.FILES.get(file_field_name, None)
+            exp = request.POST.get(expiration_field_name, '').strip()
+
+            if f:
+                item.pdf_file = f
+            if exp:
+                item.expiration_date = exp
+            item.save()
+        return redirect('dth:document_upload_view', token=token)
+
+    context = {
+        'doc_request': doc_request,
+        'items': items
+    }
+    return render(request, 'dth/public_docs_request/upload_form.html', context)
+
+
+
+def is_dth_member(user):
+    # Lógica para ver si el user pertenece al grupo/rol DTH
+    return user.groups.filter(name='dth_members').exists()
+
+@login_required
+@user_passes_test(is_dth_member)
+def admin_document_request_list(request):
+    """
+    Lista todas las solicitudes de documentos (DocumentRequest).
+    """
+    requests = DocumentRequest.objects.select_related('employee').order_by('-created_at')
+    return render(request, 'dth/admin_docs_requests/list.html', {
+        'requests': requests
+    })
+
+@login_required
+@user_passes_test(is_dth_member)
+def admin_document_request_detail(request, pk):
+    """
+    Muestra los items de una solicitud y permite aprobarlos.
+    pk => DocumentRequest.id
+    """
+    doc_req = get_object_or_404(DocumentRequest, pk=pk)
+    items = doc_req.items.select_related('document').all()
+
+    if request.method == 'POST':
+        # Aprobar un item en específico
+        item_id = request.POST.get('item_id')
+        item = get_object_or_404(DocumentRequestItem, id=item_id, request=doc_req)
+
+        # Creamos EmployeeDocument en base a la info
+        if not item.pdf_file:
+            return JsonResponse({'success': False, 'message': 'No hay archivo para este documento.'})
+
+        # Se aprueba
+        item.approved = True
+        item.verified_by = request.user
+        item.approved_at = timezone.now()
+        item.save()
+
+        # Crea el EmployeeDocument
+        # Reutiliza la url, no hace falta "mover" a otra carpeta si usas S3
+        emp_doc = EmployeeDocument.objects.create(
+            employee=doc_req.employee,
+            document=item.document,
+            file=item.pdf_file,
+            expiration_date=item.expiration_date
+        )
+        emp_doc.save()
+
+        return JsonResponse({'success': True, 'message': 'Documento aprobado y guardado en la ficha del empleado.'})
+
+    return render(request, 'dth/admin_docs_requests/detail.html', {
+        'doc_req': doc_req,
+        'items': items
+    })

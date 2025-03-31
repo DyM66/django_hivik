@@ -1,0 +1,59 @@
+<div class="modal-header">
+    <h5 class="modal-title">Solicitar Documentos a {{ employee.name }} {{ employee.surname }}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  </div>
+  <form id="formRequestDocs">
+    <div class="modal-body">
+      <input type="hidden" name="employee_id" value="{{ employee.id }}">
+      <p>Seleccione los documentos que desees solicitar (por defecto se marcan Pendiente/Vencido).</p>
+      <ul>
+        {% for item in doc_states %}
+          <li>
+            <label>
+              {% if item.state == "Pendiente" or item.state == "Vencido" %}
+                <input type="checkbox" name="documents" value="{{ item.document.id }}" checked>
+              {% else %}
+                <input type="checkbox" name="documents" value="{{ item.document.id }}">
+              {% endif %}
+              {{ item.document.name }} ({{ item.state }})
+            </label>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Solicitar</button>
+    </div>
+  </form>
+  
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const frm = document.getElementById('formRequestDocs');
+    frm.addEventListener('submit', function(e){
+      e.preventDefault();
+      const formData = new FormData(frm);
+      fetch("{% url 'dth:create_document_request' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}','X-Requested-With': 'XMLHttpRequest'},
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.success){
+          alert("Solicitud creada con éxito. Link => " + data.link);
+          // Cerrar modal
+          const modalEl = document.getElementById('modalRequestDocs');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          modal.hide();
+  
+          // Aquí se podría refrescar la página o no, según tu preferencia
+        } else {
+          alert("Error: " + data.message);
+        }
+      })
+      .catch(err => alert("Error: " + err));
+    });
+  });
+  </script>
+  

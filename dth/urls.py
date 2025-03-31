@@ -46,4 +46,6 @@ urlpatterns = [
     path('create_employee_document/', payroll_docs_views.create_employee_document, name='create_employee_document'),
     path('employee_document_preview/', payroll_docs_views.employee_document_preview, name='employee_document_preview'),
     path('delete_employee_document/', payroll_docs_views.delete_employee_document, name='delete_employee_document'),
+
+    path('document-upload/<str:token>/', views.document_upload_view, name='document_upload_view'),
 ]
