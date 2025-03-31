@@ -230,32 +230,41 @@ from collections import defaultdict
 from datetime import date
 from dth.models.positions import PositionDocument, EmployeeDocument, Document
 
-def get_documents_states_for_employee(employee):
+def get_documents_states_for_employee(employee, only_required=True):
     """
     Retorna una lista de diccionarios con la forma:
     [
       {
-        'document': Document,
+        'document': <Document>,
         'state': 'Pendiente' | 'Vencido' | 'Ok'
       },
       ...
     ]
 
-    Determina el estado de cada Document en base a la lógica usada en la matriz:
-      - Si employee.position_id no requiere el documento, (opcionalmente) podríamos excluirlo
-        o marcarlo como "N/A".
-      - Si no tiene ningún EmployeeDocument => 'Pendiente'
-      - Si todos los que tiene están vencidos => 'Vencido'
-      - Si hay al menos uno no vencido => 'Ok'
+    - Si `only_required=True`, sólo incluye documentos que el cargo del empleado
+      requiere (según PositionDocument).
+    - Si no tiene ningún EmployeeDocument => 'Pendiente'
+    - Si todos los ED que tiene están vencidos => 'Vencido'
+    - Si al menos uno no está vencido => 'Ok'
     """
 
-    # 1) Conseguimos todos los Document (si quieres solo los que su cargo requiera, filtras).
-    docs = Document.objects.all().order_by('name')
-
-    # 2) Saber qué documentos requiere el cargo de este empleado
     position = employee.position_id
+    # position podría ser None si no está asignado, verifica
+    if not position:
+        return []
+
+    # 1) Tomar todos los Document requeridos para ese cargo (si only_required=True),
+    #    de lo contrario, docs = Document.objects.all() 
+    if only_required:
+        required_doc_ids = PositionDocument.objects.filter(position=position).values_list('document_id', flat=True)
+        docs = Document.objects.filter(pk__in=required_doc_ids).order_by('name')
+    else:
+        # si quisieras mostrar todos
+        docs = Document.objects.all().order_by('name')
+
+    # 2) Mapeo de doc => mandatory (si lo necesitaras)
     posdocs_qs = PositionDocument.objects.filter(position=position).values('document_id', 'mandatory')
-    posdoc_map = { pd['document_id']: pd['mandatory'] for pd in posdocs_qs }
+    posdoc_map = {pd['document_id']: pd['mandatory'] for pd in posdocs_qs}
 
     # 3) Obtener todos los EmployeeDocument de este empleado
     empdocs_qs = EmployeeDocument.objects.filter(employee=employee).values('document_id', 'expiration_date')
@@ -268,24 +277,20 @@ def get_documents_states_for_employee(employee):
     today = date.today()
 
     for doc in docs:
-        # Si quieres excluir los no requeridos, descomenta:
-        # if doc.id not in posdoc_map:
-        #     continue
-
-        # Revisa si tiene EmployeeDocument
-        if doc.id not in empdoc_map:
-            # => Pendiente
+        doc_id = doc.id
+        if doc_id not in empdoc_map:
+            # => no tiene nada => Pendiente
             results.append({
                 'document': doc,
                 'state': 'Pendiente'
             })
         else:
-            # => Hay uno o varios ED => verificar vencimientos
-            expiration_list = empdoc_map[doc.id]  # [date1, date2, ...]
+            # => Tiene uno o varios ED => verificar vencimientos
+            expiration_list = empdoc_map[doc_id]
             all_expired = True
             for exp in expiration_list:
                 if exp is None or exp >= today:
-                    # => existe uno no vencido
+                    # => existe uno no vencido => Ok
                     all_expired = False
                     break
             if all_expired:
@@ -300,26 +305,20 @@ def get_documents_states_for_employee(employee):
     return results
 
 
+
 @login_required
 @require_http_methods(["GET"])
 def ajax_request_docs_modal(request):
     """
     Devuelve el HTML parcial con la lista de documentos del empleado,
-    indicando cuáles están Pendiente/Vencido/Ok y setea check por defecto.
+    indicando cuáles están Pendiente/Vencido/Ok 
+    (SOLO los requeridos para el cargo).
     """
     employee_id = request.GET.get('employee_id')
     employee = get_object_or_404(Nomina, pk=employee_id)
 
-    # Lógica para obtener el estado de cada documento (pendiente, vencido, ok).
-    # Podrías reusar parte de la lógica de la matriz. 
-    # O hacer un helper que retorne una lista de (document, state) para este empleado.
-    doc_states = get_documents_states_for_employee(employee)
-
-    # doc_states => lista de dicts:
-    # [
-    #   {'document': doc, 'state': 'Pendiente'|'Vencido'|'Ok'},
-    #   ...
-    # ]
+    # Usamos only_required=True
+    doc_states = get_documents_states_for_employee(employee, only_required=True)
 
     context = {
         'employee': employee,
@@ -328,7 +327,6 @@ def ajax_request_docs_modal(request):
     html_form = render_to_string('dth/partials/request_docs_modal_form.html', context, request=request)
     return JsonResponse({'html': html_form})
 
-
 @login_required
 @require_http_methods(["POST"])
 def create_document_request(request):
@@ -336,8 +334,13 @@ def create_document_request(request):
     Recibe el POST con employee_id y la lista de documents[] seleccionados.
     Crea DocumentRequest y sus DocumentRequestItems.
     """
+    print("== create_document_request was called ==")  # <--- log en consola
     employee_id = request.POST.get('employee_id')
     documents_selected = request.POST.getlist('documents')  # lista de IDs de Document
+
+    print("employee_id =>", employee_id)
+    print("documents_selected =>", documents_selected)
+
     employee = get_object_or_404(Nomina, pk=employee_id)
 
     if not documents_selected:
@@ -357,7 +360,6 @@ def create_document_request(request):
             document=doc_obj
         )
 
-    # Por ahora, imprime en la consola (runserver) el link único
     link = f"https://localhost:8000/dth/document-upload/{token}"
     print("==== LINK ÚNICO PARA SOLICITUD: ====", link)
 

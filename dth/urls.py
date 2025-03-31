@@ -48,4 +48,8 @@ urlpatterns = [
     path('delete_employee_document/', payroll_docs_views.delete_employee_document, name='delete_employee_document'),
 
     path('document-upload/<str:token>/', views.document_upload_view, name='document_upload_view'),
+
+    path('ajax/request_docs_modal/', payroll_docs_views.ajax_request_docs_modal, name='ajax_request_docs_modal'),
+
+    path('ajax/create_document_request/', payroll_docs_views.create_document_request, name='create_document_request'),
 ]

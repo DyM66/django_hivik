@@ -4,6 +4,11 @@
 {% block title %}Matriz de Documentos{% endblock %}
 
 {% block headtag %}
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      integrity="sha384-ENjdO4Dr2bkBIFxQpeo0+KxKIY6jnr953No1M6Jg25Jd/hmO3Qmo7G8k3R0Nu8Ix"
+      crossorigin="anonymous">
 <style>
 :root {
     --color-primary: #191645;
@@ -54,25 +59,6 @@ html, body {
   touch-action: pan-y; /* sólo scroll vertical */
   /* si quieres igualmente horizontal, esto no evitará del todo el swipe back en iOS */
 }
-
-/* .sticky-col1 {
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  background-color: var(--color-bg);
-}
-.sticky-col2 {
-  position: sticky;
-  left: 8rem;
-  z-index: 3;
-  background-color: var(--color-bg);
-}
-.sticky-col3 {
-  position: sticky;
-  left: 16rem; 
-  z-index: 3;
-  background-color: var(--color-bg);
-} */
 
 /* Unas clases de badge personalizadas (además de “badge” de Bootstrap) */
 .badge {
@@ -128,10 +114,11 @@ html, body {
 					<td class="sticky-col2">
 						{{ row.employee.name }} {{ row.employee.surname }}
 					</td>
-					<td class="sticky-col3">{{ row.employee.position_id }}</td>
 					<td>
-						<button type="button" class="btn btn-sm btn-secondary" onclick="openRequestDocumentsModal('{{ row.employee.id }}')">
-						<i class="bi bi-file-earmark-plus"></i> Solicitar
+						<button type="button" class="btn btn-sm btn-secondary"
+								onclick="openRequestDocumentsModal('{{ row.employee.id }}')">
+						  <i class="bi bi-file-earmark-plus"></i>
+						  Solicitar
 						</button>
 					</td>
 
@@ -197,219 +184,167 @@ html, body {
     </div>
   </div>
   
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-pp4C9WpCUvKXbxkKBlbp9f9uwc5LCG986ppCrYi7PFmk4fi8BW3ZkGf7PZwjw7Bt"
+  crossorigin="anonymous"></script>
+
 
 <script>
-// 1) Manejar la búsqueda: filtra filas por cédula, nombre o cargo
-document.addEventListener('DOMContentLoaded', function(){
-  const searchInput = document.getElementById('searchNomina');
-  const tableBody = document.getElementById('nominaMatrixBody');
+//-------------------------------------------------------
+// 1) Filtro para buscar por cédula, nombre o cargo
+//-------------------------------------------------------
+document.addEventListener('DOMContentLoaded', function() {
+const searchInput = document.getElementById('searchNomina');
+const tableBody = document.getElementById('nominaMatrixBody');
 
-  if(searchInput && tableBody) {
-    searchInput.addEventListener('keyup', () => {
-      const filter = searchInput.value.toLowerCase();
+if (searchInput && tableBody) {
+searchInput.addEventListener('keyup', () => {
+const filter = searchInput.value.toLowerCase();
+const rows = tableBody.querySelectorAll('tr');
 
-      // Recorremos cada fila
-      const rows = tableBody.querySelectorAll('tr');
-      rows.forEach(row => {
-        // Tomamos celdas: [0]=cedula, [1]=nombre, [2]=cargo
-        const tds = row.querySelectorAll('td');
-        if(tds.length < 3) return;
+rows.forEach(row => {
+  const tds = row.querySelectorAll('td');
+  if (tds.length < 3) return;
 
-        const cedula = tds[0].innerText.toLowerCase();
-        const nombre = tds[1].innerText.toLowerCase();
-        const cargo  = tds[2].innerText.toLowerCase();
+  const cedula = tds[0].innerText.toLowerCase();
+  const nombre = tds[1].innerText.toLowerCase();
+  const cargo  = tds[2].innerText.toLowerCase();
 
-        // Si concuerda con el texto en alguno, se muestra
-        if(cedula.includes(filter) || nombre.includes(filter) || cargo.includes(filter)){
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
-      });
-    });
+  if (cedula.includes(filter) || nombre.includes(filter) || cargo.includes(filter)){
+	row.style.display = '';
+  } else {
+	row.style.display = 'none';
   }
 });
-</script>
+});
+}
+});
 
-<script>
-    document.addEventListener('DOMContentLoaded', function(){
-        const container = document.querySelector('.table-scroll-container');
-    
-        // Interceptamos la rueda (o trackpad) para evitar
-        // “swipe left to go back” cuando scrollLeft=0
-        if (container) {
-          container.addEventListener('wheel', function(e) {
-            // e.deltaX < 0 => desplazamiento hacia la izquierda
-            if (e.deltaX < 0 && container.scrollLeft <= 0) {
-              // Bloqueamos
-              e.preventDefault();
-            }
-          }, { passive: false });
-        }
-    });
+//-------------------------------------------------------
+// 2) Scroll container => prevenir swipe-back en iOS
+//-------------------------------------------------------
+document.addEventListener('DOMContentLoaded', function(){
+const container = document.querySelector('.table-scroll-container');
+if (container) {
+container.addEventListener('wheel', function(e) {
+// e.deltaX < 0 => scroll left
+if (e.deltaX < 0 && container.scrollLeft <= 0) {
+  e.preventDefault();
+}
+}, { passive: false });
+}
+});
 
+//-------------------------------------------------------
+// 3) Abrir form para subir doc (Pendiente/Vencido)
+//-------------------------------------------------------
+function openDocForm(empId, docId) {
+fetch("{% url 'dth:employee_document_form' %}?emp=" + empId + "&doc=" + docId, {
+headers: {'X-Requested-With': 'XMLHttpRequest'}
+})
+.then(res => res.text())
+.then(html => {
+const modalContent = document.getElementById('modalUploadDocContent');
+modalContent.innerHTML = html;
 
-    </script>
-    
+const myModal = new bootstrap.Modal(document.getElementById('modalUploadDoc'));
+myModal.show();
 
-    <script>
-        // Llamado al hacer clic en una celda "Pendiente"/"Vencido"
-        function openDocForm(empId, docId) {
-          // Cargar partial con GET
-          fetch("{% url 'dth:employee_document_form' %}?emp="+empId+"&doc="+docId, {
-            headers: {'X-Requested-With': 'XMLHttpRequest'}
-          })
-          .then(res => res.text())
-          .then(html => {
-            const modalContent = document.getElementById('modalUploadDocContent');
-            modalContent.innerHTML = html;
-            // Mostramos modal
-            const myModal = new bootstrap.Modal(document.getElementById('modalUploadDoc'));
-            myModal.show();
-        
-            // Una vez cargado el form, asignamos listener al submit
-            const form = modalContent.querySelector('#employee-document-form');
-            if(form) {
-              form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                uploadDocument(form);
-              });
-            }
-          });
-        }
-        
-        function uploadDocument(form) {
-          const formData = new FormData(form);
-          fetch("{% url 'dth:create_employee_document' %}", {
-            method: 'POST',
-            headers: {'X-Requested-With': 'XMLHttpRequest'},
-            body: formData
-          })
-          .then(res => res.json())
-          .then(data => {
-            if(data.success) {
-              // Ocultar modal y recargar la página
-              const myModal = bootstrap.Modal.getInstance(document.getElementById('modalUploadDoc'));
-              myModal.hide();
-              location.reload();
-            } else {
-              alert(data.message || 'Error al subir documento');
-            }
-          })
-          .catch(err => alert('Error: ' + err));
-        }
-        
-        
-        // Llamado al hacer clic en una celda "Ok"
-        function openDocPreview(empId, docId) {
-          // Cargar partial con GET
-          fetch("{% url 'dth:employee_document_preview' %}?emp="+empId+"&doc="+docId, {
-            headers: {'X-Requested-With': 'XMLHttpRequest'}
-          })
-          .then(res => res.text())
-          .then(html => {
-            const modalContent = document.getElementById('modalPreviewDocContent');
-            modalContent.innerHTML = html;
-            const previewModal = new bootstrap.Modal(document.getElementById('modalPreviewDoc'));
-            previewModal.show();
-          });
-        }
-        
-        // Para eliminar un employeeDocument
-        function deleteEmployeeDocument(employeeDocId) {
-          if(!confirm("¿Seguro que deseas eliminar este archivo?")) return;
-          const fd = new FormData();
-          fd.append('employee_doc_id', employeeDocId);
-          fetch("{% url 'dth:delete_employee_document' %}", {
-            method: 'POST',
-            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': '{{ csrf_token }}'},
-            body: fd
-          })
-          .then(res => res.json())
-          .then(data => {
-            if(data.success) {
-              alert(data.message);
-              // Recargar la preview
-              location.reload(); 
-              // O podrías recargar solo el modal con openDocPreview(...) 
-            } else {
-              alert('Error al eliminar: ' + (data.message || ''));
-            }
-          })
-          .catch(err => alert('Error: ' + err));
-        }
-
-        function uploadDocument(form) {
-  const formData = new FormData(form);
-
-  // Selecciona el botón "Guardar" de tu modal
-  const submitBtn = document.getElementById('submitDocBtn');
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Cargando...';
-  }
-
-  fetch("{% url 'dth:create_employee_document' %}", {
-    method: 'POST',
-    headers: {'X-Requested-With': 'XMLHttpRequest'},
-    body: formData
-  })
-  .then(res => res.json())
-  .then(data => {
-    if(data.success) {
-      // Ocultar modal y recargar la página
-      const myModal = bootstrap.Modal.getInstance(document.getElementById('modalUploadDoc'));
-      myModal.hide();
-      location.reload();
-    } else {
-      alert(data.message || 'Error al subir documento');
-      // Reactivar botón
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Guardar';
-      }
-    }
-  })
-  .catch(err => {
-    alert('Error: ' + err);
-    // Reactivar botón
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Guardar';
-    }
-  });
+// Manejar el submit del form
+const form = modalContent.querySelector('#employee-document-form');
+if (form) {
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  uploadDocument(form);
+});
+}
+})
+.catch(err => alert("Error abriendo doc form: " + err));
 }
 
-        </script>
-        
-		<script>
-			function openRequestDocumentsModal(employeeId) {
-			  // Llamas a una vista AJAX que traiga la lista de documentos y su estado.
-			  // O puedes traer la info ya pre-procesada en la vista.  
-			  fetch("{% url 'dth:ajax_request_docs_modal' %}?employee_id="+employeeId, {
-				headers: {'X-Requested-With': 'XMLHttpRequest'}
-			  })
-			  .then(res => res.json())
-			  .then(data => {
-				// data.html => partial con el formulario de checkboxes
-				// Insertamos en un modal genérico
-				const modalContent = document.getElementById('modalRequestDocsContent');
-				modalContent.innerHTML = data.html;
-			
-				const myModal = new bootstrap.Modal(document.getElementById('modalRequestDocs'));
-				myModal.show();
-			  });
-			}
-			</script>
-			
-			<!-- Modal genérico en la plantilla, al final del <body> -->
-			<div class="modal fade" id="modalRequestDocs" tabindex="-1">
-			  <div class="modal-dialog">
-				<div class="modal-content" id="modalRequestDocsContent">
-				  <!-- contenido AJAX -->
-				</div>
-			  </div>
-			</div>
-			
+function uploadDocument(form) {
+const formData = new FormData(form);
+fetch("{% url 'dth:create_employee_document' %}", {
+method: 'POST',
+headers: {'X-Requested-With': 'XMLHttpRequest'},
+body: formData
+})
+.then(res => res.json())
+.then(data => {
+if (data.success) {
+const myModal = bootstrap.Modal.getInstance(document.getElementById('modalUploadDoc'));
+myModal.hide();
+location.reload();
+} else {
+alert(data.message || "Error al subir documento");
+}
+})
+.catch(err => alert("Error uploadDocument: " + err));
+}
 
+//-------------------------------------------------------
+// 4) Abrir preview de doc (Ok)
+//-------------------------------------------------------
+function openDocPreview(empId, docId) {
+fetch("{% url 'dth:employee_document_preview' %}?emp=" + empId + "&doc=" + docId, {
+headers: {'X-Requested-With': 'XMLHttpRequest'}
+})
+.then(res => res.text())
+.then(html => {
+const modalContent = document.getElementById('modalPreviewDocContent');
+modalContent.innerHTML = html;
+
+const previewModal = new bootstrap.Modal(document.getElementById('modalPreviewDoc'));
+previewModal.show();
+})
+.catch(err => alert("Error openDocPreview: " + err));
+}
+
+//-------------------------------------------------------
+// 5) Eliminar un EmployeeDocument
+//-------------------------------------------------------
+function deleteEmployeeDocument(employeeDocId) {
+if (!confirm("¿Seguro que deseas eliminar este archivo?")) return;
+const fd = new FormData();
+fd.append('employee_doc_id', employeeDocId);
+
+fetch("{% url 'dth:delete_employee_document' %}", {
+method: 'POST',
+headers: {
+'X-Requested-With': 'XMLHttpRequest',
+'X-CSRFToken': '{{ csrf_token }}'
+},
+body: fd
+})
+.then(res => res.json())
+.then(data => {
+if (data.success) {
+alert(data.message);
+location.reload();
+} else {
+alert("Error al eliminar: " + data.message);
+}
+})
+.catch(err => alert("Error deleteEmployeeDocument: " + err));
+}
+
+//-------------------------------------------------------
+// 6) Abrir modal para "Solicitar Documentos"
+//-------------------------------------------------------
+function openRequestDocumentsModal(employeeId) {
+fetch("{% url 'dth:ajax_request_docs_modal' %}?employee_id=" + employeeId, {
+headers: {'X-Requested-With': 'XMLHttpRequest'}
+})
+.then(res => res.json())
+.then(data => {
+// data.html => partial "request_docs_modal_form.html"
+const modalContent = document.getElementById('modalRequestDocsContent');
+modalContent.innerHTML = data.html;
+
+const myModal = new bootstrap.Modal(document.getElementById('modalRequestDocs'));
+myModal.show();
+})
+.catch(err => alert("Error openRequestDocumentsModal: " + err));
+}
+</script>
 {% endblock %}
