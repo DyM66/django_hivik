@@ -100,7 +100,7 @@ html, body {
 					<th class="sticky-col1">Cédula</th>
 					<th class="sticky-col2">Nombre</th>
 					<th class="sticky-col3">Cargo</th>
-					<th>Acciones</th>
+					<!-- <th>Acciones</th> -->
 					{% for doc in docs %}
 						<th>{{ doc.name }}</th>
 					{% endfor %}
@@ -115,13 +115,13 @@ html, body {
 						{{ row.employee.name }} {{ row.employee.surname }}
 					</td>
 					<td>{{ row.employee.position_id }}</td>
-					<td>
+					<!-- <td>
 						<button type="button" class="btn btn-sm btn-secondary"
 								onclick="openRequestDocumentsModal('{{ row.employee.id }}')">
 						  <i class="bi bi-file-earmark-plus"></i>
 						  Solicitar
 						</button>
-					</td>
+					</td> -->
 
 					{% for cell in row.cells %}
 						{% if cell.state == "N/A" %}
