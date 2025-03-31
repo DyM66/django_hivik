@@ -114,6 +114,7 @@ html, body {
 					<td class="sticky-col2">
 						{{ row.employee.name }} {{ row.employee.surname }}
 					</td>
+					<td>{{ row.employee.position_id }}</td>
 					<td>
 						<button type="button" class="btn btn-sm btn-secondary"
 								onclick="openRequestDocumentsModal('{{ row.employee.id }}')">
