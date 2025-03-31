@@ -52,4 +52,15 @@ urlpatterns = [
     path('ajax/request_docs_modal/', payroll_docs_views.ajax_request_docs_modal, name='ajax_request_docs_modal'),
 
     path('ajax/create_document_request/', payroll_docs_views.create_document_request, name='create_document_request'),
+
+    path('request_docs_form/<int:emp_id>/', views.request_docs_form, name='request_docs_form'),
+    path('request_docs_submit/', views.request_docs_submit, name='request_docs_submit'),
+
+    path('admin/docs/requests/', 
+         payroll_docs_views.admin_document_request_list, 
+         name='admin_document_request_list'),
+
+    path('admin/docs/requests/<int:pk>/', 
+         payroll_docs_views.admin_document_request_detail, 
+         name='admin_document_request_detail'),
 ]

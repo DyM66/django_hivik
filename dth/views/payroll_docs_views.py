@@ -480,3 +480,65 @@ def admin_document_request_detail(request, pk):
         'doc_req': doc_req,
         'items': items
     })
+
+
+# dth/views/docs_request_nonajax_view.py
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from dth.models.payroll import Nomina
+from dth.models.positions import Document
+from dth.models.docs_requests import DocumentRequest, DocumentRequestItem
+import uuid
+
+@login_required
+def request_docs_form(request, emp_id):
+    """
+    Muestra un formulario con los documentos requeridos (Pendiente/Vencido),
+    y un botón "Solicitar". Sin usar AJAX.
+    """
+    employee = get_object_or_404(Nomina, pk=emp_id)
+    doc_states = get_documents_states_for_employee(employee, only_required=True)
+
+    return render(request, 'dth/no_ajax/request_docs_form.html', {
+        'employee': employee,
+        'doc_states': doc_states,
+    })
+
+
+@login_required
+def request_docs_submit(request):
+    """
+    Procesa el form (POST) con employee_id y checkboxes (documents[]).
+    Crea DocumentRequest y sus items, y redirige a una página de confirmación.
+    """
+    if request.method != 'POST':
+        return HttpResponse("Método no permitido.", status=405)
+    
+    employee_id = request.POST.get('employee_id')
+    documents_selected = request.POST.getlist('documents')  # la lista de IDs
+    employee = get_object_or_404(Nomina, pk=employee_id)
+
+    if not documents_selected:
+        return render(request, 'dth/no_ajax/request_docs_error.html', {
+            'message': 'No se seleccionó ningún documento.'
+        })
+
+    token = uuid.uuid4().hex[:8]
+    doc_req = DocumentRequest.objects.create(
+        employee=employee,
+        token=token
+    )
+
+    for doc_id in documents_selected:
+        doc_obj = get_object_or_404(Document, pk=doc_id)
+        DocumentRequestItem.objects.create(
+            request=doc_req,
+            document=doc_obj
+        )
+    
+    link = f"http://localhost:8000/dth/document-upload/{token}"
+    return render(request, 'dth/no_ajax/request_docs_success.html', {
+        'link': link,
+        'employee': employee,
+    })

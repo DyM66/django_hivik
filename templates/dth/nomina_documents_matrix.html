@@ -100,7 +100,7 @@ html, body {
 					<th class="sticky-col1">Cédula</th>
 					<th class="sticky-col2">Nombre</th>
 					<th class="sticky-col3">Cargo</th>
-					<!-- <th>Acciones</th> -->
+					<th>Acciones</th>
 					{% for doc in docs %}
 						<th>{{ doc.name }}</th>
 					{% endfor %}
@@ -115,13 +115,18 @@ html, body {
 						{{ row.employee.name }} {{ row.employee.surname }}
 					</td>
 					<td>{{ row.employee.position_id }}</td>
-					<!-- <td>
-						<button type="button" class="btn btn-sm btn-secondary"
+					<td>
+						<!-- <button type="button" class="btn btn-sm btn-secondary"
 								onclick="openRequestDocumentsModal('{{ row.employee.id }}')">
 						  <i class="bi bi-file-earmark-plus"></i>
 						  Solicitar
-						</button>
-					</td> -->
+						</button> -->
+
+						<a class="btn btn-sm btn-secondary"
+							   href="{% url 'dth:request_docs_form' row.employee.id %}">
+							  Solicitar (No-AJAX)
+							</a>
+					</td>
 
 					{% for cell in row.cells %}
 						{% if cell.state == "N/A" %}
@@ -183,6 +188,14 @@ html, body {
         <!-- Aquí se inyecta la lista de docs subidos -->
       </div>
     </div>
+  </div>
+
+  <div class="modal fade" id="modalRequestDocs" tabindex="-1">
+	<div class="modal-dialog">
+	  <div class="modal-content" id="modalRequestDocsContent">
+		<!-- Aquí llega el HTML AJAX -->
+	  </div>
+	</div>
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
@@ -333,19 +346,25 @@ alert("Error al eliminar: " + data.message);
 // 6) Abrir modal para "Solicitar Documentos"
 //-------------------------------------------------------
 function openRequestDocumentsModal(employeeId) {
-fetch("{% url 'dth:ajax_request_docs_modal' %}?employee_id=" + employeeId, {
-headers: {'X-Requested-With': 'XMLHttpRequest'}
-})
-.then(res => res.json())
-.then(data => {
-// data.html => partial "request_docs_modal_form.html"
-const modalContent = document.getElementById('modalRequestDocsContent');
-modalContent.innerHTML = data.html;
+	fetch("{% url 'dth:ajax_request_docs_modal' %}?employee_id=" + employeeId, {
+		headers: {'X-Requested-With': 'XMLHttpRequest'}
+	})
+	.then(res => res.json())
+	.then(data => {
+		// data.html => partial "request_docs_modal_form.html"
+		const modalContent = document.getElementById('modalRequestDocsContent');
+		console.log("modalContent =>", modalContent);
+		if (!modalContent) {
+			alert("No se encontró el div con ID 'modalRequestDocsContent' en el DOM");
+			return;
+		}
+		modalContent.innerHTML = data.html;
 
-const myModal = new bootstrap.Modal(document.getElementById('modalRequestDocs'));
-myModal.show();
-})
-.catch(err => alert("Error openRequestDocumentsModal: " + err));
+		const myModal = new bootstrap.Modal(document.getElementById('modalRequestDocs'));
+		myModal.show();
+	})
+	.catch(err => alert("Error openRequestDocumentsModal: " + err));
 }
 </script>
+  
 {% endblock %}

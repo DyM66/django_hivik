@@ -1,0 +1,10 @@
+{# dth/templates/dth/no_ajax/request_docs_success.html #}
+{% extends "base/base_generic.html" %}
+{% block title %}Solicitud Creada{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <h4>Solicitud creada con éxito para {{ employee.name }} {{ employee.surname }}</h4>
+  <p>Link para subir documentos (vista pública): <a href="{{ link }}" target="_blank">{{ link }}</a></p>
+</div>
+{% endblock %}
