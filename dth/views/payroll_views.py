@@ -10,9 +10,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse_lazy
 from django.template.loader import render_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
+from datetime import date
 
 from dth.models.payroll import Nomina, UserProfile
-from dth.models.positions import Position, Document, PositionDocument
+from dth.models.positions import Position, Document, PositionDocument, EmployeeDocument
 from dth.forms import NominaForm, PositionForm, DocumentForm
 
 
@@ -102,10 +103,87 @@ class NominaUpdateView(UpdateView):
     success_url = reverse_lazy('dth:nomina_list')
 
 
+
 @require_GET
 def nomina_detail_partial(request, pk):
     nomina = get_object_or_404(Nomina, pk=pk)
-    html = render_to_string('dth/payroll_views/payroll_detail.html', {'nomina': nomina}, request=request)
+    today = date.today()
+
+    # 1) Los docs requeridos para el cargo:
+    pos_docs = PositionDocument.objects.filter(
+        position=nomina.position_id
+    ).select_related('document').order_by('document__name')
+
+    # 2) Tomar EmployeeDocument de este nomina, mapeado por document_id
+    emp_docs = EmployeeDocument.objects.filter(employee=nomina)
+    doc_map = {}  # doc_id -> lista de (expiration_date, file)
+    for ed in emp_docs:
+        doc_id = ed.document_id
+        if doc_id not in doc_map:
+            doc_map[doc_id] = []
+        doc_map[doc_id].append({
+            'expiration_date': ed.expiration_date,
+            'file': ed.file.url if ed.file else None,
+        })
+
+    # 3) Construir la listita de estado
+    doc_status_list = []
+    for pd in pos_docs:
+        d = pd.document
+        doc_id = d.id
+
+        # Ver si existe en doc_map
+        if doc_id not in doc_map:
+            # => Pendiente
+            doc_status_list.append({
+                'document_name': d.name,
+                'state': 'Pendiente',
+                'file_url': None,
+                'expired': False,
+            })
+            continue
+
+        # => el empleado sí tiene algo subido
+        # validamos si hay alguno sin vencer
+        found_ok = False
+        found_file_url = None
+        all_vencidos = True
+
+        # si uno no venció => state=Ok
+        for data in doc_map[doc_id]:
+            exp = data['expiration_date']
+            file_url = data['file']
+            if exp is None or exp >= today:
+                # => no vencido => Ok
+                found_ok = True
+                found_file_url = file_url
+                all_vencidos = False
+                break
+        if found_ok:
+            doc_status_list.append({
+                'document_name': d.name,
+                'state': 'Ok',
+                'file_url': found_file_url,
+                'expired': False,
+            })
+        else:
+            # => todos vencidos
+            doc_status_list.append({
+                'document_name': d.name,
+                'state': 'Vencido',
+                'file_url': doc_map[doc_id][0]['file'],  # cualquiera
+                'expired': True,
+            })
+
+    # Renderizamos
+    html = render_to_string(
+        'dth/payroll_views/payroll_detail.html',
+        {
+            'nomina': nomina,
+            'doc_status_list': doc_status_list
+        },
+        request=request
+    )
     return HttpResponse(html, content_type='text/html')
 
 

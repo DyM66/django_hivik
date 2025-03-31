@@ -1,4 +1,5 @@
-<!-- dth/templates/dth/partials/nomina_detail.html -->
+{% load my_tags %}
+
 <div class="row">
     <div class="col-md-3 text-center mb-3">
         <img src="{{ nomina.photo_url }}" alt="Foto" class="img-fluid rounded shadow">
@@ -8,7 +9,7 @@
         <hr>
         <p><strong>Cédula:</strong> {{ nomina.id_number }}</p>
         <p><strong>Cargo:</strong> {{ nomina.position_id }}</p>
-        <p><strong>Salario:</strong> ${{ nomina.salary }}</p>
+        <p><strong>Salario:</strong> ${{ nomina.salary|currency }}</p>
         <p><strong>Ingreso:</strong> {{ nomina.admission|date:"d/m/Y" }}</p>
         <p><strong>Expiración:</strong> {{ nomina.expiration|default:"N/A" }}</p>
     
@@ -19,4 +20,53 @@
             </button>
         </div>
     </div>
+</div>
+
+<!-- SECCIÓN DE DOCUMENTOS REQUERIDOS -->
+<div class="mt-4 pt-3" style="border-top: 1px solid #ddd;">
+    <h5>Documentos Requeridos</h5>
+    <p class="text-muted small mb-2">Estado de los documentos exigidos por el cargo</p>
+
+    {% if doc_status_list %}
+    <table class="table table-striped table-sm align-middle" style="max-width: 600px;">
+        <thead class="table-dark">
+            <tr>
+                <th>Documento</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in doc_status_list %}
+            <tr>
+                <td>{{ item.document_name }}</td>
+                <td>
+                    {% if item.state == 'Ok' %}
+                        <span class="badge bg-success">{{ item.state }}</span>
+                        {% if item.file_url %}
+                          <a href="{{ item.file_url }}" target="_blank" class="ms-2">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                          </a>
+                        {% endif %}
+                    {% elif item.state == 'Pendiente' %}
+                        <span class="badge bg-warning text-dark">{{ item.state }}</span>
+                    {% elif item.state == 'Vencido' %}
+                        <span class="badge bg-danger">{{ item.state }}</span>
+                        {% if item.file_url %}
+                          <a href="{{ item.file_url }}" target="_blank" class="ms-2">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                          </a>
+                        {% endif %}
+                    {% else %}
+                        <span>{{ item.state }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="alert alert-info">
+            No se han configurado documentos para este cargo.
+        </div>
+    {% endif %}
 </div>
