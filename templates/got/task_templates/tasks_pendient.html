@@ -85,13 +85,13 @@
         </form>
     </div>
 
-<!-- Sección de Exportaciones -->
-<div class="row">
-  <!-- Si prefieres un ancho automático, usa col-auto; si quieres fijo en pantallas medianas, usa col-md-4, etc. -->
-  <div class="col-auto">
-    <div class="card mb-4 p-3" style="min-width:300px; max-width:450px;">
-      <h5>Exportar listado actual</h5>
-      <p class="mb-2">Puedes generar PDF o Excel con los filtros actuales.</p>
+    <!-- Sección de Exportaciones -->
+    <div class="row">
+        <!-- Si prefieres un ancho automático, usa col-auto; si quieres fijo en pantallas medianas, usa col-md-4, etc. -->
+        <div class="col-auto">
+            <div class="card mb-4 p-3" style="min-width:300px; max-width:450px;">
+            <h5>Exportar listado actual</h5>
+            <p class="mb-2">Puedes generar PDF o Excel con los filtros actuales.</p>
 
       <!-- Botones principales: PDF/Excel -->
       <a href="{% url 'got:assigned-tasks-pdf' %}?
