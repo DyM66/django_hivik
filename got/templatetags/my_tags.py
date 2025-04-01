@@ -8,6 +8,7 @@ import os
 from django.db.models.functions import Concat
 from django.db.models import Value
 from decimal import Decimal
+from datetime import datetime
 
 register = template.Library()
 
@@ -265,26 +266,6 @@ def filter_queryset(queryset, args):
     except Exception:
         return queryset
     
-from datetime import datetime
-@register.filter
-def filter_by_date_range(images, date_range):
-    """
-    Filtra un queryset de imágenes (o una lista) para devolver solo aquellas cuya
-    fecha 'creation' esté entre las fechas dadas.
-    
-    Se espera que `date_range` sea una cadena del tipo "YYYY-MM-DD,YYYY-MM-DD".
-    Si el parámetro no cumple el formato, se retorna el queryset sin filtrar.
-    """
-    try:
-        start_str, end_str = date_range.split(',')
-        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
-        end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
-    except Exception:
-        start_date = datetime.strptime(date_range, "%Y-%m-%d").date()
-        end_date = datetime.strptime(date_range, "%Y-%m-%d").date()
-        # return images
-    # Suponiendo que 'images' es un QuerySet; si es una lista, podemos usar una lista por comprensión.
-    return images.filter(creation__gte=start_date, creation__lte=end_date)
 
 
 @register.filter
@@ -295,3 +276,42 @@ def first_line(value):
     if not value:
         return ""
     return value.splitlines()[0]
+
+
+@register.filter
+def filter_by_date_range(queryset, date_range):
+    """
+    Espera 'YYYY-MM-DD,YYYY-MM-DD' o 'YYYY-MM-DD' o incluso cadena vacía.
+    Retorna el queryset filtrado por las fechas de creación de la imagen 
+    (o sin filtrar si no hay fechas válidas).
+    Asume que el modelo tiene un campo `creation` de tipo DateTimeField/DateField.
+    """
+    if not date_range:
+        # Si está vacío => no filtramos
+        return queryset
+    
+    try:
+        # ¿Tenemos coma?
+        if ',' in date_range:
+            start_str, end_str = date_range.split(',')
+            # Si uno está vacío, igualalo al otro
+            if not start_str and end_str:
+                start_str = end_str
+            elif not end_str and start_str:
+                end_str = start_str
+        else:
+            # Rango con un solo día
+            start_str = date_range
+            end_str = date_range
+        
+        # Ahora parseamos (si están vacíos, habrá error => capturado por except)
+        start_date = datetime.strptime(start_str.strip(), "%Y-%m-%d").date()
+        end_date   = datetime.strptime(end_str.strip(), "%Y-%m-%d").date()
+
+        # Filtramos por un campo que tengas en tus imágenes que indique la fecha
+        # En tu modelo 'Image' parece que tienes `creation = models.DateField(auto_now_add=True)`
+        # Así que:
+        return queryset.filter(creation__range=(start_date, end_date))
+    except Exception:
+        # Si algo falla, retornamos sin filtrar
+        return queryset

@@ -22,7 +22,7 @@ from django.db.models import Prefetch, Sum
 from inv.models import EquipoCodeCounter
 from django.db import transaction
 from preoperacionales.models import *
-from .models import *
+from got.models import *
 from inv.models import DarBaja, Transference
 from dth.models import UserProfile
 from mto.utils import record_execution
@@ -768,16 +768,6 @@ def update_equipo_code(old_code):
         print(f"Ha ocurrido un error: {str(e)}")
 
 
-def operational_users(current_user):
-    if current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
-        talleres = Group.objects.get(name='serport_members')
-        taller_list = list(talleres.user_set.all())
-        taller_list.append(current_user)
-        return User.objects.filter(id__in=[user.id for user in taller_list])
-    elif current_user.groups.filter(name='mto_members').exists():
-        return User.objects.exclude(groups__name='gerencia')
-
-
 def fechas_range():
     hoy = timezone.now().date() - timedelta(days=1)
     hace_30_dias = hoy - timedelta(days=30)
@@ -914,78 +904,10 @@ def get_cargo(full_name):
     except (User.DoesNotExist, ValueError, UserProfile.DoesNotExist):
         return ''
 
-from django.db.models import F, ExpressionWrapper, DateField
-def filter_tasks_queryset(request, base_queryset=None):
-    """
-    Aplica el mismo filtrado de tareas que usan AssignedTaskByUserListView y assignedTasks_pdf.
-    Se leen los siguientes parámetros GET:
-      - asset_id
-      - worker
-      - start_date y end_date (para filtrar por rango de fechas)
-      - El estado: se intentará leer 'show_finalizadas' y si no está, se usará 'finalizados'.
-         Por defecto (valor distinto de "1") se muestran solo pendientes (finished=False).
-    Devuelve el queryset filtrado.
-    """
-    if base_queryset is None:
-        queryset = Task.objects.filter(ot__isnull=False, start_date__isnull=False, ot__system__asset__area__in=['a', 'x', 'c'])
-    else:
-        queryset = base_queryset
-
-    from django.db.models import Value
-    from django.db.models.functions import Concat
-    queryset = queryset.filter(
-        ot__supervisor__in=User.objects.filter(groups__name='mto_members').annotate(
-            full_name=Concat('first_name', Value(' '), 'last_name')
-        ).values_list('full_name', flat=True)
-    )
 
 
-    # Ordenar por start_date (o puedes encadenar order_by en la vista que llama a esta función)
-    queryset = queryset.order_by('start_date')
 
-    # Filtrar por asset
-    asset_id = request.GET.get('asset_id')
-    if asset_id:
-        queryset = queryset.filter(ot__system__asset_id=asset_id)
-
-    # Filtrar por responsable
-    responsable_id = request.GET.get('worker')
-    if responsable_id:
-        queryset = queryset.filter(responsible=responsable_id)
-
-    # Filtrado por rango de fechas (solapamiento)
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
-    if start_date_str and end_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            queryset = queryset.annotate(
-                calc_final_date=ExpressionWrapper(
-                    F('start_date') + DayInterval(F('men_time')),
-                    output_field=DateField()
-                )
-            ).filter(calc_final_date__gte=start_date, start_date__lte=end_date)
-        except ValueError:
-            pass
-
-    # Leer el parámetro para el estado. Primero intentamos 'show_finalizadas' y si no, 'finalizados'
-    show_finalizadas = request.GET.get('show_finalizadas') or request.GET.get('finalizados', '0')
-    if show_finalizadas != "1":
-        queryset = queryset.filter(finished=False)
-
-    # Filtrado adicional según el grupo del usuario
-    current_user = request.user
-    if current_user.groups.filter(name='serport_members').exists():
-        queryset = queryset.filter(responsible=current_user)
-    elif current_user.groups.filter(name='mto_members').exists():
-        pass  # Sin filtro adicional
-    elif current_user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
-        queryset = queryset.filter(ot__system__asset__supervisor=current_user)
-    else:
-        queryset = queryset.none()
-
-    return queryset
+#     return queryset
 
 
 import requests

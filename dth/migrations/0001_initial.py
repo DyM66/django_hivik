@@ -5,6 +5,8 @@ from django.conf import settings
 from django.db import migrations, models
 import got.models
 from decimal import Decimal
+import uuid
+import dth.models.docs_requests
 
 class Migration(migrations.Migration):
     initial = True
@@ -20,7 +22,7 @@ class Migration(migrations.Migration):
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
                 ('dpto', models.CharField(blank=True, max_length=100, null=True)),
             ],
-            options={'verbose_name': 'Perfil de Usuario', 'verbose_name_plural': 'Perfiles de Usuario'},
+            # options={'verbose_name': 'Perfil de Usuario', 'verbose_name_plural': 'Perfiles de Usuario'},
         ),
         migrations.AlterModelTable(
             name='userprofile',
@@ -109,7 +111,7 @@ class Migration(migrations.Migration):
             name='EmployeeDocument',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file', models.FileField(upload_to='employee_documents/')),
+                ('file', models.FileField(upload_to=dth.models.positions.get_upload_path_employee)),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
                 ('expiration_date', models.DateField(blank=True, null=True)),
                 ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='dth.document')),
@@ -147,8 +149,27 @@ class Migration(migrations.Migration):
                 ('category', models.CharField(blank=True, choices=[('o', 'Operativo'), ('a', 'Administrativo'), ('m', 'Mixto')], max_length=1, null=True)),
             ],
         ),
-        migrations.AlterModelOptions(
-            name='userprofile',
-            options={},
+        migrations.CreateModel(
+            name='DocumentRequest',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('uuid', models.UUIDField(default=uuid.uuid4, editable=False, unique=True)),
+                ('token', models.CharField(max_length=40, unique=True)),
+                ('created_at', models.DateTimeField(default=django.utils.timezone.now)),
+                ('employee', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requests', to='dth.nomina')),
+            ],
+        ),
+        migrations.CreateModel(
+            name='DocumentRequestItem',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('pdf_file', models.FileField(blank=True, null=True, upload_to=dth.models.docs_requests.get_upload_path_temp)),
+                ('expiration_date', models.DateField(blank=True, null=True)),
+                ('approved', models.BooleanField(default=False)),
+                ('approved_at', models.DateTimeField(blank=True, null=True)),
+                ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='dth.document')),
+                ('request', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='dth.documentrequest')),
+                ('verified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ],
         ),
     ]

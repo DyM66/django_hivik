@@ -1,0 +1,254 @@
+{# got/task_templates/task_pendient.html #}
+{% extends "base/base_generic.html" %}
+{% load my_tags %}
+
+{% block title %}Actividades asignadas{% endblock %}
+
+{% block headtag %}
+{% endblock %}
+
+{% block content %}
+<main class="px-3">
+    <h1>
+        Actividades asignadas
+        {% if request.GET.asset_id %}
+            - {{ request.GET.asset_id|asset_info }}
+        {% endif %}
+        {% if request.GET.worker %}
+           / {{ request.GET.worker|user_info }}
+        {% endif %}
+    </h1>
+
+    <!-- Panel de Filtros -->
+    <div class="card shadow px-3 py-3 mb-4" id="filter-panel">
+        <form method="get" id="filterForm">
+            <div class="row g-3 align-items-end">
+  
+                <!-- Rango de fechas (Flatpickr en modo range) -->
+                <div class="col-md-4">
+                    <label for="dateRangePicker" class="form-label">Rango de fechas</label>
+                    <input type="text" id="dateRangePicker" class="form-control" placeholder="Selecciona rango o día"/>
+                    <!-- Inputs ocultos para enviar en GET -->
+                    <input type="hidden" id="start_date" name="start_date" value="{{ start_date }}">
+                    <input type="hidden" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+  
+                <!-- Filtro por Equipo (solo si el usuario tiene perm access_all_assets y hay assets) -->
+                {% if perms.got.access_all_assets and assets %}
+                    <div class="col-md-3">
+                        <label for="asset_id" class="form-label">Equipo</label>
+                        <select class="form-select" id="asset_id" name="asset_id">
+                            <option value="">-- Todos --</option>
+                            {% for asset in assets %}
+                                <option value="{{ asset.abbreviation }}" {% if asset_id == asset.abbreviation %}selected{% endif %}>
+                                    {{ asset.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+  
+                <!-- Filtro por Taller (ocultar si user está en 'serport_members') -->
+                {% if not request.user|has_group:"serport_members" and all_users %}
+                    <div class="col-md-3">
+                        <label for="worker" class="form-label">Taller / Responsable</label>
+                        <select class="form-select" id="worker" name="worker">
+                            <option value="">-- Todos --</option>
+                            {% for u in all_users %}
+                                <option value="{{ u.id }}" {% if worker == u.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ u.first_name }} {{ u.last_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+  
+                <!-- Filtro de estado: se muestra SOLO si hay start_date y end_date -->
+                <div class="col-md-3" id="estadoFilter" style="display: none;">
+                    <label class="form-label">Estado</label>
+                    <div class="btn-group" role="group" aria-label="Filtro estado">
+                        <!-- 0 => solo pendientes  / 1 => pend. + finalizadas / 2 => solo finalizadas -->
+                        <input type="radio" class="btn-check" name="estado" id="estado0" value="0" autocomplete="off" {% if estado == "0" or not estado %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="estado0">Pendientes</label>
+        
+                        <input type="radio" class="btn-check" name="estado" id="estado1" value="1" autocomplete="off" {% if estado == "1" %}checked{% endif %}>
+                        <label class="btn btn-outline-primary nowrap" for="estado1">Pend. y Final.</label>
+        
+                        <input type="radio" class="btn-check" name="estado" id="estado2" value="2" autocomplete="off" {% if estado == "2" %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="estado2">Finalizadas</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón Buscar -->
+            <button type="submit" class="btn btn-primary mt-4">Buscar</button>
+        </form>
+    </div>
+
+<!-- Sección de Exportaciones -->
+<div class="row">
+  <!-- Si prefieres un ancho automático, usa col-auto; si quieres fijo en pantallas medianas, usa col-md-4, etc. -->
+  <div class="col-auto">
+    <div class="card mb-4 p-3" style="min-width:300px; max-width:450px;">
+      <h5>Exportar listado actual</h5>
+      <p class="mb-2">Puedes generar PDF o Excel con los filtros actuales.</p>
+
+      <!-- Botones principales: PDF/Excel -->
+      <a href="{% url 'got:assigned-tasks-pdf' %}?
+         start_date={{ start_date }}&
+         end_date={{ end_date }}&
+         worker={{ worker }}&
+         asset_id={{ asset_id }}&
+         estado={{ estado }}"
+         class="btn btn-danger btn-sm"
+         target="_blank">
+        <i class="bi bi-file-pdf-fill"></i> Generar PDF
+      </a>
+
+      <a href="{% url 'got:assigned-tasks-excel' %}?
+         start_date={{ start_date }}&
+         end_date={{ end_date }}&
+         worker={{ worker }}&
+         asset_id={{ asset_id }}&
+         estado={{ estado }}"
+         class="btn btn-success btn-sm mt-2"
+         target="_blank">
+        <i class="bi bi-file-earmark-excel-fill"></i> Generar Excel
+      </a>
+
+      <!-- Enlaces secundarios: Reporte diario -->
+      <a href="{% url 'got:assigned-tasks-pdf' %}?daily=today&mto_only=1" class="btn btn-link btn-sm">
+        <i class="bi bi-calendar-check"></i> Reporte ejecución (Hoy)
+      </a>
+      <a href="{% url 'got:assigned-tasks-excel' %}?daily=tomorrow&mto_only=1" class="btn btn-link btn-sm">
+        <i class="bi bi-calendar-check-fill"></i> Programación de actividades (Mañana)
+      </a>
+    </div>
+  </div>
+</div>
+
+
+
+    <table class="table-list">
+        <thead>
+            <tr>
+                <th scope="col">#OT</th>
+                <th scope="col">Sistema</th>
+                <th scope="col">Descripción</th>
+                <th scope="col">Responsable</th>
+                <th scope="col">Tiempo de ejecución</th>
+                <th scope="col">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for act in task_list %}
+                <tr data-dropdown-target="#dropdown-{{ act.id }}">
+                    <td data-cell="Orden de trabajo" class="nowrap"><strong>OT-{{ act.ot.num_ot }}</strong></td>
+                    <td data-cell="Sistema">{{ act.ot.system.asset }}/{{ act.ot.system.name }}</td>
+                    <td data-cell="Descripción">{{ act.description }}</td>
+                    <td data-cell="Responsable">{{ act.responsible.first_name }} {{ act.responsible.last_name }}</td>
+                    <td data-cell="Tiempo de ejecución">{{ act.start_date|date:"d/m/Y" }}-{{ act.final_date|date:"d/m/Y" }}</td>
+                    <td data-cell="Estado">
+                        <div class="dropdown">
+                            <button class="btn status 
+                                {% if act.finished %}green-state
+                                {% elif act.is_overdue %}red-state
+                                {% else %}orange-state{% endif %} btn-sm dropdown-toggle" 
+                                type="button" id="dropdown-{{ act.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% if act.finished %}Finalizada
+                                {% elif act.is_overdue %}Retrasado
+                                {% else %}En progreso{% endif %}
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdown-{{ act.id }}">
+                                <li><a class="dropdown-item" href="{% url 'got:ot-detail' act.ot.num_ot %}">Ver detalle</a></li>
+                                {% if not request.user|can_edit_task:act %}
+                                    <li><a class="dropdown-item" href="{% url 'got:finish-task' act.id %}">Finalizar</a></li>
+                                {% endif %}
+                                {% if perms.got.can_reschedule_task %}
+                                    <li><a class="dropdown-item" href="{% url 'got:reschedule-task' act.id %}">Reprogramar</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{% url 'got:create-solicitud-ot' act.ot.system.asset.abbreviation act.ot.num_ot %}">Nueva solicitud</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td>No hay actividades registradas</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</main>
+
+<style>
+    /* Resaltar festivos */
+    .flatpickr-holiday {
+      background-color: #ffc107 !important;
+      color: #000 !important;
+      border-radius: 50%;
+    }
+</style>
+  
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
+  
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var holidays = [
+            {% for h in holidays %}
+                "{{ h }}",
+            {% endfor %}
+        ];
+
+  
+        var dateRangePicker = flatpickr("#dateRangePicker", {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            locale: "es",
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                var dateString = dayElem.dateObj.toISOString().split('T')[0];
+                if (holidays.includes(dateString)) {
+                dayElem.classList.add("flatpickr-holiday");
+                }
+            },
+      onClose: function(selectedDates, dateStr, instance) {
+        if (selectedDates.length === 2) {
+          // Rango
+          document.getElementById("start_date").value = instance.formatDate(selectedDates[0], "Y-m-d");
+          document.getElementById("end_date").value   = instance.formatDate(selectedDates[1], "Y-m-d");
+        } else if (selectedDates.length === 1) {
+          // Solo un día
+          document.getElementById("start_date").value = instance.formatDate(selectedDates[0], "Y-m-d");
+          document.getElementById("end_date").value   = instance.formatDate(selectedDates[0], "Y-m-d");
+        } else {
+          document.getElementById("start_date").value = "";
+          document.getElementById("end_date").value   = "";
+        }
+        toggleEstadoFilter();
+      }
+    });
+  
+    // Si ya hay start_date / end_date, recargamos el calendario:
+    var sdate = "{{ start_date }}";
+    var edate = "{{ end_date }}";
+    if (sdate && edate) {
+      dateRangePicker.setDate([sdate, edate], true);
+    }
+  
+    // Mostrar/ocultar filtro de estado si tenemos un rango de fechas
+    function toggleEstadoFilter() {
+      var st = document.getElementById("start_date").value;
+      var en = document.getElementById("end_date").value;
+      var filterDiv = document.getElementById("estadoFilter");
+      if (st && en) {
+        filterDiv.style.display = "block";
+      } else {
+        filterDiv.style.display = "none";
+      }
+    }
+    toggleEstadoFilter(); // Llamamos una vez al inicio
+  
+  });
+  </script>
+{% endblock %}

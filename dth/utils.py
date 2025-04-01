@@ -13,6 +13,7 @@ NIGHT_START = time(21, 0)  # 9:00 PM
 # current_year = date.today().year # next_year = current_year + 1
 COLOMBIA_HOLIDAYS = holidays.Colombia(years=[2025, 2026, 2027, 2028])
 
+
 def calculate_overtime(fecha, hora_inicio, hora_fin):
     overtime_periods = []
     day_type = None  # 'weekday', 'saturday', 'sunday', 'holiday'

@@ -16,7 +16,7 @@ class PermissionMatrixView(TemplateView):
         
         # 1) Recolectar todos los ContentTypes (apps/modelos)
         contenttypes = (ContentType.objects
-            .exclude(app_label__in=["admin","sessions","contenttypes","auth"])
+            .exclude(app_label__in=["admin","sessions","contenttypes","auth", "site"])
             .order_by("app_label","model"))
         
         # Agrupar info en un diccionario: {app_label: {model_label: [perm, perm...], ...}, ...}
