@@ -165,3 +165,8 @@ cython_debug/
 
 .env
 GOT-SERPORT.pem
+
+db_backup.sql
+
+#node
+node_modules

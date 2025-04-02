@@ -30,64 +30,56 @@ class PreoperacionalDiarioForm(forms.ModelForm):
         choices=choices,
         widget=forms.RadioSelect(attrs={'class': 'btn-group-toggle', 'data-toggle': 'buttons'}),
         label='¿Tiene llanta de repuesto?',
-        initial=False,
-        required=False,
+        required=True,
     )
 
     aseo_externo = forms.ChoiceField(
         choices=choices_aseo,
         widget=forms.RadioSelect(attrs={'class': 'btn-group-toggle', 'data-toggle': 'buttons'}),
         label='Aseo externo',
-        initial=True,
-        required=False,
+        required=True,
     )
 
     aseo_interno = forms.ChoiceField(
         choices=choices_aseo,
         widget=forms.RadioSelect(attrs={'class': 'btn-group-toggle', 'data-toggle': 'buttons'}),
         label='Aseo interno',
-        initial=True,
-        required=False,
+        required=True,
     )
 
     kit_carreteras = forms.ChoiceField(
         choices=choices_completo,
         widget=forms.RadioSelect(attrs={'class': 'btn-group-toggle', 'data-toggle': 'buttons'}),
         label='Kit de carreteras',
-        initial=True,
-        required=False,
+        required=True,
     )
     
     kit_herramientas = forms.ChoiceField(
         choices=choices_completo,
         widget=forms.RadioSelect(attrs={'class': 'btn-group-toggle', 'data-toggle': 'buttons'}),
         label='Kit de herramientas',
-        initial=True,
-        required=False,
+        required=True,
     )
 
     kit_botiquin = forms.ChoiceField(
         choices=choices_completo,
         widget=forms.RadioSelect(attrs={'class': 'btn-group-toggle', 'data-toggle': 'buttons'}),
         label='Kit de botiquín',
-        initial=True,
-        required=False,
+        required=True,
     )
 
     chaleco_reflectivo = forms.ChoiceField(
         choices=choices,
         widget=forms.RadioSelect(attrs={'class': 'btn-group-toggle', 'data-toggle': 'buttons'}),
         label='IMPLEMENTOS DE SEGURIDAD VIAL ¿Tiene chalecos reflectivos?',
-        initial=True,
-        required=False,
+        required=True,
     )
 
     aprobado = forms.ChoiceField(
         choices=choices_aprobado,
         widget=forms.RadioSelect(attrs={'class': 'btn-group-toggle', 'data-toggle': 'buttons'}),
         label='CERTIFICO QUE EL VEHÍCULO INSPECCIONADO ESTÁ ADECUADO PARA SER UTILIZADO DURANTE EL DÍA DE LA INSPECCIÓN REALIZADA:',
-        initial=True,
-        required=False,
+        required=True,
     )
 
 
@@ -244,6 +236,14 @@ class PreoperacionalDiarioForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super(PreoperacionalDiarioForm, self).__init__(*args, **kwargs)
         self.equipo = Equipo.objects.filter(code=equipo_code).first()
+
+        for field_name, field in self.fields.items():
+            field.required = True  
+            field.initial = None   
+            if(field_name == 'nombre_no_registrado' or field_name == 'observaciones'):
+                field.required = False
+
+
         instance = kwargs.get('instance', None)
         if instance and instance.nombre_no_registrado:
             self.fields['nombre_no_registrado'].disabled = True
@@ -259,10 +259,10 @@ class PreoperacionalDiarioForm(forms.ModelForm):
         return instance
 
     def clean_kilometraje(self):
-        kilometraje = self.cleaned_data['kilometraje']
+        kilometraje = self.cleaned_data.get('kilometraje')
         if self.instance.pk is None:
             if kilometraje < self.equipo.horometro:
-                raise ValidationError("El nuevo kilometraje debe ser igual o mayor al kilometraje actual del vehículo.")
+                raise ValidationError("[!] El nuevo kilometraje debe ser igual o mayor al kilometraje actual del vehículo.")
 
         return kilometraje
     
