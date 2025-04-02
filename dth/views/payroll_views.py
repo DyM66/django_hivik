@@ -52,7 +52,6 @@ def delete_document(request, doc_id):
     """
     document = get_object_or_404(Document, pk=doc_id)
     document.delete()
-    # También podrías manejar integridad si está asociado a PositionDocument
     return JsonResponse({'success': True, 'message': 'Documento eliminado correctamente.'})
 
 
