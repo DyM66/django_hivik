@@ -43,14 +43,35 @@ html, body {
 /* Definimos sticky para las 3 primeras columnas 
    y la fila de encabezado. */
 .table thead th {
-  /* position: sticky;
-  top: 0;
-  z-index: 2; */
-  background-color: var(--color-bg); /* fondo */
-  white-space: nowrap; 
+	position: sticky;
+	top: 0;
+	background-color: #fff;   /* o el color que prefieras */
+	z-index: 10;             /* Para que se superponga a las celdas al hacer scroll */
+	white-space: nowrap;
 }
-/* Para evitar que el resto de la tabla se meta "debajo", 
-   necesitamos que cada celda sticky repita el position:sticky. */
+
+table .sticky-col1 {
+	position: sticky;
+	left: 0;                   /* Se “pega” al borde izquierdo */
+	background: #fff;
+	z-index: 11;               /* Debe ser mayor que thead th para que no se oculte */
+	min-width: 150px;          /* Ajusta lo que quieras de ancho */
+	white-space: nowrap;       /* Evita romper texto */
+}
+
+table .sticky-col2 {
+	position: sticky;
+	left: 150px;               /* Igual a la sumatoria del ancho de .sticky-col1 */
+	background: #fff;
+	z-index: 11;
+	min-width: 130px;          /* Ajusta */
+	white-space: nowrap;
+}
+
+.sticky-col1, .sticky-col2, .sticky-col3 {
+  	box-shadow: 1px 0 5px rgba(0,0,0,0.1);
+}
+
 .table tbody td {
   white-space: nowrap; 
 }
@@ -97,9 +118,9 @@ html, body {
     	<table class="table table-bordered table-sm">
       		<thead>
 				<tr>
-					<th class="sticky-col2">Nombre</th>
-					<th class="sticky-col3">Cargo</th>
-					<th class="sticky-col1">Cédula</th>
+					<th class="sticky-col1">Nombre</th>
+					<th class="sticky-col2">Cargo</th>
+					<th>Cédula</th>
 					<th></th>
 					{% for doc in docs %}
 						<th>{{ doc.name }}</th>
@@ -110,11 +131,11 @@ html, body {
 				{% for row in rows %}
 				<tr>
 					<!-- cédula, nombre, cargo -->
-					<td class="sticky-col2">
+					<td class="sticky-col1">
 						{{ row.employee.name }} {{ row.employee.surname }}
 					</td>
-					<td>{{ row.employee.position_id }}</td>
-					<td class="sticky-col1">{{ row.employee.id_number }}</td>
+					<td class="sticky-col2">{{ row.employee.position_id }}</td>
+					<td>{{ row.employee.id_number }}</td>
 					<td>
 						<a class="btn btn-sm btn-secondary" href="{% url 'dth:request_docs_form' row.employee.id %}">
 							Solicitar
