@@ -12,6 +12,8 @@
         <p><strong>Salario:</strong> ${{ nomina.salary|currency }}</p>
         <p><strong>Ingreso:</strong> {{ nomina.admission|date:"d/m/Y" }}</p>
         <p><strong>Expiración:</strong> {{ nomina.expiration|default:"N/A" }}</p>
+        <p><strong>Nivel arl:</strong> {{ nomina.risk_class }} | {{ nomina.get_risk_class_display }}</p>
+        <p><strong>Es conductor:</strong> {% if nomina.is_driver %}Si{% else %}No{% endif %}</p>
     
         <div class="d-flex gap-2">
             <a class="btn btn-primary btn-sm" href="{% url 'dth:nomina_update' nomina.id %}">Editar</a>

@@ -5,22 +5,29 @@
 {% block title %}Actividades asignadas{% endblock %}
 
 {% block headtag %}
+<style>
+    /* Resaltar festivos */
+    .flatpickr-holiday {
+      background-color: #ffc107 !important;
+      color: #000 !important;
+      border-radius: 50%;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <main class="px-3">
-    <h1>
-        Actividades asignadas
-        {% if request.GET.asset_id %}
-            - {{ request.GET.asset_id|asset_info }}
-        {% endif %}
-        {% if request.GET.worker %}
-           / {{ request.GET.worker|user_info }}
-        {% endif %}
-    </h1>
+
 
     <!-- Panel de Filtros -->
-    <div class="card shadow px-3 py-3 mb-4" id="filter-panel">
+    <div class="card shadow px-3 py-3 mt-4" id="filter-panel">
+
+        <h1>
+            Actividades asignadas
+            {% if request.GET.asset_id %} - {{ request.GET.asset_id|asset_info }}{% endif %}
+            {% if request.GET.worker %}/ {{ request.GET.worker|user_info }}{% endif %}
+        </h1>
+    
         <form method="get" id="filterForm">
             <div class="row g-3 align-items-end">
   
@@ -64,7 +71,7 @@
                 {% endif %}
   
                 <!-- Filtro de estado: se muestra SOLO si hay start_date y end_date -->
-                <div class="col-md-4" id="estadoFilter" style="display: none;">
+                <div class="col-md-7" id="estadoFilter" style="display: none;">
                     <label class="form-label">Estado</label>
                     <div class="btn-group" role="group" aria-label="Filtro estado">
                         <!-- 0 => solo pendientes  / 1 => pend. + finalizadas / 2 => solo finalizadas -->
@@ -80,7 +87,9 @@
                 </div>
 
                 {% if request.user|has_group:"mto_members" %}
-                    <div class="col-md-3 form-check form-switch">
+                    <div class="col-md-4 form-check form-switch">
+                        <input type="hidden" name="show_mto_supervisors" value="0">
+                        
                         <input class="form-check-input" type="checkbox"
                                 id="showMtoSupervisors" name="show_mto_supervisors" value="1"
                                 {% if show_mto_supervisors == '1' %}checked{% endif %}>
@@ -96,41 +105,10 @@
         </form>
     </div>
 
-    <!-- Sección de Exportaciones -->
-    <div class="row">
-        <!-- Si prefieres un ancho automático, usa col-auto; si quieres fijo en pantallas medianas, usa col-md-4, etc. -->
-        <div class="col-auto">
-            <div class="card mb-4 p-3" style="min-width:300px; max-width:450px;">
-            <h5>Exportar listado actual</h5>
-            <p class="mb-2">Puedes generar PDF o Excel con los filtros actuales.</p>
-
-            <a href="{% url 'got:assigned-tasks-pdf' %}?start_date={{ start_date }}&end_date={{ end_date }}&worker={{ worker }}&asset_id={{ asset_id }}&estado={{ estado }}&show_mto_supervisors={{ show_mto_supervisors }}"
-                class="btn btn-danger btn-sm"
-                target="_blank">
-                <i class="bi bi-file-pdf-fill"></i> Generar PDF
-            </a>
-            
-
-            <a href="{% url 'got:assigned-tasks-excel' %}?start_date={{ start_date }}&end_date={{ end_date }}&worker={{ worker }}&asset_id={{ asset_id }}&estado={{ estado }}&show_mto_supervisors={{ show_mto_supervisors }}"
-                class="btn btn-success btn-sm mt-2"
-                target="_blank">
-                <i class="bi bi-file-earmark-excel-fill"></i> Generar Excel
-            </a>
-
-            <!-- Enlaces secundarios: Reporte diario -->
-            <a href="{% url 'got:assigned-tasks-pdf' %}?start_date={{ today_str }}&end_date={{ today_str }}&worker={{ worker }}&asset_id={{ asset_id }}&estado=1&show_mto_supervisors=1" class="btn btn-link btn-sm">
-                <i class="bi bi-calendar-check"></i> Reporte ejecución (Hoy)
-            </a>
-            <a href="{% url 'got:assigned-tasks-excel' %}?start_date={{ tomorrow_str }}&end_date={{ tomorrow_str }}&worker={{ worker }}&asset_id={{ asset_id }}&estado=0&show_mto_supervisors=1" class="btn btn-link btn-sm">
-                <i class="bi bi-calendar-check-fill"></i> Programación de actividades (Mañana)
-            </a>
-        </div>
-    </div>
-</div>
 
 
 
-    <table class="table-list">
+    <table class="table-list mt-4">
         <thead>
             <tr>
                 <th scope="col">#OT</th>
@@ -147,7 +125,7 @@
                     <td data-cell="Orden de trabajo" class="nowrap"><strong>OT-{{ act.ot.num_ot }}</strong></td>
                     <td data-cell="Sistema">{{ act.ot.system.asset }}/{{ act.ot.system.name }}</td>
                     <td data-cell="Descripción">{{ act.description }}</td>
-                    <td data-cell="Responsable">{{ act.responsible.first_name }} {{ act.responsible.last_name }}</td>
+                    <td data-cell="Responsable">{{ act.responsible.get_full_name }}</td>
                     <td data-cell="Tiempo de ejecución">{{ act.start_date|date:"d/m/Y" }}-{{ act.final_date|date:"d/m/Y" }}</td>
                     <td data-cell="Estado">
                         <div class="dropdown">
@@ -156,19 +134,20 @@
                                 {% elif act.is_overdue %}red-state
                                 {% else %}orange-state{% endif %} btn-sm dropdown-toggle" 
                                 type="button" id="dropdown-{{ act.id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                {% if act.finished %}Finalizada
+                                {% if act.finished %}Finalizado
                                 {% elif act.is_overdue %}Retrasado
                                 {% else %}En progreso{% endif %}
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="dropdown-{{ act.id }}">
-                                <li><a class="dropdown-item" href="{% url 'got:ot-detail' act.ot.num_ot %}">Ver detalle</a></li>
+                                <li><a class="dropdown-item" href="{% url 'got:ot-detail' act.ot.num_ot %}">Ver OT</a></li>
                                 {% if not request.user|can_edit_task:act %}
                                     <li><a class="dropdown-item" href="{% url 'got:finish-task' act.id %}">Finalizar</a></li>
                                 {% endif %}
-                                {% if perms.got.can_reschedule_task %}
-                                    <li><a class="dropdown-item" href="{% url 'got:reschedule-task' act.id %}">Reprogramar</a></li>
-                                {% endif %}
-                                <li><a class="dropdown-item" href="{% url 'got:create-solicitud-ot' act.ot.system.asset.abbreviation act.ot.num_ot %}">Nueva solicitud</a></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'got:create-solicitud-ot' act.ot.system.asset.abbreviation act.ot.num_ot %}">
+                                        Solicitar Materiales
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </td>
@@ -180,16 +159,39 @@
             {% endfor %}
         </tbody>
     </table>
-</main>
 
-<style>
-    /* Resaltar festivos */
-    .flatpickr-holiday {
-      background-color: #ffc107 !important;
-      color: #000 !important;
-      border-radius: 50%;
-    }
-</style>
+    <!-- Sección de Exportaciones -->
+    <div class="row mt-4">
+        <!-- Si prefieres un ancho automático, usa col-auto; si quieres fijo en pantallas medianas, usa col-md-4, etc. -->
+        <div class="col-auto">
+            <div class="card mb-4 p-3" style="min-width:300px; max-width:450px;">
+                <h5>Exportar listado actual</h5>
+                <p class="mb-2">Puedes generar PDF o Excel con los filtros actuales.</p>
+
+                <a href="{% url 'got:assigned-tasks-pdf' %}?start_date={{ start_date }}&end_date={{ end_date }}&worker={{ worker }}&asset_id={{ asset_id }}&estado={{ estado }}&show_mto_supervisors={{ show_mto_supervisors }}"
+                    class="btn btn-danger btn-sm"
+                    target="_blank">
+                    <i class="bi bi-file-pdf-fill"></i> Generar PDF
+                </a>
+                
+
+                <a href="{% url 'got:assigned-tasks-excel' %}?start_date={{ start_date }}&end_date={{ end_date }}&worker={{ worker }}&asset_id={{ asset_id }}&estado={{ estado }}&show_mto_supervisors={{ show_mto_supervisors }}"
+                    class="btn btn-success btn-sm mt-2"
+                    target="_blank">
+                    <i class="bi bi-file-earmark-excel-fill"></i> Generar Excel
+                </a>
+
+                <!-- Enlaces secundarios: Reporte diario -->
+                <a href="{% url 'got:assigned-tasks-pdf' %}?start_date={{ today_str }}&end_date={{ today_str }}&worker={{ worker }}&asset_id={{ asset_id }}&estado=1&show_mto_supervisors=1" class="btn btn-link btn-sm">
+                    <i class="bi bi-calendar-check"></i> Reporte ejecución (Hoy)
+                </a>
+                <a href="{% url 'got:assigned-tasks-excel' %}?start_date={{ tomorrow_str }}&end_date={{ tomorrow_str }}&worker={{ worker }}&asset_id={{ asset_id }}&estado=0&show_mto_supervisors=1" class="btn btn-link btn-sm">
+                    <i class="bi bi-calendar-check-fill"></i> Programación de actividades (Mañana)
+                </a>
+            </div>
+        </div>
+    </div>
+</main>
   
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>

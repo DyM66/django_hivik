@@ -14,6 +14,7 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 from collections import defaultdict
 from io import BytesIO
+from datetime import date, timedelta
 
 
 class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
@@ -45,14 +46,12 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 
     def get_queryset(self):
         qs = filter_tasks_queryset(self.request)
-        print(qs)
         return qs
 
 
 class TaskPDFView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         queryset = filter_tasks_queryset(request)
-        print(queryset)
 
         # Obtener los parámetros de fecha
         start_date = request.GET.get('start_date','')
@@ -76,67 +75,6 @@ class TaskPDFView(LoginRequiredMixin, View):
             'got/ots/assigned_tasks_pdf.html',
             context,
             "REPORTE DE ACTIVIDADES.pdf"
-        )
-    
-# got/views/task_views.py (por ejemplo)
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
-from django.views import View
-from django.db.models import F, ExpressionWrapper, DateField, Value
-from django.db.models.functions import Concat
-from datetime import date, timedelta, datetime
-from got.utils.others import pdf_render
-from got.utils.task_utils import DayInterval
-from got.models import Task, User
-
-@method_decorator(login_required, name='dispatch')
-class DailyTasksPDFView(LoginRequiredMixin, View):
-    def get(self, request, *args, **kwargs):
-        today = date.today()
-
-        # 1) Obtenemos todos los usuarios mto_members (supervisores)
-        mto_users = (
-            User.objects.filter(groups__name='mto_members')
-                .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
-                .values_list('full_name', flat=True)
-        )
-
-        # 2) Filtramos las tareas que tengan un supervisor en ese grupo
-        #    (es decir, ot__supervisor esté en la lista 'mto_users')
-        queryset = Task.objects.filter(ot__supervisor__in=mto_users)
-
-        # 3) Calculamos un alias `end_date` = start_date + men_time
-        #    (usar otro nombre que NO sea 'final_date', para evitar conflicto)
-        queryset = queryset.annotate(
-            end_date=ExpressionWrapper(
-                F('start_date') + DayInterval(F('men_time')),
-                output_field=DateField()
-            )
-        )
-
-        # 4) Filtramos para que hoy esté dentro de [start_date, end_date]
-        queryset = queryset.filter(
-            start_date__lte=today,
-            end_date__gte=today
-        )
-
-        # 5) Armamos el date_range para filtrar imágenes de HOY (si tu template lo usa)
-        date_str = today.strftime('%Y-%m-%d')
-        date_range = f"{date_str},{date_str}"
-
-        context = {
-            'tasks': queryset.order_by('ot__system__asset__name', 'start_date'),
-            'start': date_str,
-            'end': date_str,
-            'date_range': date_range,
-        }
-
-        return pdf_render(
-            request,
-            'got/ots/assigned_tasks_pdf.html',  # tu plantilla PDF
-            context,
-            "REPORTE_ACTIVIDADES_HOY.pdf"
         )
 
 

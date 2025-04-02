@@ -61,7 +61,7 @@ class NominaListView(ListView):
     template_name = 'dth/payroll_views/payroll_list.html'
     context_object_name = 'nominas'
     paginate_by = 32
-    ordering = ['name', 'surname', 'position_id__name']
+    ordering = ['surname', 'name', 'position_id__name']
 
     def get_queryset(self):
         qs = super().get_queryset()
