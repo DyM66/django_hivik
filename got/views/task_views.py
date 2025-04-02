@@ -48,7 +48,8 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
 class TaskPDFView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         queryset = filter_tasks_queryset(
-            request).order_by('ot__system__asset__name', 'start_date')
+            request
+        ).order_by('ot__system__asset__name', 'start_date')
 
         # Obtener los parámetros de fecha
         start = request.GET.get('start_date', '')

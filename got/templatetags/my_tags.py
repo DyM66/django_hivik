@@ -279,39 +279,42 @@ def first_line(value):
 
 
 @register.filter
-def filter_by_date_range(queryset, date_range):
+def filter_by_date_range(images, date_range):
     """
-    Espera 'YYYY-MM-DD,YYYY-MM-DD' o 'YYYY-MM-DD' o incluso cadena vacía.
-    Retorna el queryset filtrado por las fechas de creación de la imagen 
-    (o sin filtrar si no hay fechas válidas).
-    Asume que el modelo tiene un campo `creation` de tipo DateTimeField/DateField.
+    Filtra las imágenes por su fecha de creación (campo 'creation'),
+    según 'date_range' en formato:
+      - ""
+      - "YYYY-MM-DD"
+      - "YYYY-MM-DD,YYYY-MM-DD"
+    Si no hay rango o falla el parse, retornamos sin filtrar.
     """
     if not date_range:
-        # Si está vacío => no filtramos
-        return queryset
-    
+        # no hay rango => retorna todas
+        return images
+
     try:
-        # ¿Tenemos coma?
+        # date_range podría ser "YYYY-MM-DD" o "YYYY-MM-DD,YYYY-MM-DD"
         if ',' in date_range:
-            start_str, end_str = date_range.split(',')
-            # Si uno está vacío, igualalo al otro
-            if not start_str and end_str:
-                start_str = end_str
-            elif not end_str and start_str:
-                end_str = start_str
+            start_str, end_str = date_range.split(',', 1)
         else:
-            # Rango con un solo día
             start_str = date_range
             end_str = date_range
-        
-        # Ahora parseamos (si están vacíos, habrá error => capturado por except)
-        start_date = datetime.strptime(start_str.strip(), "%Y-%m-%d").date()
-        end_date   = datetime.strptime(end_str.strip(), "%Y-%m-%d").date()
 
-        # Filtramos por un campo que tengas en tus imágenes que indique la fecha
-        # En tu modelo 'Image' parece que tienes `creation = models.DateField(auto_now_add=True)`
-        # Así que:
-        return queryset.filter(creation__range=(start_date, end_date))
-    except Exception:
-        # Si algo falla, retornamos sin filtrar
-        return queryset
+        start_str = start_str.strip()
+        end_str   = end_str.strip()
+        if not start_str:
+            return images
+
+        if not end_str:
+            end_str = start_str
+
+        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        end_date   = datetime.strptime(end_str,   "%Y-%m-%d").date()
+
+        return images.filter(
+            creation__gte=start_date,
+            creation__lte=end_date
+        )
+    except ValueError:
+        # Si algo falla en el parseo, no filtramos
+        return images

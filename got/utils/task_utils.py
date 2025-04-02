@@ -65,7 +65,7 @@ def filter_tasks_queryset(request, base_queryset=None):
         end_date_str   = request.GET.get('end_date')
 
     if not (start_date_str and end_date_str):
-        queryset = queryset.filter(finished=False)
+        queryset = queryset
     else:
         try:
             d_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -78,17 +78,8 @@ def filter_tasks_queryset(request, base_queryset=None):
                 )
             ).filter(calc_final_date__gte=d_start, start_date__lte=d_end)
 
-            # Ahora aplicamos el filtro de estado.
-            estado = request.GET.get('estado', '0')
-            if estado == '0':
-                queryset = queryset.filter(finished=False)
-            elif estado == '1':
-                pass
-            elif estado == '2':
-                queryset = queryset.filter(finished=True)
-
         except ValueError:
-            queryset = queryset.filter(finished=False)
+            queryset = queryset
 
     # 4) Filtrar por supervisores en grupo mto_members si mto_only=1
     mto_only = request.GET.get('mto_only', '')
