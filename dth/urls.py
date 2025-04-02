@@ -1,6 +1,6 @@
 from django.urls import path
 from dth import views
-from dth.views import payroll_docs_views
+from dth.views import docs_management_views
 
 app_name = 'dth'
 
@@ -14,6 +14,10 @@ urlpatterns = [
     path('buscar-nomina/', views.buscar_nomina, name='buscar_nomina'), # Check
     path('crear-overtime/', views.OvertimeProjectCreateView.as_view(), name='overtime_report'), # Check
 
+    path('payroll/', views.NominaListView.as_view(), name='nomina_list'), # check
+    path('api/nomina/<int:pk>/detail/', views.nomina_detail_partial, name='nomina_detail_partial'),
+    path('payroll/<int:pk>/update/', views.NominaUpdateView.as_view(), name='nomina_update'),
+
 
     path('export_excel/', views.export_overtime_excel, name='export_overtime_excel'),
 
@@ -21,9 +25,6 @@ urlpatterns = [
     path('gerencia/nomina/export/', views.export_gerencia_nomina_excel, name='gerencia_nomina_export'),
     path('nomina/create/', views.nomina_create, name='nomina_create'),
 
-    path('payroll/', views.NominaListView.as_view(), name='nomina_list'),
-    path('payroll/<int:pk>/update/', views.NominaUpdateView.as_view(), name='nomina_update'),
-    path('api/nomina/<int:pk>/detail/', views.nomina_detail_partial, name='nomina_detail_partial'),
     path('positions/create/', views.create_position, name='create_position'),
 
     path('toggle_view_mode/', views.toggle_view_mode, name='toggle_view_mode'),
@@ -42,25 +43,25 @@ urlpatterns = [
 
     path('nomina/documents_matrix/', views.nomina_documents_matrix, name='nomina_documents_matrix'),
 
-    path('employee_document_form/', payroll_docs_views.employee_document_form, name='employee_document_form'),
-    path('create_employee_document/', payroll_docs_views.create_employee_document, name='create_employee_document'),
-    path('employee_document_preview/', payroll_docs_views.employee_document_preview, name='employee_document_preview'),
-    path('delete_employee_document/', payroll_docs_views.delete_employee_document, name='delete_employee_document'),
+    path('employee_document_form/', docs_management_views.employee_document_form, name='employee_document_form'),
+    path('create_employee_document/', docs_management_views.create_employee_document, name='create_employee_document'),
+    path('employee_document_preview/', docs_management_views.employee_document_preview, name='employee_document_preview'),
+    path('delete_employee_document/', docs_management_views.delete_employee_document, name='delete_employee_document'),
 
     path('document-upload/<str:token>/', views.document_upload_view, name='document_upload_view'),
 
-    path('ajax/request_docs_modal/', payroll_docs_views.ajax_request_docs_modal, name='ajax_request_docs_modal'),
+    path('ajax/request_docs_modal/', docs_management_views.ajax_request_docs_modal, name='ajax_request_docs_modal'),
 
-    path('ajax/create_document_request/', payroll_docs_views.create_document_request, name='create_document_request'),
+    path('ajax/create_document_request/', docs_management_views.create_document_request, name='create_document_request'),
 
     path('request_docs_form/<int:emp_id>/', views.request_docs_form, name='request_docs_form'),
     path('request_docs_submit/', views.request_docs_submit, name='request_docs_submit'),
 
     path('admin/docs/requests/', 
-         payroll_docs_views.admin_document_request_list, 
+         docs_management_views.admin_document_request_list, 
          name='admin_document_request_list'),
 
     path('admin/docs/requests/<int:pk>/', 
-         payroll_docs_views.admin_document_request_detail, 
+         docs_management_views.admin_document_request_detail, 
          name='admin_document_request_detail'),
 ]

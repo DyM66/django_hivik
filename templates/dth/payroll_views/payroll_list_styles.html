@@ -1,6 +1,6 @@
 <style>
     .card-nomina {
-        width: 16rem;
+        width: 300px;
         margin: 0.5rem;
     }
     .nomina-cards [class*="col-"] {
@@ -99,5 +99,13 @@
         overflow-y: auto;
         max-height: 80vh; /* igual altura máxima que positions-table */
     }
-
+    .nomina-cards .card-nomina .card-img-top {
+        /* Forzamos un alto fijo para que todas las imágenes tengan el mismo recorte */
+        height: 200px;
+        /* Para que la imagen se recorte sin deformarse */
+        object-fit: cover; 
+        object-position: center;
+        /* Ajusta si quieres que ocupe todo el ancho del contenedor */
+        width: 100%;
+    }
 </style>

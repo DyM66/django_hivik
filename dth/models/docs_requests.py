@@ -1,4 +1,4 @@
-# dth/models/payroll_docs_requests.py
+# dth/models/docs_requests.py
 
 import uuid
 from django.db import models

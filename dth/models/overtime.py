@@ -1,10 +1,9 @@
+# dth/models/overtime.py
+
 from django.db import models
 from django.contrib.auth.models import User
 from .payroll import Nomina
-from dth.utils import (
-    is_sunday_or_holiday, diff_in_hours, overlap_in_hours,
-    DAY_START, NIGHT_START
-    )
+from dth.utils import is_sunday_or_holiday, diff_in_hours, overlap_in_hours, DAY_START, NIGHT_START
 from datetime import time
 
 

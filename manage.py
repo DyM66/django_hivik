@@ -24,9 +24,9 @@ def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hivik2.settings')
 
-    if 'runserver' in sys.argv:
-        # If the command is 'runserver', also run 'npm run watch:css' and 'npm run watch:js'
-        run_node_watch()
+    # if 'runserver' in sys.argv:
+    #     # If the command is 'runserver', also run 'npm run watch:css' and 'npm run watch:js'
+    #     run_node_watch()
 
     try:
         from django.core.management import execute_from_command_line

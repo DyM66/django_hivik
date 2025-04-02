@@ -17,49 +17,11 @@ from dth.models.positions import Position, Document, PositionDocument, EmployeeD
 from dth.forms import NominaForm, PositionForm, DocumentForm
 
 
-@login_required
-@require_http_methods(["GET", "POST"])
-def edit_document(request, doc_id):
-    """
-    Edita un documento de la tabla Document. El botón de eliminar
-    se invoca sólo dentro del modal edit-document, no en la tabla principal.
-    """
-    document = get_object_or_404(Document, pk=doc_id)
-
-    if request.method == 'POST':
-        form = DocumentForm(request.POST, instance=document)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'success': True, 'message': 'Documento actualizado correctamente.'})
-        else:
-            html = render_to_string('dth/document_form_partial.html', {'form': form, 'document': document}, request=request)
-            return JsonResponse({'success': False, 'html': html})
-    else:
-        # GET => retornar el formulario para editar
-        form = DocumentForm(instance=document)
-        html = render_to_string('dth/document_form_partial.html', {
-            'form': form, 'document': document, 'is_editing': True
-            }, request=request)
-        return JsonResponse({'success': True, 'html': html})
-
-
-@login_required
-@require_http_methods(["POST"])
-def delete_document(request, doc_id):
-    """
-    Elimina un documento. Se invoca al hacer clic en 'Eliminar'
-    dentro del modal de edición de documento.
-    """
-    document = get_object_or_404(Document, pk=doc_id)
-    document.delete()
-    return JsonResponse({'success': True, 'message': 'Documento eliminado correctamente.'})
-
-
 class NominaListView(ListView):
     model = Nomina
     template_name = 'dth/payroll_views/payroll_list.html'
     context_object_name = 'nominas'
-    paginate_by = 32
+    paginate_by = 24
     ordering = ['surname', 'name', 'position_id__name']
 
     def get_queryset(self):
@@ -68,10 +30,7 @@ class NominaListView(ListView):
         # 1. Filtro por texto (búsqueda en name o surname)
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
-            qs = qs.filter(
-                models.Q(name__icontains=search_query) | 
-                models.Q(surname__icontains=search_query)
-            )
+            qs = qs.filter(models.Q(name__icontains=search_query) | models.Q(surname__icontains=search_query))
 
         # 2. Filtro por cargos (positions)
         selected_positions = self.request.GET.getlist('positions', [])
@@ -90,17 +49,9 @@ class NominaListView(ListView):
         context['positions'] = all_positions
         context['selected_positions'] = self.request.GET.getlist('positions', [])
         context['search_query'] = self.request.GET.get('search', '')
-
         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
         context['view_mode'] = profile.payroll_view_mode 
         return context
-
-class NominaUpdateView(UpdateView):
-    model = Nomina
-    form_class = NominaForm
-    template_name = 'dth/payroll_views/payroll_update.html'
-    success_url = reverse_lazy('dth:nomina_list')
-
 
 
 @require_GET
@@ -109,9 +60,7 @@ def nomina_detail_partial(request, pk):
     today = date.today()
 
     # 1) Los docs requeridos para el cargo:
-    pos_docs = PositionDocument.objects.filter(
-        position=nomina.position_id
-    ).select_related('document').order_by('document__name')
+    pos_docs = PositionDocument.objects.filter(position=nomina.position_id).select_related('document').order_by('document__name')
 
     # 2) Tomar EmployeeDocument de este nomina, mapeado por document_id
     emp_docs = EmployeeDocument.objects.filter(employee=nomina)
@@ -120,10 +69,7 @@ def nomina_detail_partial(request, pk):
         doc_id = ed.document_id
         if doc_id not in doc_map:
             doc_map[doc_id] = []
-        doc_map[doc_id].append({
-            'expiration_date': ed.expiration_date,
-            'file': ed.file.url if ed.file else None,
-        })
+        doc_map[doc_id].append({'expiration_date': ed.expiration_date, 'file': ed.file.url if ed.file else None,})
 
     # 3) Construir la listita de estado
     doc_status_list = []
@@ -142,8 +88,6 @@ def nomina_detail_partial(request, pk):
             })
             continue
 
-        # => el empleado sí tiene algo subido
-        # validamos si hay alguno sin vencer
         found_ok = False
         found_file_url = None
         all_vencidos = True
@@ -184,6 +128,82 @@ def nomina_detail_partial(request, pk):
         request=request
     )
     return HttpResponse(html, content_type='text/html')
+
+
+@login_required
+def nomina_create(request):
+    """
+    Crea un nuevo registro de Nomina.
+    Si es GET normal => render normal
+    Si es GET Ajax => devolver partial
+    Si es POST => crear y responder JSON
+    """
+    if request.method == 'POST':
+        form = NominaForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            return JsonResponse({'success': True, 'pk': obj.pk})
+        else:
+            # Devolver HTML con errores
+            html = render_to_string('dth/payroll_views/nomina_form_partial.html', {'form': form}, request=request)
+            return JsonResponse({'success': False, 'html': html})
+    else:
+        # GET
+        form = NominaForm()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Devolvemos partial
+            html = render_to_string('dth/payroll_views/nomina_form_partial.html', {'form': form}, request=request)
+            return JsonResponse({'success': True, 'html': html})
+        else:
+            # GET normal => la antigua vista con redirect
+            return render(request, 'dth/nomina_form.html', {'form': form})
+
+
+class NominaUpdateView(UpdateView):
+    model = Nomina
+    form_class = NominaForm
+    template_name = 'dth/payroll_views/payroll_update.html'
+    success_url = reverse_lazy('dth:nomina_list')
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def edit_document(request, doc_id):
+    """
+    Edita un documento de la tabla Document. El botón de eliminar
+    se invoca sólo dentro del modal edit-document, no en la tabla principal.
+    """
+    document = get_object_or_404(Document, pk=doc_id)
+
+    if request.method == 'POST':
+        form = DocumentForm(request.POST, instance=document)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'success': True, 'message': 'Documento actualizado correctamente.'})
+        else:
+            html = render_to_string('dth/document_form_partial.html', {'form': form, 'document': document}, request=request)
+            return JsonResponse({'success': False, 'html': html})
+    else:
+        # GET => retornar el formulario para editar
+        form = DocumentForm(instance=document)
+        html = render_to_string('dth/document_form_partial.html', {
+            'form': form, 'document': document, 'is_editing': True
+            }, request=request)
+        return JsonResponse({'success': True, 'html': html})
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_document(request, doc_id):
+    """
+    Elimina un documento. Se invoca al hacer clic en 'Eliminar'
+    dentro del modal de edición de documento.
+    """
+    document = get_object_or_404(Document, pk=doc_id)
+    document.delete()
+    return JsonResponse({'success': True, 'message': 'Documento eliminado correctamente.'})
+
+
 
 
 @login_required
@@ -382,36 +402,6 @@ def delete_position_document(request):
     pd = get_object_or_404(PositionDocument, id=pd_id)
     pd.delete()
     return JsonResponse({'success': True, 'message': 'Documento desasociado correctamente.'})
-
-
-@login_required
-def nomina_create(request):
-    """
-    Crea un nuevo registro de Nomina.
-    Si es GET normal => render normal
-    Si es GET Ajax => devolver partial
-    Si es POST => crear y responder JSON
-    """
-    if request.method == 'POST':
-        form = NominaForm(request.POST)
-        if form.is_valid():
-            obj = form.save()
-            return JsonResponse({'success': True, 'pk': obj.pk})
-        else:
-            # Devolver HTML con errores
-            html = render_to_string('dth/payroll_views/nomina_form_partial.html', {'form': form}, request=request)
-            return JsonResponse({'success': False, 'html': html})
-    else:
-        # GET
-        form = NominaForm()
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            # Devolvemos partial
-            html = render_to_string('dth/payroll_views/nomina_form_partial.html', {'form': form}, request=request)
-            return JsonResponse({'success': True, 'html': html})
-        else:
-            # GET normal => la antigua vista con redirect
-            return render(request, 'dth/nomina_form.html', {'form': form})
-
 
 
 @login_required

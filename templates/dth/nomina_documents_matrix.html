@@ -97,10 +97,10 @@ html, body {
     	<table class="table table-bordered table-sm">
       		<thead>
 				<tr>
-					<th class="sticky-col1">Cédula</th>
 					<th class="sticky-col2">Nombre</th>
 					<th class="sticky-col3">Cargo</th>
-					<th>Acciones</th>
+					<th class="sticky-col1">Cédula</th>
+					<th></th>
 					{% for doc in docs %}
 						<th>{{ doc.name }}</th>
 					{% endfor %}
@@ -110,22 +110,15 @@ html, body {
 				{% for row in rows %}
 				<tr>
 					<!-- cédula, nombre, cargo -->
-					<td class="sticky-col1">{{ row.employee.id_number }}</td>
 					<td class="sticky-col2">
 						{{ row.employee.name }} {{ row.employee.surname }}
 					</td>
 					<td>{{ row.employee.position_id }}</td>
+					<td class="sticky-col1">{{ row.employee.id_number }}</td>
 					<td>
-						<!-- <button type="button" class="btn btn-sm btn-secondary"
-								onclick="openRequestDocumentsModal('{{ row.employee.id }}')">
-						  <i class="bi bi-file-earmark-plus"></i>
-						  Solicitar
-						</button> -->
-
-						<a class="btn btn-sm btn-secondary"
-							   href="{% url 'dth:request_docs_form' row.employee.id %}">
-							  Solicitar (No-AJAX)
-							</a>
+						<a class="btn btn-sm btn-secondary" href="{% url 'dth:request_docs_form' row.employee.id %}">
+							Solicitar
+						</a>
 					</td>
 
 					{% for cell in row.cells %}
