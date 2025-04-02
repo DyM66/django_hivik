@@ -88,5 +88,9 @@ urlpatterns = [
     path('task/<int:task_pk>/delete-image/', views.TaskDeleteImageView.as_view(), name='task-delete-image'),
 
     path('maintenance/export/<str:asset_abbr>/', views.MaintenancePlanPDFExportView.as_view(), name='maintenance-plan-pdf-export'),
+
+
+    path('tasks/daily-pdf/', views.DailyTasksPDFView.as_view(), name='daily-tasks-pdf'),
+
 ]
 

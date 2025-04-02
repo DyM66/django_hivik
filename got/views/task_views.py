@@ -35,32 +35,39 @@ class AssignedTaskByUserListView(LoginRequiredMixin, generic.ListView):
         context['estado'] = self.request.GET.get('estado', '0')
         context['asset_id'] = self.request.GET.get('asset_id', '')
         context['worker'] = self.request.GET.get('worker', '')
+        context['show_mto_supervisors'] = self.request.GET.get('show_mto_supervisors', '1')
         context['holidays'] = [d.strftime('%Y-%m-%d') for d in sorted(COLOMBIA_HOLIDAYS)]
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+        context['today_str'] = today.strftime('%Y-%m-%d')
+        context['tomorrow_str'] = tomorrow.strftime('%Y-%m-%d')
         return context
 
     def get_queryset(self):
-        qs = Task.objects.filter(ot__isnull=False).select_related('ot__system', 'responsible')
-        qs = filter_tasks_queryset(self.request, base_queryset=qs)
-        qs = qs.order_by('start_date')
+        qs = filter_tasks_queryset(self.request)
+        print(qs)
         return qs
 
 
 class TaskPDFView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        queryset = filter_tasks_queryset(
-            request
-        ).order_by('ot__system__asset__name', 'start_date')
+        queryset = filter_tasks_queryset(request)
+        print(queryset)
 
         # Obtener los parámetros de fecha
-        start = request.GET.get('start_date', '')
-        end = request.GET.get('end_date', '')
-        # Formar el string con el rango de fechas (separado por coma)
-        date_range = f"{start},{end}" if start != end else start
+        start_date = request.GET.get('start_date','')
+        end_date   = request.GET.get('end_date','')
+        date_range = ''
+        if start_date and end_date:
+            if start_date == end_date:
+                date_range = start_date
+            else:
+                date_range = f"{start_date},{end_date}"
 
         context = {
             'tasks': queryset,
-            'start': start,
-            'end': end,
+            'start': start_date,
+            'end': end_date,
             'finalizados': request.GET.get('show_finalizadas', '0'),
             'date_range': date_range,
         }
@@ -69,6 +76,67 @@ class TaskPDFView(LoginRequiredMixin, View):
             'got/ots/assigned_tasks_pdf.html',
             context,
             "REPORTE DE ACTIVIDADES.pdf"
+        )
+    
+# got/views/task_views.py (por ejemplo)
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+from django.views import View
+from django.db.models import F, ExpressionWrapper, DateField, Value
+from django.db.models.functions import Concat
+from datetime import date, timedelta, datetime
+from got.utils.others import pdf_render
+from got.utils.task_utils import DayInterval
+from got.models import Task, User
+
+@method_decorator(login_required, name='dispatch')
+class DailyTasksPDFView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        today = date.today()
+
+        # 1) Obtenemos todos los usuarios mto_members (supervisores)
+        mto_users = (
+            User.objects.filter(groups__name='mto_members')
+                .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
+                .values_list('full_name', flat=True)
+        )
+
+        # 2) Filtramos las tareas que tengan un supervisor en ese grupo
+        #    (es decir, ot__supervisor esté en la lista 'mto_users')
+        queryset = Task.objects.filter(ot__supervisor__in=mto_users)
+
+        # 3) Calculamos un alias `end_date` = start_date + men_time
+        #    (usar otro nombre que NO sea 'final_date', para evitar conflicto)
+        queryset = queryset.annotate(
+            end_date=ExpressionWrapper(
+                F('start_date') + DayInterval(F('men_time')),
+                output_field=DateField()
+            )
+        )
+
+        # 4) Filtramos para que hoy esté dentro de [start_date, end_date]
+        queryset = queryset.filter(
+            start_date__lte=today,
+            end_date__gte=today
+        )
+
+        # 5) Armamos el date_range para filtrar imágenes de HOY (si tu template lo usa)
+        date_str = today.strftime('%Y-%m-%d')
+        date_range = f"{date_str},{date_str}"
+
+        context = {
+            'tasks': queryset.order_by('ot__system__asset__name', 'start_date'),
+            'start': date_str,
+            'end': date_str,
+            'date_range': date_range,
+        }
+
+        return pdf_render(
+            request,
+            'got/ots/assigned_tasks_pdf.html',  # tu plantilla PDF
+            context,
+            "REPORTE_ACTIVIDADES_HOY.pdf"
         )
 
 

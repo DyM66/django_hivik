@@ -12,6 +12,49 @@ from datetime import datetime
 
 register = template.Library()
 
+
+@register.filter
+def filter_by_date_range(images, date_range):
+    """
+    Filtra las imágenes por su fecha de creación (campo 'creation'),
+    según 'date_range' en formato:
+      - ""
+      - "YYYY-MM-DD"
+      - "YYYY-MM-DD,YYYY-MM-DD"
+    Si no hay rango o falla el parse, retornamos sin filtrar.
+    """
+    if not date_range:
+        # no hay rango => retorna todas
+        return images
+
+    try:
+        # date_range podría ser "YYYY-MM-DD" o "YYYY-MM-DD,YYYY-MM-DD"
+        if ',' in date_range:
+            start_str, end_str = date_range.split(',', 1)
+        else:
+            start_str = date_range
+            end_str = date_range
+
+        start_str = start_str.strip()
+        end_str   = end_str.strip()
+        if not start_str:
+            return images
+
+        if not end_str:
+            end_str = start_str
+
+        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        end_date   = datetime.strptime(end_str,   "%Y-%m-%d").date()
+
+        return images.filter(
+            creation__gte=start_date,
+            creation__lte=end_date
+        )
+    except ValueError:
+        # Si algo falla en el parseo, no filtramos
+        return images
+
+
 @register.filter
 def currency(value):
     try:
@@ -277,44 +320,3 @@ def first_line(value):
         return ""
     return value.splitlines()[0]
 
-
-@register.filter
-def filter_by_date_range(images, date_range):
-    """
-    Filtra las imágenes por su fecha de creación (campo 'creation'),
-    según 'date_range' en formato:
-      - ""
-      - "YYYY-MM-DD"
-      - "YYYY-MM-DD,YYYY-MM-DD"
-    Si no hay rango o falla el parse, retornamos sin filtrar.
-    """
-    if not date_range:
-        # no hay rango => retorna todas
-        return images
-
-    try:
-        # date_range podría ser "YYYY-MM-DD" o "YYYY-MM-DD,YYYY-MM-DD"
-        if ',' in date_range:
-            start_str, end_str = date_range.split(',', 1)
-        else:
-            start_str = date_range
-            end_str = date_range
-
-        start_str = start_str.strip()
-        end_str   = end_str.strip()
-        if not start_str:
-            return images
-
-        if not end_str:
-            end_str = start_str
-
-        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
-        end_date   = datetime.strptime(end_str,   "%Y-%m-%d").date()
-
-        return images.filter(
-            creation__gte=start_date,
-            creation__lte=end_date
-        )
-    except ValueError:
-        # Si algo falla en el parseo, no filtramos
-        return images

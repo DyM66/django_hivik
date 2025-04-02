@@ -31,11 +31,42 @@ class DayInterval(models.Func):
     output_field = models.DurationField()
 
 
-def filter_tasks_queryset(request, base_queryset=None):
-    if base_queryset is None:
-        queryset = Task.objects.filter(ot__isnull=False)
+def filter_tasks_queryset(request):
+    queryset = Task.objects.filter(ot__isnull=False)
+
+    estado_param = request.GET.get('estado', '')
+    if estado_param not in ['0', '1', '2']:
+        # Si no viene nada o viene algo inválido, por defecto mostramos solo pendientes
+        estado_param = '0'
+
+    if estado_param == '0':
+        queryset = queryset.filter(finished=False)
+    elif estado_param == '1':
+        # no filtramos nada por finished
+        pass
+    else:  # estado_param == '2'
+        queryset = queryset.filter(finished=True)
+
+    user = request.user
+    if user.groups.filter(name='serport_members').exists():
+        queryset = queryset.filter(responsible=user)
+    elif user.groups.filter(name='mto_members').exists():
+        pass
+    elif user.groups.filter(name__in=['maq_members', 'buzos_members']).exists():
+        queryset = queryset.filter(ot__system__asset__supervisor=user)
     else:
-        queryset = base_queryset
+        return queryset.none()
+    
+    show_mto = request.GET.get('show_mto_supervisors', '')
+    if user.groups.filter(name='mto_members').exists():
+        if show_mto == '1':
+            mto_supervisors = (
+                User.objects.filter(groups__name='mto_members')
+                .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
+                .values_list('full_name', flat=True)
+            )
+            queryset = queryset.filter(ot__supervisor__in=mto_supervisors)
+
 
     asset_id = request.GET.get('asset_id')  # Filtro por asset
     if asset_id:
@@ -45,74 +76,25 @@ def filter_tasks_queryset(request, base_queryset=None):
     if worker_id:
         queryset = queryset.filter(responsible_id=worker_id)
 
-    # 1) Revisar si daily = 'today' o 'tomorrow'
-    daily_mode = request.GET.get('daily', '')  # puede ser '' / 'today' / 'tomorrow'
-    if daily_mode == 'today':
-        # Forzar start_date y end_date a HOY
-        today_str = date.today().strftime('%Y-%m-%d')
-        start_date_str = today_str
-        end_date_str = today_str
-        # De manera que omitas los params del usuario
-    elif daily_mode == 'tomorrow':
-        # Forzar start_date y end_date a MAÑANA
-        tomorrow = date.today() + timedelta(days=1)
-        tomorrow_str = tomorrow.strftime('%Y-%m-%d')
-        start_date_str = tomorrow_str
-        end_date_str   = tomorrow_str
-    else:
-        # Si no hay daily_mode, tomamos lo que venga en GET (o filtramos pendientes)
-        start_date_str = request.GET.get('start_date')
-        end_date_str   = request.GET.get('end_date')
-
-    if not (start_date_str and end_date_str):
-        queryset = queryset
-    else:
+    start_date_str = request.GET.get('start_date')
+    end_date_str   = request.GET.get('end_date')
+    d_start, d_end = None, None
+    if start_date_str and end_date_str:
         try:
             d_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            d_end = datetime.strptime(end_date_str,   '%Y-%m-%d').date()
-
-            queryset = queryset.annotate(
-                calc_final_date=models.ExpressionWrapper(
-                    models.F('start_date') + DayInterval(models.F('men_time')),
-                    output_field=models.DateField()
-                )
-            ).filter(calc_final_date__gte=d_start, start_date__lte=d_end)
-
+            d_end   = datetime.strptime(end_date_str,   '%Y-%m-%d').date()
         except ValueError:
-            queryset = queryset
+            pass
 
-    # 4) Filtrar por supervisores en grupo mto_members si mto_only=1
-    mto_only = request.GET.get('mto_only', '')
-    if mto_only == '1':
-        # Lista de nombres completos (first + last) de mto_members:
-        mto_users = (
-            User.objects.filter(groups__name='mto_members')
-            .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
-            .values_list('full_name', flat=True)
+    if d_start and d_end:
+        queryset = queryset.annotate(
+            calc_final_date=models.ExpressionWrapper(
+                models.F('start_date') + DayInterval(models.F('men_time')),
+                output_field=models.DateField()
+            )
+        ).filter(
+            calc_final_date__gte=d_start,
+            start_date__lte=d_end
         )
-        queryset = queryset.filter(ot__supervisor__in=mto_users)
 
-    current_user = request.user  # Filtro adicional según el grupo del usuario
-    if current_user.groups.filter(name='serport_members').exists():
-        queryset = queryset.filter(responsible=current_user)
-    elif current_user.groups.filter(name='mto_members').exists():
-        pass
-    elif current_user.groups.filter(
-        name__in=['maq_members', 'buzos_members']
-    ).exists():
-        queryset = queryset.filter(ot__system__asset__supervisor=current_user)
-    else:
-        queryset = queryset.none()
-    return queryset
-
-
-def filter_by_mto_supervisors(queryset):
-    # Crea una lista de nombres completos (ej: "Carlos Perez")
-    mto_users = (
-        User.objects.filter(groups__name='mto_members').annotate(
-            full_name=Concat('first_name', Value(' '), 'last_name')
-        ).values_list('full_name', flat=True)
-    )
-
-    # Filtrar queryset
-    return queryset.filter(ot__supervisor__in=mto_users)
+    return queryset.order_by('ot__system__asset__name', 'start_date', 'ot__num_ot', 'priority')
