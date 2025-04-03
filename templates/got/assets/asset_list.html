@@ -8,17 +8,17 @@
 {% endblock %}
 
 {% block content %}
-    <div class="areas-container">
-        <div class="title-section">
-            <h1>Listado de activos</h1>
+<div class="areas-container">
+    <div class="title-section">
+        <h1>Listado de activos</h1>
 
-            <a href="{% url 'inv:all_equipment_list' %}" class="btn btn-sm btn-outline-dark">
-                Ver todos los Equipos
-            </a>
-        </div>
+        <a href="{% url 'inv:all_equipment_list' %}" class="btn btn-sm btn-outline-dark">
+            Ver todos los Equipos
+        </a>
+    </div>
         
-        {% for area_name, assets in assets_by_area.items %}
-            {% if assets %}
+    {% for area_name, assets in assets_by_area.items %}
+        {% if assets %}
             <!-- Sección de cada Área -->
             <div class="area-section">
 
@@ -28,7 +28,7 @@
 
                 <!-- Contenedor de cards de Assets -->
                 <div class="area-cards">
-                    {% for asset in assets %}
+                {% for asset in assets %}
                     <!-- Tarjeta individual de cada Asset -->
                     <div class="asset-card">
 
@@ -266,63 +266,58 @@
                             
                         </div><!-- /.offcanvas-body -->
                     </div><!-- /.offcanvas offcanvas-end -->
-                    {% endfor %}
+                {% endfor %}
                 </div>
             </div>
-            {% endif %}
-        {% endfor %}
-    </div>
+        {% endif %}
+    {% endfor %}
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'));
         tooltipTriggerList.map(function(tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
-        });
+    });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'))
-            const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
+    document.addEventListener('DOMContentLoaded', () => {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'))
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    })
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const rows = document.querySelectorAll("tr[data-href]");
+
+        rows.forEach(row => {
+            row.addEventListener("click", () => {
+                window.location.href = row.dataset.href;
             })
         })
+    })
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const rows = document.querySelectorAll("tr[data-href]");
-
-            rows.forEach(row => {
-                row.addEventListener("click", () => {
-                    window.location.href = row.dataset.href;
-                })
-            })
-        })
-
-        document.addEventListener("DOMContentLoaded", () => {
-            const placeInputs = document.querySelectorAll('input[id^="placeSearch-"]');
-            placeInputs.forEach(input => {
-                // Extraer el pk => ID final
-                // "placeSearch-12" => pk = "12"
-                const pk = input.id.split('placeSearch-')[1];
-                const table = document.getElementById('places-table-' + pk);
+    document.addEventListener("DOMContentLoaded", () => {
+        const placeInputs = document.querySelectorAll('input[id^="placeSearch-"]');
+        placeInputs.forEach(input => {
+            const pk = input.id.split('placeSearch-')[1];
+            const table = document.getElementById('places-table-' + pk);
         
-                // Escucha 'keyup' en cada input
-                input.addEventListener('keyup', function() {
-                    const filter = this.value.toLowerCase();
-                    // Filtramos filas
-                    const rows = table.querySelectorAll('tbody tr');
-                    rows.forEach(row => {
-                        const name = row.getAttribute('data-name') || '';
-                        const city = row.getAttribute('data-city') || '';
-                        if (name.includes(filter) || city.includes(filter)) {
-                            row.style.display = '';
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    });
+            input.addEventListener('keyup', function() {
+                const filter = this.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const name = row.getAttribute('data-name') || '';
+                    const city = row.getAttribute('data-city') || '';
+                    if (name.includes(filter) || city.includes(filter)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
                 });
             });
         });
-    </script>
-    
+    });
+</script>    
 {% endblock %}

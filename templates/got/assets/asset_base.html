@@ -1,110 +1,73 @@
-{% extends "got/base/base_generic.html" %}
+{% extends "base/base_generic.html" %}
 {% load my_tags %}
 
+{% block title %}{{ asset.name }}{% endblock %}
 {% block headtag %}
-    {% include "got/assets/asset_detail_styles.html" %}
-    <style>
-        .nav {
-            background-color: var(--color-aux);
-            min-height: 40px;
-            display: flex;
-            flex-wrap: wrap;
-            width: 100%;
-            gap: 0px;
-            border-bottom: 1px solid var(--color-primary);
-        }
-        .nav .nav-item:hover {
-            background-color: var(--color-primary);
-        }
-        .nav-link {
-            flex: 1 1 auto;
-            display: flex;
-            align-items: center; 
-            justify-content: center;
-            padding: 0.5rem;
-        }
-        .submenu .nav-item {
-            flex: 1 1 auto;
-            display: flex;
-            position: relative;
-        }
-        .nav-link.active {
-            color: var(--color-secondary);
-            border-bottom: 3px solid var(--color-secondary);
-            background-color: var(--color-primary);
-        }
-    </style>    
+{% include "got/assets/asset_detail_styles.html" %}
 {% endblock %}
 
 {% block content %}
-    <div>
-        <h1>
-            {% if perms.got.view_asset %}
-                <a href="{% url 'got:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
-            {% endif %}
-            {{ asset.name }}
-        </h1>
+<h1>
+    {% if perms.got.view_asset %}
+        <a href="{% url 'got:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
+    {% endif %}
+    {{ asset.name }}
+</h1>
 
+<ul class="nav submenu">
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'asset-detail' %}active{% endif %}" aria-current="page" href="{% url 'got:asset-detail' asset.abbreviation %}">
+            Información General
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'asset-maintenance-plan' %}active{% endif %}" aria-current="page" href="{% url 'mto:asset-maintenance-plan' asset.abbreviation %}">
+            Plan de Mantenimiento
+        </a>
+    </li>
+</ul>
+<ul class="nav submenu d-flex flex-wrap w-100" style="font-size: 0.9rem">
+    {% if rotativos %}
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'horas-asset' %}active{% endif %}" href="{% url 'got:horas-asset' asset.abbreviation %}">
+                {% if asset.area == 'v' %} Reporte de kilometraje {% else %} Reporte de horas {% endif %}
+            </a>
+        </li>
+	{% endif %}
+	<li class="nav-item">
+		{% if asset.area == 'v' %}
+			<a class="nav-link" href="{% url 'preoperacionales:preoperacional-consolidado' %}">Preoperacionales</a>
+		{% else %}
+			<a class="nav-link" href="{% url 'inv:asset-suministros' asset.abbreviation %}">Reporte de Consumos</a>
+		{% endif %}
+	</li>
+    <li class="nav-item">
+        {% if asset.area == 'v' %}
+            <a class="nav-link" href="{% url 'preoperacionales:salidas-consolidado' %}">Reportes de salida</a>
+        {% else %}
+            <a class="nav-link" href="{% url 'inv:asset_equipment_list' asset.abbreviation %}">Inventario</a>
+        {% endif %}
+	</li>
+	<li class="nav-item">
+		<a class="nav-link" href="{% url 'got:failure-report-create' asset.abbreviation %}">Reportar falla</a>
+	</li>
+	<li class="nav-item">
+		<a class="nav-link" href="{% url 'got:create-solicitud' asset.abbreviation %}">Solicitar
+			materiales/servicios
+        </a>
+	</li>
+    {% if perms.got.add_ot %}
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'got:ot-create' asset.abbreviation %}">Nueva orden de trabajo</a>
+        </li>
+	{% endif %} 
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'got:asset-documents' asset.abbreviation %}">
+            Documentos
+        </a>      
+    </li>
+</ul>
 
-        <ul class="nav submenu">
-            <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'asset-detail' %}active{% endif %}" aria-current="page" href="{% url 'got:asset-detail' asset.abbreviation %}">
-                    Información General
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'asset-maintenance-plan' %}active{% endif %}" aria-current="page" href="{% url 'mto:asset-maintenance-plan' asset.abbreviation %}">
-                    Plan de Mantenimiento
-                </a>
-            </li>
-        </ul>
-        <ul class="nav submenu d-flex flex-wrap w-100" style="font-size: 0.9rem">
-            {% if rotativos %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'horas-asset' %}active{% endif %}" href="{% url 'got:horas-asset' asset.abbreviation %}">
-                        {% if asset.area == 'v' %} Reporte de kilometraje {% else %} Reporte de horas {% endif %}
-                    </a>
-                </li>
-			{% endif %}
-			<li class="nav-item">
-				{% if asset.area == 'v' %}
-				    <a class="nav-link" href="{% url 'preoperacionales:preoperacional-consolidado' %}">Preoperacionales</a>
-				{% else %}
-				    <a class="nav-link" href="{% url 'inv:asset-suministros' asset.abbreviation %}">Reporte de Consumos</a>
-				{% endif %}
-			</li>
-            <li class="nav-item">
-                {% if asset.area == 'v' %}
-                    <a class="nav-link" href="{% url 'preoperacionales:salidas-consolidado' %}">Reportes de salida</a>
-                {% else %}
-                    <a class="nav-link" href="{% url 'inv:asset_equipment_list' asset.abbreviation %}">Inventario</a>
-                {% endif %}
-			</li>
-			<li class="nav-item">
-				<a class="nav-link" href="{% url 'got:failure-report-create' asset.abbreviation %}">Reportar falla</a>
-			</li>
-			<li class="nav-item">
-				<a class="nav-link" href="{% url 'got:create-solicitud' asset.abbreviation %}">Solicitar
-					materiales/servicios
-                </a>
-			</li>
-            {% if perms.got.add_ot %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'got:ot-create' asset.abbreviation %}">Nueva orden de trabajo</a>
-                </li>
-			{% endif %} 
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'got:asset-documents' asset.abbreviation %}">
-                    Documentos
-                </a>      
-            </li>
-        </ul>
-    </div>
-
-    <br>
-    <main>
-        {% block asset %}
-
-        {% endblock %}
-    </main>
+<br>
+{% block asset %}{% endblock %}
 {% endblock %}

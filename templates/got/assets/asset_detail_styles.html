@@ -1,14 +1,9 @@
 <style>
-    /* 
-    Estilos de la sección detalle de Activos:
-    asset_base, asset_detail, asset_maintenance_plan, graps
-    */
     #asset {
         width: 350px;
         height: 300px;
         object-fit: cover;
     }
-
     .main-asset {
         display: grid;
         grid-template-columns: 2.2fr 0.8fr;
@@ -17,30 +12,12 @@
             "sistemas detail"
             "ruta acciones"
     }
-
-    .main-asset .info-asset {
-        grid-area: detail;
-    }
-
-    .main-asset .sistemas {
-        grid-area: sistemas;
-    }
-
-    .main-asset .rutinas {
-        grid-area: ruta;
-    }
-
-    .main-asset .acciones {
-        grid-area: acciones;
-    }
-
-    .grafica-consumos {
-        grid-area: g-com;   
-    }
-
-    .grafica-horas {
-        grid-area: g-hor;  
-    }
+    .main-asset .info-asset {grid-area: detail;}
+    .main-asset .sistemas {grid-area: sistemas;}
+    .main-asset .rutinas {grid-area: ruta;}
+    .main-asset .acciones {grid-area: acciones;}
+    .grafica-consumos {grid-area: g-com;}
+    .grafica-horas {grid-area: g-hor;}
 
     /* graps */
     .grafica-container {
@@ -66,8 +43,36 @@
         margin-right: 15px;
     }
     @media (max-width: 767px) {
-        .nav-item {
+        .submenu .nav-item {
             width: 100%;
         }
+    }
+    .submenu {
+        background-color: var(--color-aux);
+        min-height: 40px;
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        border-bottom: 1px solid var(--color-primary);
+    }
+    .submenu .nav-item:hover {
+        background-color: var(--color-primary);
+    }
+    .submenu .nav-link {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center; 
+        justify-content: center;
+        padding: 0.5rem;
+    }
+    .submenu .nav-item {
+        flex: 1 1 auto;
+        display: flex;
+        position: relative;
+    }
+    .submenu .nav-link.active {
+        color: var(--color-secondary);
+        border-bottom: 3px solid var(--color-secondary);
+        background-color: var(--color-primary);
     }
 </style>
