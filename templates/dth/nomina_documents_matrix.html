@@ -27,58 +27,60 @@
     /* Más variables si deseas */
 }
 
-/* Ajustamos la tabla en un contenedor con scroll */
-.table-scroll-container {
-  position: relative;
-  max-height: 70vh;
-  overflow: auto;
-  overscroll-behavior: none; /* evita gestos back/forward al hacer scroll */
+/* .table-scroll-container {
+	width: 100%;                 
+	max-height: 70vh;      
+	overflow-x: auto;        
+	overflow-y: auto;
+	
+ */
+	/* overscroll-behavior-x: none; */
+/* 
+	overscroll-behavior-y: contain;
+	
+	-webkit-overflow-scrolling: touch; 
+	touch-action: pan-x pan-y;        
 }
-
-html, body {
-  overscroll-behavior: none;
-}
-
-
-/* Definimos sticky para las 3 primeras columnas 
-   y la fila de encabezado. */
-.table thead th {
+.table {
+	width: 100%; 
+	table-layout: auto;
+	white-space: nowrap;
+} */
+/* Encabezado sticky (fila superior) */
+/* .table thead th {
 	position: sticky;
 	top: 0;
-	background-color: #fff;   /* o el color que prefieras */
-	z-index: 10;             /* Para que se superponga a las celdas al hacer scroll */
-	white-space: nowrap;
-}
-
+	background-color: #fff;
+	z-index: 10;
+} */
 table .sticky-col1 {
 	position: sticky;
-	left: 0;                   /* Se “pega” al borde izquierdo */
+	left: 0;                  
 	background: #fff;
-	z-index: 11;               /* Debe ser mayor que thead th para que no se oculte */
-	min-width: 150px;          /* Ajusta lo que quieras de ancho */
-	white-space: nowrap;       /* Evita romper texto */
+	z-index: 11;              
+	min-width: 150px;        
+	white-space: nowrap;       
 }
-
 table .sticky-col2 {
 	position: sticky;
-	left: 150px;               /* Igual a la sumatoria del ancho de .sticky-col1 */
+	left: 150px;           
 	background: #fff;
 	z-index: 11;
-	min-width: 130px;          /* Ajusta */
+	min-width: 130px;       
 	white-space: nowrap;
-}
+} 
+/* Sombra sutil para las columnas fijas 
 
-.sticky-col1, .sticky-col2, .sticky-col3 {
+/* 
+html, body {
+  overscroll-behavior: none;
+/* } 
+*/
+.sticky-col1, .sticky-col2 {
   	box-shadow: 1px 0 5px rgba(0,0,0,0.1);
 }
-
 .table tbody td {
-  white-space: nowrap; 
-}
-
-.table-scroll-container {
-  touch-action: pan-y; /* sólo scroll vertical */
-  /* si quieres igualmente horizontal, esto no evitará del todo el swipe back en iOS */
+  white-space: nowrap;
 }
 
 /* Unas clases de badge personalizadas (además de “badge” de Bootstrap) */
@@ -103,7 +105,6 @@ table .sticky-col2 {
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid my-4">
 
 	<h2>Matriz de Documentos</h2>
 
@@ -114,7 +115,7 @@ table .sticky-col2 {
 		</div>
 	</div>
 
-  	<div class="table-scroll-container">
+  	<div class="" style="overflow-x:auto;">
     	<table class="table table-bordered table-sm">
       		<thead>
 				<tr>
@@ -137,7 +138,7 @@ table .sticky-col2 {
 					<td class="sticky-col2">{{ row.employee.position_id }}</td>
 					<td>{{ row.employee.id_number }}</td>
 					<td>
-						<a class="btn btn-sm btn-secondary" href="{% url 'dth:request_docs_form' row.employee.id %}">
+						<a class="btn btn-sm btn-secondary disabled" href="{% url 'dth:request_docs_form' row.employee.id %}">
 							Solicitar
 						</a>
 					</td>
@@ -183,7 +184,6 @@ table .sticky-col2 {
       	</tbody>
     	</table>
   	</div>
-</div>
 
 
 <!-- Modal SUBIR DOC -->
@@ -251,17 +251,28 @@ rows.forEach(row => {
 //-------------------------------------------------------
 // 2) Scroll container => prevenir swipe-back en iOS
 //-------------------------------------------------------
-document.addEventListener('DOMContentLoaded', function(){
-const container = document.querySelector('.table-scroll-container');
-if (container) {
-container.addEventListener('wheel', function(e) {
-// e.deltaX < 0 => scroll left
-if (e.deltaX < 0 && container.scrollLeft <= 0) {
-  e.preventDefault();
-}
-}, { passive: false });
-}
-});
+// document.addEventListener('DOMContentLoaded', function(){
+//     const container = document.querySelector('.table-scroll-container');
+//     if (container) {
+//         container.addEventListener('wheel', function(e) {
+//             // deltaX > 0 => el usuario está desplazándose a la derecha
+//             // deltaX < 0 => el usuario está desplazándose a la izquierda
+
+//             const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+//             // Límite izquierdo
+//             if (e.deltaX < 0 && container.scrollLeft <= 0) {
+//                 e.preventDefault();
+//             }
+//             // Límite derecho
+//             else if (e.deltaX > 0 && container.scrollLeft >= maxScrollLeft) {
+//                 e.preventDefault();
+//             }
+//             // En caso contrario, no prevenimos => scroll normal
+//         }, { passive: false });
+//     }
+// });
+
 
 //-------------------------------------------------------
 // 3) Abrir form para subir doc (Pendiente/Vencido)
