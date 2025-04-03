@@ -2,6 +2,15 @@
 {% load ruta_extras %}
 
 {% block content %}
+
+<style>
+
+.equipo-fuera-servicio {
+	text-decoration: line-through;
+	font-style: italic;
+	color: #6c757d; /* Gris elegante */
+}
+</style>
 	<main class="px-3">
 		<div>
 			<h1>
@@ -39,7 +48,12 @@
 											{% else %}
 												<i class="fa-solid fa-list"></i>
 											{% endif %}
-											{{ principal.name }}
+											<span class="{% if principal.estado == 'f' %}equipo-fuera-servicio{% endif %}">
+												{{ principal.name }}
+											</span>
+											{% if principal.estado == 'f' %}
+												<small class="text-muted"> (Fuera de servicio)</small>
+											{% endif %}
 										</td>
 									</tr>
 									{% if dependientes %}
@@ -48,7 +62,12 @@
 												<ul class="dependents-list">
 												{% for dep in dependientes %}
 													<li data-update-url="{% url 'got:equipo-detail' dep.code %}">
-														{{ dep.name }}
+														<span class="{% if dep.estado == 'f' %}equipo-fuera-servicio{% endif %}">
+															{{ dep.name }}
+														</span>
+														{% if dep.estado == 'f' %}
+															<small class="text-muted">(Fuera de servicio)</small>
+														{% endif %}
 													</li>
 												{% endfor %}
 												</ul>
