@@ -8,10 +8,8 @@
 {% endblock %}
 
 {% block content %}
-<main class="px-3">
-
     <div class="areas-container">
-        <div class="mt-4 title-section">
+        <div class="title-section">
             <h1>Listado de activos</h1>
 
             <a href="{% url 'inv:all_equipment_list' %}" class="btn btn-sm btn-outline-dark">
@@ -274,58 +272,57 @@
             {% endif %}
         {% endfor %}
     </div>
-</main>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'));
-    tooltipTriggerList.map(function(tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    });
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'))
-        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
+        document.addEventListener('DOMContentLoaded', () => {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'))
+            const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
         })
-    })
 
-	document.addEventListener("DOMContentLoaded", () => {
-		const rows = document.querySelectorAll("tr[data-href]");
+        document.addEventListener("DOMContentLoaded", () => {
+            const rows = document.querySelectorAll("tr[data-href]");
 
-		rows.forEach(row => {
-			row.addEventListener("click", () => {
-				window.location.href = row.dataset.href;
-			})
-		})
-	})
+            rows.forEach(row => {
+                row.addEventListener("click", () => {
+                    window.location.href = row.dataset.href;
+                })
+            })
+        })
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const placeInputs = document.querySelectorAll('input[id^="placeSearch-"]');
-        placeInputs.forEach(input => {
-            // Extraer el pk => ID final
-            // "placeSearch-12" => pk = "12"
-            const pk = input.id.split('placeSearch-')[1];
-            const table = document.getElementById('places-table-' + pk);
-    
-            // Escucha 'keyup' en cada input
-            input.addEventListener('keyup', function() {
-                const filter = this.value.toLowerCase();
-                // Filtramos filas
-                const rows = table.querySelectorAll('tbody tr');
-                rows.forEach(row => {
-                    const name = row.getAttribute('data-name') || '';
-                    const city = row.getAttribute('data-city') || '';
-                    if (name.includes(filter) || city.includes(filter)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
+        document.addEventListener("DOMContentLoaded", () => {
+            const placeInputs = document.querySelectorAll('input[id^="placeSearch-"]');
+            placeInputs.forEach(input => {
+                // Extraer el pk => ID final
+                // "placeSearch-12" => pk = "12"
+                const pk = input.id.split('placeSearch-')[1];
+                const table = document.getElementById('places-table-' + pk);
+        
+                // Escucha 'keyup' en cada input
+                input.addEventListener('keyup', function() {
+                    const filter = this.value.toLowerCase();
+                    // Filtramos filas
+                    const rows = table.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const name = row.getAttribute('data-name') || '';
+                        const city = row.getAttribute('data-city') || '';
+                        if (name.includes(filter) || city.includes(filter)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
                 });
             });
         });
-    });
-</script>
+    </script>
     
 {% endblock %}

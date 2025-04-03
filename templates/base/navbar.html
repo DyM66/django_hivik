@@ -28,7 +28,7 @@
                     </li>
                 {% endif %}
 
-                {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
+                {% if request.user|has_group:"mto_members" %}
                     <!-- Dropdown de Mantenimiento -->
                     <li class="nav-item dropdown mega-dropdown">
                         <a class="nav-link {% if request.resolver_match.url_name in 'maintenance_dashboard' %}active{% endif %}" href="#" id="maintenanceDropdown" role="button">
@@ -41,26 +41,18 @@
                             
                                 <div class="flex-fill me-4">
                                     <ul class="list-unstyled">
-                                    {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
                                         <li><a class="dropdown-item" href="{% url 'mto:stoytell' %}">Barcos</a></li>
                                         <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'mto:maintenance_plan_all_assets' %}">Proyección</a></li>
-                                    {% endif %}
+                                        <!-- <li><a class="dropdown-item" href="{% url 'mto:maintenance_plan_all_assets' %}">Proyección</a></li> -->
                                     </ul>
                                 </div>
 
                                 <div class="flex-fill me-4">
                                     <h5 class="text-white">OT y Fallas</h5>
                                     <ul class="list-unstyled">
-                                    {% if perms.got.view_task %}
                                         <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
-                                    {% endif %}
-                                    {% if perms.got.view_ot %}
                                         <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
-                                    {% endif %}
-                                    {% if perms.got.view_failurereport %}
                                         <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
-                                    {% endif %}
                                     </ul>
                                 </div>
 
@@ -72,23 +64,15 @@
                             <div class="p-3 text-center">
                                 <!-- Mismos links que arriba -->
                                 <ul class="list-unstyled">
-                                    {% if request.user|has_group:"mto_members" or request.user|has_group:"gerencia" %}
                                     <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
-                                    {% endif %}
                                 </ul>
                                 <hr class="my-2">
                                 <h5 class="text-white">OT y Fallas</h5>
                                 <ul class="list-unstyled">
-                                    {% if perms.got.view_task %}
                                     <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
-                                    {% endif %}
-                                    {% if perms.got.view_ot %}
                                     <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
-                                    {% endif %}
-                                    {% if perms.got.view_failurereport %}
                                     <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
-                                    {% endif %}
                                 </ul>
                             </div>
                         </div>
@@ -184,14 +168,6 @@
                     </li>
                 {% endif %}
 
-                {% if perms.inv.view_solicitud %}
-                    <li class="nav-item">
-                        <a class="position-relative nav-link {% if request.resolver_match.url_name == 'rq-list' %}active{% endif %}" href="{% url 'got:rq-list' %}">
-                            Solicitudes
-                        </a>
-                    </li>
-                {% endif %}
-
                 {% if perms.ope.view_operation %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'operation-list' %}active{% endif %}" href="{% url 'ope:operation-list' %}">
@@ -199,27 +175,6 @@
                         </a>
                     </li>
                 {% endif %}
-
-                {% if perms.outbound.view_outbounddelivery %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'outbound-list' %}active{% endif %}" href="{% url 'outbound:outbound-list' %}">
-                            Salidas
-                        </a>
-                    </li>
-                {% endif %}
-
-                {% if perms.dth.add_overtime %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'overtime_report' %}active{% endif %}" href="#" id="overtimeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Horas extras
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="overtimeDropdown">
-                            <li><a class="dropdown-item" href="{% url 'dth:overtime_report' %}">Reportar horas extras</a></li>
-                            <li><a class="dropdown-item" href="{% url 'dth:overtime_list' %}">Mis reportes</a></li>
-                        </ul>
-                    </li>
-                {% endif %}
-            
 
                 
                 <!-- Dropdown de Vehículos -->

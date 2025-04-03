@@ -5,38 +5,48 @@
 	
 <aside class="vertical-sidebar">
 	<ul class="nav flex-column">
-		<li class="nav-item">
-			<a class="nav-link" href="{% url 'got:asset-list' %}">
-			    <i class="bi bi-tools"></i>
-				<span class="nav-text">Mantenimiento</span>
-			</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" href="{% url 'dth:nomina_list' %}">
-		    	<i class="bi bi-people-fill"></i>
-				<span class="nav-text">Talento Humano</span>
-			</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" href="{% url 'tic:ticket-list' %}">
-			    <i class="fa-solid fa-clock"></i>
-				<span class="nav-text">Horas extras</span>
-			</a>
-		</li>
-
-		  <!-- Ítem que tiene submenú -->
-		  <!-- <li class="nav-item has-submenu">
-			<a class="nav-link submenu-toggle" href="javascript:void(0);">
-			  <i class="bi bi-stopwatch"></i>
-			  <span class="nav-text">Horas Extras</span>
-			  <i class="bi bi-caret-down ms-auto"></i> 
-			</a>
-		
-			<ul class="submenu nav flex-column">
-			  <li><a class="nav-link" href="{% url 'dth:overtime_report' %}">Reportar horas extras</a></li>
-			  <li><a class="nav-link" href="{% url 'dth:overtime_list' %}">Mis reportes</a></li>
-			</ul>
-		  </li> -->
+		{% if perms.got.view_failurereport %}
+			<li class="nav-item">
+				<a class="nav-link" href="{% url 'got:failure-report-list' %}">
+					<i class="fa-solid fa-screwdriver-wrench"></i>
+					<span class="nav-text">Reporte de fallas</span>
+				</a>
+			</li>
+		{% endif %}
+		{% if perms.inv.view_solicitud %}
+			<li class="nav-item">
+				<a class="nav-link" href="{% url 'got:rq-list' %}">
+					<i class="fa-solid fa-cart-shopping"></i>
+					<span class="nav-text">Solicitudes de compras</span>
+				</a>
+			</li>
+		{% endif %}
+		{% if perms.dth.view_overtimeproject %}
+			<li class="nav-item">
+				<a class="nav-link" href="{% url 'dth:overtime_list' %}">
+					<i class="fa-solid fa-clock"></i>
+					<span class="nav-text">Horas extras</span>
+				</a>
+			</li>
+		{% endif %}
+		{% if perms.dth.add_overtimeproject %}
+			<li class="nav-item">
+				<a class="nav-link" href="{% url 'dth:overtime_report' %}">
+					<i class="bi bi-people-fill"></i>
+					<span class="nav-text">Reportar horas extras</span>
+				</a>
+			</li>
+		{% endif %}
+		{% if perms.outbound.view_outbounddelivery %}
+			<li class="nav-item">
+				<a class="nav-link" href="{% url 'outbound:outbound-list' %}">
+					<svg style="margin-right: 5px;" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+						<path d="M440-183v-274L200-596v274l240 139Zm80 0 240-139v-274L520-457v274Zm-80 92L160-252q-19-11-29.5-29T120-321v-318q0-22 10.5-40t29.5-29l280-161q19-11 40-11t40 11l280 161q19 11 29.5 29t10.5 40v318q0 22-10.5 40T800-252L520-91q-19 11-40 11t-40-11Zm200-528 77-44-237-137-78 45 238 136Zm-160 93 78-45-237-137-78 45 237 137Z"/>
+					</svg>
+					<span class="nav-text">Salida de material</span>
+				</a>
+			</li>
+		{% endif %}
 	</ul>
 
 	
