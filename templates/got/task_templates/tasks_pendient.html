@@ -16,11 +16,11 @@
 {% endblock %}
 
 {% block content %}
-<main class="px-3">
+<div>
 
 
     <!-- Panel de Filtros -->
-    <div class="card shadow px-3 py-3 mt-4" id="filter-panel">
+    <div class="card shadow px-3 py-3" id="filter-panel">
 
         <h1>
             Actividades asignadas
@@ -105,18 +105,15 @@
         </form>
     </div>
 
-
-
-
     <table class="table-list mt-4">
         <thead>
             <tr>
-                <th scope="col">#OT</th>
-                <th scope="col">Sistema</th>
-                <th scope="col">Descripción</th>
-                <th scope="col">Responsable</th>
-                <th scope="col">Tiempo de ejecución</th>
-                <th scope="col">Acciones</th>
+                <th scope="col" style="font-size: 0.9rem;">#OT</th>
+                <th scope="col" style="font-size: 0.9rem;">Sistema</th>
+                <th scope="col" style="font-size: 0.9rem;">Descripción</th>
+                <th scope="col" style="font-size: 0.9rem;">Responsable</th>
+                <th scope="col" style="font-size: 0.9rem;">Duración</th>
+                <th scope="col" style="font-size: 0.9rem;">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -191,7 +188,7 @@
             </div>
         </div>
     </div>
-</main>
+</div>
   
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>

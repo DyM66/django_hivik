@@ -2,12 +2,11 @@
 {% obtener_asset_del_supervisor as asset_del_supervisor %}
 {% obtener_vehiculos as vehiculos %}
 
-<nav class="navbar navbar-expand-lg">
+<nav class="navbar navbar-expand-lg" id="mainNavbar" style="border-bottom: 1px solid #000;">
     <div class="container-fluid">
         <a class="navbar-brand" href="{% if asset_del_supervisor %}{{ asset_del_supervisor.get_absolute_url }}{% elif perms.got.access_all_assets %}{% url 'got:asset-list' %}{% endif %}">
-            <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" width="200px">
+            <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" width="180px">
         </a>
-
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
               <span class="navbar-toggler-icon"></span>
         </button>

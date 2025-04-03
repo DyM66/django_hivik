@@ -1,0 +1,88 @@
+<!-- Botón flotante para pantallas pequeñas -->
+<button class="sidebar-fab d-block d-lg-none" id="sidebarFabBtn" aria-label="Open sidebar">
+	<i id="fabIcon" class="bi bi-plus fs-2 toggle-icon"></i>
+</button>
+	
+<aside class="vertical-sidebar">
+	<ul class="nav flex-column">
+		<li class="nav-item">
+			<a class="nav-link" href="{% url 'got:asset-list' %}">
+			    <i class="bi bi-tools"></i>
+				<span class="nav-text">Mantenimiento</span>
+			</a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" href="{% url 'dth:nomina_list' %}">
+		    	<i class="bi bi-people-fill"></i>
+				<span class="nav-text">Talento Humano</span>
+			</a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" href="{% url 'tic:ticket-list' %}">
+			    <i class="fa-solid fa-clock"></i>
+				<span class="nav-text">Horas extras</span>
+			</a>
+		</li>
+
+		  <!-- Ítem que tiene submenú -->
+		  <!-- <li class="nav-item has-submenu">
+			<a class="nav-link submenu-toggle" href="javascript:void(0);">
+			  <i class="bi bi-stopwatch"></i>
+			  <span class="nav-text">Horas Extras</span>
+			  <i class="bi bi-caret-down ms-auto"></i> 
+			</a>
+		
+			<ul class="submenu nav flex-column">
+			  <li><a class="nav-link" href="{% url 'dth:overtime_report' %}">Reportar horas extras</a></li>
+			  <li><a class="nav-link" href="{% url 'dth:overtime_list' %}">Mis reportes</a></li>
+			</ul>
+		  </li> -->
+	</ul>
+
+	
+</aside>
+
+<!-- 
+<style>
+	/* Por defecto, el submenú está oculto */
+.submenu {
+  display: none;  /* u "height: 0; overflow: hidden;" si quieres animación */
+  padding-left: 1.5rem; /* sangría opcional */
+}
+
+/* Clase .open para submenú abierto */
+.has-submenu.open > .submenu {
+  display: block; 
+}
+
+/* A veces, si .nav-link se hace hover, submenú se muestre => 
+   depende de si quieres abrirlo al hover en escritorio, 
+   o al "click" en móvil, etc.
+*/
+
+.has-submenu .submenu-toggle i.bi-caret-down {
+  transition: transform 0.3s;
+}
+.has-submenu.open .submenu-toggle i.bi-caret-down {
+  transform: rotate(-180deg);
+}
+
+</style>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+  // Selecciona todos los toggles
+  const toggles = document.querySelectorAll('.submenu-toggle');
+
+  toggles.forEach(toggle => {
+    toggle.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Obtenemos el LI padre
+      const liParent = this.closest('.has-submenu');
+      // Alternamos la clase .open
+      liParent.classList.toggle('open');
+    });
+  });
+});
+
+</script> -->
