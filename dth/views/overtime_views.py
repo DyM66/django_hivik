@@ -94,7 +94,7 @@ class OvertimeListView(LoginRequiredMixin, TemplateView):
 
 
 @login_required
-@permission_required('got.can_approve_overtime', raise_exception=True)
+@permission_required('dth.can_approve_overtime', raise_exception=True)
 @require_POST
 def approve_overtime(request):
     action = request.POST.get('action')
