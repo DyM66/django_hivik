@@ -25,12 +25,12 @@ def edit_document(request, doc_id):
             form.save()
             return JsonResponse({'success': True, 'message': 'Documento actualizado correctamente.'})
         else:
-            html = render_to_string('dth/job_profile_templetes/document_form_partial.html', {'form': form, 'document': document}, request=request)
+            html = render_to_string('dth/job_profile_templates/document_form_partial.html', {'form': form, 'document': document}, request=request)
             return JsonResponse({'success': False, 'html': html})
     else:
         # GET => retornar el formulario para editar
         form = DocumentForm(instance=document)
-        html = render_to_string('dth/job_profile_templetes/document_form_partial.html', {
+        html = render_to_string('dth/job_profile_templates/document_form_partial.html', {
             'form': form, 'document': document, 'is_editing': True
             }, request=request)
         return JsonResponse({'success': True, 'html': html})
@@ -57,11 +57,11 @@ def create_position(request):
             position = form.save()
             return JsonResponse({'success': True, 'position_id': position.id, 'position_name': position.name})
         else:
-            html = render_to_string('dth/job_profile_templetes/position_form.html', {'form': form}, request=request)
+            html = render_to_string('dth/job_profile_templates/position_form.html', {'form': form}, request=request)
             return JsonResponse({'success': False, 'html': html})
     else:
         form = PositionForm()
-        html = render_to_string('dth/job_profile_templetes/position_form.html', {'form': form}, request=request)
+        html = render_to_string('dth/job_profile_templates/position_form.html', {'form': form}, request=request)
         return JsonResponse({'success': True, 'html': html})
 
 
@@ -76,13 +76,13 @@ def edit_position(request, position_id):
             form.save()
             return JsonResponse({'success': True, 'message': 'Cargo actualizado correctamente.'})
         else:
-            html = render_to_string('dth/job_profile_templetes/position_form.html', {'form': form, 'position': position}, request=request)
+            html = render_to_string('dth/job_profile_templates/position_form.html', {'form': form, 'position': position}, request=request)
             return JsonResponse({'success': False, 'html': html})
     else:
         form = PositionForm(instance=position)
         # Renderizamos un template parcial con el formulario
         position_form_html = render_to_string(
-            'dth/job_profile_templetes/position_form.html',
+            'dth/job_profile_templates/position_form.html',
             {'form': form, 'position': position},
             request=request
         )
@@ -90,7 +90,7 @@ def edit_position(request, position_id):
         associated_docs = position.position_documents.select_related('document').order_by('document__name')
         all_documents = Document.objects.all().order_by('name')
         associate_docs_html = render_to_string(
-            'dth/job_profile_templetes/position_docs_partial.html',
+            'dth/job_profile_templates/position_docs_partial.html',
             {
                 'position': position,
                 'associated_docs': associated_docs,
@@ -100,7 +100,7 @@ def edit_position(request, position_id):
         )
 
         combined_html = render_to_string(
-            'dth/job_profile_templetes/position_modal_content.html',
+            'dth/job_profile_templates/position_modal_content.html',
             {
                 'position_form_html': position_form_html,
                 'associate_docs_html': associate_docs_html,

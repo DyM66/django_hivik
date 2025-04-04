@@ -1,15 +1,34 @@
+<!-- dth/job_profile_templates/position_document_list.html -->
 {% extends 'base/base_generic.html' %}
-{% load static %}
 
 {% block title %}Documentos por cargo{% endblock %}
-
+{% block headtag %}
+<style>
+    .card {
+        padding: 0.5rem; /* padding más pequeño */
+        font-size: 0.9rem; /* texto un poco más pequeño */
+    }
+    .card-body {
+        padding: 0.5rem; /* reduce padding */
+    }
+</style>
+{% endblock %}
 {% block content %}
-<div class="container py-4">
     <h1>Documentos por Cargo</h1>
 
-    <div class="row mt-4">
+    <button class="btn btn-sm btn-success ms-2" id="addPositionBtn">
+        <i class="fa fa-plus"></i> Nuevo Cargo
+    </button>  
+
+    <div class="row mt-2">
+    
         <!-- Cargos y documentos -->
         <div class="col-md-7">
+
+            <div class="mb-3">
+                <input type="text" id="positionSearch" class="form-control" placeholder="Buscar Cargo...">
+            </div>  
+
             {% for group in grouped_positions %}
                 <!-- <h3 class="mt-4">{{ group.category }}</h3> -->
                 {% for position in group.positions %}
@@ -18,10 +37,11 @@
                             <h5 class="mb-1">{{ position.name|upper }}</h5>
 
                             <!-- Ícono para abrir modal largo (Edit position) -->
-                            <i class="fa fa-ellipsis-h position-absolute top-0 end-0 m-2 text-muted edit-position-icon"
-                               style="cursor:pointer;"
-                               data-position-id="{{ position.id }}">
+                            <i class="fa fa-cog position-absolute top-0 end-0 m-2 text-secondary edit-position-icon"
+                                style="cursor:pointer; font-size: 1.4rem;"
+                                data-position-id="{{ position.id }}">
                             </i>
+                         
 
                             <hr>
                             {% if position.description %}
@@ -91,84 +111,103 @@
             </table>
         </div>
     </div>
-</div>
 
-<!-- Modal largo para editar Position -->
-<div class="modal fade" id="positionEditModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">  <!-- modal-lg o modal-xl si es necesario -->
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Editar Cargo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="positionEditContent">
-                Cargando...
-            </div>
-            <div class="modal-footer justify-content-between">
-                <!-- Botón de eliminar cargo (se abre confirmación) -->
-                <button class="btn btn-danger" id="deletePositionBtn">Eliminar</button>
-                <button class="btn btn-primary" id="savePositionBtn">Guardar Cambios</button>
+    <!-- Modal Crear Cargo -->
+    <div class="modal fade" id="createPositionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Cargo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body" id="createPositionModalContent">
+                    Cargando...
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" id="saveNewPositionBtn">Guardar Cargo</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Confirmar Eliminar Cargo -->
-<div class="modal fade" id="confirmDeletePositionModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-body">
-                <p>¿Seguro que deseas eliminar este cargo?</p>
-                <p class="text-danger small">Esta acción no se puede deshacer.</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-danger" id="confirmDeletePositionBtn">Eliminar</button>
+
+    <!-- Modal largo para editar Position -->
+    <div class="modal fade" id="positionEditModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">  <!-- modal-lg o modal-xl si es necesario -->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Cargo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="positionEditContent">
+                    Cargando...
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <!-- Botón de eliminar cargo (se abre confirmación) -->
+                    <button class="btn btn-danger" id="deletePositionBtn">Eliminar</button>
+                    <button class="btn btn-primary" id="savePositionBtn">Guardar Cambios</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Genérico para formularios de documento -->
-<div class="modal fade" id="documentModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Gestión de Documento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body" id="modalBodyContent">
-                Cargando...
-            </div>
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-
-                <!-- Botón de Eliminar -->
-                <button type="button" class="btn btn-danger" style="display:none;" id="openDeleteDocumentConfirm">
-                    <i class="fa fa-trash"></i> Eliminar
-                </button>
-                
-                <button type="button" class="btn btn-primary" id="saveDocumentBtn">Guardar</button>
+    <!-- Modal Confirmar Eliminar Cargo -->
+    <div class="modal fade" id="confirmDeletePositionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <p>¿Seguro que deseas eliminar este cargo?</p>
+                    <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-danger" id="confirmDeletePositionBtn">Eliminar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Confirmar Eliminar Documento -->
-<div class="modal fade" id="confirmDeleteDocumentModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-body">
-                <p>¿Seguro que deseas eliminar este documento?</p>
-                <p class="text-danger small">Esta acción no se puede deshacer.</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-danger" id="confirmDeleteDocumentBtn">Eliminar</button>
+    <!-- Modal Genérico para formularios de documento -->
+    <div class="modal fade" id="documentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Gestión de Documento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body" id="modalBodyContent">
+                    Cargando...
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+
+                    <!-- Botón de Eliminar -->
+                    <button type="button" class="btn btn-danger" style="display:none;" id="openDeleteDocumentConfirm">
+                        <i class="fa fa-trash"></i> Eliminar
+                    </button>
+                    
+                    <button type="button" class="btn btn-primary" id="saveDocumentBtn">Guardar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Modal Confirmar Eliminar Documento -->
+    <div class="modal fade" id="confirmDeleteDocumentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <p>¿Seguro que deseas eliminar este documento?</p>
+                    <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-danger" id="confirmDeleteDocumentBtn">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script>
 // ----------------------
@@ -208,101 +247,100 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchDeleteDocument(currentDocId);
     });
 
-
     function fetchForm(action, id = null) {
-    let url = "{% url 'dth:position_documents_list' %}?action=" + action;
-    if (id) url += `&id=${id}`;
+        let url = "{% url 'dth:position_documents_list' %}?action=" + action;
+        if (id) url += `&id=${id}`;
 
-    fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
-    .then(res => res.json())
-    .then(data => {
-        if(data.success) {
-            // Construimos HTML a mano
-            let html = buildDocumentFormHTML(data);
-            document.getElementById('modalBodyContent').innerHTML = html;
+        fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // Construimos HTML a mano
+                let html = buildDocumentFormHTML(data);
+                document.getElementById('modalBodyContent').innerHTML = html;
 
-            // Si data.editing es true => guardamos currentDocId para eliminar
-            if(data.editing) {
-                currentDocId = data.doc_id; // variable global
-            } else {
-                currentDocId = null;
-            }
-
-            // Mostrar/ocultar botón "Eliminar Documento"
-            const deleteBtn = document.getElementById('openDeleteDocumentConfirm');
-            if(deleteBtn) {
+                // Si data.editing es true => guardamos currentDocId para eliminar
                 if(data.editing) {
-                    deleteBtn.style.display = 'inline-block';
+                    currentDocId = data.doc_id; // variable global
                 } else {
-                    deleteBtn.style.display = 'none';
+                    currentDocId = null;
                 }
+
+                // Mostrar/ocultar botón "Eliminar Documento"
+                const deleteBtn = document.getElementById('openDeleteDocumentConfirm');
+                if(deleteBtn) {
+                    if(data.editing) {
+                        deleteBtn.style.display = 'inline-block';
+                    } else {
+                        deleteBtn.style.display = 'none';
+                    }
+                }
+
+                docModal.show();
             }
-
-            docModal.show();
-        }
-    });
-}
-
-function buildDocumentFormHTML(data) {
-    let hiddenID = data.editing 
-        ? `<input type="hidden" name="id" value="${data.doc_id}"/>`
-        : '';
-
-    return `
-    <form id="document-form">
-      ${hiddenID}
-      <div class="mb-3">
-        <label for="id_name" class="form-label">Nombre de Documento</label>
-        <input type="text" name="name" class="form-control" 
-               id="id_name" value="${data.doc_name || ''}" required>
-      </div>
-      <div class="mb-3">
-        <label for="id_description" class="form-label">Descripción</label>
-        <textarea name="description" class="form-control" id="id_description" rows="3">${data.doc_description || ''}</textarea>
-      </div>
-    </form>
-    `;
-}
-
-
-// En tu "Guardar" del documento (saveDocumentBtn)
-document.getElementById('saveDocumentBtn').addEventListener('click', () => {
-    const form = document.getElementById('document-form');
-    if(!form) return;
-    const data = new FormData(form);
-
-    // 1) Determinar la acción
-    let action = form.querySelector('input[name="id"]') 
-        ? 'edit_document' 
-        : 'create_document';
-
-    // 2) ¡Agrega el action al POST!
-    data.append('action', action);
-
-    // 3) Validar campo name
-    const nameField = form.querySelector('#id_name');
-    if (nameField && nameField.value.trim() === "") {
-        alert("El campo nombre es requerido.");
-        return;
+        });
     }
 
-    fetch("{% url 'dth:position_documents_list' %}", {
-        method: 'POST',
-        headers: {'X-CSRFToken': '{{ csrf_token }}'},
-        body: data
-    })
-    .then(resp => resp.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            // Muestra errores en el propio modal
-            document.getElementById('modalBodyContent').innerHTML = data.html || '';
-            if (data.message) alert(data.message);
+    function buildDocumentFormHTML(data) {
+        let hiddenID = data.editing 
+            ? `<input type="hidden" name="id" value="${data.doc_id}"/>`
+            : '';
+
+        return `
+        <form id="document-form">
+        ${hiddenID}
+        <div class="mb-3">
+            <label for="id_name" class="form-label">Nombre de Documento</label>
+            <input type="text" name="name" class="form-control" 
+                id="id_name" value="${data.doc_name || ''}" required>
+        </div>
+        <div class="mb-3">
+            <label for="id_description" class="form-label">Descripción</label>
+            <textarea name="description" class="form-control" id="id_description" rows="3">${data.doc_description || ''}</textarea>
+        </div>
+        </form>
+        `;
+    }
+
+
+    // En tu "Guardar" del documento (saveDocumentBtn)
+    document.getElementById('saveDocumentBtn').addEventListener('click', () => {
+        const form = document.getElementById('document-form');
+        if(!form) return;
+        const data = new FormData(form);
+
+        // 1) Determinar la acción
+        let action = form.querySelector('input[name="id"]') 
+            ? 'edit_document' 
+            : 'create_document';
+
+        // 2) ¡Agrega el action al POST!
+        data.append('action', action);
+
+        // 3) Validar campo name
+        const nameField = form.querySelector('#id_name');
+        if (nameField && nameField.value.trim() === "") {
+            alert("El campo nombre es requerido.");
+            return;
         }
-    })
-    .catch(err => console.error(err));
-});
+
+        fetch("{% url 'dth:position_documents_list' %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            body: data
+        })
+        .then(resp => resp.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                // Muestra errores en el propio modal
+                document.getElementById('modalBodyContent').innerHTML = data.html || '';
+                if (data.message) alert(data.message);
+            }
+        })
+        .catch(err => console.error(err));
+    });
 
 
     function fetchDeleteDocument(docId) {
@@ -462,5 +500,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Modal Crear Cargo
+document.addEventListener('DOMContentLoaded', function() {
+    const positionModal = new bootstrap.Modal(document.getElementById('createPositionModal'));
+    
+    document.getElementById('addPositionBtn').addEventListener('click', function(){
+        fetch("{% url 'dth:create_position' %}", {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success){
+                document.getElementById('createPositionModalContent').innerHTML = data.html;
+                positionModal.show();
+            }else{
+                alert("Error al cargar el formulario");
+            }
+        })
+        .catch(e => console.error(e));
+    });
+
+    document.getElementById('saveNewPositionBtn').addEventListener('click', function(){
+        const form = document.getElementById('position-form');
+        const formData = new FormData(form);
+        
+        fetch("{% url 'dth:create_position' %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success){
+                location.reload();
+            }else{
+                document.getElementById('createPositionModalContent').innerHTML = data.html;
+            }
+        })
+        .catch(e => console.error(e));
+    });
+});
+
+
+document.addEventListener('DOMContentLoaded', function(){
+    const searchInput = document.getElementById('positionSearch');
+    searchInput.addEventListener('keyup', function(){
+        const searchTerm = this.value.toLowerCase();
+        const cards = document.querySelectorAll('.col-md-7 .card');
+
+        cards.forEach(card => {
+            const positionName = card.querySelector('h5').textContent.toLowerCase();
+            card.style.display = positionName.includes(searchTerm) ? 'block' : 'none';
+        });
+    });
+});
+
 </script>
 {% endblock %}
