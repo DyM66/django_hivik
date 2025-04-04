@@ -147,6 +147,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=100, unique=True)),
                 ('description', models.TextField(blank=True, null=True)),
                 ('category', models.CharField(blank=True, choices=[('o', 'Operativo'), ('a', 'Administrativo'), ('m', 'Mixto')], max_length=1, null=True)),
+                ('rule', models.CharField(blank=True, max_length=100, null=True)),
             ],
         ),
         migrations.CreateModel(

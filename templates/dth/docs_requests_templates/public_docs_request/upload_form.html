@@ -1,0 +1,310 @@
+<!-- dth/templates/dth/docs_requests_templates/public_docs_request/upload_form.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Subida de Documentos - SERPORT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png">
+  
+  <!-- Google Font: Poppins (u otra moderna) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins&display=swap">
+
+  <!-- Bootstrap CSS (versión pastel) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+        rel="stylesheet"/>
+
+  <style>
+    /* Tipografía y fondo */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f6f8fb;
+      margin: 0;
+      padding: 0;
+    }
+    /* Encabezado pastel */
+    header {
+      background-color: #c5cae9; /* lila pastel */
+    }
+    header h1 {
+      font-weight: 600; 
+      letter-spacing: 1px;
+    }
+    /* Cards: bordes y header */
+    .card {
+      border: none;
+      border-radius: 8px;
+    }
+    .card-header {
+      border-bottom: 0;
+    }
+    /* Estados: pendiente, aprobado, rechazado */
+    .status-pending {
+      background-color: #ffecb3; /* amarillo pastel */
+      color: #333;
+    }
+    .status-approved {
+      background-color: #c8e6c9; /* verde pastel */
+      color: #155724;
+    }
+    .status-rejected {
+      background-color: #f8d7da; /* rojo pastel */
+      color: #721c24;
+    }
+    /* Cuando se sube el documento, se aplica borde verde */
+    .border-success-custom {
+      border: 2px solid #c8e6c9 !important;
+    }
+    .bg-success-custom {
+      background-color: #dcedc8 !important;
+    }
+    /* Botones */
+    .btn-upload {
+      background-color: #ffecb3;
+      color: #333;
+      border: none;
+    }
+    .btn-upload:hover {
+      background-color: #ffe082;
+    }
+    .btn-final {
+      background-color: #80cbc4;
+      border: none;
+      color: #fff;
+    }
+    .btn-final:hover {
+      background-color: #4db6ac;
+    }
+    /* Logo */
+    .logo-serport {
+      max-width: 250px; 
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Encabezado con logo y nombre de empresa -->
+  <header class="text-dark py-3 mb-4">
+    <div class="container d-flex flex-column align-items-center">
+      <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" alt="SERPORT Logo" class="logo-serport mb-2">
+      <p class="m-0">Departamento de Talento Humano</p>
+    </div>
+  </header>
+
+  <div class="container mb-5">
+    <div class="row">
+      <div class="col">
+        <div class="card shadow">
+          <div class="card-body">
+            <h4 class="mb-3">Documentos Requeridos</h4>
+            <p class="text-muted">
+              Por favor, sube cada documento en formato <strong>PDF</strong> asegurándote de que sea un escaneo legible y de alta calidad del documento original. Evita fotografías borrosas o copias de baja resolución.
+            </p>
+            
+            <!-- Contenedor para cada ítem -->
+            <div id="items-container">
+              {% for item in items %}
+                <div class="card mb-4 {% if item.pdf_file %} border-success-custom {% endif %}" id="card-item-{{ item.id }}" style="border: 2px solid #ddd;">
+                  <!-- Encabezado: aplica colores según estado -->
+                  <div class="card-header 
+                    {% if item.status == 'A' %}
+                      status-approved
+                    {% elif item.status == 'R' %}
+                      status-rejected
+                    {% else %}
+                      status-pending
+                    {% endif %}">
+                    <strong>{{ item.document.name }}</strong>
+                  </div>
+                  
+                  <!-- Cuerpo de la tarjeta -->
+                  <div class="card-body">
+                    {% if item.pdf_file %}
+                      {% if item.status == 'A' %}
+                        <p class="text-success fw-bold" id="msg-sent-{{ item.id }}">Aprobado.</p>
+                      {% elif item.status == 'R' %}
+                        <p class="text-danger fw-bold" id="msg-sent-{{ item.id }}">Rechazado: {{ item.rejection_reason }}</p>
+                      {% else %}
+                        <p class="text-muted fw-bold" id="msg-sent-{{ item.id }}">Pendiente de revisión.</p>
+                      {% endif %}
+                      <p>
+                        <span class="fw-bold">Archivo PDF:</span>
+                        <a href="{{ item.pdf_file.url }}" target="_blank" class="link-primary">Ver documento</a>
+                      </p>
+                    {% endif %}
+					{{ item.rejection_reason|default_if_none:"" }}
+                    
+                    <!-- Mostrar formulario de subida si no hay archivo o si fue rechazado -->
+                    {% if not item.pdf_file or item.status == 'R' %}
+                      <form class="row g-2 align-items-end item-form" data-item-id="{{ item.id }}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        
+                        <!-- Input para archivo PDF -->
+                        <div class="col-12 col-md-6">
+                          <label class="form-label" for="file-input-{{ item.id }}">Seleccionar archivo (PDF)</label>
+                          <input type="file" class="form-control file-input" id="file-input-{{ item.id }}" name="file" accept="application/pdf" required>
+                        </div>
+                        
+                        <!-- Checkbox para fecha de expiración -->
+                        <div class="col-12 col-md-6">
+                          <div class="form-check mb-1">
+                            <input class="form-check-input exp-check" type="checkbox" value="" id="exp-check-{{ item.id }}" data-target="#exp-date-{{ item.id }}">
+                            <label class="form-check-label" for="exp-check-{{ item.id }}">¿Este documento expira?</label>
+                          </div>
+                          <input type="date" class="form-control exp-date d-none" name="expiration_date" id="exp-date-{{ item.id }}">
+                        </div>
+                        
+                        <!-- Botón para subir con spinner -->
+                        <div class="col-12 text-end mt-3">
+                          <button type="button" class="btn btn-primary btn-sm upload-btn" data-item-id="{{ item.id }}">
+                            <span class="btn-text">Subir documento</span>
+                          </button>
+                        </div>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div><!-- items-container -->
+            
+            <!-- Botón final: se habilita cuando todos los documentos han sido subidos -->
+            <div class="text-end">
+              <button type="button" class="btn btn-success btn-final" id="btn-finalize" disabled>Finalizar</button>
+            </div>
+          </div>
+        </div>
+      </div> <!-- col -->
+    </div> <!-- row -->
+  </div> <!-- container -->
+
+  <!-- Footer -->
+  <footer class="text-center text-muted py-3">
+    <small>&copy; 2025 SERPORT. Todos los derechos reservados.</small>
+  </footer>
+
+  <!-- Bootstrap Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Función para mostrar spinner en el botón
+    function showSpinner(button) {
+      button.disabled = true;
+      const originalText = button.querySelector('.btn-text').innerHTML;
+      button.setAttribute('data-original-text', originalText);
+      button.querySelector('.btn-text').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cargando...';
+    }
+
+    function hideSpinner(button) {
+      button.disabled = false;
+      const originalText = button.getAttribute('data-original-text');
+      if (originalText) {
+        button.querySelector('.btn-text').innerHTML = originalText;
+      }
+    }
+
+    // Lógica de front-end
+    document.addEventListener('DOMContentLoaded', () => {
+      // Manejar checkbox para mostrar/ocultar el campo de fecha
+      const expChecks = document.querySelectorAll('.exp-check');
+      expChecks.forEach(check => {
+        check.addEventListener('change', (e) => {
+          const targetSelector = e.target.getAttribute('data-target');
+          const dateInput = document.querySelector(targetSelector);
+          if(e.target.checked) {
+            dateInput.classList.remove('d-none');
+          } else {
+            dateInput.value = "";
+            dateInput.classList.add('d-none');
+          }
+        });
+      });
+
+      // Manejar subida de archivos (AJAX) para cada ítem
+      const uploadButtons = document.querySelectorAll('.upload-btn');
+      uploadButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const itemId = btn.getAttribute('data-item-id');
+          uploadDocument(itemId, btn);
+        });
+      });
+
+      // Habilitar el botón "Finalizar" cuando todos los ítems tengan PDF subido
+      checkIfAllUploaded();
+
+      // Al hacer clic en "Finalizar", redirigir a la vista de éxito
+      const btnFinalize = document.getElementById('btn-finalize');
+      btnFinalize.addEventListener('click', () => {
+        window.location.reload();
+      });
+    });
+
+    // Función para subir documento vía AJAX para un ítem
+    function uploadDocument(itemId, btn) {
+      const card = document.getElementById(`card-item-${itemId}`);
+      const form = card.querySelector('.item-form');
+      const fileInput = form.querySelector('.file-input');
+      
+      if(fileInput.files.length === 0) {
+        alert("Por favor, selecciona un archivo PDF.");
+        return;
+      }
+      const fileName = fileInput.files[0].name.toLowerCase();
+      if(!fileName.endsWith('.pdf')) {
+        alert("Solo se permiten archivos en formato PDF. Revisa el archivo seleccionado.");
+        return;
+      }
+      
+      const formData = new FormData(form);
+      
+      // Mostrar spinner en el botón
+      showSpinner(btn);
+      
+      fetch("{% url 'dth:document_upload_partial' %}", {
+        method: "POST",
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data.success) {
+          // Ocultar el formulario y mostrar mensaje de estado
+          form.classList.add('d-none');
+          const successMsg = document.createElement('p');
+          successMsg.classList.add('text-success', 'fw-bold');
+          successMsg.innerText = "Subido con éxito, pendiente por revisión.";
+          card.querySelector('.card-body').insertBefore(successMsg, form);
+          card.classList.add('border-success-custom');
+          const header = card.querySelector('.card-header');
+          header.classList.remove('bg-white');
+          header.classList.add('bg-success-custom');
+          checkIfAllUploaded();
+        } else {
+          alert("Error al subir: " + data.error);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Ha ocurrido un error subiendo el archivo.");
+      })
+      .finally(() => {
+        hideSpinner(btn);
+      });
+    }
+
+    // Función para verificar si todos los ítems tienen archivo subido
+    function checkIfAllUploaded() {
+      const itemCards = document.querySelectorAll('[id^="card-item-"]');
+      let allUploaded = true;
+      itemCards.forEach(card => {
+        const form = card.querySelector('.item-form');
+        if(form && !form.classList.contains('d-none')) {
+          allUploaded = false;
+        }
+      });
+      const btnFinalize = document.getElementById('btn-finalize');
+      btnFinalize.disabled = !allUploaded;
+    }
+  </script>
+</body>
+</html>

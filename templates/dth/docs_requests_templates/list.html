@@ -1,0 +1,40 @@
+<!-- dth/docs_requests_templates/list.html -->
+{% extends "base/base_generic.html" %}
+{% load my_tags %}
+
+{% block title %}Listado de documentos solicitados{% endblock %}
+{% block headtag %}
+{% endblock %}
+
+{% block content %}
+<div class="card shadow px-3 py-3">
+	<h2>Solicitudes de Documentos</h2>
+</div>
+
+<table class="table-list table-detail mt-3">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Empleado</th>
+			<th>Fecha</th>
+			<th>Token</th>
+			<th>Acciones</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for req in requests %}
+		<tr>
+			<td>{{ req.id }}</td>
+			<td>{{ req.employee.name }} {{ req.employee.surname }} ({{ req.employee.id_number }})</td>
+			<td>{{ req.created_at|date:"d/m/Y H:i" }}</td>
+			<td>{{ req.token }}</td>
+			<td>
+				<a href="{% url 'dth:admin_document_request_detail' req.pk %}" class="btn btn-sm btn-primary">
+				Ver documentos
+				</a>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endblock %}

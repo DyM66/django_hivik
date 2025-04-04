@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Documento Rechazado - SERPORT</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f6f6f6; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; background: #ffffff; padding: 20px; border-radius: 8px; }
+    .header { background-color: #f8d7da; padding: 10px; border-radius: 8px 8px 0 0; text-align: center; }
+    .header h2 { color: #721c24; margin: 0; }
+    .content { margin: 20px 0; }
+    .footer { font-size: 0.8em; color: #6c757d; text-align: center; margin-top: 30px; }
+    a { color: #007bff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Documento Rechazado</h2>
+    </div>
+    <div class="content">
+      <p>Estimado/a {{ employee.name }} {{ employee.surname }},</p>
+      <p>El documento <strong>{{ document.name }}</strong> ha sido rechazado.</p>
+      <p><strong>Motivo del rechazo:</strong></p>
+      <p>{{ rejected_reason }}</p>
+      <p>Por favor, ingresa al siguiente enlace para re-subir el documento:</p>
+      <p><a href="{{ upload_link }}">{{ upload_link }}</a></p>
+      <p>Gracias por tu colaboración.</p>
+      <p>Atentamente,<br>Departamento de Talento Humano - SERPORT</p>
+    </div>
+    <div class="footer">
+      <p>Este correo es generado automáticamente, por favor no responder.</p>
+    </div>
+  </div>
+</body>
+</html>

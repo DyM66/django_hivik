@@ -13,7 +13,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 
 def gerencia_nomina_view(request):
-    template_name = "dth/gerencia_nomina.html"
+    template_name = "dth/jp_reports/gerencia_nomina.html"
 
     if request.method == "POST":
         form = UploadNominaReportForm(request.POST, request.FILES)
@@ -227,9 +227,7 @@ def export_gerencia_nomina_excel(request):
     similares a la tabla de la vista de Nómina Gerencia.
     """
     # 1) Obtención de registros
-    reports = (NominaReport.objects
-               .select_related('nomina')
-               .order_by('nomina__name', 'nomina__surname', 'mes', 'anio'))
+    reports = NominaReport.objects.select_related('nomina').order_by('nomina__name', 'nomina__surname', 'mes', 'anio')
     
     # 2) Crear workbook y hoja
     wb = openpyxl.Workbook()

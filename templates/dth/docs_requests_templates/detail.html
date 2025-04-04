@@ -1,0 +1,174 @@
+<!-- dth/docs_requests_templates/detail.html -->
+{% extends "base/base_generic.html" %}
+{% load my_tags %}
+
+{% block title %}Documentos solicitados{% endblock %}
+{% block headtag %}
+{% endblock %}
+
+{% block content %}
+
+<h2>Solicitud #{{ doc_req.pk }} - {{ doc_req.employee.name }} {{ doc_req.employee.surname }}</h2>
+<p>Cédula: {{ doc_req.employee.id_number }}</p>
+<p>Token: {{ doc_req.token }}</p>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Documento</th>
+      <th>Archivo Subido</th>
+      <th>Fecha Expiración</th>
+      <th>Estado</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.document.name }}</td>
+      <td>
+        {% if item.pdf_file %}
+          <a href="{{ item.pdf_file.url }}" target="_blank">Ver PDF</a>
+        {% else %}
+          <span class="text-danger">No subido</span>
+        {% endif %}
+      </td>
+      <td>{{ item.expiration_date|default_if_none:"" }}</td>
+      <td>
+        {% if item.status == 'A' %}
+          <span class="badge bg-success">Aprobado</span>
+          <p>Verificado por: {{ item.verified_by }}<br>{{ item.approved_at|date:"d/m/Y H:i" }}</p>
+        {% else %}
+          <span class="badge bg-warning">Pendiente</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if item.status != 'A' and item.pdf_file %}
+          <button class="btn btn-sm btn-success" onclick="approveDocument('{{ item.id }}')">Aprobar</button>
+          <button class="btn btn-sm btn-danger" onclick="openRejectModal('{{ item.id }}')">Rechazar</button>
+        {% else %}
+          <button class="btn btn-sm btn-secondary" disabled>Aprobar</button>
+          <button class="btn btn-sm btn-secondary" disabled>Rechazar</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+<!-- Modal para rechazar documento -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+		<form id="rejectForm">
+		  {% csrf_token %}
+		  <div class="modal-header">
+			<h5 class="modal-title" id="rejectModalLabel">Rechazar Documento</h5>
+			<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+		  </div>
+		  <div class="modal-body">
+			<input type="hidden" id="rejectItemId" name="item_id">
+			<div class="mb-3">
+			  <label for="rejected_reason" class="form-label">Justificación</label>
+			  <textarea class="form-control" id="rejected_reason" name="rejected_reason" rows="4" placeholder="Ingrese la justificación para rechazar el documento"></textarea>
+			</div>
+		  </div>
+		  <div class="modal-footer">
+			<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+			<button type="submit" class="btn btn-danger">Rechazar Documento</button>
+		  </div>
+		</form>
+	  </div>
+	</div>
+  </div>
+  <script>
+	function approveDocument(itemId) {
+	  // Buscar el botón de aprobar correspondiente
+	  var approveBtn = document.querySelector('button[onclick*="approveDocument(\''+itemId+'\')"]');
+	  // Deshabilitar el botón y mostrar un spinner
+	  approveBtn.disabled = true;
+	  var originalText = approveBtn.innerHTML;
+	  approveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
+	
+	  fetch("", {
+		method: "POST",
+		headers: {
+		  "X-CSRFToken": "{{ csrf_token }}",
+		  "X-Requested-With": "XMLHttpRequest",
+		  "Content-Type": "application/x-www-form-urlencoded"
+		},
+		body: "item_id=" + encodeURIComponent(itemId)
+	  })
+	  .then(res => res.json())
+	  .then(data => {
+		if(data.success){
+		  alert(data.message);
+		  location.reload();
+		} else {
+		  alert("Error: " + data.message);
+		  approveBtn.disabled = false;
+		  approveBtn.innerHTML = originalText;
+		}
+	  })
+	  .catch(err => {
+		alert("Error: " + err);
+		approveBtn.disabled = false;
+		approveBtn.innerHTML = originalText;
+	  });
+	}
+	
+	function openRejectModal(itemId) {
+	  document.getElementById('rejectItemId').value = itemId;
+	  // Reiniciar el textarea
+	  document.getElementById('rejected_reason').value = "";
+	  var rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
+	  rejectModal.show();
+	}
+	
+	document.getElementById('rejectForm').addEventListener('submit', function(e) {
+	  e.preventDefault();
+	  const itemId = document.getElementById('rejectItemId').value;
+	  const rejectedReason = document.getElementById('rejected_reason').value.trim();
+	  if (!rejectedReason) {
+		alert("Debes proporcionar una justificación para rechazar el documento.");
+		return;
+	  }
+	  
+	  var rejectBtn = document.querySelector('#rejectForm button[type="submit"]');
+	  rejectBtn.disabled = true;
+	  var originalText = rejectBtn.innerHTML;
+	  rejectBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
+	
+	  fetch("{% url 'dth:reject_document_request_item' %}", {
+		method: "POST",
+		headers: {
+		  "X-CSRFToken": "{{ csrf_token }}",
+		  "X-Requested-With": "XMLHttpRequest",
+		  "Content-Type": "application/x-www-form-urlencoded"
+		},
+		body: "item_id=" + encodeURIComponent(itemId) + "&rejected_reason=" + encodeURIComponent(rejectedReason)
+	  })
+	  .then(res => res.json())
+	  .then(data => {
+		if(data.success){
+		  alert(data.message || "Documento rechazado. Se ha enviado la notificación al empleado.");
+		  var rejectModalEl = document.getElementById('rejectModal');
+		  var modalInstance = bootstrap.Modal.getInstance(rejectModalEl);
+		  modalInstance.hide();
+		  location.reload();
+		} else {
+		  alert("Error: " + data.error);
+		  rejectBtn.disabled = false;
+		  rejectBtn.innerHTML = originalText;
+		}
+	  })
+	  .catch(err => {
+		alert("Error: " + err);
+		rejectBtn.disabled = false;
+		rejectBtn.innerHTML = originalText;
+	  });
+	});
+	</script>
+	
+{% endblock %}

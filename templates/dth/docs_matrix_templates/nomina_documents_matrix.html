@@ -138,7 +138,7 @@ html, body {
 					<td class="sticky-col2">{{ row.employee.position_id }}</td>
 					<td>{{ row.employee.id_number }}</td>
 					<td>
-						<a class="btn btn-sm btn-secondary disabled" href="{% url 'dth:request_docs_form' row.employee.id %}">
+						<a class="btn btn-sm btn-secondary" href="{% url 'dth:request_docs_form' row.employee.id %}">
 							Solicitar
 						</a>
 					</td>
@@ -365,30 +365,6 @@ alert("Error al eliminar: " + data.message);
 }
 })
 .catch(err => alert("Error deleteEmployeeDocument: " + err));
-}
-
-//-------------------------------------------------------
-// 6) Abrir modal para "Solicitar Documentos"
-//-------------------------------------------------------
-function openRequestDocumentsModal(employeeId) {
-	fetch("{% url 'dth:ajax_request_docs_modal' %}?employee_id=" + employeeId, {
-		headers: {'X-Requested-With': 'XMLHttpRequest'}
-	})
-	.then(res => res.json())
-	.then(data => {
-		// data.html => partial "request_docs_modal_form.html"
-		const modalContent = document.getElementById('modalRequestDocsContent');
-		console.log("modalContent =>", modalContent);
-		if (!modalContent) {
-			alert("No se encontró el div con ID 'modalRequestDocsContent' en el DOM");
-			return;
-		}
-		modalContent.innerHTML = data.html;
-
-		const myModal = new bootstrap.Modal(document.getElementById('modalRequestDocs'));
-		myModal.show();
-	})
-	.catch(err => alert("Error openRequestDocumentsModal: " + err));
 }
 </script>
   

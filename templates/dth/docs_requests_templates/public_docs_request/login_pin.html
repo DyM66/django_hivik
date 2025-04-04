@@ -1,0 +1,55 @@
+<!-- dth/templates/dth/docs_requests_templates/public_docs_request/login_pin.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Validación de Identidad - SERPORT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+        rel="stylesheet"/>
+</head>
+<body style="background-color: #f2f2f2;">
+
+  <!-- Encabezado creativo (Hero) -->
+  <header class="bg-primary text-white py-4 mb-4">
+    <div class="container text-center">
+      <h1 style="font-weight: 600; letter-spacing: 1px;">SERPORT</h1>
+      <p class="mb-0">Departamento de Talento Humano</p>
+    </div>
+  </header>
+
+  <div class="container d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="card shadow" style="max-width: 400px; width: 100%;">
+      <div class="card-header text-center bg-secondary text-white">
+        <h3 class="my-2">Validación de Identidad</h3>
+      </div>
+      <div class="card-body">
+        {% if error %}
+          <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <p class="text-muted">
+          Por favor, ingresa tu <strong>Número de Documento</strong> para acceder al formulario de carga de archivos.
+        </p>
+        <form method="POST" class="mt-3">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="id_number" class="form-label">Número de Documento</label>
+            <input type="text" name="id_number" id="id_number" class="form-control" required>
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Acceder</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center text-muted py-3">
+    <small>&copy; 2025 SERPORT. Todos los derechos reservados.</small>
+  </footer>
+
+</body>
+</html>

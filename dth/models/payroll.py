@@ -51,6 +51,7 @@ class Nomina(models.Model):
     is_driver = models.BooleanField(default=False)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, default='h')
     photo = models.ImageField(upload_to=get_upload_path, blank=True, null=True, help_text="Fotografía del empleado.")
+    email = models.EmailField(blank=True, null=True, help_text="Correo electrónico del empleado.")
 
     @property
     def photo_url(self):

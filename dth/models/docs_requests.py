@@ -1,5 +1,4 @@
 # dth/models/docs_requests.py
-
 import uuid
 from django.db import models
 from django.conf import settings
@@ -27,9 +26,14 @@ class DocumentRequest(models.Model):
         return f"Solicitud Docs {self.pk} - {self.employee}"
 
 class DocumentRequestItem(models.Model):
-    """
-    Almacena cada documento solicitado y su información de subida.
-    """
+    STATUS_PENDING = 'P'
+    STATUS_APPROVED = 'A'
+    STATUS_REJECTED = 'R'
+    STATUS_CHOICES = (
+        (STATUS_PENDING, 'Pendiente'),
+        (STATUS_APPROVED, 'Aprobado'),
+        (STATUS_REJECTED, 'Rechazado'),
+    )
     request = models.ForeignKey(DocumentRequest, on_delete=models.CASCADE, related_name='items')
     document = models.ForeignKey(Document, on_delete=models.CASCADE)
     pdf_file = models.FileField(upload_to=get_upload_path_temp, blank=True, null=True)
@@ -43,6 +47,11 @@ class DocumentRequestItem(models.Model):
         null=True, blank=True
     )
     approved_at = models.DateTimeField(null=True, blank=True)
+
+    # Nuevo campo de estado
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    # Campo para guardar la justificación en caso de rechazo
+    rejection_reason = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"DocRequestItem - {self.document.name} ({self.request.employee.name})"
