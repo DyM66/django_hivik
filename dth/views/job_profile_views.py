@@ -169,7 +169,7 @@ class JobProfileListView(LoginRequiredMixin, TemplateView):
     2) Lista de Documentos en tabla, solo con botón Editar.
        Eliminar se hace dentro del modal.
     """
-    template_name = 'dth/job_profile_templetes/position_documents_list.html'
+    template_name = 'dth/job_profile_templates/position_documents_list.html'
 
     def get_context_data(self, **kwargs):
         categories = [('o', 'Operativo'), ('a', 'Administrativo'), ('m', 'Mixto')]
