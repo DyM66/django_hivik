@@ -9,10 +9,14 @@ import platform
 def run_node_watch():
     """Run 'npm run watch' to compile CSS and JS in the background."""
     try:
-        # Check the operating system to run in the background correctly
         if platform.system() == 'Windows':
-            # On Windows, we use 'start' to open a new process
-            subprocess.Popen(['start', 'npm', 'run', 'build:all'], shell=True)
+            npm_path = r'C:\Program Files\nodejs\npm.cmd'
+            subprocess.Popen(
+                [npm_path, 'run', 'build:all'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
         else:
             # On Unix systems (Linux, Mac), we use '&' to run in the background
             subprocess.Popen(['npm', 'run', 'build:all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -24,9 +28,9 @@ def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hivik2.settings')
 
-    # if 'runserver' in sys.argv:
-    #     # If the command is 'runserver', also run 'npm run watch:css' and 'npm run watch:js'
-    #     run_node_watch()
+    if 'runserver' in sys.argv:
+        # If the command is 'runserver', also run 'npm run watch:css' and 'npm run watch:js'
+        run_node_watch()
 
     try:
         from django.core.management import execute_from_command_line
@@ -41,3 +45,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# 1153 y 1196
