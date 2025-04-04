@@ -4,125 +4,97 @@
 {% block title %}Matriz de Documentos{% endblock %}
 
 {% block headtag %}
-
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      integrity="sha384-ENjdO4Dr2bkBIFxQpeo0+KxKIY6jnr953No1M6Jg25Jd/hmO3Qmo7G8k3R0Nu8Ix"
-      crossorigin="anonymous">
 <style>
-:root {
-    --color-primary: #191645;
-    --color-aux: #0157a4;
-    --color-secondary: #43C6AC;
-    --color-bg: #ffffff;
-    --color-bg-aux: #D5DBDB;
-
-    --color-orange: #d78147;
-    --color-yellow: #f5da81;
-    --color-red: #d893a3;
-    --color-blue: #6fcaea;
-    --color-violet: #6f79ea;
-    --color-green: #86e49d;
-
-    /* Más variables si deseas */
-}
-
-/* .table-scroll-container {
-	width: 100%;                 
-	max-height: 70vh;      
-	overflow-x: auto;        
-	overflow-y: auto;
+	.table-container {
+		width: 100%;
+		overflow: auto;
+		height: 75vh;
+		border: 1px solid #ddd;
+		border-radius: 5px;
+		box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+	}
 	
- */
-	/* overscroll-behavior-x: none; */
-/* 
-	overscroll-behavior-y: contain;
+	.matrix-table {
+		border-collapse: separate;
+		border-spacing: 0;
+		width: max-content;
+		min-width: 100%;
+		font-size: 0.8rem;
+		font-family: 'Poppins', sans-serif;
+	}
 	
-	-webkit-overflow-scrolling: touch; 
-	touch-action: pan-x pan-y;        
-}
-.table {
-	width: 100%; 
-	table-layout: auto;
-	white-space: nowrap;
-} */
-/* Encabezado sticky (fila superior) */
-/* .table thead th {
-	position: sticky;
-	top: 0;
-	background-color: #fff;
-	z-index: 10;
-} */
-table .sticky-col1 {
-	position: sticky;
-	left: 0;                  
-	background: #fff;
-	z-index: 11;              
-	min-width: 150px;        
-	white-space: nowrap;       
-}
-table .sticky-col2 {
-	position: sticky;
-	left: 150px;           
-	background: #fff;
-	z-index: 11;
-	min-width: 130px;       
-	white-space: nowrap;
-} 
-/* Sombra sutil para las columnas fijas 
-
-/* 
-html, body {
-  overscroll-behavior: none;
-/* } 
-*/
-.sticky-col1, .sticky-col2 {
-  	box-shadow: 1px 0 5px rgba(0,0,0,0.1);
-}
-.table tbody td {
-  white-space: nowrap;
-}
-
-/* Unas clases de badge personalizadas (además de “badge” de Bootstrap) */
-.badge {
-  display: inline-block;
-  padding: 0.35em 0.6em;
-  font-size: 0.8em;
-  font-weight: 600;
-  border-radius: 0.4rem;
-  text-align: center;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-/* Ejemplo de colores para cada estado */
-.badge-pendiente { background-color: var(--color-orange); color: #fff; }
-.badge-vencido   { background-color: var(--color-red);    color: #fff; }
-.badge-ok        { background-color: var(--color-green);  color: #000; }
-/* etc. */
-
+	.matrix-table th,
+	.matrix-table td {
+		padding: 6px 12px;
+		border-bottom: 1px solid #ddd;
+		text-align: center;
+		white-space: nowrap;
+	}
+	
+	.matrix-table thead th {
+		background: #191645;
+		color: #fff;
+		position: sticky;
+		top: 0;
+		z-index: 2;
+	}
+	
+	.sticky-col {
+		position: sticky;
+		background: #ffffff;
+		z-index: 3;
+	}
+	
+	.sticky-col-1 {
+		left: 0;
+		min-width: 200px; 
+	}
+	
+	.sticky-col-2 {
+		left: 200px;
+		min-width: 170px; 
+	}
+	
+	.sticky-col, .matrix-table thead th {
+		box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+	}
+	
+	.badge {
+		padding: 0.4em 0.6em;
+		border-radius: 10px;
+		cursor: pointer;
+		font-size: 0.7rem;
+	}
+	
+	.badge-pendiente {background-color: #ff9800; color: #fff;}
+	.badge-vencido   {background-color: #e74c3c; color: #fff;}
+	.badge-ok        {background-color: #2ecc71; color: #fff;}
+	
+	#searchNomina {
+		max-width: 400px;
+	}
+	
 </style>
 {% endblock %}
 
 {% block content %}
 
-	<h2>Matriz de Documentos</h2>
+<div class="table-container">
+	<h2>📑 Matriz de Documentos</h2>
 
 	<!-- Buscador para filtrar por cédula, nombre completo o cargo -->
-	<div class="row mb-3">
-		<div class="col-md-6">
-			<input type="text" id="searchNomina" class="form-control" placeholder="Buscar por cédula, nombre o cargo...">
-		</div>
+	<div class="mb-3">
+		<input type="text" id="searchNomina" class="form-control" placeholder="Buscar por cédula, nombre o cargo...">
 	</div>
 
-  	<div class="" style="overflow-x:auto;">
-    	<table class="table table-bordered table-sm">
+	
+    	<table class="matrix-table">
       		<thead>
 				<tr>
-					<th class="sticky-col1">Nombre</th>
-					<th class="sticky-col2">Cargo</th>
+					<th class="sticky-col sticky-col-1">Colaborador</th>
+					<th class="sticky-col sticky-col-2">Cargo</th>
 					<th>Cédula</th>
-					<th></th>
+					<th>Acciones</th>
 					{% for doc in docs %}
 						<th>{{ doc.name }}</th>
 					{% endfor %}
@@ -131,11 +103,8 @@ html, body {
 			<tbody id="nominaMatrixBody">
 				{% for row in rows %}
 				<tr>
-					<!-- cédula, nombre, cargo -->
-					<td class="sticky-col1">
-						{{ row.employee.name }} {{ row.employee.surname }}
-					</td>
-					<td class="sticky-col2">{{ row.employee.position_id }}</td>
+					<td class="sticky-col sticky-col-1">{{ row.employee.name }} {{ row.employee.surname }}</td>
+					<td class="sticky-col sticky-col-2">{{ row.employee.position_id }}</td>
 					<td>{{ row.employee.id_number }}</td>
 					<td>
 						<a class="btn btn-sm btn-secondary" href="{% url 'dth:request_docs_form' row.employee.id %}">
@@ -158,95 +127,91 @@ html, body {
 						{% else %}
 							<td><span class="badge badge-pendiente" style="opacity:0.7">Pendiente</span></td>
 						{% endif %}
-            {% elif cell.state == "Vencido" %}
-                <td>
-                    <span class="badge badge-vencido"
-                        style="cursor:pointer;"
-                        onclick="openDocForm('{{ cell.employee_id }}','{{ cell.document_id }}')">
-                        Vencido
-                    </span>
-                </td>
-            {% elif cell.is_ok %}
-            <td>
-                <span class="badge badge-ok"
-                      style="cursor:pointer;"
-                      onclick="openDocPreview('{{ cell.employee_id }}','{{ cell.document_id }}')">
-                  {{ cell.state }}
-                </span>
-            </td>
-            {% else %}
-              <!-- Por si hay otro estado no contemplado -->
-              <td>{{ cell.state }}</td>
-            {% endif %}
-          {% endfor %}
-        </tr>
-        {% endfor %}
-      	</tbody>
+						{% elif cell.state == "Vencido" %}
+							<td>
+								<span class="badge badge-vencido"
+									style="cursor:pointer;"
+									onclick="openDocForm('{{ cell.employee_id }}','{{ cell.document_id }}')">
+									Vencido
+								</span>
+							</td>
+						{% elif cell.is_ok %}
+						<td>
+							<span class="badge badge-ok"
+								style="cursor:pointer;"
+								onclick="openDocPreview('{{ cell.employee_id }}','{{ cell.document_id }}')">
+							{{ cell.state }}
+							</span>
+						</td>
+						{% else %}
+							<!-- Por si hay otro estado no contemplado -->
+							<td>{{ cell.state }}</td>
+						{% endif %}
+          			{% endfor %}
+        		</tr>
+        		{% endfor %}
+      		</tbody>
     	</table>
   	</div>
 
 
-<!-- Modal SUBIR DOC -->
-<div class="modal fade" id="modalUploadDoc" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content" id="modalUploadDocContent">
-        <!-- Aquí se inyecta partial form -->
-      </div>
-    </div>
-  </div>
-  
-  <!-- Modal PREVIEW DOC -->
-  <div class="modal fade" id="modalPreviewDoc" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content" id="modalPreviewDocContent">
-        <!-- Aquí se inyecta la lista de docs subidos -->
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="modalRequestDocs" tabindex="-1">
-	<div class="modal-dialog">
-	  <div class="modal-content" id="modalRequestDocsContent">
-		<!-- Aquí llega el HTML AJAX -->
-	  </div>
+	<!-- Modal SUBIR DOC -->
+	<div class="modal fade" id="modalUploadDoc" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content" id="modalUploadDocContent">
+				<!-- Aquí se inyecta partial form -->
+			</div>
+		</div>
 	</div>
-  </div>
   
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-pp4C9WpCUvKXbxkKBlbp9f9uwc5LCG986ppCrYi7PFmk4fi8BW3ZkGf7PZwjw7Bt"
-  crossorigin="anonymous"></script>
+	<!-- Modal PREVIEW DOC -->
+	<div class="modal fade" id="modalPreviewDoc" tabindex="-1">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content" id="modalPreviewDocContent">
+				<!-- Aquí se inyecta la lista de docs subidos -->
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="modalRequestDocs" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content" id="modalRequestDocsContent">
+				<!-- Aquí llega el HTML AJAX -->
+			</div>
+		</div>
+	</div>
 
 
 <script>
-//-------------------------------------------------------
-// 1) Filtro para buscar por cédula, nombre o cargo
-//-------------------------------------------------------
-document.addEventListener('DOMContentLoaded', function() {
-const searchInput = document.getElementById('searchNomina');
-const tableBody = document.getElementById('nominaMatrixBody');
+	//-------------------------------------------------------
+	// 1) Filtro para buscar por cédula, nombre o cargo
+	//-------------------------------------------------------
+	document.addEventListener('DOMContentLoaded', function() {
+		const searchInput = document.getElementById('searchNomina');
+		const tableBody = document.getElementById('nominaMatrixBody');
 
-if (searchInput && tableBody) {
-searchInput.addEventListener('keyup', () => {
-const filter = searchInput.value.toLowerCase();
-const rows = tableBody.querySelectorAll('tr');
+		if (searchInput && tableBody) {
+			searchInput.addEventListener('keyup', () => {
+				const filter = searchInput.value.toLowerCase();
+				const rows = tableBody.querySelectorAll('tr');
 
-rows.forEach(row => {
-  const tds = row.querySelectorAll('td');
-  if (tds.length < 3) return;
+				rows.forEach(row => {
+				const tds = row.querySelectorAll('td');
+				if (tds.length < 3) return;
 
-  const cedula = tds[0].innerText.toLowerCase();
-  const nombre = tds[1].innerText.toLowerCase();
-  const cargo  = tds[2].innerText.toLowerCase();
+				const cedula = tds[0].innerText.toLowerCase();
+				const nombre = tds[1].innerText.toLowerCase();
+				const cargo  = tds[2].innerText.toLowerCase();
 
-  if (cedula.includes(filter) || nombre.includes(filter) || cargo.includes(filter)){
-	row.style.display = '';
-  } else {
-	row.style.display = 'none';
-  }
-});
-});
-}
-});
+				if (cedula.includes(filter) || nombre.includes(filter) || cargo.includes(filter)){
+					row.style.display = '';
+				} else {
+					row.style.display = 'none';
+				}
+				});
+			});
+		}
+	});
 
 //-------------------------------------------------------
 // 2) Scroll container => prevenir swipe-back en iOS
@@ -278,27 +243,27 @@ rows.forEach(row => {
 // 3) Abrir form para subir doc (Pendiente/Vencido)
 //-------------------------------------------------------
 function openDocForm(empId, docId) {
-fetch("{% url 'dth:employee_document_form' %}?emp=" + empId + "&doc=" + docId, {
-headers: {'X-Requested-With': 'XMLHttpRequest'}
-})
-.then(res => res.text())
-.then(html => {
-const modalContent = document.getElementById('modalUploadDocContent');
-modalContent.innerHTML = html;
+	fetch("{% url 'dth:employee_document_form' %}?emp=" + empId + "&doc=" + docId, {
+		headers: {'X-Requested-With': 'XMLHttpRequest'}
+	})
+	.then(res => res.text())
+	.then(html => {
+		const modalContent = document.getElementById('modalUploadDocContent');
+		modalContent.innerHTML = html;
 
-const myModal = new bootstrap.Modal(document.getElementById('modalUploadDoc'));
-myModal.show();
+		const myModal = new bootstrap.Modal(document.getElementById('modalUploadDoc'));
+		myModal.show();
 
-// Manejar el submit del form
-const form = modalContent.querySelector('#employee-document-form');
-if (form) {
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  uploadDocument(form);
-});
-}
-})
-.catch(err => alert("Error abriendo doc form: " + err));
+		// Manejar el submit del form
+		const form = modalContent.querySelector('#employee-document-form');
+		if (form) {
+			form.addEventListener('submit', e => {
+				e.preventDefault();
+				uploadDocument(form);
+			});
+		}
+	})
+	.catch(err => alert("Error abriendo doc form: " + err));
 }
 
 function uploadDocument(form) {
