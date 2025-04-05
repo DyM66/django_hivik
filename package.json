@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Software de mantenimiento",
   "scripts": {
-    "build:css": "npx @tailwindcss/cli -i ./static/css/input.css -o ./static/css/output.css --watch",
+    "build:css": "npx @tailwindcss/cli -i ./static/css/input.css -o ./static/css/output.css",
+    "watch:css": "npx @tailwindcss/cli -i ./static/css/input.css -o ./static/css/output.css --watch",
     "build:js": "cp -r node_modules/flowbite/dist ./static/js/flowbite",
-    "build:all": "npm run build:js && npm run build:css"
+    "build:all": "npm run build:js && npm run build:css",
+    "watch:all": "npm run build:js && npm run watch:css"
   },
   "author": "",
   "license": "ISC",

@@ -73,6 +73,7 @@ class Migration(migrations.Migration):
                 ('gender', models.CharField(choices=[('h', 'Hombre'), ('m', 'Mujer')], default='h', max_length=1)),
                 ('photo', models.ImageField(blank=True, help_text='Fotografía del empleado.', null=True, upload_to=got.paths.get_upload_path)),
                 ('position_id', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='employees', to='dth.position')),
+                ('email', models.EmailField(blank=True, help_text='Correo electrónico del empleado.', max_length=254, null=True)),
             ],
         ),
         migrations.CreateModel(
@@ -171,6 +172,8 @@ class Migration(migrations.Migration):
                 ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='dth.document')),
                 ('request', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='dth.documentrequest')),
                 ('verified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('rejection_reason', models.TextField(blank=True, null=True)),
+                ('status', models.CharField(choices=[('P', 'Pendiente'), ('A', 'Aprobado'), ('R', 'Rechazado')], default='P', max_length=1)),
             ],
         ),
     ]

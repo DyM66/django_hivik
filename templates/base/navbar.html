@@ -41,7 +41,7 @@
                                 <!-- Ejemplo de “columnas” dentro del mega-menu -->
                             
                                 <div class="flex-fill me-4">
-                                    <ul class="list-unstyled">
+                                    <ul>
                                         <li><a class="dropdown-item" href="{% url 'mto:stoytell' %}">Barcos</a></li>
                                         <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
                                         <!-- <li><a class="dropdown-item" href="{% url 'mto:maintenance_plan_all_assets' %}">Proyección</a></li> -->
@@ -50,7 +50,7 @@
 
                                 <div class="flex-fill me-4">
                                     <h5 class="text-white">OT y Fallas</h5>
-                                    <ul class="list-unstyled">
+                                    <ul>
                                         <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
                                         <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
                                         <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
@@ -64,13 +64,13 @@
                         <div id="megaMaintenance" class="collapse mega-menu-mobile">
                             <div class="p-3 text-center">
                                 <!-- Mismos links que arriba -->
-                                <ul class="list-unstyled">
+                                <ul>
                                     <li><a class="dropdown-item" href="{% url 'got:maintenance_dashboard' %}">Barcos</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:dashboard' %}">Indicadores</a></li>
                                 </ul>
                                 <hr class="my-2">
                                 <h5 class="text-white">OT y Fallas</h5>
-                                <ul class="list-unstyled">
+                                <ul>
                                     <li><a class="dropdown-item" href="{% url 'got:my-tasks' %}">Actividades</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:ot-list' %}">Ordenes de trabajo</a></li>
                                     <li><a class="dropdown-item" href="{% url 'got:failure-report-list' %}">Reportes de fallas</a></li>
@@ -87,29 +87,54 @@
                             Talento Humano
                         </a>
                         <!-- Nuestro mega-menu -->
-                        <div class="mega-menu-desktop" aria-labelledby="dthDropdown">
-                            <div class="container-fluid p-3 d-flex flex-wrap">
-                                <!-- Ejemplo de “columnas” dentro del mega-menu -->
-                            
-                                <div class="flex-fill me-4">
-                                    <ul class="list-unstyled">
-                                        <li><a class="dropdown-item" href="{% url 'dth:nomina_list' %}">Nomina</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'dth:position_documents_list' %}">Documentos por cargo</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'dth:nomina_documents_matrix' %}">Matriz de documentos</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'dth:admin_document_request_list' %}">Documentos solicitados</a></li>
-                                    </ul>
+                        <div class="mega-menu-desktop-2" aria-labelledby="dthDropdown">
+                            <div class="container-fluid py-4">
+                                <div class="row">
+                                    <div class="col-lg-3">
+                                        <div class="mega-menu-item">
+                                            <a href="{% url 'dth:nomina_list' %}">
+                                                <i class="bi bi-file-person"></i>
+                                                Hoja de vida
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3">
+                                        <div class="mega-menu-item">
+                                            <a href="{% url 'dth:position_documents_list' %}">
+                                                <i class="bi bi-folder-check"></i>
+                                                Cargos/Documentación
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3">
+                                        <div class="mega-menu-item">
+                                            <a href="{% url 'dth:nomina_documents_matrix' %}">
+                                                <i class="bi bi-grid-fill"></i>
+                                                Matriz Documentos Personal
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3">
+                                        <div class="mega-menu-item">
+                                            <a href="{% url 'dth:admin_document_request_list' %}">
+                                                <i class="bi bi-file-earmark-medical"></i>
+                                                Documentos solicitados
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
-
                             </div>
                         </div>
+                        
 
                         <!-- 2) Submenú MÓVIL => collapse -->
                         <div id="megaDth" class="collapse mega-menu-mobile">
                             <div class="p-3 text-center">
                                 <!-- Mismos links que arriba -->
                                 <ul class="list-unstyled">
-                                    <li><a class="dropdown-item" href="{% url 'dth:nomina_list' %}">Nomina</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'dth:position_documents_list' %}">Documentos por cargo</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'dth:nomina_list' %}">Hoja de vida</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'dth:position_documents_list' %}">Cargos/Documentación</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'dth:admin_document_request_list' %}">Documentos solicitados</a></li>
                                 </ul>
                                 <hr class="my-2">
                             </div>

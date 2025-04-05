@@ -152,13 +152,15 @@
         position: static;
     }
     .mega-menu-desktop {
-        position: absolute;   /* Ocupa todo el ancho => left:0,right:0 */
-        top: 100%; left: 0; right: 0;
+        position: absolute;
+        top: 100%; left: 50px; right: 0;
         background-color: var(--color-primary);
+        border-bottom: 2px solid #000;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
         color: #fff;
-        overflow: hidden;     /* Oculta contenido si colapsa (max-height) */
-        max-height: 0;        /* Inicia “oculto” */
-        transition: max-height 0.3s ease; /* animación suave */
+        overflow: hidden;
+        max-height: 0;
+        transition: max-height 0.3s ease; 
         z-index: 999;
         display: block;
     }
@@ -205,7 +207,7 @@
 	.vertical-sidebar {
 		width: 50px;
 		background-color: #191645;
-		overflow: hidden;
+		/* overflow: hidden; */
 		transition: width 0.3s ease;
         font-size: 0.9rem;
 	}
@@ -249,6 +251,7 @@
 	.main-content {
 		flex: 1;  /* para ocupar todo el espacio horizontal sobrante */
 		padding: 1rem;
+        overflow: hidden;
 	}
     @media (max-width: 991px) {
         .offcanvas-header {
@@ -536,4 +539,66 @@
         border: 1px solid #ccc;
         border-radius: 4px;
     }
+
+    .mega-menu-desktop-2 {
+        position: absolute;
+        top: 100%; /* justo debajo del navbar */
+        left: 50px; /* igual ancho que el sidebar recogido */
+        right: 0;
+        background-color: var(--color-bg-aux);
+        border-bottom: 4px solid #43C6AC;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        visibility: hidden;
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: visibility 0.3s, opacity 0.3s, max-height 0.3s ease-in-out;
+        z-index: 1050;
+    }
+
+    .mega-dropdown:hover .mega-menu-desktop-2 {
+        visibility: visible;
+        opacity: 1;
+        max-height: 500px; /* suficiente para tu contenido */
+    }
+
+    /* Al expandir sidebar */
+    .vertical-sidebar:hover ~ .main-content .mega-menu-desktop-2 {
+        left: 240px; /* sidebar expandido */
+        transition: left 0.3s ease;
+    }
+
+    /* Estilo Profesional para los elementos del Mega Menú */
+    .mega-menu-item {
+        padding: 15px;
+        text-align: center;
+    }
+
+    .mega-menu-item a {
+        color: #191645;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        background-color: #F7F9FC;
+        border-radius: 6px;
+        padding: 12px;
+        display: block;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 6px rgba(25,22,69,0.1);
+    }
+
+    .mega-menu-item a:hover {
+        background-color: #191645;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(67,198,172,0.3);
+        transform: translateY(-4px);
+    }
+
+    .mega-menu-item a i {
+        font-size: 1.3rem;
+        display: block;
+        margin-bottom: 8px;
+    }
+
+
 </style>

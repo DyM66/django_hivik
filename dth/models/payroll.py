@@ -40,18 +40,23 @@ class Department(models.Model):
 class Nomina(models.Model):
     RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
     GENDER_CHOICES = [('h', 'Hombre'), ('m', 'Mujer'),]
+    EMPLOYMENT_STATUS_CHOICES = [('a', 'Activo'), ('r', 'Retirado'), ('l', 'Licencia'), ('s', 'Suspendido'), ('i', 'Incapacitado'),]
+
     id_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado.")
     name = models.CharField(max_length=100, help_text="Nombre del empleado.")
     surname = models.CharField(max_length=100, help_text="Apellido del empleado.")
     position_id = models.ForeignKey('dth.Position', on_delete=models.CASCADE, related_name='employees')
-    salary = models.DecimalField(max_digits=18, decimal_places=2, help_text="Salario en COP.")
-    admission = models.DateField(help_text="Fecha de ingreso del empleado. (Obligatoria)")
-    expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")
+    employment_status = models.CharField(max_length=1, choices=EMPLOYMENT_STATUS_CHOICES, default='a', help_text="Estado actual del empleado en la empresa.")
+
     risk_class = models.CharField(max_length=3, choices=RISK_CLASS_CHOICES, blank=True, null=True, help_text="Clase de riesgo laboral.")
     is_driver = models.BooleanField(default=False)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, default='h')
     photo = models.ImageField(upload_to=get_upload_path, blank=True, null=True, help_text="Fotografía del empleado.")
     email = models.EmailField(blank=True, null=True, help_text="Correo electrónico del empleado.")
+
+    salary = models.DecimalField(max_digits=18, decimal_places=2, help_text="Salario en COP.")
+    admission = models.DateField(help_text="Fecha de ingreso del empleado. (Obligatoria)")
+    expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")
 
     @property
     def photo_url(self):

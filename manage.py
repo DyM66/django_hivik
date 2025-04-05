@@ -12,10 +12,8 @@ def run_node_watch():
         if platform.system() == 'Windows':
             npm_path = r'C:\Program Files\nodejs\npm.cmd'
             subprocess.Popen(
-                [npm_path, 'run', 'build:all'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                creationflags=subprocess.CREATE_NO_WINDOW
+                [npm_path, 'run', 'watch:all'],
+                creationflags=subprocess.CREATE_NEW_CONSOLE
             )
         else:
             # On Unix systems (Linux, Mac), we use '&' to run in the background
@@ -28,9 +26,9 @@ def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hivik2.settings')
 
-    if 'runserver' in sys.argv:
-        # If the command is 'runserver', also run 'npm run watch:css' and 'npm run watch:js'
-        run_node_watch()
+    # if 'runserver' in sys.argv:
+    #     # If the command is 'runserver', also run 'npm run watch:css' and 'npm run watch:js'
+    #     run_node_watch()
 
     try:
         from django.core.management import execute_from_command_line

@@ -4,7 +4,11 @@ module.exports = {
   content: ["./templates/**/*.html", "./**/templates/**/*.html"],
   darkMode: "class",
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary: '#191645',
+      },
+    },
   },
   plugins: [require("flowbite/plugin"), require("flowbite-typography")],
 };
