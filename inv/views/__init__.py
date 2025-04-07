@@ -5,3 +5,4 @@ from .excel_files import *
 from .inventory_management_views import *
 from .item_management_views import *
 from .transfer_views import *
+from .supplies_views import *
