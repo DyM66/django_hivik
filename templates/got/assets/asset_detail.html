@@ -1,22 +1,21 @@
 {% extends "got/assets/asset_base.html" %}
 {% block asset %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="main-asset">
 
-    <div class="sistemas">
-	    <table class="table-list table-detail">
+    <div class="sistemas responsive-table-block">
+	    <table class="table-list table-w-100">
 			<thead>
 				<tr>
-				    <th colspan="{% if asset.area == 'a' %}4{% else %}5{% endif %}">
+				    <th colspan="3" class="row-mobile-visible">
 					    Sistemas 
                         {% if perms.got.add_system %}
                             <button type="button" class="btn-add-table" data-bs-toggle="modal" data-bs-target="#sysModal">
                                 <i class="bi bi-plus-circle"></i>
                             </button>
 					    {% endif %}
-                        <a class="btn-add-table" href="{% url 'got:managerial_asset_report' asset.abbreviation %}">
+                        <!-- <a class="btn-add-table" href="#">
                             <i class="bi bi-download"></i>
-                        </a>
+                        </a> -->
 				    </th>
 			    </tr>
 			    <tr>
@@ -26,18 +25,22 @@
 				</tr>
 			</thead>
 		    <tbody>
-				{% for sys in page_obj %}
-			        <tr>
+				{% for sys in asset.system_set.all %}
+			        <tr onclick="window.location.href='{{ sys.get_absolute_url }}?next={{ request.path }}'">
 					    <td scope="row">{{ forloop.counter }}</td>
 					    <td data-cell="Sistema">
-					        <a href="{{ sys.get_absolute_url }}?next={{ request.path }}">{{sys.name}}</a>
+					        {{sys.name}}
 				        </td>
 					    <td data-cell="Estado">
-					        <div class="dropdown">
-						        <button class="btn status {% if sys.state == 'o' %}green-state{% elif sys.state == 'm' %}orange-state{% elif sys.state == 's' %}blue-state
-                                    {% else %}red-state{% endif %} btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+					        <div class="dropdown" onclick="event.stopPropagation();">
+						        <span class="badge
+                                    {% if sys.state == 'o' %}badge--success
+                                    {% elif sys.state == 'm' %}badge--warning
+                                    {% elif sys.state == 's' %}badge--inactive
+                                    {% else %}badge--danger{% endif %} dropdown-toggle"
+                                    id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
 								    {{ sys.get_state_display }}
-							    </button>
+                                </span>
 							    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 							        <li>
 								        <a class="dropdown-item" href="{{ sys.get_absolute_url }}?next={{ request.path }}">Ver detalle</a>
@@ -60,59 +63,58 @@
 			</tbody>
 		</table>
 
-        {% if page_obj.has_other_pages %}
-		    <nav>
-			    <ul class="pagination">
-				    {% if page_obj.has_previous %}
-				        <li class="page-item">
-					        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Anterior</a>
-				        </li>
-				    {% endif %}
-
-				    {% for num in page_obj.paginator.page_range %}
-				        {% if page_obj.number == num %}
-				            <li class="page-item active">
-					            <a href="#" class="page-link">{{ num }}</a>
-				            </li>
-				        {% else %}
-				            <li class="page-item">
-					            <a href="?page={{ num }}" class="page-link">{{ num }}</a>
-				            </li>
-				        {% endif %}
-				    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a href="?page={{ page_obj.next_page_number }}" class="page-link">Siguiente</a>
-                        </li>
-                    {% endif %}
-			    </ul>
-		    </nav>
-		{% endif %}
-
-        <div class="modal fade" id="sysModal" tabindex="-1" aria-labelledby="sysModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="sysModalLabel">Crear nuevo sistema</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        {% if perms.got.change_system %}
+            <div class="modal fade" id="sysModal" tabindex="-1" aria-labelledby="sysModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="sysModalLabel">Crear nuevo sistema</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form method="post" action="" enctype="multipart/form-data">{% csrf_token %}
+                                <table>{{ sys_form.as_table }}</table>
+                                <button type="submit" class="btn btn-primary">Agregar</button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <form method="post" action="" enctype="multipart/form-data">{% csrf_token %}
-                            <table>{{ sys_form.as_table }}</table>
-                            <button type="submit" class="btn btn-primary">Agregar</button>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if perms.got.delete_system %}
+            <!-- Modal Confirmación de Eliminación -->
+            <div class="modal fade" id="deleteSysModal" tabindex="-1" aria-labelledby="deleteSysModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post">{% csrf_token %}
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="deleteSysModalLabel">Eliminar Sistema</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                ¿Estás seguro de que deseas eliminar el sistema <strong id="modal-sys-name"></strong>? Esta acción no se puede deshacer.
+                                <input type="hidden" name="sys_id" id="modal-sys-id">
+                                <input type="hidden" name="action" value="delete_system">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-danger">Eliminar</button>
+                            </div>
                         </form>
                     </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
 
         <br>
         {% if consumibles %}
-            <table class="table-list table-detail">
+            <table class="table-list table-w-100">
                 <thead>
                     <tr>
-                        <th colspan="3">Lubricantes, Combustibles y filtros</th>
+                        <th colspan="3" class="row-mobile-visible">
+                            Lubricantes, Combustibles y filtros
+                        </th>
                     </tr>
                     <tr>
                         <th>Descripción</th>
@@ -123,13 +125,13 @@
                 <tbody>
                     {% for subsystem, items_with_quantities in items_by_subsystem.items %}
                         <tr>
-                            <th colspan="3">{{ subsystem }}</th>
+                            <th colspan="3" class="row-mobile-visible">{{ subsystem }}</th>
                         </tr>
                         {% for item, quantity, inventory, double_quantity in items_with_quantities %}
                             <tr>
-                                <td>{{ item }}</td>
-                                <td>{{ quantity }}</td>
-                                <td {% if inventory < double_quantity %}style="color: red;"{% endif %}>
+                                <td data-cell="Descripción">{{ item }}</td>
+                                <td data-cell="Cantidad requerida">{{ quantity }}</td>
+                                <td data-cell="Cantidad en inventario">
                                     {{ inventory }}
                                 </td>
                             </tr>
@@ -141,102 +143,93 @@
                     {% endfor %}
                 </tbody>
             </table>
-    {% endif %}
-</div>
+        {% endif %}
+    </div>
 
-    <div class="info-asset">
-            <table class="table-list">
-                <thead>
+    <div class="info-asset responsive-table-block">
+        <table class="table-list table-w-100">
+            <thead>
+                <tr>
+                    <th colspan="4" class="row-mobile-visible">Información general</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if asset.imagen %}
                     <tr>
-                        <th colspan="2" class="visible">Información general</th>
+                        <th colspan="4" class="row-mobile-visible">
+                            <img src="{{ asset.imagen.url }}" id="asset" />
+                        </th>
                     </tr>
-                </thead>
-                <tbody>
-                    {% if asset.imagen %}
-                        <tr>
-                            <td colspan="2">
-                                <img src="{{ asset.imagen.url }}" id="asset" />
-                            </td>
-                        </tr>
-                    {% endif %}
+                {% endif %}
+                <tr>
+                    <th>Supervisor</th>
+                    <td data-cell="Supervisor" colspan="3">
+                        {{asset.supervisor.get_full_name}}
+                        ({{asset.supervisor.profile.cargo}})
+                    </td>
+                </tr>
+                {% if asset.capitan %}
                     <tr>
-                        <th>Supervisor</th>
-                        <td data-cell="Supervisor">
-                            {{asset.supervisor.get_full_name}}
-                            ({{asset.supervisor.profile.cargo}})
+                        <th>Capitan</th>
+                        <td data-cell="Capitán" colspan="3">
+                            {{ asset.capitan.get_full_name }}
+                        </td>
+                    </tr>
+                {% endif %}
+                <tr>
+                    <th>Área</th>
+                    <td data-cell="Área" colspan="3">{{asset.get_area_display}}</td>
+                </tr>
+                {% if asset.area == 'a' %}
+                    <tr>
+                        <th>Clasificación</th>
+                        <td data-cell="Clasificación" colspan="3">{{asset.vessel_details.vessel_type}}</td>
+                    </tr>
+                    <tr>
+                        <th>Tipo de navegación</th>
+                        <td data-cell="Tipo de navegación" colspan="3">
+                            {{ asset.vessel_details.trade_type }} - {{asset.vessel_details.navigation_type}}
                         </td>
                     </tr>
                     <tr>
-                        <th>Área</th>
-                        <td data-cell="Área">{{asset.get_area_display}}</td>
+                        <th>Año de construcción</th>
+                        <td data-cell="Año de construcción">{{ asset.vessel_details.year_built }}</td>
+                        <th>Bollard Pull</th>
+                        <td data-cell="Bollard Pull">
+                            {% if asset.vessel_details.bollard_pull %}
+                                {{ asset.vessel_details.bollard_pull }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
                     </tr>
-                    {% if asset.area == 'a' %}
-                        <tr>
-                            <th colspan="2" class="info-special">Información especifica</th>
-                        </tr>
-                        <tr>
-                            <th>Bandera</th>
-                            <td data-cell="Bandera">{{asset.bandera}}</td>
-                        </tr>
-                        <tr>
-                            <th>Eslora</th>
-                            <td data-cell="Eslora">{{asset.eslora}} m</td>
-                        </tr>
-                        <tr>
-                            <th>Manga</th>
-                            <td data-cell="Manga">{{asset.manga}} m</td>
-                        </tr>
-                        <tr>
-                            <th>Puntal</th>
-                            <td data-cell="Puntal">{{asset.puntal}} m</td>
-                        </tr>
-                        <tr>
-                            <th>Calado maximo</th>
-                            <td data-cell="Calado maximo">{{asset.calado_maximo}}</td>
-                        </tr>
-                        <tr>
-                            <th>Deadweight</th>
-                            <td data-cell="Deadweight">{{asset.deadweight}}</td>
-                        </tr>
-                        <tr>
-                            <th>Arqueo bruto</th>
-                            <td data-cell="Arqueo bruto">{{asset.arqueo_bruto}}</td>
+                    <tr>
+                        <th>Eslora </th>
+                        <td data-cell="Eslora/Length">{{ asset.vessel_details.length }}m</td>
+                        <th>Manga </th>
+                        <td data-cell="Manga/Beam">{{ asset.vessel_details.beam }}m</td>
+                    </tr>
+                    <tr>
+                        <th>Puntal </th>
+                        <td data-cell="Puntal/Depth">{{ asset.vessel_details.depth }}m</td>
+                        <th>Calado </th>
+                        <td data-cell="Calado/Draft">{{ asset.vessel_details.draft }}m</td>
+                    </tr>
+                    <tr>
+                        <th>Peso Muerto</th>
+                        <td data-cell="Peso Muerto/ Deadweight">{{ asset.vessel_details.deadweight }}</td>
+                        <th>Potencia</th>
+                        <td data-cell="Potencia">{{ asset.vessel_details.power_kw }} kW</td>
                     </tr>
                     <tr>
                         <th>Arqueo neto</th>
-                        <td data-cell="Arqueo neto">{{asset.arqueo_neto}}</td>
+                        <td data-cell="Arqueo neto">{{ asset.vessel_details.net_tonnage }}</td>
+                        <th>Arqueo bruto</th>
+                        <td data-cell="Arqueo bruto">{{ asset.vessel_details.gross_tonnage }}</td>
                     </tr>
                 {% endif %}
             </tbody>
         </table>
-    </div>
-</div>
-
-{% if rotativos and asset.area == 'a' %} 
-    {% include 'got/assets/graps.html' %}
-{% endif %}
-
-
-<!-- Modal Confirmación de Eliminación -->
-<div class="modal fade" id="deleteSysModal" tabindex="-1" aria-labelledby="deleteSysModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post">{% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteSysModalLabel">Eliminar Sistema</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    ¿Estás seguro de que deseas eliminar el sistema <strong id="modal-sys-name"></strong>? Esta acción no se puede deshacer.
-                    <input type="hidden" name="sys_id" id="modal-sys-id">
-                    <input type="hidden" name="action" value="delete_system">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger">Eliminar</button>
-                </div>
-            </form>
-        </div>
     </div>
 </div>
 

@@ -7,14 +7,13 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib import messages
 
-from got.models import Asset, System, Equipo, Suministro, HistoryHour
+from got.models import Asset, System
+from inv.models import Suministro
 from got.forms import SysForm
-from got.utils.system_utils import get_full_systems_ids, get_full_systems
-from got.utils.supplies_utils import supplies_summary
+from inv.utils.supplies_utils import supplies_summary
 from outbound.models import Place
 from ope.models import Operation
 
-from datetime import timedelta
 
 TODAY = timezone.now().date()
 AREAS = {
@@ -25,24 +24,6 @@ AREAS = {
     'v': 'Vehiculos',
     'x': 'Apoyo',
 }
-
-def fechas_range():
-    hoy = timezone.now().date() - timedelta(days=1)
-    hace_30_dias = hoy - timedelta(days=30)
-    return [(hace_30_dias + timedelta(days=i)).strftime('%d/%m') for i in range(31)]
-
-def horas_total_asset(asset):
-    hoy = timezone.now().date() - timedelta(days=1)
-    hace_30_dias = hoy - timedelta(days=30)
-    systems = System.objects.filter(asset=asset)
-    equipos = Equipo.objects.filter(system__in=systems)
-    horas_operacion = HistoryHour.objects.filter(
-        component__in=equipos,
-        report_date__range=[hace_30_dias, hoy]
-    ).values('report_date').annotate(total_horas=models.Sum('hour')).order_by('report_date')
-    horas_dict = {hora['report_date'].strftime('%d/%m'): hora['total_horas'] for hora in horas_operacion}
-    horas_grafica = [horas_dict.get(fecha, 0) for fecha in fechas_range()]
-    return horas_grafica
 
 
 class AssetsListView(LoginRequiredMixin, generic.TemplateView):
@@ -150,15 +131,8 @@ class AssetDetailView(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         asset = self.get_object()
-        user = self.request.user
-        systems = get_full_systems(asset, user)
-        context['rotativos'] = Equipo.objects.filter(system__in=get_full_systems_ids(asset, user), tipo='r').exists()
-        context['view_type'] = 'detail'
         context['consumibles'] = Suministro.objects.filter(asset=asset).exists()
-        context['page_obj'] = systems.order_by('name')
         context['items_by_subsystem'] = supplies_summary(asset)
-        context['fechas'] = fechas_range()
-        context['horas_grafica'] = horas_total_asset(asset)
         context['sys_form'] = SysForm()
         return context
 

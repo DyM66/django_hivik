@@ -46,18 +46,8 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['-report_date'],
+                'unique_together': {('component', 'report_date')},
             },
-        ),
-        migrations.CreateModel(
-            name='Suministro',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cantidad', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10)),
-                ('Solicitud', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='inv.solicitud')),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.item')),
-                ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.equipo'),),
-                ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.asset')),
-            ],
         ),
 
         migrations.CreateModel(
@@ -104,5 +94,31 @@ class Migration(migrations.Migration):
                 ('new_value', models.TextField(blank=True, null=True)),
                 ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
             ],
+        ),
+        migrations.CreateModel(
+            name='MaintenanceRequirement',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('descripcion', models.CharField(blank=True, max_length=200, null=True)),
+                ('tipo', models.CharField(choices=[('m', 'Material'), ('h', 'Herramienta/Equipo'), ('s', 'Servicio')], max_length=1)),
+                ('cantidad', models.DecimalField(decimal_places=2, default=0.0, max_digits=10)),
+                ('item', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='got.item')),
+                ('service', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='maintenance_requirements', to='got.service')),
+                ('ruta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requisitos', to='got.ruta')),
+                ('costo', models.DecimalField(decimal_places=2, default=0.0, max_digits=19)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='DailyFuelConsumption',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('fecha', models.DateField(default=django.utils.timezone.now)),
+                ('com_estimado_motor', models.DecimalField(decimal_places=2, default=0, max_digits=1000)),
+                ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='fuel_consumptions', to='got.equipo')),
+            ],
+            options={
+                'ordering': ['-fecha'],
+                'unique_together': {('equipo', 'fecha')},
+            },
         ),
     ]

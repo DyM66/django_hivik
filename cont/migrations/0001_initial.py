@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('got', '0004_remove_failurereport_evidence_and_more'),
+        ('got', '0002_ruta_task_ruta'),
     ]
 
     operations = [

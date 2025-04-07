@@ -9,18 +9,67 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q, Sum, Max
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import login_required, permission_required
 
-from got.models import Asset, Suministro, Item
-from got.utils import get_suministros, generate_excel, render_to_pdf, handle_transfer, handle_inventory_update, handle_delete_transaction
+from got.models import Asset, Item
+from got.utils import generate_excel, render_to_pdf
 from ope.models import Operation
 from inv.models import Transaction
+from inv.models.inventory import Suministro
+from inv.utils.supplies_utils import get_suministros, handle_inventory_update, handle_transfer, handle_delete_transaction
+
+
+@login_required
+@permission_required('inv.can_add_supply', raise_exception=True)
+def create_supply_view(request, abbreviation):
+    """
+    Vista separada para crear un suministro (Supply) asociado a un activo (Asset).
+    Retorna JSON, pero utiliza también django.contrib.messages para mostrar el resultado.
+    """
+    if request.method != 'POST':
+        # Podrías manejarlo de distintas maneras, aquí retornamos un JSON de error
+        return JsonResponse({
+            'success': False,
+            'message': 'Método inválido. Use POST para crear un suministro.'
+        }, status=405)
+
+    # 1) Verificar si se recibió el item_id
+    item_id = request.POST.get('item_id')
+    if not item_id:
+        messages.error(request, 'No se ha proporcionado un artículo válido.')
+        return JsonResponse({'success': False, 'message': 'item_id requerido.'}, status=400)
+
+    # 2) Buscar el Asset
+    asset = get_object_or_404(Asset, abbreviation=abbreviation)
+
+    # 3) Intentar obtener el Item
+    try:
+        item = Item.objects.get(pk=item_id)
+    except Item.DoesNotExist:
+        messages.error(request, 'El artículo seleccionado no existe.')
+        return JsonResponse({'success': False, 'message': 'El artículo no existe.'}, status=404)
+
+    # 4) Evitar duplicados (un item no puede repetirse para el mismo asset)
+    if Suministro.objects.filter(asset=asset, item=item).exists():
+        msg_error = f'El suministro para "{item.name}" ya existe en este activo.'
+        messages.error(request, msg_error)
+        return JsonResponse({'success': False, 'message': msg_error}, status=400)
+
+    # 5) Crear el suministro
+    Suministro.objects.create(item=item, cantidad=Decimal('0.00'), asset=asset)
+
+    # 6) Agregar un mensaje de éxito
+    msg_success = f'Suministro "{item.name}" creado exitosamente en {asset.name}.'
+    messages.success(request, msg_success)
+
+    return JsonResponse({'success': True, 'message': msg_success})
+
 
 class AssetInventoryBaseView(LoginRequiredMixin, View):
-    template_name = 'got/assets/asset_inventory_report.html'
+    template_name = 'inventory_management/asset_inventory_report.html'
     keyword_filter = None
     keyword_filter2 = None
 
@@ -77,7 +126,6 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             motivo_global = ''
             fecha_reporte_str = request.POST.get('fecha_reporte', timezone.now().date().strftime('%Y-%m-%d'))
 
-            print(fecha_reporte_str)
             # 1) Verificar si coincide con el patrón YYYY-MM-DD
             if not re.match(r'^\d{4}-\d{2}-\d{2}$', fecha_reporte_str):
                 messages.error(request, "Fecha inválida: usa el formato YYYY-MM-DD.")
@@ -105,17 +153,6 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             else:
                 return self.redirect_with_next(request)
 
-        elif action == 'add_suministro' and request.user.has_perm('got.can_add_supply'):
-            item_id = request.POST.get('item_id')
-            item = get_object_or_404(Item, id=item_id)
-            suministro_existente = Suministro.objects.filter(asset=asset, item=item).exists()
-            if suministro_existente:
-                messages.error(request, f'El suministro para el artículo "{item.name}" ya existe en este asset.')
-            else:
-                Suministro.objects.create(item=item, cantidad=Decimal('0.00'), asset=asset)
-                messages.success(request, f'Suministro para "{item.name}" creado exitosamente.')
-            return self.redirect_with_next(request)
-
         else:
             messages.error(request, 'Acción no reconocida.')
             return self.redirect_with_next(request)
@@ -123,7 +160,8 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
     def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
         motonaves = Asset.objects.filter(show=True)
         available_items = Item.objects.exclude(id__in=suministros.values_list('item_id', flat=True))
-        users_en_historial = transacciones_historial.values_list('user', flat=True).distinct()
+        # available_items = base_items.filter(self.keyword_filter)
+        users_en_historial = transacciones_historial.values_list('user', flat=True).distinct()  
         users_unicos = User.objects.filter(username__in=users_en_historial).order_by('username')
         context = {
             'asset': asset,
@@ -160,7 +198,7 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
         return transacciones_historial
     
     def redirect_with_next(self, request):
-        next_url = request.GET.get('next', '')
+        next_url = request.GET.get('next')
         if next_url:
             return redirect(next_url)
         return redirect(request.path)

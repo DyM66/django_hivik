@@ -1,5 +1,5 @@
 {% extends "base/base_generic.html" %}
-{% load my_tags %}
+{% load asset_tags %}
 
 {% block title %}{{ asset.name }}{% endblock %}
 {% block headtag %}
@@ -8,10 +8,12 @@
 
 {% block content %}
 <h1>
-    {% if perms.got.view_asset %}
-        <a href="{% url 'got:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
-    {% endif %}
-    {{ asset.name }}
+    {% block back %}
+        {% if perms.got.view_asset %}
+            <a href="{% url 'got:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
+        {% endif %}
+    {% endblock %}
+    {{ asset.name }} {% block subtitle %}{% endblock %}
 </h1>
 
 <ul class="nav submenu">
@@ -27,7 +29,7 @@
     </li>
 </ul>
 <ul class="nav submenu d-flex flex-wrap w-100" style="font-size: 0.9rem">
-    {% if rotativos %}
+    {% if asset.abbreviation|has_engines %}
         <li class="nav-item">
             <a class="nav-link {% if request.resolver_match.url_name == 'horas-asset' %}active{% endif %}" href="{% url 'got:horas-asset' asset.abbreviation %}">
                 {% if asset.area == 'v' %} Reporte de kilometraje {% else %} Reporte de horas {% endif %}
@@ -36,9 +38,13 @@
 	{% endif %}
 	<li class="nav-item">
 		{% if asset.area == 'v' %}
-			<a class="nav-link" href="{% url 'preoperacionales:preoperacional-consolidado' %}">Preoperacionales</a>
+			<a class="nav-link {% if request.resolver_match.url_name == 'preoperacional-consolidado' %}active{% endif %}" href="{% url 'preoperacionales:preoperacional-consolidado' %}"> 
+                Preoperacionales
+            </a>
 		{% else %}
-			<a class="nav-link" href="{% url 'inv:asset-suministros' asset.abbreviation %}">Reporte de Consumos</a>
+			<a class="nav-link {% if request.resolver_match.url_name == 'asset-suministros' %}active{% endif %}" href="{% url 'inv:asset-suministros' asset.abbreviation %}">
+                Reporte de Consumos
+            </a>
 		{% endif %}
 	</li>
     <li class="nav-item">

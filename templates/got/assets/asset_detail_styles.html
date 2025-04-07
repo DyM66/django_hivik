@@ -1,12 +1,14 @@
 <style>
     #asset {
-        width: 350px;
+        width: 400px;
         height: 300px;
         object-fit: cover;
+        display: block;
+        margin: 0 auto; 
     }
     .main-asset {
         display: grid;
-        grid-template-columns: 2.2fr 0.8fr;
+        grid-template-columns: 2fr 1fr;
         gap: 10px;
         grid-template-areas:
             "sistemas detail"
@@ -16,22 +18,6 @@
     .main-asset .sistemas {grid-area: sistemas;}
     .main-asset .rutinas {grid-area: ruta;}
     .main-asset .acciones {grid-area: acciones;}
-    .grafica-consumos {grid-area: g-com;}
-    .grafica-horas {grid-area: g-hor;}
-
-    /* graps */
-    .grafica-container {
-        display: flex;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-
-    .grafica-consumos, .grafica-horas {
-        flex: 1 1 45%;
-        min-width: 300px;
-    }
 
     /* asset_maintenance_plan */
     .filter-form {
@@ -45,6 +31,20 @@
     @media (max-width: 767px) {
         .submenu .nav-item {
             width: 100%;
+        }
+        #asset {
+            width: 340px;
+        }   
+
+        .main-asset {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            grid-template-areas:
+                "sistemas"
+                "detail"
+                "ruta"
+                "acciones"
         }
     }
     .submenu {

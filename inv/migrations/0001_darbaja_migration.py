@@ -11,12 +11,12 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('got', '0003_remove_task_ruta_delete_ruta'), 
+        ('got', '0002_ruta_task_ruta'), 
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Transferencia',
+            name='Transference',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('fecha', models.DateField(auto_now_add=True)),
@@ -26,9 +26,9 @@ class Migration(migrations.Migration):
                 ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
                 ('origen', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='origen', to='got.system')),
                 ('receptor', models.CharField(max_length=150)),
+                ('signature', models.ImageField(help_text='Firma obligatoria en formato de imagen (jpg, png, etc.)', upload_to='transference_signatures/')),
             ],
             options={
-                'db_table': 'inv_transferencia',
                 'ordering': ['-fecha'],
             },
         ),
@@ -54,20 +54,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='EquipoCodeCounter',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('asset_abbr', models.CharField(max_length=50)),
-                ('tipo', models.CharField(max_length=2)),
-                ('last_seq', models.PositiveIntegerField(default=0)),
-            ],
-            options={
-                'verbose_name': 'Contador de Código de Equipo',
-                'verbose_name_plural': 'Contadores de Código de Equipo',
-                'unique_together': {('asset_abbr', 'tipo')},
-            },
-        ),
-        migrations.CreateModel(
             name='Transaction',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -78,11 +64,10 @@ class Migration(migrations.Migration):
                 ('tipo', models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo')], default='i', max_length=1)),
                 ('cant_report', models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True)),
                 ('cant_report_transf', models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True)),
-                ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='got.suministro')),
-                ('suministro_transf', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.suministro')),
+                ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='inv.suministro')),
+                ('suministro_transf', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='inv.suministro')),
             ],
             options={
-                'db_table': 'got_transaction',
                 'permissions': (('can_add_supply', 'Puede añadir suministros'),),
             },
         ),
@@ -125,6 +110,17 @@ class Migration(migrations.Migration):
                     ('can_transfer_solicitud', 'Puede transferir solicitudes'),
                 ),
             },
+        ),
+        migrations.CreateModel(
+            name='Suministro',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('cantidad', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10)),
+                ('Solicitud', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='inv.solicitud')),
+                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.item')),
+                ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.equipo'),),
+                ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.asset')),
+            ],
         ),
     ]
 

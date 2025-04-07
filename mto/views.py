@@ -7,12 +7,12 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Sum
 from django.db import models
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.views import generic
 from django.utils import timezone
 
-from got.models import Asset, Suministro, Equipo, Ruta
-from got.utils import get_full_systems_ids
+from got.models import Asset
+from inv.models.inventory import Suministro
 from mto.utils import update_future_plan_entries_for_asset, get_filtered_rutas
 from .models import MaintenancePlan, MaintenancePlanEntry
 
@@ -51,7 +51,6 @@ class AssetMaintenancePlanView(LoginRequiredMixin, generic.DetailView):
         context['planning'] = planned
         context['exec'] = exec
         context['realized'] = realized
-        context['rotativos'] = Equipo.objects.filter(system__in=get_full_systems_ids(self.get_object(), self.request.user), tipo='r').exists()
 
         pm = MaintenancePlan.objects.filter(ruta__system__asset=self.get_object(), period_start__lte=TODAY, period_end__gte=TODAY).order_by("ruta")     
         

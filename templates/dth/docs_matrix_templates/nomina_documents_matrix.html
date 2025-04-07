@@ -20,7 +20,6 @@
 		width: max-content;
 		min-width: 100%;
 		font-size: 0.8rem;
-		font-family: 'Poppins', sans-serif;
 	}
 	
 	.matrix-table th,
@@ -29,14 +28,6 @@
 		border-bottom: 1px solid #ddd;
 		text-align: center;
 		white-space: nowrap;
-	}
-	
-	.matrix-table thead th {
-		background: #191645;
-		color: #fff;
-		position: sticky;
-		top: 0;
-		z-index: 2;
 	}
 	
 	.sticky-col {
@@ -73,12 +64,10 @@
 	#searchNomina {
 		max-width: 400px;
 	}
-	
 </style>
 {% endblock %}
 
 {% block content %}
-
 
 	<h2>📑 Matriz de Documentos</h2>
 
@@ -267,23 +256,23 @@ function openDocForm(empId, docId) {
 }
 
 function uploadDocument(form) {
-const formData = new FormData(form);
-fetch("{% url 'dth:create_employee_document' %}", {
-method: 'POST',
-headers: {'X-Requested-With': 'XMLHttpRequest'},
-body: formData
-})
-.then(res => res.json())
-.then(data => {
-if (data.success) {
-const myModal = bootstrap.Modal.getInstance(document.getElementById('modalUploadDoc'));
-myModal.hide();
-location.reload();
-} else {
-alert(data.message || "Error al subir documento");
-}
-})
-.catch(err => alert("Error uploadDocument: " + err));
+	const formData = new FormData(form);
+	fetch("{% url 'dth:create_employee_document' %}", {
+	method: 'POST',
+	headers: {'X-Requested-With': 'XMLHttpRequest'},
+	body: formData
+	})
+	.then(res => res.json())
+	.then(data => {
+	if (data.success) {
+	const myModal = bootstrap.Modal.getInstance(document.getElementById('modalUploadDoc'));
+	myModal.hide();
+	location.reload();
+	} else {
+	alert(data.message || "Error al subir documento");
+	}
+	})
+	.catch(err => alert("Error uploadDocument: " + err));
 }
 
 //-------------------------------------------------------

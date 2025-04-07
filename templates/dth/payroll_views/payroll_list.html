@@ -6,7 +6,6 @@
     {% include "dth/payroll_views/payroll_list_styles.html" %}
 {% endblock %}
 {% block content %}
-<div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="mb-0">Hoja de vida</h1>
         <div>
@@ -41,17 +40,24 @@
                 <div class="row">
                     {% for nomina in nominas %}
                         <div class="col-sm-12 col-md-6 col-lg-3 d-flex justify-content-center">
-                            <div class="card card-nomina">
+                            <div class="card card-nomina" data-bs-toggle="modal" data-bs-target="#nominaDetailModal" data-nomina-id="{{ nomina.id }}">
                                 <img class="card-img-top" src="{{ nomina.photo_url }}" alt="Foto de {{ nomina.name }}">
                                 <div class="card-body">
                                     <h5 class="card-title">{{ nomina.name }} {{ nomina.surname }}</h5>
-                                    <p class="card-text" style="margin: 0;">{{ nomina.position_id|capfirst }}</p>
+                                    <p class="card-text" style="margin: 0;">{{ nomina.position_id|upper }}</p>
                                     <p class="card-text text-muted" style="font-size: 0.9em;">
                                         Ingreso: {{ nomina.admission|date:"d/m/Y" }}
                                     </p>
-                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#nominaDetailModal" data-nomina-id="{{ nomina.id }}">
+                                    {% if nomina.employment_status == 'a' %}
+                                        <span class="badge badge--success">
+                                    {% else %}
+                                        <span class="badge badge--danger">
+                                    {% endif %}
+                                        {{ nomina.get_employment_status_display }}
+                                    </span>
+                                    <!-- <button class="btn btn-primary btn-sm" >
                                         Ver detalle
-                                    </button>
+                                    </button> -->
                                 </div>
                             </div>
                         </div>
@@ -120,7 +126,6 @@
             </table>
         </div>
     </div>
-</div>
 
 <!-- Modal para crear nuevo registro de Nomina -->
 <div class="modal fade" id="nominaCreateModal" tabindex="-1" aria-hidden="true">

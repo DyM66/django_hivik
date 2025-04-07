@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('got', '0005_alter_asset_options'),
+        ('got', '0002_ruta_task_ruta'),
         ('preoperacionales', '0003_autorizado_preoperacional_authorized'),
     ]
 

@@ -9,7 +9,7 @@ import base64
 
 from got.models import Equipo, Image, System
 from got.utils import render_to_pdf
-from inv.models.others import DarBaja
+from inv.models.equipment_retirement import DarBaja
 from inv.forms import DarBajaForm, UploadEvidenciasYFirmasForm
 
 class DarBajaCreateView(LoginRequiredMixin, CreateView):

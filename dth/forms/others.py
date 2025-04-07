@@ -49,7 +49,7 @@ class NominaForm(forms.ModelForm):
         fields = [
             'id_number', 'name', 'surname', 'position_id', 'salary',
             'admission', 'expiration', 'risk_class', 'is_driver',
-            'gender', 'photo'
+            'gender', 'photo', 'email', 'employment_status'
         ]
         labels = {
             'id_number': 'No Cédula',

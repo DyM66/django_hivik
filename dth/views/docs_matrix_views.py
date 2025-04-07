@@ -27,7 +27,7 @@ def nomina_documents_matrix(request):
         pass
 
     # 2) Traer todos los empleados (Nomina) => filas
-    employees = list(Nomina.objects.select_related('position_id').all().order_by('name', 'surname'))
+    employees = list(Nomina.objects.select_related('position_id').filter(employment_status='a').order_by('name', 'surname'))
     if not employees:
         # Si no hay empleados, la tabla no tendrá filas
         pass

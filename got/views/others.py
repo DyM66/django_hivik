@@ -7,7 +7,7 @@ import requests
 import uuid
 import zipfile
 
-from datetime import timedelta, date, datetime
+from datetime import date
 from decimal import Decimal
 from django.conf import settings
 from django.contrib import messages
@@ -798,133 +798,6 @@ def add_supply_to_equipment(request, code):
             suministro.equipo = equipo
             suministro.save()
             return redirect(reverse('got:sys-detail', args=[equipo.system.id, equipo.code]))
-
-
-@login_required
-def reportHoursAsset(request, asset_id):
-    asset = get_object_or_404(Asset, pk=asset_id)
-    today = date.today()
-    dates = [today - timedelta(days=x) for x in range(90)]
-    systems = get_full_systems_ids(asset, request.user)
-    equipos_rotativos = Equipo.objects.filter(system__in=systems, tipo='r')
-    rotativos = equipos_rotativos.exists()
-
-    if request.method == 'POST':
-        if "equipo_id" in request.POST and "report_date" in request.POST and "hour" in request.POST:
-            equipo_id = request.POST.get('equipo_id')
-            report_date = request.POST.get('report_date')
-            hour = request.POST.get('hour')
-            hist_id = request.POST.get('hist_id')
-
-            try:
-                hour_value = float(hour)
-                fecha = datetime.strptime(report_date, "%Y-%m-%d").date()
-            except (ValueError, TypeError):
-                messages.error(request, "Datos inválidos para actualizar horas (formato de fecha u horas).")
-                return redirect(reverse('got:horas-asset', args=[asset_id]))
-
-            # Validar rangos de hora
-            if hour_value < 0 or hour_value > 24:
-                messages.error(request, "El valor de horas debe estar entre 0 y 24.")
-                return redirect(request.META.get(
-                    'HTTP_REFERER',
-                    reverse('got:horas-asset', args=[asset_id])
-                ))
-            
-            # Buscar o crear HistoryHour
-            equipo = get_object_or_404(Equipo, pk=equipo_id)
-            # Verificamos si hist_id es un entero válido
-            try:
-                hist_id_int = int(hist_id)  # si hist_id es None, "" o "None", lanzará ValueError
-                history_hour = get_object_or_404(HistoryHour, pk=hist_id_int)
-            except (TypeError, ValueError):
-                # hist_id no es un entero válido => creamos un nuevo registro
-                history_hour = HistoryHour(component=equipo)
-
-            history_hour.hour = hour_value
-            history_hour.report_date = fecha
-            history_hour.reporter = request.user
-            history_hour.modified_by = request.user
-            history_hour.save()
-
-            messages.success(request, "Horas actualizadas correctamente.")
-            return redirect(reverse('got:horas-asset', args=[asset_id]))
-
-        else:
-            # =============== LÓGICA DEL FORMULARIO TRADICIONAL ===============
-            form = ReportHoursAsset(request.POST, equipos=equipos_rotativos, asset=asset)
-            if form.is_valid():
-                instance = form.save(commit=False)
-                instance.reporter = request.user
-                instance.modified_by = request.user
-                instance.save()
-                messages.success(request, "Formulario enviado correctamente.")
-                return redirect(reverse('got:horas-asset', args=[asset_id]))
-            else:
-                # El form no es válido, se re-renderiza con errores
-                messages.error(request, "Error en el formulario tradicional.")
-
-    else:
-        # GET: Simplemente creamos la instancia vacía del formulario tradicional
-        form = ReportHoursAsset(equipos=equipos_rotativos, asset=asset)
-
-    # --------------------------------------------------------------------------
-    # 2. Construir la información (equipos_data y transposed_data) para la tabla
-    # --------------------------------------------------------------------------
-    hours = HistoryHour.objects.filter(component__system__asset=asset)[:90]
-
-    equipos_data = []
-    for equipo in equipos_rotativos:
-        # Diccionario con fecha -> {hour, reporter, hist_id}
-        horas_reportadas = {}
-        for d in dates:
-            horas_reportadas[d] = {
-                'hour': 0,
-                'reporter': None,
-                'hist_id': None
-            }
-
-        # Consulta de HistoryHour existentes
-        registros = HistoryHour.objects.filter(
-            component=equipo,
-            report_date__range=(dates[-1], today)
-        ).select_related('reporter')
-
-        for reg in registros:
-            if reg.report_date in horas_reportadas:
-                horas_reportadas[reg.report_date]['hour'] = reg.hour
-                horas_reportadas[reg.report_date]['reporter'] = (reg.reporter.username if reg.reporter else None)
-                horas_reportadas[reg.report_date]['hist_id'] = reg.id
-
-        # Crear lista en el mismo orden que `dates`
-        lista_horas = [horas_reportadas[d] for d in dates]
-
-        equipos_data.append({
-            'equipo': equipo,
-            'horas': lista_horas,
-        })
-
-    # Transponer la data (filas=fechas, columnas=equipos)
-    transposed_data = []
-    for i, d in enumerate(dates):
-        fila = {
-            'date': d,
-            'valores': []
-        }
-        for data in equipos_data:
-            fila['valores'].append(data['horas'][i])
-        transposed_data.append(fila)
-    context = {
-        'form': form,
-        'horas': hours,
-        'asset': asset,
-        'equipos_data': equipos_data,
-        'equipos_rotativos': equipos_rotativos,
-        'dates': dates,
-        'transposed_data': transposed_data,
-        'rotativos': rotativos
-    }
-    return render(request, 'got/assets/hours_asset.html', context)
 
 
 class RutaDetailView(LoginRequiredMixin, generic.DetailView):
@@ -2933,68 +2806,6 @@ class BudgetSummaryByAssetView(TemplateView):
         }
         return self.render_to_response(context)
 
-
-def managerial_asset_report_pdf(request, abbreviation):
-    asset = get_object_or_404(Asset, abbreviation=abbreviation)
-    systems = asset.system_set.all()
-
-    systems_data = []
-    for sys in systems:
-        # Equipos y sus imágenes
-        equipos_qs = sys.equipos.all()
-        equipos_data = []
-        for eq in equipos_qs:
-            # Filtramos imágenes asociadas al equipo
-            eq_images = eq.images.all().order_by('id')
-            # Omitir los campos None => lo haremos en la plantilla
-
-            equipos_data.append({
-                'name': eq.name,
-                'ubicacion': eq.ubicacion,
-                'code': eq.code,
-                'model': eq.model,
-                'marca': eq.marca,
-                'serial': eq.serial,
-                'fabricante': eq.fabricante,
-                'tipo_display': eq.get_tipo_display(),
-                'feature': eq.feature,
-                'all_images': eq_images,
-            })
-
-        # OTs en ejecución
-        ots_en_x = sys.ot_set.filter(state='x')
-        ots_en_ejecucion_data = []
-        for ot in ots_en_x:
-            open_tasks = ot.task_set.filter(finished=False)
-            ots_en_ejecucion_data.append({
-                'num_ot': ot.num_ot,
-                'description': ot.description,
-                'open_tasks': open_tasks,
-            })
-
-        # Fallas abiertas sin OT
-        # => Recolectamos todos los equipos IDs
-        eq_ids = equipos_qs.values_list('pk', flat=True)
-        failures_abiertas = FailureReport.objects.filter(
-            equipo_id__in=eq_ids,
-            closed=False,
-            related_ot__isnull=True
-        )
-
-        systems_data.append({
-            'system': sys,
-            'equipments': equipos_data,
-            'ots_en_ejecucion': ots_en_ejecucion_data,
-            'failures_abiertas': failures_abiertas,
-        })
-
-    context = {
-        'asset': asset,
-        'systems_data': systems_data,
-        'today': timezone.now().date(),
-    }
-
-    return render_to_pdf('got/systems/managerial_asset_report.html', context)
 
 class CustomPasswordResetView(PasswordResetView):
     email_template_name = 'registration/password_reset_email.txt'  # Plantilla de texto plano

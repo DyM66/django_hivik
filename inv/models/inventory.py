@@ -1,6 +1,20 @@
+# inv/models/inventory.py
 from django.db import models
-from got.models import Equipo, System, Suministro
+from got.models import Equipo, System, Item
 from decimal import Decimal
+from django.core.validators import FileExtensionValidator
+
+from got.paths import get_upload_path
+
+class Suministro(models.Model):
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00')) 
+    Solicitud = models.ForeignKey('inv.solicitud', on_delete=models.CASCADE, null=True, blank=True) #Obsoleto
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
+    asset = models.ForeignKey('got.asset', on_delete=models.CASCADE, null=True, blank=True, related_name='suministros')
+
+    def __str__(self):
+        return f"{self.cantidad} {self.item.presentacion} - {self.item} "
 
 
 class Transference(models.Model):
@@ -20,7 +34,6 @@ class Transference(models.Model):
         return f"{self.equipo} - {self.origen} -> {self.destino}"
 
 
-# Model 15: Registro de movimientos de suminsitros realizados en los barcos o bodegas locativas
 class Transaction(models.Model):
     TIPO = (('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo'),)
     suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
@@ -33,12 +46,22 @@ class Transaction(models.Model):
     suministro_transf = models.ForeignKey(Suministro, on_delete=models.CASCADE, null=True, blank=True)
     cant_report_transf = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
 
+    remision = models.FileField(
+        upload_to=get_upload_path,
+        null=True,
+        blank=True,
+        help_text="PDF/Imagen con la remisión del ingreso",
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])]
+    )
+
     def __str__(self):
         return f"{self.suministro.item.name}: {self.cant}/{self.tipo} el {self.fecha.strftime('%Y-%m-%d')}"
 
     class Meta:
-        permissions = (('can_add_supply', 'Puede añadir suministros'),)
+        permissions = (
+            ('can_add_supply', 'Puede añadir suministros'),
+            ('can_edit_only_today', 'Puede modificar transacciones SOLO en la fecha actual'),
+            )
         constraints = [
             models.UniqueConstraint(fields=['suministro', 'fecha', 'tipo'], name='unique_suministro_fecha_tipo')
         ]
-        db_table = 'got_transaction'

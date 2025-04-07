@@ -1,7 +1,4 @@
 <style>
-    /* .container-table{
-        overflow-x: auto;
-    } */
     ::-webkit-scrollbar {
         width: 10px;
     }
@@ -12,17 +9,8 @@
         border-radius: 10px;
     }
 
-
-
-    /* html, body {
-        overscroll-behavior: none;
-    } */
-
     .table-scroll-container {
         overflow: auto;
-        overscroll-behavior: none;
-        touch-action: pan-y; /* sólo scroll vertical */
-
     }
     
     /* Handle */
@@ -35,10 +23,11 @@
     ::-webkit-scrollbar-thumb:hover {
         background: rgb(80, 80, 80);
     }
-    table.permissions-table {
+    table .permissions-table {
         border-collapse: collapse;
         width: 100%;
         font-size: 0.8rem;
+        height: 75vh;
     }
     .permissions-table th, 
     .permissions-table td {
@@ -76,4 +65,23 @@
         font-weight: normal;
         background-color: #fffaf0;
     }
+
+    .sticky-col {
+		position: sticky;
+		background: #ffffff;
+		z-index: 3;
+	}
+	
+	.sticky-col-1 {
+		left: 0;
+		min-width: 200px; 
+	}
+
+    .permissions-table thead th {
+		background: #191645;
+		color: #fff;
+		position: sticky;
+		top: 0;
+		z-index: 2;
+	}
 </style>

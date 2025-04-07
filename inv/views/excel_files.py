@@ -9,7 +9,8 @@ from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.drawing.image import Image as ExcelImage
 
-from got.models import Asset, Equipo, Suministro
+from got.models import Asset, Equipo
+from inv.models import Suministro
 
 
 def export_equipment_supplies(request, abbreviation):

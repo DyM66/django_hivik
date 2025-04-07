@@ -77,8 +77,6 @@ urlpatterns = [
     path('budget/', views.BudgetView.as_view(), name='budget_view'),
     path('budget/summary/assets/', views.BudgetSummaryByAssetView.as_view(), name='budget_summary_by_asset'),
 
-    path('managerial-report/<str:abbreviation>/', views.managerial_asset_report_pdf, name='managerial_asset_report'),
-
     path('maintenance-plan/export/<str:asset_abbr>/', views.MaintenancePlanExcelExportView.as_view(), name='maintenance_plan_excel_export'),
 
     path('assets/<str:pk>/pdf/', views.EquipoPDFView.as_view(), name='equipo-pdf'),

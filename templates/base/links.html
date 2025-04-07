@@ -41,7 +41,9 @@
 
 
 <style>
-    /* Variables y Colores */
+    /* ==========================================================================
+    VARIABLES Y AJUSTES GENERALES
+    ========================================================================== */
     :root {
         --color-primary: #191645;
         --color-aux: #0157a4;
@@ -68,14 +70,62 @@
 
         --color-text-light: #888;
     }
+    /* ==========================================================================
+    AJUSTES GLOBALES
+    ========================================================================== */
     body {
         margin: 0;
         font-family: "Poppins", sans-serif;
-        box-sizing: border-box;
         color: var(--color-primary);
+        box-sizing: border-box;
         background-color: var(--color-bg);
+		overscroll-behavior-x: contain;	
     }
-    /* Add classes for the new statuses */
+    a {
+        text-decoration: none;
+        color: var(--color-primary);
+    }
+    a:hover {
+        color: var(--color-secondary);
+    }
+    /* ==========================================================================
+    ESTILOS REUTILIZABLES DE COMPONENTES
+    ========================================================================== */
+    /* BADGE BASE */
+    .badge {
+        padding: 0.45em 0.85em;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 999px;
+        text-align: center;
+        white-space: nowrap;
+        user-select: none;
+        vertical-align: middle;
+        transition: all 0.2s ease-in-out;
+        min-width: 70px;
+    }
+    .badge--success {background-color: #86e49d; color: #0f5132;}
+    .badge--inactive {background-color: #e2e3e5; color: #41464b;}
+    .badge--warning {background-color: #fff3cd; color: #664d03;}
+    .badge--danger {background-color: #f8d7da; color: #842029;}
+    .badge--info {background-color: #cff4fc; color: #055160;}
+    .badge:hover {opacity: 0.75; cursor: default;}
+
+    .btn-primary {
+        background-color: var(--color-secondary);
+        border-color: var(--color-secondary);
+        color: var(--color-primary);
+    }
+    .btn-primary:hover, .btn-primary:focus,
+    .btn-primary:active {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
+        color: #FFF;
+    }
+
+    /* ==========================================================================
+    En revision
+    ========================================================================== */
     .red-state {background-color: var(--color-red);}
     .orange-state {background-color: var(--color-orange);}
     .yellow-state {background-color: var(--color-yellow);}
@@ -112,18 +162,6 @@
         border: 1px solid #000;
         border-radius: 4px;
         touch-action: none;
-    }
-    .btn-primary {
-        background-color: var(--color-secondary);
-        border-color: var(--color-secondary);
-        color: var(--color-primary);
-    }
-    .btn-primary:hover,
-    .btn-primary:focus,
-    .btn-primary:active {
-        background-color: var(--color-primary);
-        border-color: var(--color-primary);
-        color: #FFF;
     }
     /* Estilos de Navegación */
     .navbar {
@@ -376,14 +414,16 @@
         margin: 15px 10px;
         font-weight: 600;
     }
-    /* Tablas */
+    /* ==========================================================================
+    ESTILOS PARA TABLAS
+    ========================================================================== */
     .table-list {
         border-collapse: collapse;
         font-size: 0.85em;
         overflow: visible;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
     }
-    .table-detail {
+    .table-w-100 {
         width: 100%;
     }
     .table-list thead tr:first-child th {
@@ -391,7 +431,7 @@
         padding: 10px;
         text-align: center;
         font-weight: bold;
-        font-size: 1.2em;
+        font-size: 1.1em;
     }
     .table-list thead tr th {
         background-color: var(--color-aux);
@@ -406,6 +446,9 @@
     }
     .table-list tbody tr:nth-of-type(even) {
         background-color: #E8E8EC;
+    }
+    .table-list tbody tr:nth-of-type(odd) {
+        background-color: #fff;
     }
     .table-list tbody tr:last-of-type {
         border-bottom: 2px solid var(--color-secondary);
@@ -424,6 +467,13 @@
         white-space: normal;    
         max-width: 300px; /* Puedes ajustar este valor según tus necesidades */
     }
+    /* ESTILO POR DEFECTO CON SCROLL HORIZONTAL */
+    .responsive-table-scroll {
+        overflow-x: auto;
+    }
+    .responsive-table-scroll table {
+        min-width: 600px;
+    }
     caption {
         color: white;
         text-align: center;
@@ -434,7 +484,6 @@
     .nowrap {
         white-space: nowrap;
     }
-
     @media (max-width: 767px) {
         .btn-group {
             width: 100%;
@@ -443,31 +492,29 @@
         .table-list {
             width: 100%;
         }
-        .table-list th,
-        .info-asset .table-info th {
+        .responsive-table-block .table-list th {
             display: none;
         }
         .table-detail thead tr:first-child th {
             display: table-cell;
         }
-        .table-list td {
+        .responsive-table-block .table-list td {
             display: grid;
             gap: 0.4rem;
-            grid-template-columns: 15ch auto;
-            padding: 0.5rem 1rem;
-            border-bottom: none;
+            grid-template-columns: 12ch auto;
+            padding: 0.5rem;
         }
-        .table-list td:first-child {
+        .responsive-table-block .table-list td:first-child {
             padding-top: 1.8rem;
         }
-        .table-list td[data-cell]::before {
+        .responsive-table-block .table-list td[data-cell]::before {
             content: attr(data-cell) ": ";
             font-weight: 700;
         }
-        .table-list tr .visible {
+        .responsive-table-block .table-list tr .row-mobile-visible {
             display: table-cell;
         }
-        .table-list td:last-child {
+        .responsive-table-block .table-list td:last-child {
             padding-bottom: 2rem;
         }
         .table-list td.full-width-cell {
@@ -486,6 +533,9 @@
         }
         .table-list td.full-width-cell h6 {
             margin-top: 0;
+        }
+        .responsive-table-block td:not([data-cell]) {
+            display: none;
         }
     }
     .btn-group {
@@ -599,6 +649,4 @@
         display: block;
         margin-bottom: 8px;
     }
-
-
 </style>

@@ -10,10 +10,12 @@ from django.views import View
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
-from got.models import Asset, System, Equipo, Image, Suministro, Item
+from got.models import Asset, System, Equipo, Image, Item
 from got.forms import UploadImages, ItemForm
 from got.utils import generate_equipo_code, get_full_systems_ids
 from inv.forms import EquipoForm
+
+from inv.models import Suministro
 
 @csrf_exempt
 def public_equipo_detail(request, eq_code):

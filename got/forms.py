@@ -9,7 +9,7 @@ from taggit.forms import TagWidget
 
 from got.models import *
 from dth.forms import UserChoiceField
-from inv.models import Solicitud
+from inv.models import Solicitud, Suministro
 
 class XYZ_DateInput(forms.DateInput):  # Campo de fecha personalizado para el formato YYYY-MM-DD
     input_type = 'date'

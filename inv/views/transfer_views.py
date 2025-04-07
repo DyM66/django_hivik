@@ -6,7 +6,7 @@ from django.views import View
 
 from got.models import Equipo, Ruta
 from got.utils import pdf_render
-from inv.models.transfers import Transference
+from inv.models.inventory import Transference
 from inv.forms import TransferenciaForm
 from inv.utils import enviar_correo_transferencia
 
