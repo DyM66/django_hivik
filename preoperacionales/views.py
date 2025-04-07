@@ -63,7 +63,7 @@ def preoperacional_diario_view(request, code):
             )
             kilometraje_reportado = preop.kilometraje - horometro_actual
 
-            history_hour, created = history_hour.objects.get_or_create(
+            history_hour, created = HistoryHour.objects.get_or_create(
                 component=equipo,
                 report_date=date.today(),
                 defaults={"hour": kilometraje_reportado},
@@ -122,7 +122,7 @@ class PreoperacionalDiarioUpdateView(LoginRequiredMixin, generic.UpdateView):
         )
         kilometraje_reportado = form.cleaned_data["kilometraje"] - horometro_actual
 
-        history_hour, _ = history_hour.objects.get_or_create(
+        history_hour, _ = HistoryHour.objects.get_or_create(
             component=equipo,
             report_date=preoperacional.fecha,
             defaults={"hour": kilometraje_reportado},
@@ -453,7 +453,7 @@ def preoperacional_especifico_view(request, code):
             )
             kilometraje_reportado = nuevo_kilometraje - horometro_actual
 
-            history_hour, created = history_hour.objects.get_or_create(
+            history_hour, created = HistoryHour.objects.get_or_create(
                 component=equipo,
                 report_date=date.today(),
                 defaults={"hour": kilometraje_reportado},
@@ -561,7 +561,7 @@ class PreoperacionalUpdateView(LoginRequiredMixin, generic.UpdateView):
         kilometraje_reportado = nuevo_kilometraje - horometro_actual
 
         # Actualizar o crear el registro de horas
-        history_hour, _ = history_hour.objects.get_or_create(
+        history_hour, _ = HistoryHour.objects.get_or_create(
             component=equipo,
             report_date=fecha_preoperacional,
             defaults={"hour": kilometraje_reportado},

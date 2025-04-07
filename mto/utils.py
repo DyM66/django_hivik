@@ -18,7 +18,7 @@ def get_filtered_rutas(asset, request_data=None):
     else:
         filter_date = timezone.now().date()
 
-    main = Ruta.objects.filter(system__asset=asset).exclude(system__state__in=['x', 's'], equipo__estado='f').order_by('-nivel', 'frecuency')
+    main = Ruta.objects.filter(system__asset=asset).exclude(Q(system__state__in=['x', 's']) | Q(equipo__estado='f')).order_by('-nivel', 'frecuency')
     planned = [ruta for ruta in main if ((ruta.percentage_remaining < 10) or (ruta.next_date and filter_date >= ruta.next_date)) and not (ruta.ot and ruta.ot.state == 'x')]
     exec = [ruta for ruta in main if ruta.ot and ruta.ot.state == 'x']
     realized = [ruta for ruta in main if ruta.intervention_date == filter_date]
