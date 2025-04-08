@@ -107,6 +107,23 @@ def request_docs_form(request, emp_id):
     })
 
 
+
+from django.http import JsonResponse
+from got.sns_service import SNSService
+
+def enviar_sms(request):
+    sns_service = SNSService()
+
+#     # Número de teléfono en formato internacional (ejemplo: +1 555-555-5555)
+#     phone_number = '+15555555555'  # Sustituye con el número de teléfono real
+#     message = 'Este es un mensaje SMS de prueba enviado desde Django a través de SNS.'
+
+#     try:
+#         response = sns_service.send_sms(phone_number, message)
+#         return JsonResponse({'message': 'SMS enviado con éxito', 'response': response})
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)})
+
 @login_required
 def request_docs_submit(request):
     if request.method != 'POST':
@@ -147,27 +164,31 @@ def request_docs_submit(request):
     upload_link = request.build_absolute_uri(
         reverse('dth:document_upload_view', kwargs={'token': token})
     )
-    
-    subject = "Solicitud de Documentos - SERPORT"
-    # Puedes usar render_to_string con una plantilla HTML para el cuerpo del email
-    html_message = render_to_string('dth/docs_requests_templates/email_request_documents.html', {
-        'employee': employee,
-        'upload_link': upload_link,
-        'doc_req': doc_req,
-    })
 
-    # send_mail retorna el número de emails enviados
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@serport.com')
-    recipient_list = [employee.email]
-    send_mail(
-        subject,
-        # Mensaje de texto plano (por si el cliente de correo no soporta HTML)
-        f"Hola {employee.name}, por favor ingresa al siguiente enlace para cargar tus documentos: {upload_link}",
-        from_email,
-        recipient_list,
-        fail_silently=False,
-        html_message=html_message  # cuerpo en HTML
-    )
+    sns_service = SNSService()
+
+    response = sns_service.send_sms('+573012323204', f'Si funciona, {upload_link}')
+    
+    # subject = "Solicitud de Documentos - SERPORT"
+    # # Puedes usar render_to_string con una plantilla HTML para el cuerpo del email
+    # html_message = render_to_string('dth/docs_requests_templates/email_request_documents.html', {
+    #     'employee': employee,
+    #     'upload_link': upload_link,
+    #     'doc_req': doc_req,
+    # })
+
+    # # send_mail retorna el número de emails enviados
+    # from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@serport.com')
+    # recipient_list = [employee.email]
+    # send_mail(
+    #     subject,
+    #     # Mensaje de texto plano (por si el cliente de correo no soporta HTML)
+    #     f"Hola {employee.name}, por favor ingresa al siguiente enlace para cargar tus documentos: {upload_link}",
+    #     from_email,
+    #     recipient_list,
+    #     fail_silently=False,
+    #     html_message=html_message  # cuerpo en HTML
+    # )
 
 
     messages.success(request, f"Se ha enviado el correo de solicitud de documentos a {employee.email}.")
