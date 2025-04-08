@@ -30,7 +30,7 @@ def export_equipment_supplies(request, abbreviation):
             counter,
             eq.code,
             eq.ubicacion or system_name,
-            eq.type.code,
+            eq.type,
             eq.name,
             eq.brand or "",
             eq.serial or "",
