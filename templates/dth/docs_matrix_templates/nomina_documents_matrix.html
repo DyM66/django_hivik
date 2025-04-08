@@ -29,6 +29,14 @@
 		text-align: center;
 		white-space: nowrap;
 	}
+
+    .matrix-table thead th {
+		background: #191645;
+		color: #fff;
+		position: sticky;
+		top: 0;
+		z-index: 2;
+	}
 	
 	.sticky-col {
 		position: sticky;
@@ -92,7 +100,7 @@
 			<tbody id="nominaMatrixBody">
 				{% for row in rows %}
 				<tr>
-					<td class="sticky-col sticky-col-1">{{ row.employee.name }} {{ row.employee.surname }}</td>
+					<td class="sticky-col sticky-col-1">{{ row.employee.surname }} {{ row.employee.name }}</td>
 					<td class="sticky-col sticky-col-2">{{ row.employee.position_id }}</td>
 					<td>{{ row.employee.id_number }}</td>
 					<td>

@@ -2,14 +2,14 @@
 {% load my_tags %}
 
 {% block back %}
-<a href="{% url 'got:asset-detail' asset.abbreviation %}"><i class="bi bi-arrow-bar-left"></i></a>
+    <a href="{% url 'got:asset-detail' asset.abbreviation %}"><i class="bi bi-arrow-bar-left"></i></a>
 {% endblock %}
 {% block subtitle %}
-{% if group_by == 'presentacion' %}
-    - Reporte consumos de Lubricantes, Combustibles y Filtros
-{% else %}
-    - Inventario General - {{ asset.name }}
-{% endif %}
+    {% if group_by == 'presentacion' %}
+        - Reporte consumos de Lubricantes, Combustibles y Filtros
+    {% else %}
+        - Inventario General - {{ asset.name }}
+    {% endif %}
 {% endblock %}
 
 {% block asset %}
@@ -43,7 +43,7 @@
     </div>
 {% endif %}
 
-<form id="inventoryForm" method="post" enctype="multipart/form-data" style="background-color: var(--color-bg-aux); padding: 10px;">{% csrf_token %}
+<form id="inventoryForm" method="post" enctype="multipart/form-data" style="background-color: #A5BCD4; padding: 10px;">{% csrf_token %}
     <input type="hidden" name="action" value="update_inventory">
     <input type="hidden" name="confirm_overwrite" id="confirm_overwrite" value="no">
     
@@ -828,7 +828,7 @@
 
 
 
-<script>
+<!-- <script>
 
 ///////////////////////////////////////////////
 // Lógica de MODAL de Remisión / Ingreso Externo
@@ -927,6 +927,6 @@ document.addEventListener("DOMContentLoaded", function(){
     }
   });
 });
-    </script>
+    </script> -->
     
 {% endblock %}
