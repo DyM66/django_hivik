@@ -165,30 +165,30 @@ def request_docs_submit(request):
         reverse('dth:document_upload_view', kwargs={'token': token})
     )
 
-    sns_service = SNSService()
+    # sns_service = SNSService()
 
-    response = sns_service.send_sms('+573012323204', f'Si funciona, {upload_link}')
+    # response = sns_service.send_sms('+573012323204', f'Si funciona, {upload_link}')
     
-    # subject = "Solicitud de Documentos - SERPORT"
-    # # Puedes usar render_to_string con una plantilla HTML para el cuerpo del email
-    # html_message = render_to_string('dth/docs_requests_templates/email_request_documents.html', {
-    #     'employee': employee,
-    #     'upload_link': upload_link,
-    #     'doc_req': doc_req,
-    # })
+    subject = "Solicitud de Documentos - SERPORT"
+    # Puedes usar render_to_string con una plantilla HTML para el cuerpo del email
+    html_message = render_to_string('dth/docs_requests_templates/email_request_documents.html', {
+        'employee': employee,
+        'upload_link': upload_link,
+        'doc_req': doc_req,
+    })
 
-    # # send_mail retorna el número de emails enviados
-    # from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@serport.com')
-    # recipient_list = [employee.email]
-    # send_mail(
-    #     subject,
-    #     # Mensaje de texto plano (por si el cliente de correo no soporta HTML)
-    #     f"Hola {employee.name}, por favor ingresa al siguiente enlace para cargar tus documentos: {upload_link}",
-    #     from_email,
-    #     recipient_list,
-    #     fail_silently=False,
-    #     html_message=html_message  # cuerpo en HTML
-    # )
+    # send_mail retorna el número de emails enviados
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@serport.com')
+    recipient_list = [employee.email]
+    send_mail(
+        subject,
+        # Mensaje de texto plano (por si el cliente de correo no soporta HTML)
+        f"Hola {employee.name}, por favor ingresa al siguiente enlace para cargar tus documentos: {upload_link}",
+        from_email,
+        recipient_list,
+        fail_silently=False,
+        html_message=html_message  # cuerpo en HTML
+    )
 
 
     messages.success(request, f"Se ha enviado el correo de solicitud de documentos a {employee.email}.")

@@ -131,7 +131,7 @@ class EquipoUpdate(UpdateView):
     
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        self.old_tipo = obj.tipo  
+        # self.old_tipo = obj.tipo  
         self.old_code = obj.code
         return obj
 
