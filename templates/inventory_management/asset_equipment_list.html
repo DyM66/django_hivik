@@ -242,127 +242,116 @@
 </div><!-- container -->
 
 
-	<!-- Modal "Crear Nuevo Suministro" -->
-	<div class="modal fade" id="createSupplyModal" tabindex="-1" aria-hidden="true">
-    	<div class="modal-dialog modal-xl">
-      		<div class="modal-content" style="font-size:0.9rem;">
-        		<form method="post" action="{% url 'inv:create_supply' activo.abbreviation %}" enctype="multipart/form-data">{% csrf_token %}
 
-					<input type="hidden" name="is_new_item" id="is_newItemField" value="0">
-
-					
-          			<div class="modal-header">
-            			<h5 class="modal-title">Crear Nuevo Suministro</h5>
-            			<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-          			</div>
-          			<div class="modal-body">
-						<div class="row">
-							<div class="col-md-7">
-								<!-- Buscador (similar al snippet) -->
-								<div class="mb-3">
-									<label for="supplyItemSearch" class="form-label" style="font-weight:500;">
-										Buscar artículo:
-									</label>
-									<input type="text" class="form-control form-control-sm" id="supplyItemSearch" placeholder="Buscar por nombre o referencia...">
-								</div>
-								<!-- Tabla listando items. Filtrable. -->
-								<div class="table-responsive" style="max-height:300px; overflow:auto;">
-									<table class="table table-sm align-middle" id="supplyItemTable">
-										<thead>
-											<tr>
-												<th></th>
-												<th>Artículo</th>
-												<th>Referencia</th>
-												<th>Tipo</th>
-												<th>Presentación</th>
-											</tr>
-										</thead>
-										<tbody>
-											{% for it in all_items %}
-												<tr data-name="{{ it.name|lower }}" data-ref="{{ it.reference|lower }}">
-												<td>
-													<input type="radio" name="item_id" value="{{ it.id }}">
-												</td>
-												<td>{{ it.name }}</td>
-												<td>{{ it.reference|default_if_none:"-" }}</td>
-												<td>{{ it.get_seccion_display }}</td>
-												<td>{{ it.presentacion }}</td>
-												</tr>
-											{% endfor %}
-										</tbody>
-									</table>
-								</div>
-								<!-- Campo para Cantidad -->
-								<div class="mt-3">
-									<label for="newSupplyCantidad" class="form-label">
-										Cantidad
-									</label>
-									<input type="number" step="0.1" min="0" class="form-control form-control-sm" name="cantidad" id="newSupplyCantidad" required>
-								</div>
-							</div>
-
-							<!-- Columna 2: Formulario para crear nuevo Artículo -->
-							<div class="col-md-5">
-								<!-- Botón que muestra/oculta el formulario -->
-								<button type="button" class="btn btn-sm btn-outline-primary mb-2" id="toggleNewItemFormBtn">
-									<i class="fa-solid fa-plus"></i> Nuevo Artículo
-								</button>
+<!-- Modal "Crear Nuevo Suministro" -->
+<div class="modal fade" id="createSupplyModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-xl">
+	  <div class="modal-content" style="font-size:0.9rem;">
+		<form id="createSupplyModalForm" method="post" action="{% url 'inv:create_new_item_supply' activo.abbreviation %}" enctype="multipart/form-data">
+		  {% csrf_token %}
+		  <input type="hidden" name="is_new_item" id="isNewItemField" value="0">
   
-								<div id="newItemFormContainer" style="display:none; border:1px solid #ccc; padding:1rem;">
-									<h5>Crear Nuevo Artículo</h5>
-									<hr>
-									<div class="mb-2">
-										<label class="form-label">Artículo</label>
-										<input type="text" class="form-control form-control-sm" name="new_item_name">
-									</div>
-									<div class="mb-2">
-										<label class="form-label">Referencia</label>
-										<input type="text" class="form-control form-control-sm" name="new_item_reference">
-									</div>
-									<div class="mb-2">
-										<label class="form-label">Presentación</label>
-										<input type="text" class="form-control form-control-sm" name="new_item_presentacion">
-									</div>
-									<div class="mb-2">
-										<label class="form-label">Código Zeus</label>
-										<input type="text" class="form-control form-control-sm" name="new_item_code">
-									</div>
-									<div class="mb-2">
-										<label class="form-label">Categoría (Sección)</label>
-										<select class="form-control form-control-sm" name="new_item_seccion">
-										<option value="c">Consumibles</option>
-										<option value="h">Herramientas/Elementos varios</option>
-										<option value="r">Repuestos</option>
-										</select>
-									</div>
-									<div class="mb-2">
-										<label class="form-label">Valor unitario</label>
-										<input type="number" step="0.01" class="form-control form-control-sm" name="new_item_unit_price" placeholder="0.00">
-									</div>
-									<div class="mb-2">
-										<label class="form-label">Imagen</label>
-										<input type="file" class="form-control form-control-sm" name="new_item_imagen" accept="image/*">
-									</div>
-								</div><!-- newItemFormContainer -->
-							</div><!-- col-md-5 -->
-
-						</div>
-
-						<div class="modal-footer">
-							<button type="submit" class="btn btn-primary btn-sm">
-							Guardar
-							</button>
-							<button type="button"
-									class="btn btn-secondary btn-sm"
-									data-bs-dismiss="modal">
-							Cancelar
-							</button>
-						</div>
-					</div><!-- modal-body -->
-        		</form>
-      		</div>
-    	</div>
-  	</div><!-- Fin Modal -->
+		  <div class="modal-header">
+			<h5 class="modal-title">Crear Nuevo Suministro</h5>
+			<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+		  </div>
+		  <div class="modal-body">
+			<div class="row">
+			  <!-- Columna 1: Seleccionar artículo existente -->
+			  <div class="col-md-7">
+				<div class="mb-3">
+				  <label for="supplyItemSearch" class="form-label" style="font-weight:500;">
+					Buscar artículo:
+				  </label>
+				  <input type="text" class="form-control form-control-sm" id="supplyItemSearch" placeholder="Buscar por nombre o referencia...">
+				</div>
+				<!-- Tabla de items -->
+				<div class="table-responsive" style="max-height:300px; overflow:auto;">
+				  <table class="table table-sm align-middle" id="supplyItemTable">
+					<thead>
+					  <tr>
+						<th></th>
+						<th>Artículo</th>
+						<th>Referencia</th>
+						<th>Tipo</th>
+						<th>Presentación</th>
+					  </tr>
+					</thead>
+					<tbody>
+					  {% for it in all_items %}
+					  <tr data-name="{{ it.name|lower }}" data-ref="{{ it.reference|lower }}">
+						<td>
+						  <input type="radio" name="item_id" value="{{ it.id }}">
+						</td>
+						<td>{{ it.name }}</td>
+						<td>{{ it.reference|default_if_none:"-" }}</td>
+						<td>{{ it.get_seccion_display }}</td>
+						<td>{{ it.presentacion }}</td>
+					  </tr>
+					  {% endfor %}
+					</tbody>
+				  </table>
+				</div>
+				<!-- Cantidad -->
+				<div class="mt-3">
+				  <label for="newSupplyCantidad" class="form-label">Cantidad</label>
+				  <input type="number" step="0.1" min="0" class="form-control form-control-sm" name="cantidad" id="newSupplyCantidad" required>
+				</div>
+			  </div>
+  
+			  <!-- Columna 2: Form para crear un artículo nuevo -->
+			  <div class="col-md-5">
+				<button type="button" class="btn btn-sm btn-outline-primary mb-2" id="toggleNewItemFormBtn">
+				  <i class="fa-solid fa-plus"></i> Nuevo Artículo
+				</button>
+  
+				<div id="newItemFormContainer" style="display:none; border:1px solid #ccc; padding:1rem;">
+				  <h5>Crear Nuevo Artículo</h5>
+				  <hr>
+				  <div class="mb-2">
+					<label class="form-label">Artículo</label>
+					<input type="text" class="form-control form-control-sm" name="new_item_name">
+				  </div>
+				  <div class="mb-2">
+					<label class="form-label">Referencia</label>
+					<input type="text" class="form-control form-control-sm" name="new_item_reference">
+				  </div>
+				  <div class="mb-2">
+					<label class="form-label">Presentación</label>
+					<input type="text" class="form-control form-control-sm" name="new_item_presentacion">
+				  </div>
+				  <div class="mb-2">
+					<label class="form-label">Código Zeus</label>
+					<input type="text" class="form-control form-control-sm" name="new_item_code">
+				  </div>
+				  <div class="mb-2">
+					<label class="form-label">Categoría (Sección)</label>
+					<select class="form-control form-control-sm" name="new_item_seccion">
+					  <option value="c">Consumibles</option>
+					  <option value="h">Herramientas/Elementos varios</option>
+					  <option value="r">Repuestos</option>
+					</select>
+				  </div>
+				  <div class="mb-2">
+					<label class="form-label">Valor unitario</label>
+					<input type="number" step="0.01" class="form-control form-control-sm" name="new_item_unit_price" placeholder="0.00">
+				  </div>
+				  <div class="mb-2">
+					<label class="form-label">Imagen</label>
+					<input type="file" class="form-control form-control-sm" name="new_item_imagen" accept="image/*">
+				  </div>
+				</div><!-- newItemFormContainer -->
+			  </div><!-- col-md-5 -->
+			</div><!-- row -->
+		  </div><!-- modal-body -->
+		  <div class="modal-footer">
+			<button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+			<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+		  </div>
+		</form>
+	  </div>
+	</div>
+  </div><!-- Fin Modal -->
 
 
 <!-- Modal: Seleccionar Sistema para crear nuevo equipo -->
@@ -413,217 +402,227 @@
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
-	function crearNuevoEquipo(systemId){
-		const nextUrl = encodeURIComponent(window.location.pathname);
-		const baseUrl = "{% url 'inv:equipo-create' 999999999 %}";
-		const finalUrl = baseUrl.replace("999999999", systemId);
-		window.location.href = finalUrl + "?next=" + nextUrl;
-	}
+/**
+ * SCRIPT UNIFICADO PARA asset_equipment_list.html
+ * -----------------------------------------------
+ * Contiene:
+ * 1) Búsqueda y filtrado de la tabla de Equipos (searchEquiposInput).
+ * 2) Ordenamiento de columnas en la tabla de Equipos (sortByEquipo, sortByTipo, sortByUbicacion).
+ * 3) Búsqueda y filtrado de la tabla de Suministros (searchInput / SumiTable).
+ * 4) Lógica para abrir el modal de "Nuevo Artículo" y mostrar/ocultar su formulario (toggleNewItemFormBtn).
+ * 5) Búsqueda en la tabla de Ítems dentro del modal "Crear Nuevo Suministro" (supplyItemSearch / supplyItemTable).
+ * 6) Creación de "Nuevo Equipo" (crearNuevoEquipo) al seleccionar un sistema en modal "selectSystemModal".
+ * 7) Escaneo de QR con html5-qrcode y su manejo (scanQRModal).
+ * 8) openQRInNewWindow para mostrar un QR en nueva ventana.
+ */
+document.addEventListener("DOMContentLoaded", function() {
+  /*****************************************************
+   * 1) FILTRAR LA TABLA DE EQUIPOS (searchEquiposInput)
+   *****************************************************/
+  const searchEquiposInput = document.getElementById('searchEquiposInput');
+  const equiposTable = document.getElementById('equiposTable');
+  if (searchEquiposInput && equiposTable) {
+    const equiposRows = equiposTable.getElementsByTagName('tr');
+    searchEquiposInput.addEventListener('input', function() {
+      const filterText = searchEquiposInput.value.toLowerCase();
+      for (let i = 1; i < equiposRows.length; i++) {
+        const row = equiposRows[i];
+        const nameCell = row.querySelector('.equipo-name');
+        if (!nameCell) continue;
+        const eqName = (nameCell.textContent || "").toLowerCase();
+        row.style.display = eqName.includes(filterText) ? '' : 'none';
+      }
+    });
+  }
 
-	function openQRInNewWindow(qrData, eqName, eqCode){
-		const w = window.open("", "_blank", "width=400,height=400");
-		w.document.write("<html><head><title>QR para imprimir</title></head><body style='margin:0; padding:0; font-family:sans-serif;'>");
-		
-		// Mostrar el QR
-		w.document.write("<div style='width:100%; max-width:400px; margin:0 auto; text-align:center;'>");
-		w.document.write("<img src='"+qrData+"' alt='QR' style='width:100%; height:auto;'/>");
+  /*********************************************************
+   * 2) ORDENAR COLUMNAS EN TABLA EQUIPOS (sortByEquipo,etc.)
+   *********************************************************/
+  if (equiposTable) {
+    const tbody = equiposTable.querySelector('tbody');
+    let sortEquipoAsc = true;
+    let sortTipoAsc = true;
+    let sortUbicAsc = true;
 
-		// Nombre y Código del equipo debajo
-		w.document.write("<h4 style='margin: 0 0 0; font-size:2.5rem; text-overflow:ellipsis;'>" + eqName + "</h4>");
-  		w.document.write("<p style='margin: 0; font-size:1.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>" + eqCode + "</p>");
-		
-		w.document.write("</div>");
-		w.document.write("</body></html>");
-		w.document.close();
-	}
+    function compareValues(a, b, asc) {
+      if (a < b) return asc ? -1 : 1;
+      if (a > b) return asc ? 1 : -1;
+      return 0;
+    }
 
-	// Filtrados y ordenamientos
-	document.addEventListener('DOMContentLoaded', function() {
-		// 1) Filtrar equipos
-		const searchEquiposInput = document.getElementById('searchEquiposInput');
-		const equiposTable = document.getElementById('equiposTable');
-		const equiposRows = equiposTable.getElementsByTagName('tr');
+    function sortTable(columnKey, asc) {
+      let rowsArray = Array.from(tbody.querySelectorAll('tr'));
+      rowsArray.sort((rowA, rowB) => {
+        let primaryA = "", primaryB = "";
+        let nameA = rowA.querySelector('.equipo-name')?.textContent.trim().toLowerCase() || "";
+        let nameB = rowB.querySelector('.equipo-name')?.textContent.trim().toLowerCase() || "";
 
-		searchEquiposInput.addEventListener('input', function() {
-			const filterText = searchEquiposInput.value.toLowerCase();
-			for(let i=1; i < equiposRows.length; i++){
-			const row = equiposRows[i];
-			const nameCell = row.querySelector('.equipo-name');
-			if(!nameCell) continue;
-			const eqName = nameCell.textContent.toLowerCase();
-			row.style.display = eqName.includes(filterText) ? '' : 'none';
-			}
-		});
-	});
+        if (columnKey === 'equipo') {
+          primaryA = nameA;
+          primaryB = nameB;
+        } else if (columnKey === 'tipo') {
+          primaryA = (rowA.cells[2]?.textContent || "").trim().toLowerCase();
+          primaryB = (rowB.cells[2]?.textContent || "").trim().toLowerCase();
+        } else if (columnKey === 'ubic') {
+          primaryA = (rowA.cells[3]?.textContent || "").trim().toLowerCase();
+          primaryB = (rowB.cells[3]?.textContent || "").trim().toLowerCase();
+        }
 
-	document.addEventListener('DOMContentLoaded', function() {
-		const searchInput = document.getElementById('searchInput');
-		const sumiTable = document.getElementById('SumiTable');
-		const sumiRows = sumiTable.getElementsByTagName('tr');
+        let result = compareValues(primaryA, primaryB, asc);
+        if (result !== 0) {
+          return result;
+        } else {
+          // desempate => por nameA vs nameB en asc
+          return compareValues(nameA, nameB, true);
+        }
+      });
+      rowsArray.forEach(r => tbody.appendChild(r));
+    }
 
-		searchInput.addEventListener('input', function() {
-			const filterText = searchInput.value.toLowerCase();
-			for(let i=1; i < sumiRows.length; i++){
-			const row = sumiRows[i];
-			const nameCell = row.querySelector('.name');
-			if(!nameCell) continue;
-			const sumiName = nameCell.textContent.toLowerCase();
-			row.style.display = sumiName.includes(filterText) ? '' : 'none';
-			}
-		});
-	});
+    const sortByEquipo = document.getElementById('sortByEquipo');
+    const sortByTipo = document.getElementById('sortByTipo');
+    const sortByUbicacion = document.getElementById('sortByUbicacion');
 
-	document.addEventListener('DOMContentLoaded', function() {
-		const equiposTable = document.getElementById('equiposTable');
-		const tbody = equiposTable.querySelector('tbody');
+    if (sortByEquipo) {
+      sortByEquipo.addEventListener('click', () => {
+        sortTable('equipo', sortEquipoAsc);
+        sortEquipoAsc = !sortEquipoAsc;
+      });
+    }
+    if (sortByTipo) {
+      sortByTipo.addEventListener('click', () => {
+        sortTable('tipo', sortTipoAsc);
+        sortTipoAsc = !sortTipoAsc;
+      });
+    }
+    if (sortByUbicacion) {
+      sortByUbicacion.addEventListener('click', () => {
+        sortTable('ubic', sortUbicAsc);
+        sortUbicAsc = !sortUbicAsc;
+      });
+    }
+  }
 
-		let sortEquipoAsc = true;
-		let sortTipoAsc = true;
-		let sortUbicAsc = true;
+  /*******************************************************************
+   * 3) FILTRAR LA TABLA DE SUMINISTROS (searchInput -> SumiTable)
+   *******************************************************************/
+  const searchInput = document.getElementById('searchInput');
+  const sumiTable = document.getElementById('SumiTable');
+  if (searchInput && sumiTable) {
+    const sumiRows = sumiTable.getElementsByTagName('tr');
+    searchInput.addEventListener('input', function() {
+      const filterText = searchInput.value.toLowerCase();
+      for (let i = 1; i < sumiRows.length; i++) {
+        const row = sumiRows[i];
+        const nameCell = row.querySelector('.name');
+        if (!nameCell) continue;
+        const txt = nameCell.textContent.toLowerCase();
+        row.style.display = txt.includes(filterText) ? '' : 'none';
+      }
+    });
+  }
 
-		// Función auxiliar para comparar strings (con ascendencia/descendencia)
-		function compareValues(a, b, asc) {
-			if (a < b) return asc ? -1 : 1;
-			if (a > b) return asc ? 1 : -1;
-			return 0;
-		}
+  /********************************************************************************
+   * 4) MOSTRAR/OCULTAR FORMULARIO "NUEVO ARTÍCULO" EN EL MODAL "createSupplyModal"
+   ********************************************************************************/
+  const toggleBtn = document.getElementById('toggleNewItemFormBtn');
+  const newItemFormContainer = document.getElementById('newItemFormContainer');
+  const isNewItemField = document.getElementById('isNewItemField');
+  if (toggleBtn && newItemFormContainer && isNewItemField) {
+    toggleBtn.addEventListener('click', function() {
+      let isHidden = (newItemFormContainer.style.display === 'none');
+      newItemFormContainer.style.display = isHidden ? 'block' : 'none';
+      isNewItemField.value = isHidden ? '1' : '0';
+    });
+  }
 
-		function sortTable(columnKey, asc) {
-			// Convertimos filas en array
-			let rowsArray = Array.from(tbody.querySelectorAll('tr'));
+  /************************************************************************************
+   * 5) BÚSQUEDA DE ITEMS EN LA TABLA #supplyItemTable DENTRO DEL MODAL "Crear Suministro"
+   ************************************************************************************/
+  const supplyItemSearch = document.getElementById('supplyItemSearch');
+  const supplyItemTableEl = document.getElementById('supplyItemTable');
+  if (supplyItemSearch && supplyItemTableEl) {
+    supplyItemSearch.addEventListener('input', function() {
+      const filterVal = this.value.toLowerCase();
+      const rows = supplyItemTableEl.querySelectorAll('tbody tr');
+      rows.forEach(row => {
+        const nameVal = (row.getAttribute('data-name') || "").toLowerCase();
+        const refVal = (row.getAttribute('data-ref') || "").toLowerCase();
+        if (nameVal.includes(filterVal) || refVal.includes(filterVal)) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    });
+  }
 
-			rowsArray.sort((rowA, rowB) => {
-				let primaryA = "", primaryB = "";
-				let nameA = rowA.querySelector('.equipo-name')?.textContent.trim().toLowerCase() || "";
-				let nameB = rowB.querySelector('.equipo-name')?.textContent.trim().toLowerCase() || "";
+  /*******************************************************
+   * 6) CREAR NUEVO EQUIPO AL SELECCIONAR SISTEMA
+   *******************************************************/
+  window.crearNuevoEquipo = function(systemId) {
+    const nextUrl = encodeURIComponent(window.location.pathname);
+    const baseUrl = "{% url 'inv:equipo-create' 999999999 %}";
+    const finalUrl = baseUrl.replace("999999999", systemId);
+    window.location.href = finalUrl + "?next=" + nextUrl;
+  }
 
-				if (columnKey === 'equipo') {
-					// Ordenar por nombre de equipo directamente
-					primaryA = nameA;
-					primaryB = nameB;
-				} else if (columnKey === 'tipo') {
-					// Columna 2 => Tipo
-					// Notar que: rowA.cells[2] es la 3ra columna (0-based: 0=Equipo,1=Sistema,2=Tipo,3=Ubic)
-					primaryA = (rowA.cells[2]?.textContent || "").trim().toLowerCase();
-					primaryB = (rowB.cells[2]?.textContent || "").trim().toLowerCase();
-				} else if (columnKey === 'ubic') {
-					// Columna 3 => Ubicación
-					primaryA = (rowA.cells[3]?.textContent || "").trim().toLowerCase();
-					primaryB = (rowB.cells[3]?.textContent || "").trim().toLowerCase();
-				}
+  /*************************************
+   * 7) ESCANEO QR (scanQRModal)
+   *************************************/
+  let scanModal = document.getElementById('scanQRModal');
+  let html5QrCode = null;
+  if (scanModal) {
+    scanModal.addEventListener('show.bs.modal', function() {
+      if (typeof Html5Qrcode !== 'undefined') {
+        html5QrCode = new Html5Qrcode("qrReader");
+        const config = { fps: 10, qrbox: 250 };
+        html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          qrCodeMessage => {
+            console.log("QR detectado: " + qrCodeMessage);
+            window.location.href = qrCodeMessage;
+            // Detener y cerrar modal
+            html5QrCode.stop().then(() => {
+              const modalObj = bootstrap.Modal.getInstance(scanModal);
+              if (modalObj) modalObj.hide();
+            });
+          },
+          errorMessage => {
+            // console.log(errorMessage);
+          }
+        ).catch(err => {
+          console.error("No se pudo iniciar la cámara: ", err);
+        });
+      } else {
+        console.warn("html5-qrcode no está disponible.");
+      }
+    });
 
-				// 1) Comparación primaria
-				let result = compareValues(primaryA, primaryB, asc);
-				if (result !== 0) {
-					// Si no hay empate, retornamos
-					return result;
-				} else {
-					// 2) Si hay empate => comparamos por nombre de equipo (si la columna principal NO era ya 'equipo')
-					if (columnKey !== 'equipo') {
-						return compareValues(nameA, nameB, true); 
-						// Siempre en asc para el nombre, o si prefieres "asc" = asc, "desc" = desc, hazlo con `asc`.
-					} else {
-						// Si la columna es equipo y result = 0 => filas completamente idénticas
-						return 0;
-					}
-				}
-			});
+    scanModal.addEventListener('hide.bs.modal', function() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          console.log("Cámara detenida al cerrar modal.");
+        });
+      }
+    });
+  }
 
-			// Reinsertamos las filas ordenadas
-			rowsArray.forEach(row => tbody.appendChild(row));
-		}
-
-		// Listeners para cada columna “clickeable”
-		document.getElementById('sortByEquipo').addEventListener('click', function() {
-			sortTable('equipo', sortEquipoAsc);
-			sortEquipoAsc = !sortEquipoAsc;
-		});
-
-		document.getElementById('sortByTipo').addEventListener('click', function() {
-			sortTable('tipo', sortTipoAsc);
-			sortTipoAsc = !sortTipoAsc;
-		});
-
-		document.getElementById('sortByUbicacion').addEventListener('click', function() {
-			sortTable('ubic', sortUbicAsc);
-			sortUbicAsc = !sortUbicAsc;
-		});
-	});
-
-
-	// Lógica para escaneo HTML5-QRCODE
-	document.addEventListener('DOMContentLoaded', function() {
-		let scanModal = document.getElementById('scanQRModal');
-		let html5QrCode;
-
-		// Cuando se abra el modal => iniciar cámara
-		scanModal.addEventListener('show.bs.modal', function() {
-			html5QrCode = new Html5Qrcode("qrReader");
-			const config = { fps: 10, qrbox: 250 };
-
-			html5QrCode.start(
-				{ facingMode: "environment" }, // o "user"
-				config,
-				qrCodeMessage => {
-					console.log("QR detectado: " + qrCodeMessage);
-					window.location.href = qrCodeMessage;
-					// Detener y cerrar modal
-					html5QrCode.stop().then(ignore => {
-					let modal = bootstrap.Modal.getInstance(scanModal);
-					modal.hide();
-					});
-				},
-				errorMessage => {
-					// debug
-				}
-			).catch(err => {
-				console.error("No se pudo iniciar la cámara: ", err);
-			});
-		});
-
-		// Cuando se cierra => detener
-		scanModal.addEventListener('hide.bs.modal', function() {
-			if (html5QrCode) {
-				html5QrCode.stop().then(ignore => {
-					console.log("Cámara detenida.");
-				});
-			}
-		});
-	});
-
-	document.addEventListener('DOMContentLoaded', function() {
-		const toggleBtn = document.getElementById('toggleNewItemFormBtn');
-		const newItemFormContainer = document.getElementById('newItemFormContainer');
-		const isNewItemField = document.getElementById('is_newItemField');
-	
-		toggleBtn.addEventListener('click', function(){
-			let isHidden = (newItemFormContainer.style.display === 'none');
-			newItemFormContainer.style.display = isHidden ? 'block' : 'none';
-			// Si se muestra => is_new_item = 1
-			isNewItemField.value = isHidden ? '1' : '0';
-		});
-	});
-
-	document.addEventListener('DOMContentLoaded', function() {
-		// Filtrar items en “Crear Suministro”
-		const supplyItemSearch = document.getElementById('supplyItemSearch');
-		const supplyItemTable = document.getElementById('supplyItemTable');
-
-		if (supplyItemSearch && supplyItemTable) {
-			supplyItemSearch.addEventListener('input', function() {
-			const filterVal = this.value.toLowerCase();
-			const rows = supplyItemTable.querySelectorAll('tbody tr');
-			rows.forEach(row => {
-				const nameVal = row.getAttribute('data-name') || "";
-				const refVal = row.getAttribute('data-ref') || "";
-				if (nameVal.includes(filterVal) || refVal.includes(filterVal)) {
-					row.style.display = "";
-				} else {
-					row.style.display = "none";
-				}
-			});
-			});
-		}
-	});
+  /***************************************************************
+   * 8) openQRInNewWindow(qrData, eqName, eqCode)
+   ***************************************************************/
+  window.openQRInNewWindow = function(qrData, eqName, eqCode) {
+    const w = window.open("", "_blank", "width=400,height=400");
+    w.document.write("<html><head><title>QR para imprimir</title></head><body style='margin:0; padding:0; font-family:sans-serif;'>");
+    w.document.write("<div style='width:100%; max-width:400px; margin:0 auto; text-align:center;'>");
+    w.document.write("<img src='"+qrData+"' alt='QR' style='width:100%; height:auto;'/>");
+    w.document.write("<h4 style='margin:0; font-size:2.5rem;'>" + eqName + "</h4>");
+    w.document.write("<p style='margin:0; font-size:1.2rem;'>" + eqCode + "</p>");
+    w.document.write("</div>");
+    w.document.write("</body></html>");
+    w.document.close();
+  };
+});
 </script>
 {% endblock %}

@@ -24,7 +24,7 @@ class Item(models.Model):
     presentacion = models.CharField(max_length=10)
     code = models.CharField(max_length=50, null=True, blank=True)
     seccion = models.CharField(max_length=1, choices=SECCION, default='c')
-    unit_price = models.DecimalField(max_digits=18, decimal_places=2, default=0.00) 
+    unit_price = models.DecimalField(max_digits=18, decimal_places=2, default=0.00, blank=True) 
     modified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):

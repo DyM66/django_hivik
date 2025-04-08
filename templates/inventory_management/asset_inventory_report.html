@@ -5,11 +5,11 @@
     <a href="{% url 'got:asset-detail' asset.abbreviation %}"><i class="bi bi-arrow-bar-left"></i></a>
 {% endblock %}
 {% block subtitle %}
-    {% if group_by == 'presentacion' %}
-        - Reporte consumos de Lubricantes, Combustibles y Filtros
-    {% else %}
-        - Inventario General - {{ asset.name }}
-    {% endif %}
+{% if group_by == 'presentacion' %}
+    - Consumos de Lubricantes, Combustibles y Filtros
+{% else %}
+    - Inventario General - {{ asset.name }}
+{% endif %}
 {% endblock %}
 
 {% block asset %}

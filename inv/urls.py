@@ -23,7 +23,9 @@ urlpatterns = [
     path('asset/<str:abbreviation>/suministros/', AssetSuministrosReportView.as_view(), name='asset-suministros'),
     path('asset/<str:abbreviation>/inventario/', AssetInventarioReportView.as_view(), name='asset_inventario_report'),
 
-    path('activos/<str:abbreviation>/create_supply/', create_supply_view, name='create_supply'),
+    # path('activos/<str:abbreviation>/create_supply/', create_supply_view, name='create_supply'),
+
+    path('activos/<str:abbreviation>/create_new_item_supply/', create_new_item_supply_view, name='create_new_item_supply'),
 
 
     path('transaction/<int:transaction_id>/delete/', delete_transaction, name='delete_transaction'),

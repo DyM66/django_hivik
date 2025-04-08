@@ -673,6 +673,16 @@ class ItemForm(forms.ModelForm):
             'imagen': ClearableFileInput(attrs={'class': 'form-control'}),
             'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
         }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['unit_price'].required = False
+
+    def clean_unit_price(self):
+        data = self.cleaned_data.get('unit_price', None)
+        if data in [None, '']:
+            # Si no llega nada => forzar a 0
+            return Decimal('0.00')
+        return data
 
 
 class ActivityForm(forms.Form):

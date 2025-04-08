@@ -326,8 +326,6 @@ def delete_sumi(request, sumi_id):
     else:
         messages.success(request, f"se intento y no fuciono")
         return redirect(next_url)
-    
-
 
 
 def export_historial_pdf(request, abbreviation):
