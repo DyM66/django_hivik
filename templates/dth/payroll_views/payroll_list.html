@@ -43,7 +43,7 @@
                             <div class="card card-nomina" data-bs-toggle="modal" data-bs-target="#nominaDetailModal" data-nomina-id="{{ nomina.id }}">
                                 <img class="card-img-top" src="{{ nomina.photo_url }}" alt="Foto de {{ nomina.name }}">
                                 <div class="card-body">
-                                    <h5 class="card-title">{{ nomina.name }} {{ nomina.surname }}</h5>
+                                    <h5 class="card-title">{{ nomina.surname }} {{ nomina.name }}</h5>
                                     <p class="card-text" style="margin: 0;">{{ nomina.position_id|upper }}</p>
                                     <p class="card-text text-muted" style="font-size: 0.9em;">
                                         Ingreso: {{ nomina.admission|date:"d/m/Y" }}
