@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                 ('reporter', models.CharField(max_length=100)),
                 ('responsable', models.CharField(max_length=100)),
                 ('activo', models.CharField(max_length=150)),
-                ('motivo', models.CharField(choices=[('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('i', 'Inservible/depreciado'), ('v', 'Venta')], max_length=1)),
+                ('motivo', models.CharField(choices=[('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('v', 'Venta'), ('x', 'Otro')], max_length=1)),
                 ('observaciones', models.TextField()),
                 ('disposicion', models.TextField()),
                 ('firma_responsable', models.ImageField(upload_to=get_upload_path)),
@@ -48,9 +48,7 @@ class Migration(migrations.Migration):
                 ('equipo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='got.equipo')),
             ],
             options={
-                'db_table': 'got_darbaja',  # la MISMA tabla 
                 'ordering': ['-fecha'],
-                'managed': False,          # no la manejes Django
             },
         ),
         migrations.CreateModel(
@@ -61,14 +59,15 @@ class Migration(migrations.Migration):
                 ('fecha', models.DateField()),
                 ('user', models.CharField(max_length=100)),
                 ('motivo', models.TextField(blank=True, null=True)),
-                ('tipo', models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo')], default='i', max_length=1)),
+                ('tipo', models.CharField(choices=[('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo'), ('r', 'Retiro/Baja')], default='i', max_length=1)),
                 ('cant_report', models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True)),
                 ('cant_report_transf', models.DecimalField(blank=True, decimal_places=2, default=Decimal('0.00'), max_digits=10, null=True)),
                 ('suministro', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transacciones', to='inv.suministro')),
                 ('suministro_transf', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='inv.suministro')),
+                ('remision', models.FileField(blank=True, help_text='PDF/Imagen con la remisión del ingreso', null=True, upload_to=got.paths.get_upload_path, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])])),
             ],
             options={
-                'permissions': (('can_add_supply', 'Puede añadir suministros'),),
+                'permissions': (('can_add_supply', 'Puede añadir suministros'), ('can_edit_only_today', 'Puede modificar transacciones SOLO en la fecha actual')),
             },
         ),
         migrations.AddConstraint(
@@ -121,6 +120,25 @@ class Migration(migrations.Migration):
                 ('equipo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.equipo'),),
                 ('asset', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='suministros', to='got.asset')),
             ],
+        ),
+        migrations.CreateModel(
+            name='RetiredSupply',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('date', models.DateField(auto_now_add=True)),
+                ('supervisor', models.CharField(max_length=100)),
+                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
+                ('reason', models.CharField(choices=[('o', 'Obsoleto'), ('r', 'Robo/Hurto'), ('p', 'Perdida'), ('v', 'Venta'), ('x', 'Otro')], max_length=1)),
+                ('remark', models.TextField(blank=True, null=True)),
+                ('provision', models.TextField(blank=True, null=True)),
+                ('responsible_signature', models.ImageField(blank=True, null=True, upload_to=got.paths.get_upload_path)),
+                ('authorized_signature', models.ImageField(blank=True, null=True, upload_to=got.paths.get_upload_path)),
+                ('supply', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='inv.suministro')),
+                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='retiros_suministro', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ['-date'],
+            },
         ),
     ]
 

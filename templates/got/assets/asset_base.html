@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<h1>
+<h1 class="mb-4">
     {% block back %}
         {% if perms.got.view_asset %}
             <a href="{% url 'got:asset-list' %}"><i class="bi bi-arrow-bar-left"></i></a>
@@ -28,7 +28,7 @@
         </a>
     </li>
 </ul>
-<ul class="nav submenu d-flex flex-wrap w-100" style="font-size: 0.9rem">
+<ul class="nav submenu d-flex flex-wrap w-100 fs-9">
     {% if asset.abbreviation|has_engines %}
         <li class="nav-item">
             <a class="nav-link {% if request.resolver_match.url_name == 'horas-asset' %}active{% endif %}" href="{% url 'got:horas-asset' asset.abbreviation %}">

@@ -1,5 +1,6 @@
 from got.models import Equipo, Asset
 from inv.models.inventory import Suministro, Transaction
+from inv.models.equipment_retirement import RetiredSupply, RetiredSupplyImage
 
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -514,7 +515,6 @@ def handle_transfer(request, asset, suministro, transfer_cantidad_str, destinati
     return None  # o return redirect(...) si prefieres
 
 
-
 def handle_delete_transaction(request, transaccion):
     with db.transaction.atomic():
         suministro_origen = transaccion.suministro
@@ -563,7 +563,19 @@ def handle_delete_transaction(request, transaccion):
 
             suministro_origen.save()
             suministro_destino.save()
+        elif transaccion.tipo == 'r':
+            retired_supply = transaccion.retired_supply
+            if retired_supply:
+                # 2.1) Revertir cantidad
+                suminst = transaccion.suministro
+                suminst.cantidad += transaccion.cant
+                suminst.save(update_fields=['cantidad'])
 
+                # 2.2) Eliminar imágenes
+                retired_supply.images.all().delete()  # si definiste related_name='images' en RetiredSupplyImage
+
+                # 2.3) Eliminar el registro de RetiredSupply
+                retired_supply.delete()
         else:
             # Otros tipos si existen, manejarlos de forma similar o abortar
             messages.error(request, "Transacción de tipo desconocido, no se pudo eliminar.")

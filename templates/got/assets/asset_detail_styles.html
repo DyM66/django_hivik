@@ -28,25 +28,6 @@
         background-color: var(--color-primary);
         margin-right: 15px;
     }
-    @media (max-width: 767px) {
-        .submenu .nav-item {
-            width: 100%;
-        }
-        #asset {
-            width: 340px;
-        }   
-
-        .main-asset {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-            grid-template-areas:
-                "sistemas"
-                "detail"
-                "ruta"
-                "acciones"
-        }
-    }
     .submenu {
         background-color: var(--color-aux);
         min-height: 40px;
@@ -74,5 +55,24 @@
         color: var(--color-secondary);
         border-bottom: 3px solid var(--color-secondary);
         background-color: var(--color-primary);
+    }
+    @media (max-width: 767px) {
+        .submenu .nav-item {
+            width: 100%;
+        }
+        #asset {
+            width: 340px;
+        }   
+
+        .main-asset {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            grid-template-areas:
+                "sistemas"
+                "detail"
+                "ruta"
+                "acciones"
+        }
     }
 </style>

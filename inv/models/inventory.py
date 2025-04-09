@@ -35,7 +35,7 @@ class Transference(models.Model):
 
 
 class Transaction(models.Model):
-    TIPO = (('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo'),)
+    TIPO = (('i', 'Ingreso'), ('c', 'Consumo'), ('t', 'Transferencia'), ('e', 'Ingreso externo'), ('r', 'Retiro/Baja'))
     suministro = models.ForeignKey(Suministro, on_delete=models.CASCADE, related_name='transacciones')
     cant = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     fecha = models.DateField()
@@ -46,13 +46,13 @@ class Transaction(models.Model):
     suministro_transf = models.ForeignKey(Suministro, on_delete=models.CASCADE, null=True, blank=True)
     cant_report_transf = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
 
-    remision = models.FileField(
-        upload_to=get_upload_path,
-        null=True,
-        blank=True,
+    remision = models.FileField(upload_to=get_upload_path, null=True, blank=True,
         help_text="PDF/Imagen con la remisión del ingreso",
         validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])]
     )
+
+    # Relación opcional con RetiredSupply
+    retired_supply = models.ForeignKey('inv.RetiredSupply', on_delete=models.SET_NULL, null=True, blank=True, related_name='transaction')
 
     def __str__(self):
         return f"{self.suministro.item.name}: {self.cant}/{self.tipo} el {self.fecha.strftime('%Y-%m-%d')}"

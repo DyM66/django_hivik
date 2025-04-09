@@ -1,0 +1,133 @@
+{# templates/inventory_management/dar_baja_suministro_form.html #}
+{% extends 'got/base/base_generic.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Dar de Baja Suministro: {{ suministro.item.name }} ({{ suministro.item.presentacion }})</h2>
+    <p class="text-danger">
+        <strong>Nota:</strong> Al dar de baja el suministro, 
+        se descontará la cantidad del inventario y no podrá revertirse.
+    </p>
+
+    <form method="post" enctype="multipart/form-data" id="retireSupplyForm">
+        {% csrf_token %}
+        
+        <!-- Campos del RetiredSupplyForm -->
+        <div class="form-group mb-3">
+            {{ form.supervisor.label_tag }}
+            {{ form.supervisor }}
+        </div>
+        <div class="form-group mb-3">
+            <label for="amount">Cantidad a dar de baja</label>
+            {{ form.amount }}
+            <small class="text-muted d-block">
+                Cantidad disponible actual: {{ suministro.cantidad|floatformat:2 }}
+            </small>
+        </div>
+        <div class="form-group mb-3">
+            {{ form.reason.label_tag }}
+            {{ form.reason }}
+        </div>
+        <div class="form-group mb-3">
+            {{ form.remark.label_tag }}
+            {{ form.remark }}
+        </div>
+        <div class="form-group mb-3">
+            {{ form.provision.label_tag }}
+            {{ form.provision }}
+        </div>
+
+        <hr>
+        <!-- Firma Responsable -->
+        <div class="form-group mb-3">
+            <label>Firma Responsable:</label><br>
+            <canvas id="signature-pad-responsable" class="signature-pad border" width=400 height=200></canvas><br>
+            <button type="button" class="btn btn-secondary btn-sm mt-2" id="clear-responsable">Limpiar</button>
+            <input type="hidden" name="firma_responsable_data" id="firma_responsable_data">
+            <br>
+            <!-- Subir imagen en vez de dibujar -->
+            {{ upload_form.firma_responsable_file }}
+            <small class="text-muted d-block">
+                Si no deseas dibujar en el lienzo, sube una sola imagen.
+            </small>
+        </div>
+
+        <!-- Firma Autorizado -->
+        <div class="form-group mb-3">
+            <label>Firma Autorizado:</label><br>
+            <canvas id="signature-pad-autorizado" class="signature-pad border" width=400 height=200></canvas><br>
+            <button type="button" class="btn btn-secondary btn-sm mt-2" id="clear-autorizado">Limpiar</button>
+            <input type="hidden" name="firma_autorizado_data" id="firma_autorizado_data">
+            <br>
+            {{ upload_form.firma_autorizado_file }}
+            <small class="text-muted d-block">
+                Si no deseas dibujar en el lienzo, sube una sola imagen.
+            </small>
+        </div>
+
+        <!-- Evidencias (múltiples imágenes) -->
+        <div class="mb-3">
+            <label>Imágenes de Evidencia (múltiples):</label><br>
+            {{ upload_form.file_field }}
+            <small class="text-muted d-block">
+                Puedes subir múltiples imágenes que respalden la baja de este suministro.
+            </small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Dar de Baja</button>
+        <a href="{% url 'inv:asset_inventario_report' suministro.asset.abbreviation %}"
+           class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+
+<!-- Script para capturar las firmas dibujadas con signature_pad -->
+<script src="{% static 'js/signature_pad.min.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // SignaturePad para responsable
+    var canvasResp = document.getElementById('signature-pad-responsable');
+    var signaturePadResp = new SignaturePad(canvasResp);
+    document.getElementById('clear-responsable').addEventListener('click', function() {
+        signaturePadResp.clear();
+    });
+
+    // SignaturePad para autorizado
+    var canvasAut = document.getElementById('signature-pad-autorizado');
+    var signaturePadAut = new SignaturePad(canvasAut);
+    document.getElementById('clear-autorizado').addEventListener('click', function() {
+        signaturePadAut.clear();
+    });
+
+    // Interceptar submit para capturar dataURL
+    var form = document.getElementById('retireSupplyForm');
+    form.addEventListener('submit', function(e) {
+        // Checar si NO se subió archivo => forzar a dibujar
+        var respFileInput = document.querySelector('input[name="firma_responsable_file"]');
+        if(!respFileInput.value) {
+            if (signaturePadResp.isEmpty()) {
+                alert('Por favor, firme en el área de "Firma Responsable" o suba un archivo.');
+                e.preventDefault();
+                return false;
+            }
+        }
+        var autFileInput = document.querySelector('input[name="firma_autorizado_file"]');
+        if(!autFileInput.value) {
+            if (signaturePadAut.isEmpty()) {
+                alert('Por favor, firme en el área de "Firma Autorizado" o suba un archivo.');
+                e.preventDefault();
+                return false;
+            }
+        }
+
+        // Tomar dataURL de los canvas
+        var firmaRespData = signaturePadResp.toDataURL('image/png');
+        var firmaAutData = signaturePadAut.toDataURL('image/png');
+
+        document.getElementById('firma_responsable_data').value = firmaRespData;
+        document.getElementById('firma_autorizado_data').value = firmaAutData;
+    });
+});
+</script>
+{% endblock %}
