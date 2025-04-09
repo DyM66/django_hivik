@@ -48,12 +48,9 @@
         --color-primary: #191645;
         --color-aux: #0157a4;
         --color-secondary: #43C6AC;
-        --color-bg: #ffffff;
-        --color-bg-aux: #D5DBDB; /* Fondo del formulario */
-
-        --bs-btn-active-color: #fff;
-        --bs-btn-active-bg: #191645;
-        --bs-btn-active-border-color: #191645;
+        --color-bg: #f0f2fa;
+        --color-bg-aux: #D5DBDB;
+        --color-border-1: #ccc;
 
         --color-orange: #d78147; /* Orange */
         --color-yellow: #f5da81; /* Yellow */
@@ -78,7 +75,7 @@
         font-family: "Poppins", sans-serif;
         color: var(--color-primary);
         box-sizing: border-box;
-        background-color: var(--color-bg);
+        background-color: #ffffff;
 		overscroll-behavior-x: contain;	
     }
     a {
@@ -109,25 +106,83 @@
     .badge--warning {background-color: #fff3cd; color: #664d03;}
     .badge--danger {background-color: #f8d7da; color: #842029;}
     .badge--info {background-color: #cff4fc; color: #055160;}
-    .badge:hover {opacity: 0.75; cursor: default;}
-
+    .badge:hover {opacity: 1; cursor: default;}
+    /* Botons */
     .btn-primary {
-        background-color: var(--color-secondary);
-        border-color: var(--color-secondary);
-        color: var(--color-primary);
+        background-color: #443080;
+        border: 2px solid #3F2E87;
+        color: #fff;
+        transition: background-color 0.3s, color 0.3s;
     }
-    .btn-primary:hover, .btn-primary:focus,
+    .btn-primary:hover,
+    .btn-primary:focus,
     .btn-primary:active {
-        background-color: var(--color-primary);
-        border-color: var(--color-primary);
-        color: #FFF;
+        background-color: #191645;
+        border-color: #2b2069;
+        color: #fff;
+    }
+    .btn-secondary {
+        background-color: var(--color-secondary);
+        border: 2px solid var(--color-secondary);
+        color: var(--color-primary);
+        transition: background-color 0.3s, color 0.3s;
+    }
+    .btn-secondary:hover,
+    .btn-secondary:focus,
+    .btn-secondary:active {
+        background-color: #36a08d;
+        border-color: #36a08d;
+        color: #fff; 
+    }
+    .btn-tertiary {
+        background-color: transparent;
+        border: none;
+        color: var(--color-primary);
+        text-decoration: underline;
+        font-weight: 500;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0;
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-tertiary:hover,
+    .btn-tertiary:focus,
+    .btn-tertiary:active {
+        color: #0f102d;
+        text-decoration-thickness: 2px;
+        text-decoration-style: dashed;
     }
     .fs-9 {
         font-size: 0.9rem;
     }
-    /* ==========================================================================
-    ASSETS MENU
-    ========================================================================== */
+    .info-card-base {
+        background-color: var(--color-bg);
+        border: 1px solid var(--color-border-1);
+        border-radius: 8px;
+    }
+    .info-card-1 {
+        background-color: var(--color-bg); /* Un fondo claro, casi vainilla */
+        border-left: 6px solid var(--color-secondary); /* O #191645 si prefieres */
+        border-radius: 4px;
+        color: #191645;
+    }
+    .btn-add-table {
+        background-color: transparent;
+        color: #fff;
+        border: none;
+    }
+    .btn-add-table:hover {
+        color: #43c6ac;
+    }
+    button.loading {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+    .signature-pad {
+        border: 1px solid #000;
+        border-radius: 4px;
+        touch-action: none;
+    }
     /* ==========================================================================
     En revision
     ========================================================================== */
@@ -151,24 +206,9 @@
     tr[data-href] {
         cursor: pointer;
     }
-    .btn-add-table {
-        background-color: transparent;
-        color: #fff;
-        border: none;
-    }
-    .btn-add-table:hover {
-        color: #43c6ac;
-    }
-    button.loading {
-        background-color: #ccc;
-        cursor: not-allowed;
-    }
-    .signature-pad {
-        border: 1px solid #000;
-        border-radius: 4px;
-        touch-action: none;
-    }
-    /* Estilos de Navegación */
+    /* ==========================================================================
+    NAVBAR
+    ========================================================================== */
     .navbar {
         background-color: var(--color-primary);
         position: relative;

@@ -1,0 +1,44 @@
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Selecciona todos los inputs de búsqueda
+        const searchInputs = document.querySelectorAll('.search-suministros');
+        searchInputs.forEach(input => {
+            const group = input.dataset.group;
+            // Selecciona la tabla correspondiente usando el mismo data-group
+            const table = document.querySelector(`table[data-group="${group}"]`);
+            input.addEventListener("input", function () {
+                const filter = input.value.toLowerCase();
+                const rows = table.getElementsByTagName("tr");
+                for (let i = 0; i < rows.length; i++) {
+                    // Buscamos la celda que contiene la información del artículo
+                    const cell = rows[i].querySelector("td[data-cell='Articulo']");
+                    if (cell) {
+                        const text = cell.textContent.toLowerCase();
+                        // Mostrar u ocultar la fila según el filtro
+                        rows[i].style.display = text.indexOf(filter) > -1 ? "" : "none";
+                    }
+                }
+            });
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Flatpickr para #fecha_reporte
+        flatpickr("#fecha_reporte", {
+            dateFormat: "Y-m-d",       // Formato aaaa-mm-dd
+            maxDate: "today",         // Solo permite hasta la fecha actual
+            defaultDate: "{{ fecha_actual|escapejs }}", // del contexto Django
+            locale: "es",             // Español (ya incluído con 'flatpickr/dist/l10n/es.js')
+            allowInput: true          // Permite escribir manualmente (opcional)
+        });
+
+        // Inicializar flatpickr para el rango de fechas
+        flatpickr("#filtro_fecha_inicio, #filtro_fecha_fin", {
+            mode: "range",       // Modo rango para seleccionar dos fechas
+            dateFormat: "Y-m-d", // Formato de fecha aaaa-mm-dd
+            maxDate: "today",    // Solo permite hasta la fecha actual
+            locale: "es",        // Español
+            allowInput: true     // Permite escribir la fecha manualmente
+        });
+    });
+</script>

@@ -93,19 +93,13 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             transacciones_historial = self.get_transacciones_historial(asset)
             return generate_excel(transacciones_historial, headers_mapping, filename)
 
-        elif action == 'transfer_suministro':
+        elif action == 'transfer_supply':
             suministro_id = request.POST.get('transfer_suministro_id')
             suministro = get_object_or_404(Suministro, id=suministro_id, asset=asset)
             transfer_fecha_str = request.POST.get('transfer_fecha', '')
 
             if not re.match(r'^\d{4}-\d{2}-\d{2}$', transfer_fecha_str):
                 messages.error(request, "Fecha inválida de transferencia: usa el formato YYYY-MM-DD.")
-                return self.redirect_with_next(request)
-            
-            try:
-                transfer_fecha = datetime.strptime(transfer_fecha_str, '%Y-%m-%d').date()
-            except ValueError:
-                messages.error(request, "Fecha inválida: no se pudo interpretar el valor ingresado.")
                 return self.redirect_with_next(request)
             
             result = handle_transfer(
@@ -143,7 +137,6 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
                 return self.redirect_with_next(request)
 
             operation = Operation.objects.filter(asset=asset, confirmado=True, start__lte=fecha_reporte, end__gte=fecha_reporte).first()
-
             if operation:
                 motivo_global = operation.proyecto
 
@@ -160,9 +153,9 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
     def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
         motonaves = Asset.objects.filter(show=True)
         available_items = Item.objects.exclude(id__in=suministros.values_list('item_id', flat=True))
-        # available_items = base_items.filter(self.keyword_filter)
-        users_en_historial = transacciones_historial.values_list('user', flat=True).distinct()  
-        users_unicos = User.objects.filter(username__in=users_en_historial).order_by('username')
+        users = set(transacciones_historial.values_list('user', flat=True))
+        users_unicos = list(users)
+        secciones_dict = dict(Item.SECCION) 
         context = {
             'asset': asset,
             'suministros': suministros,
@@ -172,7 +165,8 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
             'motonaves': motonaves,
             'available_items': available_items,
             'articulos_unicos': self.get_articulos_unicos(transacciones_historial),
-            'users_unicos': users_unicos, 
+            'users_unicos': users_unicos,
+            'secciones_dict': secciones_dict
         }
         return context
     
@@ -206,12 +200,7 @@ class AssetInventoryBaseView(LoginRequiredMixin, View):
 
 class AssetSuministrosReportView(AssetInventoryBaseView):
     keyword_filter = Q(item__name__icontains='Combustible') | Q(item__name__icontains='Aceite') | Q(item__name__icontains='Filtro')
-
-    keyword_filter2 = (
-        Q(suministro__item__name__icontains='Combustible')
-        | Q(suministro__item__name__icontains='Aceite')
-        | Q(suministro__item__name__icontains='Filtro')
-    )
+    keyword_filter2 = (Q(suministro__item__name__icontains='Combustible') | Q(suministro__item__name__icontains='Aceite') | Q(suministro__item__name__icontains='Filtro'))
 
     def get_context_data(self, request, asset, suministros, transacciones_historial, ultima_fecha_transaccion):
         context = super().get_context_data(request, asset, suministros, transacciones_historial, ultima_fecha_transaccion)

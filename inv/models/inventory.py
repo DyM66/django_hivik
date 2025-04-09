@@ -47,8 +47,7 @@ class Transaction(models.Model):
     cant_report_transf = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), null=True, blank=True) 
 
     remision = models.FileField(upload_to=get_upload_path, null=True, blank=True,
-        help_text="PDF/Imagen con la remisión del ingreso",
-        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])]
+        help_text="PDF/Imagen con la remisión del ingreso", validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])]
     )
 
     # Relación opcional con RetiredSupply
