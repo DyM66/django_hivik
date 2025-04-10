@@ -116,7 +116,6 @@
 
     // Función para aplicar filtros dinámicamente
     function aplicarFiltros() {
-        const filtroSeccion = document.getElementById('filtro_seccion').value.toLowerCase();
         const filtroArticulo = document.getElementById('filtro_articulo').value.toLowerCase();
         const filtroUsuario = document.getElementById('filtro_usuario').value.toLowerCase();
         const filtroFechaInicio = document.getElementById('filtro_fecha_inicio').value;
@@ -125,19 +124,13 @@
         const rows = document.querySelectorAll('#tabla_historial tbody tr');
 
         rows.forEach(row => {
-            const fechaTexto = row.cells[0].innerText.trim();
-            const articuloId = row.querySelector('td[data-item-id]').getAttribute('data-item-id').trim();
-
-            const usuario = row.cells[1].innerText.trim().toLowerCase();
-            const seccion = row.cells[3].innerText.trim().toLowerCase();
+            const fechaTexto = row.cells[0] ? row.cells[0].innerText.trim() : '';
+            const usuario = row.cells[1] ? row.cells[1].innerText.trim().toLowerCase() : '';
+            const articuloId = row.querySelector('td[data-item-id]') 
+                ? row.querySelector('td[data-item-id]').getAttribute('data-item-id')
+                : null;
 
             let mostrar = true;
-
-            // Filtrar por categoría
-            if (filtroSeccion && seccion !== filtroSeccion) {
-                mostrar = false;
-            }
-
             // Filtrar por artículo (usando ID)
             if (filtroArticulo && articuloId !== filtroArticulo) {
                 mostrar = false;

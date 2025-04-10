@@ -14,6 +14,14 @@
 
 {% block asset %}
 
+<style>
+@media (max-width: 767.98px) {
+  .btn:not(:last-child) {
+    margin-bottom: 0.5rem;
+  }
+}
+</style>
+
 <!-- Sección de mensaje importante -->
 <div class="info-card-1 shadow p-3 mb-4">
     <h5 class="mb-2">Información Importante</h5>
@@ -33,7 +41,7 @@
     <input type="hidden" name="confirm_overwrite" id="confirm_overwrite" value="no">
     
     <div class="info-card-base p-3 mb-3">
-        <div class="d-flex flex-column flex-md-row align-items-center justify-content-between">
+        <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
             <!-- Bloque de selección de fecha -->
             <div class="form-group mb-2 mb-md-0" style="width: 300px;">
                 <label for="fecha_reporte" class="mb-1" style="text-decoration: underline;">Fecha del Reporte</label>
@@ -41,18 +49,18 @@
             </div>
             
             <!-- Bloque de botones role="group" aria-label="Acciones Inventario" -->
-            <div class="btn-group mt-2 mt-md-0" style="gap: 0.5rem;">
-                <button type="submit" class="btn btn-primary submit-button">
+            <div class="d-flex flex-column flex-md-row align-items-center justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary submit-button nowrap">
                     Actualizar Inventario
                 </button>
 
                 {% if perms.inv.can_add_supply %}
-                    <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#addSuministroModal">
+                    <button type="button" class="btn btn-secondary nowrap" data-bs-toggle="modal" data-bs-target="#addSuministroModal">
                         Añadir Suministro
                     </button>
                 {% endif %}
 
-                <button type="button" class="btn btn-tertiary" onclick="toggleHistorial()">
+                <button type="button" class="btn btn-tertiary nowrap" onclick="toggleHistorial()">
                     Ver Historial
                 </button>
             </div>
@@ -300,10 +308,12 @@
         <!-- Filtros -->
         <div class="row g-3">
             <!-- Rango de fechas -->
-            <div class="col-md-3 input-group">
-                <label class="form-label">Rango de Fechas:</label>
-                <input type="text" id="filtro_fecha_inicio" class="form-control" placeholder="Desde">
-                <input type="text" id="filtro_fecha_fin" class="form-control" placeholder="Hasta">
+            <div class="col-md-4">
+                <label class="form-label d-block">Rango de Fechas:</label>
+                <div class="d-flex gap-2">
+                    <input type="text" id="filtro_fecha_inicio" class="form-control" placeholder="Desde">
+                    <input type="text" id="filtro_fecha_fin" class="form-control" placeholder="Hasta">
+                </div>
             </div>
 
             <!-- Artículo -->
@@ -404,119 +414,123 @@
         </div>
     </div>
 
-    <table id="tabla_historial" class="table-list table-w-100">
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th class="nowrap">Reportado por</th>
-                <th>Artículo</th>
-                {% if group_by == 'seccion' %}
-                    <th>Categoría</th>
-                {% else %}
-                    <th>Presentación</th>
-                {% endif %}
-                <th>Cantidad</th>
-                <th>Movimiento</th>
-                <th>Total Reportado</th>
-                <th>Descripción</th>
-                {% if perms.inv.delete_transaction %}
-                    <th></th>
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for transaccion in transacciones_historial %}
-            <tr>
-                <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
-                <td>{{ transaccion.user }}</td>
-                <td data-item-id="{{ transaccion.suministro.item.id }}">{{ transaccion.suministro.item }}</td>
-                {% if group_by == 'seccion' %}
-                    <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
-                {% else %}
-                    <td>{{ transaccion.suministro.item.presentacion }}</td>
-                {% endif %}
-                <td>{{ transaccion.cant }}</td>
-                <td>
-
-                    {% if transaccion.tipo == 't' %}
-                        {% if transaccion.suministro.asset == asset %}
-                            <i class="fa-solid fa-hand-holding-hand" style="color:#ff5722;"></i> Enviado
-                        {% elif transaccion.suministro_transf.asset == asset %}
-                            <i class="fa-solid fa-hand-holding-hand" style="color:#4caf50;"></i> Recibido
-                        {% endif %}
-                    {% elif transaccion.tipo == 'r' %}
-                        <i class="fa-solid fa-box-archive" style="color: #555;"></i> Retirado
+    <div class="responsive-table-scroll">
+        
+        <table id="tabla_historial" class="table-list table-w-100">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th class="nowrap">Reportado por</th>
+                    <th>Artículo</th>
+                    {% if group_by == 'seccion' %}
+                        <th>Categoría</th>
                     {% else %}
-                        {{ transaccion.get_tipo_display }}
-                        {% if transaccion.tipo == 'i' %}
-                            <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
-                        {% elif transaccion.tipo == 'c' %}
-                            <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #a00e32;"></i>
-                        {% else %}
-                            <i class="fa-solid fa-hand-holding-hand"></i>
-                        {% endif %}
+                        <th>Presentación</th>
                     {% endif %}
-
-                </td>
-                <td>
-                    {% if transaccion.tipo == 't' %}
-                        {% if transaccion.suministro.asset == asset %}
-                            {{ transaccion.cant_report|default:"---" }}
-                        {% elif transaccion.suministro_transf.asset == asset %}
-                            {{ transaccion.cant_report_transf|default:"---" }}
-                        {% else %}
-                            ---
-                        {% endif %}
+                    <th>Cantidad</th>
+                    <th>Movimiento</th>
+                    <th>Total Reportado</th>
+                    <th>Descripción</th>
+                    {% if perms.inv.delete_transaction %}
+                        <th></th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaccion in transacciones_historial %}
+                <tr>
+                    <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
+                    <td>{{ transaccion.user }}</td>
+                    <td data-item-id="{{ transaccion.suministro.item.id }}">{{ transaccion.suministro.item }}</td>
+                    {% if group_by == 'seccion' %}
+                        <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
                     {% else %}
-                        {{ transaccion.cant_report|default:"---" }}
+                        <td>{{ transaccion.suministro.item.presentacion }}</td>
                     {% endif %}
-                </td>
-                <td>{{ transaccion.motivo }}</td>
-                {% if perms.inv.delete_transaction %}
+                    <td>{{ transaccion.cant }}</td>
                     <td>
-                        <!-- Delete button triggers a confirmation modal -->
-                        <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTransactionModal{{ transaccion.id }}">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+    
+                        {% if transaccion.tipo == 't' %}
+                            {% if transaccion.suministro.asset == asset %}
+                                <i class="fa-solid fa-hand-holding-hand" style="color:#ff5722;"></i> Enviado
+                            {% elif transaccion.suministro_transf.asset == asset %}
+                                <i class="fa-solid fa-hand-holding-hand" style="color:#4caf50;"></i> Recibido
+                            {% endif %}
+                        {% elif transaccion.tipo == 'r' %}
+                            <i class="fa-solid fa-box-archive" style="color: #555;"></i> Retirado
+                        {% else %}
+                            {{ transaccion.get_tipo_display }}
+                            {% if transaccion.tipo == 'i' %}
+                                <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
+                            {% elif transaccion.tipo == 'c' %}
+                                <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #a00e32;"></i>
+                            {% else %}
+                                <i class="fa-solid fa-hand-holding-hand"></i>
+                            {% endif %}
+                        {% endif %}
+    
                     </td>
-                {% endif %}
-            </tr>
-
-            <!-- Delete Confirmation Modal -->
-            <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1" aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form method="post" action="{% url 'inv:delete_transaction' transaccion.id %}">{% csrf_token %}
-                            <!-- Include the 'next' parameter -->
-                            <input type="hidden" name="next" value="{{ request.path }}">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="deleteTransactionModalLabel{{ transaccion.id }}">
-                                    Confirmar Eliminación
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p>¿Está seguro de que desea eliminar esta transacción?</p>
-                                <p><strong>Fecha:</strong> {{ transaccion.fecha|date:"d/m/Y" }}</p>
-                                <p><strong>Artículo:</strong> {{ transaccion.suministro.item }}</p>
-                                <p><strong>Cantidad:</strong> {{ transaccion.cant }}</p>
-                                <p><strong>Movimiento:</strong> {{ transaccion.get_tipo_display }}</p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="submit" class="btn btn-danger">Eliminar</button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            </div>
-                        </form>
+                    <td>
+                        {% if transaccion.tipo == 't' %}
+                            {% if transaccion.suministro.asset == asset %}
+                                {{ transaccion.cant_report|default:"---" }}
+                            {% elif transaccion.suministro_transf.asset == asset %}
+                                {{ transaccion.cant_report_transf|default:"---" }}
+                            {% else %}
+                                ---
+                            {% endif %}
+                        {% else %}
+                            {{ transaccion.cant_report|default:"---" }}
+                        {% endif %}
+                    </td>
+                    <td>{{ transaccion.motivo }}</td>
+                    {% if perms.inv.delete_transaction %}
+                        <td>
+                            <!-- Delete button triggers a confirmation modal -->
+                            <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTransactionModal{{ transaccion.id }}">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </td>
+                    {% endif %}
+                </tr>
+    
+                <!-- Delete Confirmation Modal -->
+                <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1" aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="post" action="{% url 'inv:delete_transaction' transaccion.id %}">{% csrf_token %}
+                                <!-- Include the 'next' parameter -->
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="deleteTransactionModalLabel{{ transaccion.id }}">
+                                        Confirmar Eliminación
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>¿Está seguro de que desea eliminar esta transacción?</p>
+                                    <p><strong>Fecha:</strong> {{ transaccion.fecha|date:"d/m/Y" }}</p>
+                                    <p><strong>Artículo:</strong> {{ transaccion.suministro.item }}</p>
+                                    <p><strong>Cantidad:</strong> {{ transaccion.cant }}</p>
+                                    <p><strong>Movimiento:</strong> {{ transaccion.get_tipo_display }}</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
-            {% empty %}
-                <tr>
-                    <td colspan="9">No hay transacciones registradas.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                {% empty %}
+                    <tr>
+                        <td colspan="9">No hay transacciones registradas.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
 </div>
 
 {% include "inventory_management/asset_inv_report_js.html" %}
