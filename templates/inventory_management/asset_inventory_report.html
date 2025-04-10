@@ -413,7 +413,7 @@
             </div>
         </div>
     </div>
-
+<!-- 
 <style>
     .link-remision {
         display: inline-block;
@@ -429,7 +429,7 @@
         text-decoration-thickness: 2px;
     }
 
-</style>
+</style> -->
 
     <div class="responsive-table-scroll">
         <table id="tabla_historial" class="table-list table-w-100">
@@ -473,11 +473,11 @@
                                     <i class="fa-solid fa-hand-holding-hand" style="color:#4caf50;"></i> Recibido
                                 {% endif %}
                             {% elif transaccion.tipo == 'r' %}
-                                <i class="fa-solid fa-box-archive" style="color: #555;"></i> Retirado
+                                <i class="fa-solid fa-box-archive" style="color: #41464b;"></i> Retirado
                             {% else %}
                                 {{ transaccion.get_tipo_display }}
                                 {% if transaccion.tipo == 'i' %}
-                                    <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
+                                    <i class="fa-solid fa-circle-up" style="color: #0f5132;"></i>
                                 {% elif transaccion.tipo == 'c' %}
                                     <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #842029;"></i>
                                 {% else %}

@@ -26,17 +26,6 @@ class UserProfile(models.Model):
         return f"{self.user.username}'s profile"
 
 
-class Department(models.Model):
-    """
-    Representa un departamento dentro de la empresa.
-    Cada departamento puede tener muchas personas asociadas (Nomina).
-    """
-    name = models.CharField(max_length=100, unique=True, help_text="Nombre del departamento.")
-
-    def __str__(self):
-        return self.name
-
-
 class Nomina(models.Model):
     RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
     GENDER_CHOICES = [('h', 'Hombre'), ('m', 'Mujer'),]
