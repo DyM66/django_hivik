@@ -213,6 +213,13 @@
                             <div class="flex-fill me-4">
                                 <h5 class="text-white">Flota de Vehículos</h5>
                                 <ul class="list-unstyled">
+                                    {% if request.user|has_group:"drivers_admin" %}
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'preoperacionales:admin' %}"> 
+                                                Administrar vehiculos
+                                            </a>
+                                        </li>
+                                    {% endif %}
                                     {% for vehiculo in vehiculos %}
                                         <li>
                                             <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#vehiculoModal{{ vehiculo.code }}">
@@ -230,6 +237,13 @@
                         <div class="p-3 text-center">
                             <h5 class="text-white mb-3">Flota de Vehículos</h5>
                             <ul class="list-unstyled">
+                                {% if request.user|has_group:"drivers_admin" %}
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'preoperacionales:admin' %}"> 
+                                            Administrar vehiculos
+                                        </a>
+                                    </li>
+                                {% endif %}
                                 {% for vehiculo in vehiculos %}
                                 <li>
                                     <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#vehiculoModal{{ vehiculo.code }}">
