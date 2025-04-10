@@ -108,7 +108,7 @@
                         </td>
                         <td>
                             <div class="dropdown">
-                                <a class="badge badge--info dropdown-toggle" id="dropdownMenuButton{{ suministro.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="badge badge--info" id="dropdownMenuButton{{ suministro.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                     Acciones
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ suministro.id }}">
@@ -414,8 +414,24 @@
         </div>
     </div>
 
+<style>
+    .link-remision {
+        display: inline-block;
+        color: #3F2E87;
+        text-decoration: underline;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .link-remision:hover {
+        color: #2f2269;
+        text-decoration-thickness: 2px;
+    }
+
+</style>
+
     <div class="responsive-table-scroll">
-        
         <table id="tabla_historial" class="table-list table-w-100">
             <thead>
                 <tr>
@@ -438,90 +454,103 @@
             </thead>
             <tbody>
                 {% for transaccion in transacciones_historial %}
-                <tr>
-                    <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
-                    <td>{{ transaccion.user }}</td>
-                    <td data-item-id="{{ transaccion.suministro.item.id }}">{{ transaccion.suministro.item }}</td>
-                    {% if group_by == 'seccion' %}
-                        <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
-                    {% else %}
-                        <td>{{ transaccion.suministro.item.presentacion }}</td>
-                    {% endif %}
-                    <td>{{ transaccion.cant }}</td>
-                    <td>
-    
-                        {% if transaccion.tipo == 't' %}
-                            {% if transaccion.suministro.asset == asset %}
-                                <i class="fa-solid fa-hand-holding-hand" style="color:#ff5722;"></i> Enviado
-                            {% elif transaccion.suministro_transf.asset == asset %}
-                                <i class="fa-solid fa-hand-holding-hand" style="color:#4caf50;"></i> Recibido
-                            {% endif %}
-                        {% elif transaccion.tipo == 'r' %}
-                            <i class="fa-solid fa-box-archive" style="color: #555;"></i> Retirado
+                    <tr>
+                        <td>{{ transaccion.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ transaccion.user }}</td>
+                        <td data-item-id="{{ transaccion.suministro.item.id }}">{{ transaccion.suministro.item }}</td>
+                        {% if group_by == 'seccion' %}
+                            <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
                         {% else %}
-                            {{ transaccion.get_tipo_display }}
-                            {% if transaccion.tipo == 'i' %}
-                                <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
-                            {% elif transaccion.tipo == 'c' %}
-                                <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #a00e32;"></i>
-                            {% else %}
-                                <i class="fa-solid fa-hand-holding-hand"></i>
-                            {% endif %}
+                            <td>{{ transaccion.suministro.item.presentacion }}</td>
                         {% endif %}
-    
-                    </td>
-                    <td>
-                        {% if transaccion.tipo == 't' %}
-                            {% if transaccion.suministro.asset == asset %}
-                                {{ transaccion.cant_report|default:"---" }}
-                            {% elif transaccion.suministro_transf.asset == asset %}
-                                {{ transaccion.cant_report_transf|default:"---" }}
-                            {% else %}
-                                ---
-                            {% endif %}
-                        {% else %}
-                            {{ transaccion.cant_report|default:"---" }}
-                        {% endif %}
-                    </td>
-                    <td>{{ transaccion.motivo }}</td>
-                    {% if perms.inv.delete_transaction %}
+                        <td>{{ transaccion.cant }}</td>
                         <td>
-                            <!-- Delete button triggers a confirmation modal -->
-                            <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTransactionModal{{ transaccion.id }}">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
+        
+                            {% if transaccion.tipo == 't' %}
+                                {% if transaccion.suministro.asset == asset %}
+                                    <i class="fa-solid fa-hand-holding-hand" style="color:#ff5722;"></i> Enviado
+                                {% elif transaccion.suministro_transf.asset == asset %}
+                                    <i class="fa-solid fa-hand-holding-hand" style="color:#4caf50;"></i> Recibido
+                                {% endif %}
+                            {% elif transaccion.tipo == 'r' %}
+                                <i class="fa-solid fa-box-archive" style="color: #555;"></i> Retirado
+                            {% else %}
+                                {{ transaccion.get_tipo_display }}
+                                {% if transaccion.tipo == 'i' %}
+                                    <i class="fa-solid fa-circle-up" style="color: #63E6BE;"></i>
+                                {% elif transaccion.tipo == 'c' %}
+                                    <i class="fa-solid fa-circle-up fa-rotate-180" style="color: #842029;"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-hand-holding-hand"></i>
+                                {% endif %}
+                            {% endif %}
+        
                         </td>
-                    {% endif %}
-                </tr>
+                        <td>
+                            {% if transaccion.tipo == 't' %}
+                                {% if transaccion.suministro.asset == asset %}
+                                    {{ transaccion.cant_report|default:"---" }}
+                                {% elif transaccion.suministro_transf.asset == asset %}
+                                    {{ transaccion.cant_report_transf|default:"---" }}
+                                {% else %}
+                                    ---
+                                {% endif %}
+                            {% else %}
+                                {{ transaccion.cant_report|default:"---" }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ transaccion.motivo }} 
+                            {% if transaccion.remision %}
+                            <br>
+                            <a href="{{ transaccion.remision.url }}" target="_blank" rel="noopener noreferrer" class="link-remision me-3">
+                                <i class="fa-solid fa-eye me-1"></i> Ver
+                            </a>
+                            <a href="{% url 'inv:download-referral' transaccion.id %}" class="link-remision">
+                                <i class="fa-solid fa-download me-1"></i> Descargar
+                            </a>
+                            {% endif %}
+                        </td>
+                        {% if perms.inv.delete_transaction %}
+                            <td>
+                                <!-- Delete button triggers a confirmation modal -->
+                                <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTransactionModal{{ transaccion.id }}">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </td>
+                        {% endif %}
+                    </tr>
     
-                <!-- Delete Confirmation Modal -->
-                <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1" aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <form method="post" action="{% url 'inv:delete_transaction' transaccion.id %}">{% csrf_token %}
-                                <!-- Include the 'next' parameter -->
-                                <input type="hidden" name="next" value="{{ request.path }}">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="deleteTransactionModalLabel{{ transaccion.id }}">
-                                        Confirmar Eliminación
-                                    </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    {% if perms.inv.delete_transaction %}
+                        <!-- Delete Confirmation Modal -->
+                        <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1" aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="post" action="{% url 'inv:delete_transaction' transaccion.id %}">{% csrf_token %}
+                                        <!-- Include the 'next' parameter -->
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteTransactionModalLabel{{ transaccion.id }}">
+                                                Confirmar Eliminación
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>¿Está seguro de que desea eliminar esta transacción?</p>
+                                            <p><strong>Fecha:</strong> {{ transaccion.fecha|date:"d/m/Y" }}</p>
+                                            <p><strong>Artículo:</strong> {{ transaccion.suministro.item }}</p>
+                                            <p><strong>Cantidad:</strong> {{ transaccion.cant }}</p>
+                                            <p><strong>Movimiento:</strong> {{ transaccion.get_tipo_display }}</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        </div>
+                                    </form>
                                 </div>
-                                <div class="modal-body">
-                                    <p>¿Está seguro de que desea eliminar esta transacción?</p>
-                                    <p><strong>Fecha:</strong> {{ transaccion.fecha|date:"d/m/Y" }}</p>
-                                    <p><strong>Artículo:</strong> {{ transaccion.suministro.item }}</p>
-                                    <p><strong>Cantidad:</strong> {{ transaccion.cant }}</p>
-                                    <p><strong>Movimiento:</strong> {{ transaccion.get_tipo_display }}</p>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="submit" class="btn btn-danger">Eliminar</button>
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    {% endif %}
                 {% empty %}
                     <tr>
                         <td colspan="9">No hay transacciones registradas.</td>
@@ -529,7 +558,6 @@
                 {% endfor %}
             </tbody>
         </table>
-
     </div>
 </div>
 

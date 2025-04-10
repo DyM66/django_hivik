@@ -23,6 +23,9 @@ urlpatterns = [
     path('supplies/<str:abbreviation>/', AssetSuministrosReportView.as_view(), name='asset-suministros'),
     path('asset/<str:abbreviation>/inventario/', AssetInventarioReportView.as_view(), name='asset_inventario_report'),
 
+    path('transaction/<int:pk>/download-referral/', download_referral_s3, name='download-referral'),
+
+
     # Inv retirements
     path('supply/<int:pk>/retirements/', RetireSupplyCreateView.as_view(), name='retirement-supply'),
 

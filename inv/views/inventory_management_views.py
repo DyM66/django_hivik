@@ -11,7 +11,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q, Sum, Max
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
-from django.contrib.auth.models import User
+import requests
+from django.http import HttpResponse, Http404
 from django.contrib.auth.decorators import login_required, permission_required
 
 from got.models import Asset, Item
@@ -434,3 +435,30 @@ def export_historial_pdf(request, abbreviation):
 
     # Si no es POST, redirigir
     return redirect('inv:asset_inventario_report', abbreviation=abbreviation)
+
+
+
+@login_required
+def download_referral_s3(request, pk):
+    try:
+        trans = Transaction.objects.get(pk=pk)
+        if not trans.remision:
+            raise Http404("No existe la remisión.")
+        
+        # Obtener la URL pública
+        s3_url = trans.remision.url
+
+        # Descargar el archivo temporalmente
+        r = requests.get(s3_url, stream=True)
+        if r.status_code != 200:
+            raise Http404("No se pudo descargar la remisión desde S3.")
+
+        # Extraer nombre del archivo
+        filename = s3_url.split("/")[-1]
+
+        response = HttpResponse(r.content, content_type=r.headers['Content-Type'])
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    except Transaction.DoesNotExist:
+        raise Http404("Transacción no encontrada.")
