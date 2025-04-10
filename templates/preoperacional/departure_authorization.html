@@ -1,0 +1,282 @@
+{% extends "preoperacional/base.html" %}
+
+{% block title %}Autorización de Vehículos - SERPORT{% endblock %}
+
+{% block content %}
+<!-- Content -->
+<div class="flex flex-col">
+  <div class="my-10 flex flex-1 flex-col items-center gap-4">
+    <h1 class="text-2xl font-extrabold text-black dark:text-white">Autorización de Preoperacional</h1>
+    <div class="justify-center text-center">
+
+      <!-- Botones de Entrada y Salida -->
+      <a href="?action=exit"
+        class="no-underline relative inline-flex items-center justify-center p-0.5 mb-2 me-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group bg-gradient-to-br from-indigo-500 to-blue-400 group-hover:from-indigo-500 group-hover:to-blue-400 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800">
+        <span
+          class="relative px-5 py-2.5 transition-all ease-in duration-75 bg-white dark:bg-slate-600 rounded-md {% if action == 'exit'%} bg-gradient-to-br from-indigo-700 to-blue-800 {% else %} group-hover:bg-transparent group-hover:dark:bg-transparent {%endif%} {% if action == 'exit' %} text-white {% else %} text-gray-900 dark:text-white {% endif %}">
+          Permitir Salida
+        </span>
+      </a>
+
+      <a href="?action=entry"
+        class="no-underline relative inline-flex items-center justify-center p-0.5 mb-2 me-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group bg-gradient-to-br from-teal-400 to-blue-400 group-hover:from-teal-400 group-hover:to-blue-400 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-teal-200 dark:focus:ring-teal-800">
+        <span
+          class="relative px-5 py-2.5 transition-all ease-in duration-75 bg-white dark:bg-slate-600 rounded-md {% if action == 'entry'%} bg-gradient-to-br from-teal-600 to-blue-700 {% else %} group-hover:bg-transparent group-hover:dark:bg-transparent {%endif%} {% if action == 'entry' %} text-white {% else %} text-gray-900 dark:text-white {% endif %}">
+          Permitir Entrada
+        </span>
+      </a>
+
+
+    </div>
+  </div>
+
+  <!-- Lista de Vehículos -->
+  <div class="grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {% if action == "entry" %}
+    {% for vehicle in occupiedVehicles %}
+    <div class="w-full max-w-xs" data-modal-target="{{ vehicle.plate_number }}-entry-modal"
+      data-modal-toggle="{{ vehicle.plate_number }}-entry-modal">
+      <div class="card cursor-pointer shadow-lg border-2 border-slate-300 dark:border-slate-500 rounded-t-lg">
+        {% if vehicle.asset.imagen %}
+        <img src="{{ vehicle.asset.imagen}}" class="h-48 w-full rounded-t-lg object-cover"
+          alt="{{ vehicle.plate_number }}" />
+        {% else %}
+        <div class="flex h-48 w-full items-center justify-center rounded-t-lg bg-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="#black">
+            <path
+              d="M240-160q-50 0-85-35t-35-85H40v-440q0-33 23.5-56.5T120-800h560v160h120l120 160v200h-80q0 50-35 85t-85 35q-50 0-85-35t-35-85H360q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T280-280q0-17-11.5-28.5T240-320q-17 0-28.5 11.5T200-280q0 17 11.5 28.5T240-240ZM120-360h32q17-18 39-29t49-11q27 0 49 11t39 29h272v-360H120v360Zm600 120q17 0 28.5-11.5T760-280q0-17-11.5-28.5T720-320q-17 0-28.5 11.5T680-280q0 17 11.5 28.5T720-240Zm-40-200h170l-90-120h-80v120ZM360-540Z" />
+          </svg>
+        </div>
+        {% endif %}
+        <div class="flex flex-col p-4">
+          <h5 class="text-xl font-semibold text-center text-black dark:text-white">
+            {{ vehicle.type }} {{vehicle.brand}} {{ vehicle.plate_number }}
+          </h5>
+          <div class="flex flex-row justify-between">
+            <h4 class="text-lg text-black dark:text-white">Estado: </h4>
+            <h4 class="text-lg text-red-500 dark:text-red-300">
+              {{ vehicle.get_status_display }}
+            </h4>
+          </div>
+          {% if vehicle.status == "REQUESTED" or vehicle.status == "OCCUPIED" %}
+          <div class="flex flex-row justify-between">
+            <h4 class="text-lg text-black dark:text-white">Solicitado por: </h4>
+            <h4 class="text-lg text-black dark:text-white">{{ vehicle.requested_by }}</h4>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% elif action == "exit" %}
+    {% for vehicle in requestedVehicles %}
+    <div class="w-full max-w-xs" data-modal-target="{{ vehicle.plate_number }}-exit-modal"
+      data-modal-toggle="{{ vehicle.plate_number }}-exit-modal">
+      <div class="card cursor-pointer shadow-lg border-2 border-slate-300 dark:border-slate-500 rounded-t-lg">
+        {% if vehicle.asset.imagen %}
+        <img src="{{ vehicle.asset.imagen}}" class="h-48 w-full rounded-t-lg object-cover"
+          alt="{{ vehicle.plate_number }}" />
+        {% else %}
+        <div class="flex h-48 w-full items-center justify-center rounded-t-lg bg-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="#black">
+            <path
+              d="M240-160q-50 0-85-35t-35-85H40v-440q0-33 23.5-56.5T120-800h560v160h120l120 160v200h-80q0 50-35 85t-85 35q-50 0-85-35t-35-85H360q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T280-280q0-17-11.5-28.5T240-320q-17 0-28.5 11.5T200-280q0 17 11.5 28.5T240-240ZM120-360h32q17-18 39-29t49-11q27 0 49 11t39 29h272v-360H120v360Zm600 120q17 0 28.5-11.5T760-280q0-17-11.5-28.5T720-320q-17 0-28.5 11.5T680-280q0 17 11.5 28.5T720-240Zm-40-200h170l-90-120h-80v120ZM360-540Z" />
+          </svg>
+        </div>
+        {% endif %}
+        <div class="flex flex-col p-4">
+          <h5 class="text-xl font-semibold text-center text-black dark:text-white">
+            {{ vehicle.type }} {{vehicle.brand}} {{ vehicle.plate_number }}
+          </h5>
+          <div class="flex flex-row justify-between">
+            <h4 class="text-lg text-black dark:text-white">Estado: </h4>
+            <h4 class="text-lg text-blue-500 dark:text-blue-300">
+              {{ vehicle.get_status_display }}
+            </h4>
+          </div>
+          {% if vehicle.status == "REQUESTED" or vehicle.status == "OCCUPIED" %}
+          <div class="flex flex-row justify-between">
+            <h4 class="text-lg text-black dark:text-white">Solicitado por: </h4>
+            <h4 class="text-lg text-black dark:text-white">{{ vehicle.requested_by }}</h4>
+          </div>
+          {% endif %}
+          {% if vehicle.comment %}
+          <div class="flex flex-col justify-between">
+            <h4 class="text-lg text-black dark:text-white">Observaciones: </h4>
+            <h4 class="text-lg text-slate-600 dark:text-slate-300">{{ vehicle.comment }}</h4>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if not requestedVehicles and not occupiedVehicles %}
+    <div class="col-span-3 text-center">
+      <p class="text-lg text-gray-400">
+        No hay vehículos disponibles para
+        {% if action == 'exit' %}
+        salida
+        {% else %}
+        entrada
+        {% endif %}
+      </p>
+
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Modal de Entrada para cada vehículo -->
+  {% for vehicle in occupiedVehicles %}
+  <div id="{{ vehicle.plate_number }}-entry-modal" tabindex="-1"
+    class="fixed left-0 right-0 top-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full overflow-y-auto overflow-x-hidden p-4 md:inset-0">
+    <div class="relative max-h-full w-full max-w-lg">
+      <div class="relative rounded-lg border border-black bg-white shadow-sm dark:border-white dark:bg-gray-700">
+        <!-- Modal Header -->
+        <div
+          class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 dark:border-gray-600 md:p-5">
+          <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+            {{ vehicle.type }} {{ vehicle.plate_number }}
+          </h3>
+          <button type="button"
+            class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
+            data-modal-hide="{{ vehicle.plate_number }}-entry-modal">
+            <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+            </svg>
+            <span class="sr-only">Cerrar modal</span>
+          </button>
+        </div>
+        <!-- Modal Body -->
+        <div class="flex flex-1 flex-col gap-2 my-5">
+          <div class="flex flex-1 items-center justify-center">
+            <p class="text-center text-base leading-relaxed text-gray-500 dark:text-gray-400">
+              ¿Qué acción deseas realizar con el vehículo {{ vehicle.plate_number }}?
+            </p>
+          </div>
+          <!-- Opciones -->
+          <div class="flex flex-1 items-center justify-center">
+            <form method="POST"
+              action="{% url 'preoperacionales:departure_authorization_action' action='entry' vehicle_code=vehicle.code %}">
+              {% csrf_token %}
+              <button type="submit"
+                class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
+                Aceptar entrada
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+
+  {% for vehicle in requestedVehicles %}
+  <!-- Modal de Salida para cada vehículo -->
+  <div id="{{ vehicle.plate_number }}-exit-modal"
+    class="fixed top-0 right-0 left-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full overflow-x-hidden overflow-y-auto p-4 md:inset-0">
+    <div class="relative max-h-full w-full max-w-lg">
+      <div class="relative rounded-lg border border-black bg-white shadow-sm dark:border-white dark:bg-gray-700">
+        <!-- Modal Header -->
+        <div
+          class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
+          <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+            {{ vehicle.type }} {{ vehicle.plate_number }}
+          </h3>
+          <button type="button"
+            class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
+            data-modal-hide="{{ vehicle.plate_number }}-exit-modal">
+            <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+            </svg>
+            <span class="sr-only">Cerrar modal</span>
+          </button>
+        </div>
+        <!-- Modal Body -->
+        <div class="my-5 flex flex-1 flex-col gap-2">
+          <div class="flex flex-1 items-center justify-center">
+            <p class="text-center text-lg lg:text-base leading-relaxed text-gray-500 dark:text-gray-400">
+              ¿Qué acción deseas realizar con el vehículo {{ vehicle.plate_number }}?
+            </p>
+          </div>
+          <!-- Opciones -->
+          <div class="flex flex-1 flex-col items-center justify-center gap-5">
+            <!-- Aceptar Salida -->
+            <form method="POST"
+              action="{% url 'preoperacionales:departure_authorization_action' action='exit' vehicle_code=vehicle.code %}">
+              {% csrf_token %}
+              <button type="submit"
+                class="rounded-lg border border-teal-600 px-5 py-2.5 text-center text-lg lg:text-sm font-medium text-teal-600 hover:bg-teal-700 hover:text-white focus:ring-4 focus:ring-teal-300 focus:outline-none dark:border-teal-500 dark:text-teal-500 dark:hover:bg-teal-600 dark:hover:text-white dark:focus:ring-teal-800">
+                Aceptar salida
+              </button>
+            </form>
+
+            <!-- Rechazar Salida (modificado) -->
+            <button type="button" data-modal-toggle="{{ vehicle.plate_number }}-reject-confirmation-modal"
+              data-modal-target="{{ vehicle.plate_number }}-reject-confirmation-modal"
+              class="rounded-lg border border-orange-600 px-5 py-2.5 text-center text-lg lg:text-sm font-medium text-orange-600 hover:bg-orange-700 hover:text-white focus:ring-4 focus:ring-orange-300 focus:outline-none dark:border-orange-500 dark:text-orange-500 dark:hover:bg-orange-600 dark:hover:text-white dark:focus:ring-orange-800">
+              Rechazar salida
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal de Confirmación para Rechazar Salida -->
+  <div id="{{ vehicle.plate_number }}-reject-confirmation-modal"
+    class="fixed top-0 right-0 left-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full overflow-x-hidden overflow-y-auto p-4 md:inset-0">
+    <div class="relative max-h-full w-full max-w-lg">
+      <div class="relative rounded-lg border border-black bg-white shadow-sm dark:border-white dark:bg-gray-700">
+        <!-- Modal Header -->
+        <div
+          class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
+          <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+            Confirmación para rechazar la salida de {{ vehicle.plate_number }}
+          </h3>
+          <button type="button"
+            class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
+            data-modal-hide="{{ vehicle.plate_number }}-reject-confirmation-modal">
+            <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+            </svg>
+            <span class="sr-only">Cerrar modal</span>
+          </button>
+        </div>
+        <!-- Modal Body -->
+        <div class="my-5 flex flex-1 flex-col gap-2">
+          <div class="flex flex-1 items-center justify-center">
+            <p class="text-center text-lg lg:text-base leading-relaxed text-gray-500 dark:text-gray-400">
+              ¿Estás seguro de que quieres rechazar la salida del vehículo {{ vehicle.plate_number }}?
+            </p>
+          </div>
+          <!-- Opciones -->
+          <div class="flex flex-1 flex-col items-center justify-center gap-5">
+            <!-- Confirmar Rechazo -->
+            <form method="POST"
+              action="{% url 'preoperacionales:departure_authorization_action' action='reject_exit' vehicle_code=vehicle.code %}">
+              {% csrf_token %}
+              <button type="submit"
+                class="rounded-lg border border-red-600 px-5 py-2.5 text-center text-lg lg:text-sm font-medium text-red-600 hover:bg-red-700 hover:text-white focus:ring-4 focus:ring-red-300 focus:outline-none dark:border-red-500 dark:text-red-500 dark:hover:bg-red-600 dark:hover:text-white dark:focus:ring-red-800">
+                Confirmar rechazo
+              </button>
+            </form>
+
+            <!-- Cancelar Rechazo -->
+            <button type="button"
+              class="rounded-lg border border-gray-600 px-5 py-2.5 text-center text-lg lg:text-sm font-medium text-gray-600 hover:bg-gray-700 hover:text-white focus:ring-4 focus:ring-gray-300 focus:outline-none dark:border-slate-300 dark:text-slate-300 dark:hover:bg-slate-600 dark:hover:text-white dark:focus:ring-slate-800"
+              data-modal-hide="{{ vehicle.plate_number }}-reject-confirmation-modal">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

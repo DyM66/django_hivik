@@ -1,21 +1,18 @@
-from datetime import datetime, time, date
+from datetime import datetime, date
 from django.db.models import Sum
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views import generic, View
+from django.views import generic
 from django.urls import reverse
 from django.utils import timezone
-from django.http import Http404
 import calendar
-from .models import *
-from .forms import *
+from preoperacionales.models import *
+from preoperacionales.forms import *
 from got.forms import UploadImages
-from got.models import Equipo, Image, HistoryHour
+from got.models import Equipo, Image, HistoryHour, FailureReport
 from django.utils.translation import gettext as _
 from got.utils import pro_export_to_excel
-from .models import Vehicle, VehicleMovementHistory
-from dth.models import Nomina
 
 
 class PreoperacionalDetailView(LoginRequiredMixin, generic.DetailView):
@@ -52,34 +49,41 @@ def preoperacional_diario_view(request, code):
             preop = form.save(commit=False)
             preop.reporter = request.user if request.user.is_authenticated else None
             preop.vehiculo = equipo
-            preop.kilometraje = form.cleaned_data["kilometraje"]
             preop.save()
 
-            horometro_actual = equipo.initial_hours + (
-                equipo.hours.filter(report_date__lt=date.today()).aggregate(
-                    total=Sum("hour")
-                )["total"]
-                or 0
+            wants_to_report_failure = form.cleaned_data["wants_to_report_failure"]
+            print(wants_to_report_failure)
+            print(
+                "report ->",
+                (
+                    request.user.get_full_name()
+                    if request.user.is_authenticated
+                    else form.cleaned_data["nombre_no_registrado"]
+                ),
             )
-            kilometraje_reportado = preop.kilometraje - horometro_actual
+            print("equipo ->", equipo)
+            print("description->", form.cleaned_data["observaciones"])
+            print("critico->", False)
 
-            history_hour, created = HistoryHour.objects.get_or_create(
-                component=equipo,
-                report_date=date.today(),
-                defaults={"hour": kilometraje_reportado},
+            failure = FailureReport.objects.create(
+                report=(
+                    request.user.get_full_name()
+                    if request.user.is_authenticated
+                    else form.cleaned_data["nombre_no_registrado"]
+                ),
+                equipo=equipo,
+                description=form.cleaned_data["observaciones"],
+                critico=False,
+                causas="Por definir",
             )
-
-            if not created:
-                history_hour.hour = kilometraje_reportado
-                history_hour.save()
-
-            equipo.horometro = preop.kilometraje
-            equipo.save()
+            print("Failure created", failure)
 
             for file in request.FILES.getlist("file_field"):
-                Image.objects.create(preoperacionaldiario=preop, image=file)
+                Image.objects.create(
+                    preoperacionaldiario=preop, failure=failure, image=file
+                )
 
-            return redirect("preoperacionales:gracias", code=equipo.code)
+            return redirect("preoperacionales:success", code=equipo.code)
     else:
         form = PreoperacionalDiarioForm(equipo_code=equipo.code, user=request.user)
         image_form = UploadImages()
@@ -111,29 +115,6 @@ class PreoperacionalDiarioUpdateView(LoginRequiredMixin, generic.UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        preoperacional = form.instance
-        equipo = preoperacional.vehiculo
-        fecha_preoperacional = preoperacional.fecha
-        horometro_actual = equipo.initial_hours + (
-            equipo.hours.exclude(report_date=fecha_preoperacional).aggregate(
-                total=Sum("hour")
-            )["total"]
-            or 0
-        )
-        kilometraje_reportado = form.cleaned_data["kilometraje"] - horometro_actual
-
-        history_hour, _ = HistoryHour.objects.get_or_create(
-            component=equipo,
-            report_date=preoperacional.fecha,
-            defaults={"hour": kilometraje_reportado},
-        )
-
-        history_hour.hour = kilometraje_reportado
-        history_hour.save()
-
-        equipo.horometro = form.cleaned_data["kilometraje"]
-        equipo.save()
-
         return response
 
     def get_success_url(self):
@@ -469,7 +450,6 @@ def preoperacional_especifico_view(request, code):
             for file in request.FILES.getlist("file_field"):
                 Image.objects.create(preoperacional=preop, image=file)
 
-            # ; ACTUALIZAR EL ESTADO DEL CARRO A SOLICITADO.
             # Buscar el Vehicle con el mismo código y actualizar su estado a REQUESTED
             vehicle = Vehicle.objects.filter(code=equipo.code).first()
             if vehicle:
@@ -479,9 +459,14 @@ def preoperacional_especifico_view(request, code):
                     if request.user.is_authenticated
                     else form.cleaned_data.get("nombre_no_registrado", "Desconocido")
                 )
+                vehicle.last_comment = (
+                    f"{form.cleaned_data['motivo'].capitalize()}, "
+                    f"{form.cleaned_data['observaciones']}."
+                )
+
                 vehicle.save()
 
-            return redirect("preoperacionales:gracias", code=equipo.code)
+            return redirect("preoperacionales:success", code=equipo.code)
     else:
         form = PreoperacionalEspecificoForm(equipo_code=equipo.code, user=request.user)
         image_form = UploadImages()
@@ -496,6 +481,163 @@ def preoperacional_especifico_view(request, code):
             "rutas_vencidas": rutas_vencidas,
         },
     )
+
+
+def delete_vehicle_departure(request, preoperational_id, vehicle_code):
+    # Se obtiene el registro Preoperacional
+    preoperational = get_object_or_404(Preoperacional, id=preoperational_id)
+    equipo = preoperational.vehiculo
+    ultimo_preoperacional = (
+        Preoperacional.objects.filter(vehiculo=equipo).order_by("fecha").last()
+    )
+
+    # Buscar todos los preoperacionales del mismo vehículo en la misma fecha
+    preoperacionales_del_dia = Preoperacional.objects.filter(
+        vehiculo=equipo,
+        fecha__date=preoperational.fecha.date(),  # Comparamos solo la fecha
+    ).order_by(
+        "fecha"
+    )  # Ordenamos por fecha (el último será el último en la lista)
+
+    # Si el preoperacional eliminado es el último de los reportes en esa fecha, modificamos el kilometraje
+    if preoperacionales_del_dia.last() == preoperational:
+        kilometraje_reportado = preoperational.kilometraje
+
+        # Calcular el kilometraje previamente registrado en HistoryHour
+        horometro_actual = equipo.initial_hours + (
+            equipo.hours.filter(report_date__lt=preoperational.fecha.date()).aggregate(
+                total=Sum("hour")
+            )["total"]
+            or 0
+        )
+        kilometraje_reportado -= horometro_actual
+
+        # Buscar el registro de HistoryHour correspondiente al preoperacional
+        try:
+            history_hour = HistoryHour.objects.get(
+                component=equipo,
+                report_date=preoperational.fecha.date(),  # Usar solo la fecha del preoperacional
+            )
+            # Actualizamos el registro de HistoryHour
+            history_hour.hour -= kilometraje_reportado
+            history_hour.save()
+        except HistoryHour.DoesNotExist:
+            print("?")
+            pass  # Si no existe, no hacer nada
+    else:
+        pass  # No se modificará el kilometraje si no es el último
+
+    # Si se eliminó un preoperacional de un día anterior, hay que ajustar el siguiente HistoryHour
+    if preoperational.fecha.date() < date.today():
+        # Buscar el siguiente HistoryHour para este vehículo (en una fecha posterior)
+        siguiente_history_hour = (
+            HistoryHour.objects.filter(
+                component=equipo,
+                report_date__gt=preoperational.fecha.date(),  # Filtrar fechas posteriores
+            )
+            .order_by("report_date")
+            .first()
+        )
+
+        if siguiente_history_hour:
+            # Ajustar el kilometraje del siguiente HistoryHour
+            siguiente_history_hour.hour += kilometraje_reportado
+
+            print("suma", kilometraje_reportado)
+            print("siguiente_history_hour.hour", siguiente_history_hour.hour)
+            print("---")
+            siguiente_history_hour.save()
+
+    # Buscar HistoryHour de fechas posteriores al último preoperacional
+    history_hours_to_delete = HistoryHour.objects.filter(
+        component=equipo,
+        report_date__gt=ultimo_preoperacional.fecha.date(),  # Filtrar fechas posteriores al último preoperacional
+    )
+
+    # Eliminar los HistoryHour posteriores al último preoperacional
+    if history_hours_to_delete.exists():
+        history_hours_to_delete.delete()
+    # Actualizar el horómetro del vehículo
+    horometro_actual = equipo.initial_hours + (
+        equipo.hours.filter(report_date__lt=date.today()).aggregate(total=Sum("hour"))[
+            "total"
+        ]
+        or 0
+    )
+    equipo.horometro = horometro_actual
+    equipo.save()
+    print(kilometraje_reportado)
+
+    # Eliminar el registro de Preoperacional
+    preoperational.delete()
+
+    return redirect(
+        reverse("preoperacionales:vehicle_admin", kwargs={"vehicle_code": vehicle_code})
+    )
+
+
+def edit_vehicle_departure(request, preoperational_id, vehicle_code):
+    if request.method == "POST":
+        preoperational = get_object_or_404(Preoperacional, id=preoperational_id)
+        equipo = preoperational.vehiculo
+
+        nuevo_kilometraje = int(request.POST.get("kilometraje", 0))
+        kilometraje_anterior = preoperational.kilometraje
+        diferencia = nuevo_kilometraje - kilometraje_anterior
+
+        # Actualizar el kilometraje del preoperacional
+        preoperational.kilometraje = nuevo_kilometraje
+        preoperational.save()
+
+        # Ajustar HistoryHour del mismo día
+        try:
+            history_hour = HistoryHour.objects.get(
+                component=equipo, report_date=preoperational.fecha.date()
+            )
+            history_hour.hour += diferencia
+            history_hour.save()
+        except HistoryHour.DoesNotExist:
+            pass
+
+        # Verificar si es el último preoperacional del vehículo
+        ultimo_preoperacional = (
+            Preoperacional.objects.filter(vehiculo=equipo).order_by("fecha").last()
+        )
+
+        if preoperational == ultimo_preoperacional:
+            # Eliminar los HistoryHour posteriores al preoperacional
+            HistoryHour.objects.filter(
+                component=equipo, report_date__gt=preoperational.fecha.date()
+            ).delete()
+        else:
+            # Solo ajustar el siguiente HistoryHour
+            siguiente_history_hour = (
+                HistoryHour.objects.filter(
+                    component=equipo, report_date__gt=preoperational.fecha.date()
+                )
+                .order_by("report_date")
+                .first()
+            )
+            if siguiente_history_hour:
+                siguiente_history_hour.hour -= diferencia
+                siguiente_history_hour.save()
+
+        # Recalcular y actualizar el horómetro del vehículo
+        horas_acumuladas = (
+            equipo.hours.filter(report_date__lt=date.today()).aggregate(
+                total=Sum("hour")
+            )["total"]
+            or 0
+        )
+
+        equipo.horometro = equipo.initial_hours + horas_acumuladas
+        equipo.save()
+
+        return redirect(
+            reverse(
+                "preoperacionales:vehicle_admin", kwargs={"vehicle_code": vehicle_code}
+            )
+        )
 
 
 "PREOPERACIONAL DIARIO VIEW"
@@ -528,9 +670,9 @@ class PreoperacionalListView(LoginRequiredMixin, generic.ListView):
         return context
 
 
-def gracias_view(request, code):
+def success_view(request, code):
     equipo = get_object_or_404(Equipo, code=code)
-    return render(request, "preoperacional/gracias.html", {"equipo": equipo})
+    return render(request, "preoperacional/success.html", {"equipo": equipo})
 
 
 class PreoperacionalUpdateView(LoginRequiredMixin, generic.UpdateView):
@@ -580,209 +722,3 @@ class PreoperacionalUpdateView(LoginRequiredMixin, generic.UpdateView):
 
     def get_success_url(self):
         return reverse("preoperacionales:salidas-detail", kwargs={"pk": self.object.pk})
-
-
-class PublicVehicleMenuView(View):
-    template_name = "preoperacional/public_vehicle_menu.html"
-
-    def get(self, request):
-        user = request.user
-        vehicles = Vehicle.objects.order_by("status")
-        drivers = Nomina.objects.filter(is_driver=True).values("id_number")
-        driver_ids = [driver["id_number"] for driver in drivers]
-
-        vehicles_with_equipment = []
-
-        for vehicle in vehicles:
-            system = vehicle.system
-            equipo = system.equipos.filter(code=vehicle.code)
-
-            if equipo:
-                vehicle.equipo = equipo[0]
-            else:
-                vehicle.equipo = None
-
-            vehicles_with_equipment.append(vehicle)
-
-        return render(
-            request,
-            self.template_name,
-            {
-                "vehicles": vehicles_with_equipment,
-                "driver_ids": driver_ids,
-                "user": user,
-            },
-        )
-
-
-class PreoperationalAuthorizationView(LoginRequiredMixin, View):
-    template_name = "preoperacional/preoperational_authorization.html"
-
-    def get(self, request):
-        action = request.GET.get("action", "exit")
-
-        if action == "exit":
-            requestedVehicles = Vehicle.objects.filter(status="REQUESTED").order_by(
-                "brand"
-            )
-            for vehicle in requestedVehicles:
-                last_preoperational = (
-                    Preoperacional.objects.filter(vehiculo=vehicle.code)
-                    .order_by("-fecha")
-                    .first()
-                )
-                vehicle.comment = (
-                    last_preoperational.observaciones if last_preoperational else ""
-                )
-
-            occupiedVehicles = []
-        else:
-            requestedVehicles = []
-            occupiedVehicles = Vehicle.objects.filter(status="OCCUPIED").order_by(
-                "brand"
-            )
-
-            print("entry", occupiedVehicles)
-
-        return render(
-            request,
-            self.template_name,
-            {
-                "requestedVehicles": requestedVehicles,
-                "occupiedVehicles": occupiedVehicles,
-                "action": action,
-            },
-        )
-
-    def post(self, request, action, vehicle_code):
-
-        vehicle = get_object_or_404(Vehicle, code=vehicle_code)
-
-        if action == "exit":
-            last_preoperational = (
-                Preoperacional.objects.filter(vehiculo=vehicle.code)
-                .order_by("-fecha")
-                .first()
-            )
-            VehicleMovementHistory.objects.create(
-                vehicle=vehicle,
-                action="EXIT",
-                requested_by=vehicle.requested_by,
-                comment=(
-                    last_preoperational.observaciones if last_preoperational else ""
-                ),
-            )
-            vehicle.status = "OCCUPIED"
-        elif action == "reject_exit":
-            vehicle.status = "AVAILABLE"
-            vehicle.requested_by = ""
-        elif action == "entry":
-            VehicleMovementHistory.objects.create(
-                vehicle=vehicle,
-                action="ENTRY",
-                requested_by=vehicle.requested_by,
-            )
-            vehicle.status = "AVAILABLE"
-            vehicle.requested_by = ""
-
-        vehicle.save()
-
-        url = reverse("preoperacionales:preoperational_authorization")
-        if action == "entry":
-            urlWithParams = f"{url}?action=entry"
-        else:
-            urlWithParams = f"{url}?action=exit"
-        return redirect(urlWithParams)
-
-
-class AdminView(LoginRequiredMixin, View):
-    template_name = "preoperacional/admin.html"
-
-    def get(self, request):
-
-        vehicles = Vehicle.objects.order_by("status")
-        for vehicle in vehicles:
-            vehicle.history = vehicle.movement_history.all()
-
-        return render(
-            request,
-            self.template_name,
-            {
-                "vehicles": vehicles,
-            },
-        )
-
-
-class VehicleAdminView(LoginRequiredMixin, View):
-    template_name = "preoperacional/vehicle_admin.html"
-
-    def get(self, request, vehicle_code):
-        # Buscar el vehículo usando el código proporcionado en la URL
-        try:
-            vehicle = Vehicle.objects.get(code=vehicle_code)
-            preoperacionales_diario = PreoperacionalDiario.objects.filter(
-                vehiculo=vehicle.code
-            ).order_by("-fecha")
-            preoperacionales_especifico = Preoperacional.objects.filter(
-                vehiculo=vehicle.code
-            ).order_by("-fecha")
-        except Vehicle.DoesNotExist:
-            # Si no se encuentra el vehículo, redirigir o mostrar un error
-            return render(request, "preoperacional/vehicle_not_found.html")
-
-        STATUS_CHOICES = [
-            ("AVAILABLE", "Disponible"),
-            ("UNDER_MAINTENANCE", "En Mantenimiento"),
-            ("OUT_OF_SERVICE", "Fuera de Servicio"),
-        ]
-
-        # Pasar el vehículo encontrado al template
-        return render(
-            request,
-            self.template_name,
-            {
-                "vehicle": vehicle,
-                "status_choices": STATUS_CHOICES,
-                "preoperacionales_diario": preoperacionales_diario,
-                "preoperacionales_especifico": preoperacionales_especifico,
-            },
-        )
-
-    def post(self, request, vehicle_code):
-
-        fullname = request.user.get_full_name()
-        vehicle_code = request.POST.get("vehicle_code")
-        vehicle = get_object_or_404(Vehicle, code=vehicle_code)
-
-        status_transitions = {
-            "UNDER_MAINTENANCE": "MAINTENANCE_IN",
-            "OUT_OF_SERVICE": "SERVICE_OUT",
-            ("OCCUPIED", "AVAILABLE"): "ENTRY",
-            ("UNDER_MAINTENANCE", "AVAILABLE"): "MAINTENANCE_OUT",
-            ("OUT_OF_SERVICE", "AVAILABLE"): "SERVICE_IN",
-        }
-
-        new_status = request.POST.get("status")
-
-        # Determinar la acción basada en la transición del estado
-        action = status_transitions.get(
-            (vehicle.status, new_status)
-        ) or status_transitions.get(new_status)
-
-        # Si hay una acción válida, registrar el historial
-        if action:
-            VehicleMovementHistory.objects.create(
-                vehicle=vehicle,
-                action=action,
-                requested_by=fullname,
-                comment=request.POST.get("comment"),
-            )
-
-        vehicle.status = request.POST.get("status")
-
-        vehicle.save()
-        return redirect(
-            reverse(
-                "preoperacionales:vehicle_admin", kwargs={"vehicle_code": vehicle_code}
-            )
-        )

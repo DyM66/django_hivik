@@ -1,72 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-from dirtyfields import DirtyFieldsMixin
-from got.models import System
 
-
-class Autorizado(models.Model):
-    nombre = models.CharField(max_length=100)
-    cargo = models.CharField(max_length=100)
-    departamento = models.CharField(max_length=100, null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.nombre} - {self.cargo}"
-
-
-class Preoperacional(models.Model):
-
-    RUTA = (("u", "Urbana"), ("r", "Rural"), ("m", "Mixta (Urbana y Rural)"))
-
-    AUTORIZADO = (
-        (
-            "a",
-            "Alejandro Angel/ Deliana Lacayo/ Jenny Castillo - Dpto. abasteciiento y logistica",
-        ),
-        ("b", "Juan Pablo Llanos - Residente Santa Marta"),
-        ("c", "Jose Jurado/ Julieth Ximena - Residente Tumaco"),
-        ("d", "Issis Alvarez - Directora Administrativa"),
-        ("e", "Jennifer Padilla - Gerente administrativa"),
-        ("f", "German Locarno - Gerente de operaciones"),
-        ("g", "Alexander Davey - Gerente de mantenimiento"),
-        ("h", "Carlos Cortés - Subgerente"),
-        ("i", "Federico Payan - Gerente Financiero"),
-        ("j", "Diego Lievano - Jefe de buceo"),
-        ("k", "Klaus Bartel - Gerente General"),
-    )
-
-    fecha = models.DateTimeField(auto_now_add=True)
-    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    nombre_no_registrado = models.CharField(max_length=100, null=True, blank=True)
-    cedula = models.CharField(max_length=20)
-    kilometraje = models.IntegerField()
-    motivo = models.TextField()
-    salida = models.CharField(max_length=150)
-    destino = models.CharField(max_length=150)
-    tipo_ruta = models.CharField(max_length=1, choices=RUTA)
-
-    autorizado = models.CharField(max_length=1, choices=AUTORIZADO)
-    authorized = models.ForeignKey(Autorizado, on_delete=models.SET_NULL, null=True)
-
-    vehiculo = models.ForeignKey("got.Equipo", on_delete=models.CASCADE)
-    observaciones = models.TextField(null=True, blank=True)
-    horas_trabajo = models.BooleanField()
-    medicamentos = models.BooleanField()
-    molestias = models.BooleanField()
-    enfermo = models.BooleanField()
-    condiciones = models.BooleanField()
-    agua = models.BooleanField()
-    dormido = models.BooleanField()
-    control = models.BooleanField()
-    sueño = models.BooleanField()
-    radio_aire = models.BooleanField()
-
-    class Meta:
-        db_table = "got_preoperacional"
-        ordering = ["-fecha"]
-
-
-# Model 21.2: Preoperacional para estado de vehiculos
 class PreoperacionalDiario(models.Model):
 
     COMBUSTUBLE = (
@@ -107,7 +42,6 @@ class PreoperacionalDiario(models.Model):
     fecha = models.DateField(auto_now_add=True)
     reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     nombre_no_registrado = models.CharField(max_length=100, null=True, blank=True)
-    kilometraje = models.IntegerField()
     combustible_level = models.CharField(max_length=1, default="f", choices=COMBUSTUBLE)
     aceite_level = models.CharField(max_length=1, default="l", choices=LEVEL)
     refrigerante_level = models.CharField(max_length=1, default="l", choices=LEVEL)
@@ -182,71 +116,3 @@ class PreoperacionalDiario(models.Model):
     class Meta:
         db_table = "got_preoperacionaldiario"
         ordering = ["-fecha"]
-
-
-class Vehicle(DirtyFieldsMixin, models.Model):
-    # Relationship with Asset
-    system = models.OneToOneField(
-        System, on_delete=models.CASCADE, related_name="vehicle"
-    )
-
-    # Vehicle fields
-    code = models.CharField(primary_key=True, max_length=50)
-    type = models.CharField(max_length=20)
-    serial = models.CharField(max_length=50)
-    brand = models.CharField(max_length=20)
-    model = models.CharField(max_length=20)
-    plate_number = models.CharField(max_length=6, unique=True)
-    color = models.CharField(max_length=20, blank=True, null=True)
-    year = models.IntegerField()
-    requested_by = models.CharField(max_length=50, blank=True, null=True)
-
-    # Additional fields
-    STATUS_CHOICES = [
-        ("AVAILABLE", "Disponible"),
-        ("REQUESTED", "Solicitado"),
-        ("OCCUPIED", "Ocupado"),
-        ("UNDER_MAINTENANCE", "En Mantenimiento"),
-        ("OUT_OF_SERVICE", "Fuera de Servicio"),
-        ("NOT_AVAILABLE", "No disponible"),
-    ]
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="AVAILABLE",
-    )
-
-    def __str__(self):
-        return f"{self.brand} {self.model} ({self.plate_number}) - {self.status}"
-
-    class Meta:
-        db_table = "vehicle"
-        ordering = ["-brand"]
-
-
-class VehicleMovementHistory(models.Model):
-    vehicle = models.ForeignKey(
-        Vehicle, on_delete=models.CASCADE, related_name="movement_history"
-    )
-    movement_time = models.DateTimeField(auto_now_add=True)
-    action = models.CharField(
-        max_length=20,
-        choices=[
-            ("ENTRY", "Entrada"),
-            ("EXIT", "Salida"),
-            ("MAINTENANCE_IN", "Entrada a Mantenimiento"),
-            ("MAINTENANCE_OUT", "Salida de Mantenimiento"),
-            ("SERVICE_IN", "Habilitado"),
-            ("SERVICE_OUT", "Fuera de Servicio"),
-        ],
-    )
-    requested_by = models.CharField(max_length=50, null=True, blank=True)
-    comment = models.CharField(max_length=250, blank=True, null=True)
-
-    class Meta:
-        db_table = "vehicle_movement_history"
-        ordering = ["-movement_time"]
-
-    def __str__(self):
-        return f"{self.action.title()} de {self.vehicle} - {self.movement_time}"

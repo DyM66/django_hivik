@@ -1,564 +1,898 @@
-<!-- templates/got/public_vehicle_menu.html -->
+{% extends "preoperacional/base.html" %} 
+{% block title %}Vehiculo - SERPORT{% endblock %} 
+{% block content %}
+<!-- Content -->
+<div class="flex flex-1 items-center justify-center align-middle">
+  <div class="w-full max-w-6xl rounded-lg p-2 md:p-8">
+    <!-- Título -->
+    <div class="my-10 flex flex-1 flex-row items-center justify-between md:px-10">
+      <a href="{% url 'preoperacionales:admin' %}" class="flex cursor-pointer items-center justify-center text-black dark:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="currentColor" class="h-6 w-6 md:h-12 md:w-12">
+          <path d="M560-240 320-480l240-240 56 56-184 184 184 184-56 56Z" />
+        </svg>
+        <h4 class="text-base font-bold text-black md:text-xl dark:text-white">Regresar</h4>
+      </a>
+      <div class="format dark:format-invert justify-center text-center">
+        <h2 class="text-xl font-bold text-black md:text-4xl dark:text-white">{{vehicle.type}} {{vehicle.brand}} {{vehicle.plate_number}}</h2>
+      </div>
+      <div class="w-32"></div>
+    </div>
 
-<!doctype html>
-<html lang="es">
+    <!-- Contenedor de Información del Vehículo -->
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <!-- Imagen del Vehículo -->
+      <div class="flex flex-col items-center justify-center gap-2">
+        <div class="flex h-64 w-full items-center justify-center rounded-lg bg-gray-200">
+          {% if preoperacionales_especifico.0.vehiculo.images.all %}
+          <!-- Si hay imagen, mostrarla -->
+          <img id="vehicle-image" src="{{ preoperacionales_especifico.0.vehiculo.images.all.0.image.url }}" class="h-full w-full rounded-lg object-cover" alt="{{ vehicle.plate_number }}" />
+          {% else %}
+          <!-- Si no hay imagen, mostrar el icono -->
+          <div id="image-icon" class="flex h-64 w-full items-center justify-center rounded-lg bg-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="#000">
+              <path
+                d="M240-160q-50 0-85-35t-35-85H40v-440q0-33 23.5-56.5T120-800h560v160h120l120 160v200h-80q0 50-35 85t-85 35q-50 0-85-35t-35-85H360q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T280-280q0-17-11.5-28.5T240-320q-17 0-28.5 11.5T200-280q0 17 11.5 28.5T240-240ZM120-360h32q17-18 39-29t49-11q27 0 49 11t39 29h272v-360H120v360Zm600 120q17 0 28.5-11.5T760-280q0-17-11.5-28.5T720-320q-17 0-28.5 11.5T680-280q0 17 11.5 28.5T720-240Zm-40-200h170l-90-120h-80v120ZM360-540Z"
+              />
+            </svg>
+          </div>
+          {% endif %}
+        </div>
+      </div>
 
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Menú de Vehículos - SERPORT</title>
-
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
-
-    <!-- Load darkmode -->
-    <script>
-        // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-        if (
-            localStorage.getItem("color-theme") === "dark" ||
-            (!("color-theme" in localStorage) &&
-                window.matchMedia("(prefers-color-scheme: dark)").matches)
-        ) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-    </script>
-</head>
-
-<body class="bg-white dark:bg-slate-600">
-    <!-- Navbar -->
-    <nav class="border-gray-200 bg-slate-100 dark:bg-gray-900">
-        <div class="mx-auto flex max-w-screen-xl flex-wrap items-center justify-between p-4">
-            <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" width="200px" />
-
-            <button id="theme-toggle" type="button"
-                class="rounded-lg p-2.5 text-sm text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700">
-                <svg id="theme-toggle-dark-icon" class="hidden h-5 w-5" fill="currentColor" viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                </svg>
-                <svg id="theme-toggle-light-icon" class="hidden h-5 w-5" fill="currentColor" viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                        fill-rule="evenodd" clip-rule="evenodd"></path>
-                </svg>
+      <!-- Información del Vehículo -->
+      <div class="space-y-6">
+        <div class="rounded-lg bg-gray-50 p-6 shadow-md dark:bg-gray-700">
+          <div class="flex flex-1 flex-row justify-between">
+            <h2 class="mb-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">Información del vehículo</h2>
+            <button type="button" data-modal-target="edit-modal" data-modal-toggle="edit-modal" class="flex cursor-pointer text-black select-none dark:text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                <path
+                  d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"
+                />
+              </svg>
+              <h5 class="font-bold">Cambiar estado</h5>
             </button>
+          </div>
+          <div class="space-y-3">
+            <div class="fles-row flex justify-between">
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Código:</span>
+                <span class="text-gray-600 dark:text-gray-200">{{ vehicle.code }}</span>
+              </div>
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Placa:</span>
+                <span class="text-gray-600 dark:text-gray-200">{{ vehicle.plate_number }}</span>
+              </div>
+            </div>
+            <div class="fles-row flex justify-between">
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Tipo:</span>
+                <span class="text-gray-600 dark:text-gray-200">{{ vehicle.type }}</span>
+              </div>
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Marca:</span>
+                <span class="text-gray-600 dark:text-gray-200">{{ vehicle.brand }}</span>
+              </div>
+            </div>
+
+            <div class="fles-row flex justify-between">
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Modelo:</span>
+                <span class="text-gray-600 dark:text-gray-200">{{ vehicle.model }}</span>
+              </div>
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Año:</span>
+                <span class="text-gray-600 dark:text-gray-200">{{ vehicle.year }}</span>
+              </div>
+            </div>
+
+            <div class="flex flex-1 space-x-2">
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Color:</span>
+                <span class="text-gray-600 dark:text-gray-200"> {{ vehicle.color|default:"N/A"}} </span>
+              </div>
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Estado:</span>
+                <span class="text-gray-600 dark:text-gray-200"> {{ vehicle.get_status_display}} </span>
+              </div>
+            </div>
+
+            <div class="flex flex-1 space-x-2">
+              <div class="flex flex-1 flex-col space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Serial:</span>
+                <span class="text-gray-600 dark:text-gray-200">{{ vehicle.serial }}</span>
+              </div>
+              <div class="flex flex-1 flex-col space-x-2">
+                {% if vehicle.status == "REQUESTED" or vehicle.status == "OCCUPIED" %}
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Solicitado:</span>
+                <span class="text-gray-600 dark:text-gray-200"> {{ vehicle.requested_by|default:"N/A" }} </span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="flex flex-1 space-x-2">
+              <div class="flex flex-1 space-x-2">
+                <span class="font-semibold text-gray-700 dark:text-gray-300">Kilometraje:</span>
+                <span class="text-gray-600 dark:text-gray-200">{{ preoperacionales_especifico.0.vehiculo.horometro }}</span>
+              </div>
+              <div class="flex flex-1 space-x-2"></div>
+            </div>
+          </div>
         </div>
-    </nav>
-
-    <!-- Content -->
-    <div class="flex flex-1 justify-center align-middle items-center">
-        <div class="p-2 md:p-8 rounded-lg w-full max-w-6xl">
-
-            <!-- Título -->
-            <div class="my-10 flex flex-1 flex-row items-center justify-between md:px-10">
-                <a href="{% url 'preoperacionales:admin' %}"
-                    class="cursor-pointer flex justify-center items-center text-black dark:text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px"
-                        fill="currentColor" class="w-6 h-6 md:w-12 md:h-12">
-                        <path d="M560-240 320-480l240-240 56 56-184 184 184 184-56 56Z" />
-                    </svg>
-                    <h4 class="text-black dark:text-white text-base md:text-xl font-bold">Regresar</h4>
-                </a>
-                <div class="format dark:format-invert justify-center text-center">
-                    <h2 class="text-black dark:text-white text-xl md:text-4xl font-bold">
-                        {{vehicle.type}} {{vehicle.brand}} {{vehicle.plate_number}}
-                    </h2>
-                </div>
-                <div class="w-32"></div>
-            </div>
-
-            <!-- Contenedor de Información del Vehículo -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Imagen del Vehículo -->
-                <div class="flex justify-center items-center">
-                    <div class="w-full max-w-md bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md overflow-hidden">
-                        {% if vehicle.asset.imagen %}
-                        <img src="{{ vehicle.asset.imagen}}" class="h-48 w-full rounded-t-lg object-cover"
-                            alt="{{ vehicle.plate_number }}" />
-                        {% else %}
-                        <div class="flex h-64 w-full items-center justify-center rounded-t-lg bg-gray-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px"
-                                fill="#black">
-                                <path
-                                    d="M240-160q-50 0-85-35t-35-85H40v-440q0-33 23.5-56.5T120-800h560v160h120l120 160v200h-80q0 50-35 85t-85 35q-50 0-85-35t-35-85H360q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T280-280q0-17-11.5-28.5T240-320q-17 0-28.5 11.5T200-280q0 17 11.5 28.5T240-240ZM120-360h32q17-18 39-29t49-11q27 0 49 11t39 29h272v-360H120v360Zm600 120q17 0 28.5-11.5T760-280q0-17-11.5-28.5T720-320q-17 0-28.5 11.5T680-280q0 17 11.5 28.5T720-240Zm-40-200h170l-90-120h-80v120ZM360-540Z" />
-                            </svg>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Información del Vehículo -->
-                <div class="space-y-6">
-                    <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-md">
-                        <div class="flex flex-1 flex-row justify-between">
-                            <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                                Información del vehículo
-                            </h2>
-                            <button type="button" data-modal-target="edit-modal" data-modal-toggle="edit-modal"
-                                class="cursor-pointer select-none flex text-black dark:text-white">
-                                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
-                                    width="24px" fill="currentColor">
-                                    <path
-                                        d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z" />
-                                </svg>
-                                <h5 class="font-bold">Cambiar estado</h5>
-                            </button>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="flex fles-row justify-between">
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Código:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">{{ vehicle.code }}</span>
-                                </div>
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Placa:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">{{ vehicle.plate_number }}</span>
-                                </div>
-                            </div>
-                            <div class="flex fles-row justify-between">
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Tipo:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">{{ vehicle.type }}</span>
-                                </div>
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Marca:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">{{ vehicle.brand }}</span>
-                                </div>
-                            </div>
-
-                            <div class="flex fles-row justify-between">
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Modelo:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">{{ vehicle.model }}</span>
-                                </div>
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Año:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">{{ vehicle.year }}</span>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-1 space-x-2">
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Color:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">
-                                        {{ vehicle.color|default:"N/A"}}
-                                    </span>
-                                </div>
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Estado:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">
-                                        {{ vehicle.get_status_display}}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-1 space-x-2">
-                                <div class="flex flex-1 space-x-2">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Serial:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">{{ vehicle.serial }}</span>
-                                </div>
-                                <div class="flex flex-1 space-x-2">
-
-                                    {% if vehicle.status == "REQUESTED" or vehicle.status == "OCCUPIED" %}
-                                    <span class="font-semibold text-gray-700 dark:text-gray-300">Solicitado:</span>
-                                    <span class="text-gray-600 dark:text-gray-200">
-                                        {{ vehicle.requested_by|default:"N/A" }}
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-
-
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-
-
-            <div class="mt-8">
-
-                <div class="inline-flex rounded-md shadow-xs" role="group">
-                    <button type="button" onclick="showSection('historial')"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-s-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700">
-                        <svg class="me-2" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
-                            width="24px" fill="#e3e3e3">
-                            <path
-                                d="M80-80q-17 0-28.5-11.5T40-120v-320l85-203q7-17 22-27t33-10h360q18 0 33 10t22 27l85 203v320q0 17-11.5 28.5T640-80h-40q-17 0-28.5-11.5T560-120v-40H160v40q0 17-11.5 28.5T120-80H80Zm72-440h415l-33-80H186l-34 80Zm-32 280h480v-200H120v200Zm100-40q25 0 42.5-17.5T280-340q0-25-17.5-42.5T220-400q-25 0-42.5 17.5T160-340q0 25 17.5 42.5T220-280Zm280 0q25 0 42.5-17.5T560-340q0-25-17.5-42.5T500-400q-25 0-42.5 17.5T440-340q0 25 17.5 42.5T500-280Zm220 80v-344l-73-176H227l18-43q7-17 22-27t33-10h360q18 0 33 10t22 27l85 203v320q0 17-11.5 28.5T760-200h-40Zm120-120v-344l-73-176H347l18-43q7-17 22-27t33-10h360q18 0 33 10t22 27l85 203v320q0 17-11.5 28.5T880-320h-40Zm-480-20Z" />
-                        </svg>
-                        Historial de Movimientos
-                    </button>
-                    <button type="button" onclick="showSection('preoperacional-diario')"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-transparent border-t border-b border-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700">
-                        <svg class="me-2" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
-                            width="24px" fill="#e3e3e3">
-                            <path
-                                d="M200-200h560v-367L567-760H200v560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h400l240 240v400q0 33-23.5 56.5T760-120H200Zm80-160h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h280v-80H280v80Zm-80 400v-560 560Z" />
-                        </svg>
-                        Preoperacional Diario
-                    </button>
-                    <button type="button" onclick="showSection('preoperacional-especifico')"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-transparent border border-gray-900 rounded-e-lg hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900 focus:text-white dark:border-white dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:bg-gray-700">
-                        <svg class="me-2" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
-                            width="24px" fill="#e3e3e3">
-                            <path
-                                d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h168q14-36 44-58t68-22q38 0 68 22t44 58h168q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm280-670q13 0 21.5-8.5T510-820q0-13-8.5-21.5T480-850q-13 0-21.5 8.5T450-820q0 13 8.5 21.5T480-790ZM200-246q54-53 125.5-83.5T480-360q83 0 154.5 30.5T760-246v-514H200v514Zm280-194q58 0 99-41t41-99q0-58-41-99t-99-41q-58 0-99 41t-41 99q0 58 41 99t99 41ZM280-200h400v-10q-42-35-93-52.5T480-280q-56 0-107 17.5T280-210v10Zm200-320q-25 0-42.5-17.5T420-580q0-25 17.5-42.5T480-640q25 0 42.5 17.5T540-580q0 25-17.5 42.5T480-520Zm0 17Z" />
-                        </svg>
-                        Preoperacional Especifico
-                    </button>
-                </div>
-            </div>
-
-            <!-- Secciones -->
-            <div id="historial" class="section mt-2">
-                <h2 class="text-3xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Historial de Movimientos</h2>
-                <!-- Filtros y Búsqueda -->
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center space-x-4">
-                        <!-- Filtro de Acciones -->
-                        <select id="action-filter"
-                            class="form-select block w-full sm:w-1/4 text-sm text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 dark:border-gray-600 border rounded-lg p-2.5">
-                            <option value="">Filtrar por Acción</option>
-                            <option value="ENTRY">Entrada</option>
-                            <option value="EXIT">Salida</option>
-                            <option value="MAINTENANCE_IN">Entrada a Mantenimiento</option>
-                            <option value="MAINTENANCE_OUT">Salida de Mantenimiento</option>
-                            <option value="SERVICE_IN">Ingresó al Servicio</option>
-                            <option value="SERVICE_OUT">Fuera de Servicio</option>
-                        </select>
-
-                        <!-- Búsqueda por Comentarios -->
-                        <input type="text" id="search-input" placeholder="Buscar por Comentarios"
-                            class="form-input block w-full sm:w-1/4 text-sm text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 dark:border-gray-600 border rounded-lg p-2.5">
-                    </div>
-                </div>
-
-
-                <!-- Tabla de Movimientos -->
-                <div class="overflow-x-auto bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md">
-                    <table class="min-w-full table-auto">
-                        <thead>
-                            <tr class="text-left bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-200">
-                                <th class="py-3 px-4">Fecha y Hora</th>
-                                <th class="py-3 px-4">Acción</th>
-                                <th class="py-3 px-4">Solicitado por</th>
-                                <th class="py-3 px-4">Comentarios</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for movement in vehicle.movement_history.all %}
-                            <tr class="bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200">
-                                <td class="py-3 px-4">{{ movement.movement_time }}</td>
-                                <td class="py-3 px-4">{{ movement.get_action_display }}</td>
-                                <td class="py-3 px-4">{{ movement.requested_by|default:"N/A" }}</td>
-                                <td class="py-3 px-4">{{ movement.comment|default:"N/A" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="preoperacional-diario" class="section mt-2 hidden">
-                <h2 class="text-3xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Preoperacional Diario</h2>
-                <!-- Filtros y Búsqueda -->
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center space-x-4">
-                        <!-- Filtro de Acciones -->
-                        <select id="action-filter"
-                            class="form-select block w-full sm:w-1/4 text-sm text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 dark:border-gray-600 border rounded-lg p-2.5">
-                            <option value="">Filtrar por Acción</option>
-                            <option value="ENTRY">Entrada</option>
-                            <option value="EXIT">Salida</option>
-                            <option value="MAINTENANCE_IN">Entrada a Mantenimiento</option>
-                            <option value="MAINTENANCE_OUT">Salida de Mantenimiento</option>
-                            <option value="SERVICE_IN">Ingresó al Servicio</option>
-                            <option value="SERVICE_OUT">Fuera de Servicio</option>
-                        </select>
-
-                        <!-- Búsqueda por Comentarios -->
-                        <input type="text" id="search-input" placeholder="Buscar por Comentarios"
-                            class="form-input block w-full sm:w-1/4 text-sm text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 dark:border-gray-600 border rounded-lg p-2.5">
-                    </div>
-                </div>
-
-
-                <!-- Tabla de Movimientos -->
-                <div class="overflow-x-auto bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md">
-                    <table class="min-w-full table-auto">
-                        <thead>
-                            <tr class="text-left bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-200">
-                                <th class="py-3 px-4">Fecha</th>
-                                <th class="py-3 px-4">Reportero</th>
-                                <th class="py-3 px-4">Accion</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for preoperacional in preoperacionales_diario %}
-                            <tr class="bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200">
-                                <td class="py-3 px-4">{{ preoperacional.fecha }}</td>
-                                <td class="py-3 px-4">{{
-                                    preoperacional.reporter|default:preoperacional.nombre_no_registrado }}</td>
-                                <td class="py-3 px-4"> Ver detalles </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="preoperacional-especifico" class="section mt-2 hidden">
-                <h2 class="text-3xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Preoperacional Específico</h2>
-                <!-- Filtros y Búsqueda -->
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center space-x-4">
-                        <!-- Filtro de Acciones -->
-                        <select id="action-filter"
-                            class="form-select block w-full sm:w-1/4 text-sm text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 dark:border-gray-600 border rounded-lg p-2.5">
-                            <option value="">Filtrar por Acción</option>
-                            <option value="ENTRY">Entrada</option>
-                            <option value="EXIT">Salida</option>
-                            <option value="MAINTENANCE_IN">Entrada a Mantenimiento</option>
-                            <option value="MAINTENANCE_OUT">Salida de Mantenimiento</option>
-                            <option value="SERVICE_IN">Ingresó al Servicio</option>
-                            <option value="SERVICE_OUT">Fuera de Servicio</option>
-                        </select>
-
-                        <!-- Búsqueda por Comentarios -->
-                        <input type="text" id="search-input" placeholder="Buscar por Comentarios"
-                            class="form-input block w-full sm:w-1/4 text-sm text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 dark:border-gray-600 border rounded-lg p-2.5">
-                    </div>
-                </div>
-
-
-                <!-- Tabla de Movimientos -->
-                <div class="overflow-x-auto bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md">
-                    <table class="min-w-full table-auto">
-                        <thead>
-                            <tr class="text-left bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-200">
-                                <th class="py-3 px-4">Fecha y Hora</th>
-                                <th class="py-3 px-4">Reportero</th>
-                                <th class="py-3 px-4">Kilometraje</th>
-                                <th class="py-3 px-4">Accion</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for preoperacional in preoperacionales_especifico %}
-                            <tr class="bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200">
-                                <td class="py-3 px-4">{{ preoperacional.fecha }}</td>
-                                <td class="py-3 px-4">
-                                    {{ preoperacional.reporter|default:preoperacional.nombre_no_registrado }}</td>
-                                <td class="py-3 px-4">{{ preoperacional.kilometraje }}</td>
-                                <td class="py-3 px-4">
-                                    <button data-modal-target="modal-{{ preoperacional.id }}"
-                                        data-modal-toggle="modal-{{ preoperacional.id }}"
-                                        class="text-blue-500 hover:underline">
-                                        Ver detalles
-                                    </button>
-
-                                    <!-- Modal -->
-                                    <div id="modal-{{ preoperacional.id }}" tabindex="-1" aria-hidden="true"
-                                        class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
-                                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg">
-                                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Detalles
-                                                del Preoperacional</h3>
-                                            <p class="mt-2 text-gray-700 dark:text-gray-300"><strong>Fecha:</strong>
-                                                {{ preoperacional.fecha }}</p>
-                                            <p class="text-gray-700 dark:text-gray-300"><strong>Reportero:</strong>
-                                                {{ preoperacional.reporter|default:preoperacional.nombre_no_registrado }}
-                                            </p>
-                                            <p class="text-gray-700 dark:text-gray-300"><strong>Kilometraje:</strong>
-                                                {{ preoperacional.kilometraje }}</p>
-                                            <p class="text-gray-700 dark:text-gray-300"><strong>Comentarios:</strong>
-                                                {{ preoperacional.observaciones }}</p>
-
-                                            <div class="mt-4 flex justify-end">
-                                                <button data-modal-hide="modal-{{ preoperacional.id }}"
-                                                    class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-                                                    Cerrar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-        </div>
+      </div>
     </div>
 
+    <div class="mt-8">
+      <div class="inline-flex rounded-md shadow-sm" role="group">
+        <button
+          type="button"
+          onclick="showSection('historial')"
+          class="inline-flex flex-col items-center rounded-s-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-200 sm:flex-row dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        >
+          <svg class="me-2" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+            <path
+              d="M80-80q-17 0-28.5-11.5T40-120v-320l85-203q7-17 22-27t33-10h360q18 0 33 10t22 27l85 203v320q0 17-11.5 28.5T640-80h-40q-17 0-28.5-11.5T560-120v-40H160v40q0 17-11.5 28.5T120-80H80Zm72-440h415l-33-80H186l-34 80Zm-32 280h480v-200H120v200Zm100-40q25 0 42.5-17.5T280-340q0-25-17.5-42.5T220-400q-25 0-42.5 17.5T160-340q0 25 17.5 42.5T220-280Zm280 0q25 0 42.5-17.5T560-340q0-25-17.5-42.5T500-400q-25 0-42.5 17.5T440-340q0 25 17.5 42.5T500-280Zm220 80v-344l-73-176H227l18-43q7-17 22-27t33-10h360q18 0 33 10t22 27l85 203v320q0 17-11.5 28.5T760-200h-40Zm120-120v-344l-73-176H347l18-43q7-17 22-27t33-10h360q18 0 33 10t22 27l85 203v320q0 17-11.5 28.5T880-320h-40Zm-480-20Z"
+            />
+          </svg>
+          Historial de Movimientos
+        </button>
 
-    <!-- EDIT MODAL-->
-    <div id="edit-modal" tabindex="-1"
-        class="fixed left-0 right-0 top-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full overflow-y-auto overflow-x-hidden p-4 md:inset-0">
-        <div class="relative max-h-full w-full max-w-lg">
-            <div class="relative rounded-lg border border-black bg-white shadow-sm dark:border-white dark:bg-gray-700">
-                <!-- Modal Header -->
-                <div
-                    class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 dark:border-gray-600 md:p-5">
-                    <h3 class="text-xl font-medium text-gray-900 dark:text-white">
-                        {{ vehicle.type }} {{vehicle.brand}} {{ vehicle.plate_number }}
-                    </h3>
-                    <button type="button"
-                        class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
-                        data-modal-hide="edit-modal">
-                        <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
-                        </svg>
-                        <span class="sr-only">Close modal</span>
-                    </button>
-                </div>
-                <!-- Modal Body -->
-                <form method="POST" action="{% url 'preoperacionales:vehicle_admin' vehicle_code=vehicle.code %}"
-                    class="flex flex-col gap-4 p-4">
-                    {% csrf_token %}
-                    <input type="hidden" name="vehicle_code" value="{{ vehicle.code }}">
-                    <div>
-                        <label for="status-{{ vehicle.code }}"
-                            class="block mb-1 text-sm font-medium text-gray-900 dark:text-white">Estado</label>
-                        <select name="status" id="status-{{ vehicle.code }}"
-                            class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                            {% for value, label in status_choices %}
-                            {%if vehicle.status == value%}
-                            <option value="{{ value }}" selected>{{ label }}
-                            </option>
-                            {%else%}
-                            <option value="{{ value }}">{{ label }}
-                            </option>
-                            {%endif%}
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label for="comment-{{ vehicle.code }}"
-                            class="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
-                            Comentario
-                        </label>
-                        <textarea name="comment" id="comment-{{ vehicle.code }}" rows="3"
-                            class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            placeholder="Agrega un comentario opcional..."></textarea>
-                    </div>
+        <button
+          type="button"
+          onclick="showSection('preoperacional-diario')"
+          class="inline-flex flex-col items-center border-t border-b border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-200 sm:flex-row dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        >
+          <svg class="me-2" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+            <path
+              d="M200-200h560v-367L567-760H200v560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h400l240 240v400q0 33-23.5 56.5T760-120H200Zm80-160h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h280v-80H280v80Zm-80 400v-560 560Z"
+            />
+          </svg>
+          Preoperacional Diario
+        </button>
 
-                    <div class="flex justify-center">
-                        <button type="submit"
-                            class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Guardar
-                            cambios</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <button
+          type="button"
+          onclick="showSection('preoperacional-especifico')"
+          class="inline-flex flex-col items-center rounded-e-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-200 sm:flex-row dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        >
+          <svg class="me-2" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+            <path
+              d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h168q14-36 44-58t68-22q38 0 68 22t44 58h168q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm280-670q13 0 21.5-8.5T510-820q0-13-8.5-21.5T480-850q-13 0-21.5 8.5T450-820q0 13 8.5 21.5T480-790ZM200-246q54-53 125.5-83.5T480-360q83 0 154.5 30.5T760-246v-514H200v514Zm280-194q58 0 99-41t41-99q0-58-41-99t-99-41q-58 0-99 41t-41 99q0 58 41 99t99 41ZM280-200h400v-10q-42-35-93-52.5T480-280q-56 0-107 17.5T280-210v10Zm200-320q-25 0-42.5-17.5T420-580q0-25 17.5-42.5T480-640q25 0 42.5 17.5T540-580q0 25-17.5 42.5T480-520Zm0 17Z"
+            />
+          </svg>
+          Salidas del Vehículo
+        </button>
+      </div>
     </div>
 
-    <!-- DarkMode script -->
-    <script>
-        var themeToggleDarkIcon = document.getElementById(
-            "theme-toggle-dark-icon",
-        );
-        var themeToggleLightIcon = document.getElementById(
-            "theme-toggle-light-icon",
-        );
+    <!-- Secciones -->
+    <div id="historial" class="section mt-2">
+      <h2 class="mb-6 text-3xl font-semibold text-gray-800 dark:text-gray-100">Historial de Movimientos</h2>
 
-        // Change the icons inside the button based on previous settings
-        if (
-            localStorage.getItem("color-theme") === "dark" ||
-            (!("color-theme" in localStorage) &&
-                window.matchMedia("(prefers-color-scheme: dark)").matches)
-        ) {
-            themeToggleLightIcon.classList.remove("hidden");
-        } else {
-            themeToggleDarkIcon.classList.remove("hidden");
+      <!-- Filtros y Búsqueda -->
+      <div class="mb-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <!-- Filtro por Reportero -->
+          <div class="relative max-w-sm">
+            <input
+              type="text"
+              id="search-input-historial"
+              placeholder="Buscar por solicitante"
+              class="form-input block w-full rounded-lg border bg-gray-100 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            />
+          </div>
+
+          <!-- Filtro por Fecha -->
+          <div class="relative max-w-sm">
+            <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+              <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"
+                />
+              </svg>
+            </div>
+            <input
+              datepicker
+              id="datepicker-historial"
+              type="text"
+              class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-10 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+              placeholder="Seleccionar Fecha"
+            />
+          </div>
+          <!-- Botón Limpiar Filtros -->
+          <button
+            id="clear-filters-historial"
+            class="me-2 mb-2 rounded-lg px-5 py-2.5 text-center text-sm font-medium text-red-700 underline hover:bg-red-800 hover:text-white focus:ring-4 focus:ring-red-300 focus:outline-none dark:border-red-500 dark:text-red-400 dark:hover:bg-red-600 dark:hover:text-white dark:focus:ring-red-900"
+          >
+            Limpiar Filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Movimientos -->
+      <div class="overflow-x-auto rounded-lg bg-gray-50 shadow-md dark:bg-gray-700">
+        <table class="min-w-full table-auto">
+          <thead>
+            <tr class="bg-gray-100 text-left text-gray-600 dark:bg-gray-800 dark:text-gray-200">
+              <th class="px-4 py-3">Fecha y Hora</th>
+              <th class="px-4 py-3">Acción</th>
+              <th class="px-4 py-3">Solicitante</th>
+              <th class="px-4 py-3">Comentarios</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for movement in vehicle.movement_history.all %}
+            <tr class="bg-white text-gray-700 dark:bg-gray-900 dark:text-gray-200">
+              <td class="px-4 py-3">{{ movement.movement_time }}</td>
+              <td class="px-4 py-3">{{ movement.get_action_display }}</td>
+              <td class="px-4 py-3">{{ movement.requested_by|default:"N/A" }}</td>
+              <td class="px-4 py-3">{{ movement.comment|default:"N/A" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="preoperacional-diario" class="section mt-2 hidden">
+      <h2 class="mb-6 text-3xl font-semibold text-gray-800 dark:text-gray-100">Preoperacional Diario</h2>
+      <!-- Filtros y Búsqueda -->
+      <div class="mb-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <!-- Filtro por Reportero -->
+          <div class="relative max-w-sm">
+            <input
+              type="text"
+              id="search-input-diario"
+              placeholder="Buscar por reportero"
+              class="form-input block w-full rounded-lg border bg-gray-100 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            />
+          </div>
+
+          <!-- Filtro por Fecha -->
+          <div class="relative max-w-sm">
+            <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+              <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"
+                />
+              </svg>
+            </div>
+            <input
+              datepicker
+              id="datepicker-diario"
+              type="text"
+              class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-10 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+              placeholder="Seleccionar Fecha"
+            />
+          </div>
+          <!-- Botón Limpiar Filtros -->
+          <button
+            id="clear-filters-diario"
+            class="me-2 mb-2 rounded-lg px-5 py-2.5 text-center text-sm font-medium text-red-700 underline hover:bg-red-800 hover:text-white focus:ring-4 focus:ring-red-300 focus:outline-none dark:border-red-500 dark:text-red-400 dark:hover:bg-red-600 dark:hover:text-white dark:focus:ring-red-900"
+          >
+            Limpiar Filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Movimientos -->
+      <div class="overflow-x-auto rounded-lg bg-gray-50 shadow-md dark:bg-gray-700">
+        <table class="min-w-full table-auto">
+          <thead>
+            <tr class="bg-gray-100 text-left text-gray-600 dark:bg-gray-800 dark:text-gray-200">
+              <th class="px-4 py-3">Fecha</th>
+              <th class="px-4 py-3">Reportero</th>
+              <th class="px-4 py-3">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for preoperacional in preoperacionales_diario %}
+            <tr class="bg-white text-gray-700 dark:bg-gray-900 dark:text-gray-200">
+              <td class="px-4 py-3">{{ preoperacional.fecha }}</td>
+              <td class="px-4 py-3">{{ preoperacional.reporter.get_full_name | default:preoperacional.nombre_no_registrado }}</td>
+              <td class="flex flex-row gap-2 px-4 py-3">
+                <button
+                  data-modal-target="details-modal-{{ preoperacional.id }}"
+                  data-modal-toggle="details-modal-{{ preoperacional.id }}"
+                  class="flex flex-row rounded-lg border border-blue-700 px-2.5 py-1 text-center text-sm font-medium text-blue-700 hover:bg-blue-800 hover:text-white focus:ring-4 focus:ring-blue-300 focus:outline-none dark:border-blue-500 dark:text-blue-500 dark:hover:bg-blue-500 dark:hover:text-white dark:focus:ring-blue-800"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                    <path
+                      d="M320-480v-80h320v80H320Zm0-160v-80h320v80H320Zm-80 240h300q29 0 54 12.5t42 35.5l84 110v-558H240v400Zm0 240h442L573-303q-6-8-14.5-12.5T540-320H240v160Zm480 80H240q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h480q33 0 56.5 23.5T800-800v640q0 33-23.5 56.5T720-80Zm-480-80v-640 640Zm0-160v-80 80Z"
+                    />
+                  </svg>
+                  <p class="self-center">Detalles</p>
+                </button>
+
+                <!-- Detalles Modal -->
+                <div id="details-modal-{{ preoperacional.id }}" tabindex="-1" aria-hidden="true" class="bg-opacity-50 fixed inset-0 z-50 flex hidden items-center justify-center bg-gray-900">
+                  <div class="max-h-[80vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Detalles del Preoperacional</h3>
+
+                    <!-- Información General (Columna única) -->
+                    <div class="mt-4">
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Cédula del solicitante:</strong> {{ preoperacional.reporter.cedula }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Nombre del solicitante:</strong> {{ preoperacional.reporter.get_full_name|default:preoperacional.nombre_no_registrado }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Kilometraje Actual:</strong> {{ preoperacional.kilometraje }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Fecha de registro:</strong> {{ preoperacional.fecha }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Niveles de Componentes (Dos columnas) -->
+                    <div class="mt-4">
+                      <h4 class="font-semibold text-gray-900 dark:text-gray-100">Niveles del Vehículo</h4>
+                      <div class="grid grid-cols-1 sm:grid-cols-2">
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Combustible:</strong> {{ preoperacional.get_combustible_level_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Aceite:</strong> {{ preoperacional.get_aceite_level_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Refrigerante:</strong> {{ preoperacional.get_refrigerante_level_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Hidráulico:</strong> {{ preoperacional.get_hidraulic_level_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Líquido de frenos:</strong> {{ preoperacional.get_liq_frenos_level_display }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Estado de Componentes (Tres columnas) -->
+                    <div class="mt-4">
+                      <h4 class="font-semibold text-gray-900 dark:text-gray-100">Estado de Componentes</h4>
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Poleas:</strong> {{ preoperacional.get_poleas_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Correas:</strong> {{ preoperacional.get_correas_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Mangueras:</strong> {{ preoperacional.get_mangueras_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Acoples:</strong> {{ preoperacional.get_acoples_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Tanques:</strong> {{ preoperacional.get_tanques_display }}</p>
+                        </div>
+                        <div>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Radiador:</strong> {{ preoperacional.get_radiador_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Terminales:</strong> {{ preoperacional.get_terminales_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Bujes:</strong> {{ preoperacional.get_bujes_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Rótulas:</strong> {{ preoperacional.get_rotulas_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Ejes:</strong> {{ preoperacional.get_ejes_display }}</p>
+                        </div>
+                        <div>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Cruceta:</strong> {{ preoperacional.get_cruceta_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Puertas:</strong> {{ preoperacional.get_puertas_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Chapas:</strong> {{ preoperacional.get_chapas_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Manijas:</strong> {{ preoperacional.get_manijas_display }}</p>
+                          <p class="text-gray-700 dark:text-gray-300"><strong>Elevavidrios:</strong> {{ preoperacional.get_elevavidrios_display }}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Estado Físico (Tres columnas) -->
+                    <div class="mt-4">
+                      <h4 class="font-semibold text-gray-900 dark:text-gray-100">Estado Físico</h4>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Capó:</strong> {{ preoperacional.get_capo_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Persiana:</strong> {{ preoperacional.get_persiana_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Bumper delantero:</strong> {{ preoperacional.get_bumper_delantero_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Panorámico:</strong> {{ preoperacional.get_panoramico_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Guardafango:</strong> {{ preoperacional.get_guardafango_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Puerta:</strong> {{ preoperacional.get_puerta_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Parales:</strong> {{ preoperacional.get_parales_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Stop:</strong> {{ preoperacional.get_stop_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Bumper trasero:</strong> {{ preoperacional.get_bumper_trasero_display }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Vidrio panorámico trasero:</strong> {{ preoperacional.get_vidrio_panoramico_trasero_display }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Placas (Columna única) -->
+                    <div class="mt-4">
+                      <h4 class="font-semibold text-gray-900 dark:text-gray-100">Placas</h4>
+                      <p class="text-gray-700 dark:text-gray-300"><strong>Placa Delantera:</strong> {{ preoperacional.get_placa_delantera_display }}</p>
+                      <p class="text-gray-700 dark:text-gray-300"><strong>Placa Trasera:</strong> {{ preoperacional.get_placa_trasera_display }}</p>
+                    </div>
+
+                    <!-- Equipos de Emergencia y Aseo (Dos columnas) -->
+                    <div class="mt-4">
+                      <h4 class="font-semibold text-gray-900 dark:text-gray-100">Equipos de Emergencia</h4>
+                      <div class="grid grid-cols-1 sm:grid-cols-2">
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Aseo Externo:</strong> {{ preoperacional.aseo_externo|yesno:"Sí,No" }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Aseo Interno:</strong> {{ preoperacional.aseo_interno|yesno:"Sí,No" }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Kit de Carreteras:</strong> {{ preoperacional.kit_carreteras|yesno:"Sí,No" }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Kit de Herramientas:</strong> {{ preoperacional.kit_herramientas|yesno:"Sí,No" }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Kit de Botiquín:</strong> {{ preoperacional.kit_botiquin|yesno:"Sí,No" }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><strong>Chaleco Reflectivo:</strong> {{ preoperacional.chaleco_reflectivo|yesno:"Sí,No" }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Observaciones y Aprobación (Columna única) -->
+                    <div class="mt-4">
+                      <p class="text-gray-700 dark:text-gray-300"><strong>Observaciones:</strong> {{ preoperacional.observaciones }}</p>
+                      <p class="text-gray-700 dark:text-gray-300"><strong>Aprobado:</strong> {{ preoperacional.aprobado|yesno:"Sí,No" }}</p>
+                    </div>
+
+                    <!-- Sección de fotos -->
+                    <div class="mt-4">
+                      <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Fotos asociadas</h3>
+
+                      {% if preoperacional.images.all %}
+                      <!-- Contenedor con scroll horizontal -->
+                      <div class="mt-4 flex space-x-4 overflow-x-auto py-2">
+                        {% for image in preoperacional.images.all %}
+                        <div class="w-48 flex-shrink-0">
+                          <div class="group relative" data-modal-target="image-modal-{{ image.id }}" data-modal-toggle="image-modal-{{ image.id }}">
+                            <!-- Imagen -->
+                            <img src="{{ image.image.url }}" alt="Imagen {{ image.id }}" class="h-auto w-full cursor-pointer rounded-md shadow-lg" />
+                          </div>
+                          <!-- Modal para mostrar la imagen completa -->
+                          <div id="image-modal-{{ image.id }}" class="bg-opacity-50 fixed inset-0 z-50 flex hidden items-center justify-center bg-gray-900">
+                            <div class="relative max-w-5xl">
+                              <button data-modal-hide="image-modal-{{ image.id }}" class="absolute top-4 right-4 text-3xl text-white">&times;</button>
+                              <img id="modal-image" src="{{ image.image.url }}" alt="Imagen completa" class="max-h-[90vh] object-contain" />
+                            </div>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% else %}
+                      <p class="text-gray-500 dark:text-gray-300">No hay imágenes asociadas.</p>
+                      {% endif %}
+                    </div>
+
+                    <!-- Botón de Cerrar -->
+                    <div class="mt-4 flex justify-end">
+                      <button data-modal-hide="details-modal-{{ preoperacional.id }}" class="rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Cerrar</button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="preoperacional-especifico" class="section mt-2 hidden">
+      <h2 class="mb-6 text-3xl font-semibold text-gray-800 dark:text-gray-100">Salidas del Vehículo</h2>
+      <!-- Filtros y Búsqueda -->
+      <div class="mb-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <!-- Filtro por Reportero -->
+          <div class="relative max-w-sm">
+            <input
+              type="text"
+              id="search-input-especifico"
+              placeholder="Buscar por reportero"
+              class="form-input block w-full rounded-lg border bg-gray-100 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            />
+          </div>
+          <!-- Filtro por Date (Comentarios) -->
+
+          <div class="relative max-w-sm">
+            <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+              <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"
+                />
+              </svg>
+            </div>
+            <input
+              datepicker
+              id="datepicker-especifico"
+              type="text"
+              class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-10 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+              placeholder="Seleccionar Fecha"
+            />
+          </div>
+
+          <!-- Botón Limpiar Filtros -->
+          <button
+            id="clear-filters-especifico"
+            class="me-2 mb-2 rounded-lg px-5 py-2.5 text-center text-sm font-medium text-red-700 underline hover:bg-red-800 hover:text-white focus:ring-4 focus:ring-red-300 focus:outline-none dark:border-red-500 dark:text-red-400 dark:hover:bg-red-600 dark:hover:text-white dark:focus:ring-red-900"
+          >
+            Limpiar Filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Movimientos -->
+      <div class="overflow-x-auto rounded-lg bg-gray-50 shadow-md dark:bg-gray-700">
+        <table class="min-w-full table-auto">
+          <thead>
+            <tr class="bg-gray-100 text-left text-gray-600 dark:bg-gray-800 dark:text-gray-200">
+              <th class="px-4 py-3">Fecha y Hora</th>
+              <th class="px-4 py-3">Reportero</th>
+              <th class="px-4 py-3">Kilometraje</th>
+              <th class="px-4 py-3">Accion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for preoperacional in preoperacionales_especifico %} {% with forloop.counter0 as i %}
+            <tr class="bg-white text-gray-700 dark:bg-gray-900 dark:text-gray-200">
+              <td class="px-4 py-3">{{ preoperacional.fecha }}</td>
+              <td class="px-4 py-3">{{ preoperacional.reporter.get_full_name | default:preoperacional.nombre_no_registrado }}</td>
+              <td class="px-4 py-3">{{ preoperacional.kilometraje }}</td>
+              <td class="flex flex-row gap-2 px-4 py-3">
+                <button
+                  data-modal-target="details-modal-{{ preoperacional.id }}"
+                  data-modal-toggle="details-modal-{{ preoperacional.id }}"
+                  class="flex flex-row rounded-lg border border-blue-700 px-2.5 py-1 text-center text-sm font-medium text-blue-700 hover:bg-blue-800 hover:text-white focus:ring-4 focus:ring-blue-300 focus:outline-none dark:border-blue-500 dark:text-blue-500 dark:hover:bg-blue-500 dark:hover:text-white dark:focus:ring-blue-800"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                    <path
+                      d="M320-480v-80h320v80H320Zm0-160v-80h320v80H320Zm-80 240h300q29 0 54 12.5t42 35.5l84 110v-558H240v400Zm0 240h442L573-303q-6-8-14.5-12.5T540-320H240v160Zm480 80H240q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h480q33 0 56.5 23.5T800-800v640q0 33-23.5 56.5T720-80Zm-480-80v-640 640Zm0-160v-80 80Z"
+                    />
+                  </svg>
+                  <p class="self-center">Detalles</p>
+                </button>
+
+                <button
+                  data-modal-target="edit-modal-{{ preoperacional.id }}"
+                  data-modal-toggle="edit-modal-{{ preoperacional.id }}"
+                  class="flex flex-row rounded-lg border border-yellow-700 px-2.5 py-1 text-center text-sm font-medium text-yellow-700 hover:bg-yellow-800 hover:text-white focus:ring-4 focus:ring-yellow-300 focus:outline-none dark:border-yellow-500 dark:text-yellow-500 dark:hover:bg-yellow-500 dark:hover:text-white dark:focus:ring-yellow-800"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                    <path
+                      d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"
+                    />
+                  </svg>
+                  <p class="self-center">Editar</p>
+                </button>
+
+                <button
+                  data-modal-target="delete-modal-{{ preoperacional.id }}"
+                  data-modal-toggle="delete-modal-{{ preoperacional.id }}"
+                  class="flex flex-row rounded-lg border border-red-700 px-2.5 py-1 text-center text-sm font-medium text-red-700 hover:bg-red-800 hover:text-white focus:ring-4 focus:ring-red-300 focus:outline-none dark:border-red-500 dark:text-red-500 dark:hover:bg-red-500 dark:hover:text-white dark:focus:ring-red-800"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                    <path
+                      d="m376-300 104-104 104 104 56-56-104-104 104-104-56-56-104 104-104-104-56 56 104 104-104 104 56 56Zm-96 180q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520Zm-400 0v520-520Z"
+                    />
+                  </svg>
+                </button>
+
+                <!-- Details Modal -->
+                <div id="details-modal-{{ preoperacional.id }}" tabindex="-1" aria-hidden="true" class="bg-opacity-50 fixed inset-0 z-50 flex hidden items-center justify-center bg-gray-900">
+                  <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Detalles del Preoperacional</h3>
+
+                    <p class="mt-2 text-gray-700 dark:text-gray-300"><strong>Cédula del solicitante:</strong> {{ preoperacional.cedula }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Nombre del solicitante:</strong> {{ preoperacional.reporter|default:preoperacional.nombre_no_registrado }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Kilometraje Actual:</strong> {{ preoperacional.kilometraje }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Motivo del desplazamiento:</strong> {{ preoperacional.motivo }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Punto de salida:</strong> {{ preoperacional.salida }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Destino:</strong> {{ preoperacional.destino }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Tipo de ruta:</strong> {{ preoperacional.get_tipo_ruta_display }}</p>
+
+                    <hr class="my-4 border-gray-500" />
+
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Autorizado por:</strong> {{ preoperacional.get_autorizado_display }}</p>
+
+                    <hr class="my-4 border-gray-500" />
+
+                    <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">HALLAZGOS ENCONTRADOS EN EL VEHÍCULO ANTES DE LA SALIDA</h4>
+
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿Trabajo + conducción supera 12h?:</strong> {{ preoperacional.horas_trabajo|yesno:"Sí,No" }}</p>
+                    <p class="text-gray-700 dark:text-gray-300">
+                      <strong>¿Tomó medicamentos que causan sueño?:</strong>
+                      {{ preoperacional.medicamentos|yesno:"Sí,No" }}
+                    </p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿Fue al médico por molestias?:</strong> {{ preoperacional.molestias|yesno:"Sí,No" }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿Está enfermo?:</strong> {{ preoperacional.enfermo|yesno:"Sí,No" }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿Apto para conducir?:</strong> {{ preoperacional.condiciones|yesno:"Sí,No" }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿Tiene agua?:</strong> {{ preoperacional.agua|yesno:"Sí,No" }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿Durmió al menos 8h?:</strong> {{ preoperacional.dormido|yesno:"Sí,No" }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿Conoce los puntos de control?:</strong> {{ preoperacional.control|yesno:"Sí,No" }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿Sabe qué hacer si tiene sueño?:</strong> {{ preoperacional.sueño|yesno:"Sí,No" }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>¿El vehiculo tiene radio y aire?:</strong> {{ preoperacional.radio_aire|yesno:"Sí,No" }}</p>
+
+                    <!-- Observaciones y Aprobación (Columna única) -->
+                    <div class="mt-4">
+                      <p class="text-gray-700 dark:text-gray-300"><strong>Observaciones:</strong> {{ preoperacional.observaciones }}</p>
+                    </div>
+                    <!-- Sección de fotos -->
+                    <div class="mt-4">
+                      <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Fotos asociadas</h3>
+
+                      {% if preoperacional.images.all %}
+                      <!-- Contenedor con scroll horizontal -->
+                      <div class="mt-4 flex space-x-4 overflow-x-auto py-2">
+                        {% for image in preoperacional.images.all %}
+                        <div class="w-48 flex-shrink-0">
+                          <div class="group relative" data-modal-target="image-modal-{{ image.id }}" data-modal-toggle="image-modal-{{ image.id }}">
+                            <!-- Imagen -->
+                            <img src="{{ image.image.url }}" alt="Imagen {{ image.id }}" class="h-auto w-full cursor-pointer rounded-md shadow-lg" />
+                          </div>
+                          <!-- Modal para mostrar la imagen completa -->
+                          <div id="image-modal-{{ image.id }}" class="bg-opacity-50 fixed inset-0 z-50 flex hidden items-center justify-center bg-gray-900">
+                            <div class="relative max-w-5xl">
+                              <button data-modal-hide="image-modal-{{ image.id }}" class="absolute top-4 right-4 text-3xl text-white">&times;</button>
+                              <img id="modal-image" src="{{ image.image.url }}" alt="Imagen completa" class="max-h-[90vh] object-contain" />
+                            </div>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% else %}
+                      <p class="text-gray-500 dark:text-gray-300">No hay imágenes asociadas.</p>
+                      {% endif %}
+                    </div>
+
+                    <!-- Botón de Cerrar -->
+                    <div class="mt-4 flex justify-end">
+                      <button data-modal-hide="details-modal-{{ preoperacional.id }}" class="rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Cerrar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Edit Modal -->
+                <div id="edit-modal-{{ preoperacional.id }}" tabindex="-1" aria-hidden="true" class="bg-opacity-50 fixed inset-0 z-50 flex hidden items-center justify-center bg-gray-900">
+                  <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Editar Kilometraje</h3>
+
+                    <form method="POST" action="{% url 'preoperacionales:edit_vehicle_departure' preoperational_id=preoperacional.id vehicle_code=vehicle.code %}">
+                      {% csrf_token %}
+                      <div class="mt-4">
+                        <label for="kilometraje" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Kilometraje</label>
+                        <input
+                          type="number"
+                          name="kilometraje"
+                          id="kilometraje"
+                          min="{{ preoperacional.previous.kilometraje|default:0 }}"
+                          max="{{ preoperacional.next.kilometraje|default:9999999 }}"
+                          value="{{ preoperacional.kilometraje }}"
+                          required
+                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+                        />
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Valor mínimo permitido: {{ preoperacional.previous.kilometraje|default:0 }} / máximo: {{ preoperacional.next.kilometraje|default:9999999 }}
+                        </p>
+                      </div>
+
+                      <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" data-modal-hide="edit-modal-{{ preoperacional.id }}" class="rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Cancelar</button>
+                        <button type="submit" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Guardar</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Delete Modal -->
+                <div id="delete-modal-{{ preoperacional.id }}" tabindex="-1" aria-hidden="true" class="bg-opacity-50 fixed inset-0 z-50 flex hidden items-center justify-center bg-gray-900">
+                  <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">¿Estas seguro que quieres eliminar estos datos de salida?</h3>
+
+                    <div class="my-5 flex flex-col gap-7">
+                      <div class="flex flex-1 items-center justify-center">
+                        <a href="{% url 'preoperacionales:delete_vehicle_departure' preoperational_id=preoperacional.id vehicle_code=vehicle.code %}"> Delete Vehicle Departure </a>
+                      </div>
+
+                      <div class="flex flex-1 items-center justify-center">
+                        <button
+                          data-modal-hide="delete-modal-{{ preoperacional.id }}"
+                          class="rounded-lg border border-blue-700 px-5 py-2.5 text-center text-sm font-medium text-blue-700 hover:bg-blue-800 hover:text-white focus:ring-4 focus:ring-blue-300 focus:outline-none dark:border-blue-500 dark:text-blue-500 dark:hover:bg-blue-500 dark:hover:text-white dark:focus:ring-blue-800"
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endwith %} {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Selección de los elementos comunes a cada sección
+        const tablas = [
+          {
+            nombreInput: "search-input-historial",
+            fechaInput: "datepicker-historial",
+            tabla: "#historial table tbody",
+            nombreColumna: 2, // Reportero en historial
+            clearButton: "clear-filters-historial", // Botón limpiar filtro historial
+          },
+          {
+            nombreInput: "search-input-diario",
+            fechaInput: "datepicker-diario",
+            tabla: "#preoperacional-diario table tbody",
+            nombreColumna: 1, // Reportero en preoperacional-diario
+            clearButton: "clear-filters-diario", // Botón limpiar filtro preoperacional-diario
+          },
+          {
+            nombreInput: "search-input-especifico",
+            fechaInput: "datepicker-especifico",
+            tabla: "#preoperacional-especifico table tbody",
+            nombreColumna: 1, // Reportero en preoperacional-especifico
+            clearButton: "clear-filters-especifico", // Botón limpiar filtro preoperacional-especifico
+          },
+        ];
+
+        // Mapa de meses en español a formato numérico
+        const meses = {
+          enero: "01",
+          febrero: "02",
+          marzo: "03",
+          abril: "04",
+          mayo: "05",
+          junio: "06",
+          julio: "07",
+          agosto: "08",
+          septiembre: "09",
+          octubre: "10",
+          noviembre: "11",
+          diciembre: "12",
+        };
+
+        // Función de normalización de texto
+        function normalizeText(text) {
+          return text
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
         }
 
-        var themeToggleBtn = document.getElementById("theme-toggle");
+        // Función para parsear fechas de la tabla a un formato comparable
+        function parseFechaTabla(texto) {
+          const regex = /(\d{1,2})\s+de\s+([a-zA-Z]+)\s+de\s+(\d{4})/i;
+          const match = texto.match(regex);
 
-        themeToggleBtn.addEventListener("click", function () {
-            // toggle icons inside button
-            themeToggleDarkIcon.classList.toggle("hidden");
-            themeToggleLightIcon.classList.toggle("hidden");
+          if (!match) return null;
 
-            // if set via local storage previously
-            if (localStorage.getItem("color-theme")) {
-                if (localStorage.getItem("color-theme") === "light") {
-                    document.documentElement.classList.add("dark");
-                    localStorage.setItem("color-theme", "dark");
-                } else {
-                    document.documentElement.classList.remove("dark");
-                    localStorage.setItem("color-theme", "light");
-                }
+          const dia = match[1].padStart(2, "0");
+          const mesNombre = normalizeText(match[2]);
+          const anio = match[3];
+          const mes = meses[mesNombre];
 
-                // if NOT set via local storage previously
-            } else {
-                if (document.documentElement.classList.contains("dark")) {
-                    document.documentElement.classList.remove("dark");
-                    localStorage.setItem("color-theme", "light");
-                } else {
-                    document.documentElement.classList.add("dark");
-                    localStorage.setItem("color-theme", "dark");
-                }
-            }
-        });
-    </script>
+          if (!mes) return null;
 
-    <!-- Search Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const searchInput = document.getElementById('simple-search');
-            const vehicleCards = document.querySelectorAll('.vehicle-card');
-
-            searchInput.addEventListener('input', function () {
-                const searchTerm = searchInput.value.toLowerCase();
-
-                vehicleCards.forEach(card => {
-                    const searchContent = card.dataset.search.toLowerCase();
-                    if (searchContent.includes(searchTerm)) {
-                        card.style.display = 'block';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-            });
-        });
-    </script>
-
-    <!-- JavaScript para alternar las secciones -->
-    <script>
-        function showSection(sectionId) {
-            // Ocultar todas las secciones
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.add('hidden');
-            });
-
-            // Mostrar la sección seleccionada
-            document.getElementById(sectionId).classList.remove('hidden');
-
-            // Resaltar el botón activo
-            document.querySelectorAll('.section-btn').forEach(btn => {
-                btn.classList.remove('bg-gray-900', 'text-white');
-                btn.classList.add('bg-transparent', 'text-gray-900');
-            });
-
-            // Agregar estilos al botón activo
-            event.currentTarget.classList.add('bg-gray-900', 'text-white');
+          return `${anio}-${mes}-${dia}`; // formato comparable
         }
 
-        // Mostrar el historial por defecto al cargar la página
-        document.addEventListener("DOMContentLoaded", () => {
-            showSection('historial');
+        // Función para parsear la fecha ingresada en el input al formato comparable
+        function parseFechaInput(valor) {
+          const [mes, dia, anio] = valor.split("/");
+          if (!mes || !dia || !anio) return null;
+          return `${anio}-${mes}-${dia}`;
+        }
+
+        // Función para filtrar la tabla
+        function filtrarTabla(tablaConfig) {
+          const inputNombre = document.getElementById(tablaConfig.nombreInput);
+          const inputFecha = document.getElementById(tablaConfig.fechaInput);
+          const table = document.querySelector(tablaConfig.tabla);
+
+          const searchNombre = normalizeText(inputNombre.value);
+          const searchFecha = parseFechaInput(inputFecha.value);
+
+          Array.from(table.getElementsByTagName("tr")).forEach((row) => {
+            const fechaCell = row.getElementsByTagName("td")[0]; // Fecha
+            const nombreCell = row.getElementsByTagName("td")[tablaConfig.nombreColumna]; // Reportero
+
+            const nombreTexto = nombreCell ? normalizeText(nombreCell.textContent) : "";
+            const fechaTexto = fechaCell ? fechaCell.textContent.trim() : "";
+            const fechaNormalizada = parseFechaTabla(fechaTexto);
+
+            const coincideNombre = nombreTexto.includes(searchNombre);
+            const coincideFecha = !searchFecha || fechaNormalizada === searchFecha;
+
+            row.style.display = coincideNombre && coincideFecha ? "" : "none";
+          });
+        }
+
+        // Función para limpiar los filtros de la sección correspondiente
+        function clearFilters(tablaConfig) {
+          const inputNombre = document.getElementById(tablaConfig.nombreInput);
+          const inputFecha = document.getElementById(tablaConfig.fechaInput);
+          const table = document.querySelector(tablaConfig.tabla);
+
+          // Restablecer los valores de los inputs
+          inputNombre.value = "";
+          inputFecha.value = "";
+
+          // Filtrar todas las filas (mostrar todas)
+          Array.from(table.getElementsByTagName("tr")).forEach((row) => {
+            row.style.display = ""; // Mostrar todas las filas
+          });
+        }
+
+        // Asignar eventos a cada sección
+        tablas.forEach((tablaConfig) => {
+          const inputNombre = document.getElementById(tablaConfig.nombreInput);
+          const inputFecha = document.getElementById(tablaConfig.fechaInput);
+
+          inputNombre.addEventListener("input", () => filtrarTabla(tablaConfig));
+          inputFecha.addEventListener("input", () => filtrarTabla(tablaConfig));
+          inputFecha.addEventListener("changeDate", () => filtrarTabla(tablaConfig));
+
+          // Asignar evento de limpiar filtros a cada botón específico
+          const clearButton = document.getElementById(tablaConfig.clearButton);
+          if (clearButton) {
+            clearButton.addEventListener("click", () => clearFilters(tablaConfig));
+          }
         });
+      });
     </script>
+  </div>
+</div>
 
+<!-- Edit modal -->
+<div id="edit-modal" tabindex="-1" class="fixed top-0 right-0 left-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full overflow-x-hidden overflow-y-auto p-4 md:inset-0">
+  <div class="relative max-h-full w-full max-w-lg">
+    <div class="relative rounded-lg border border-black bg-white shadow-sm dark:border-white dark:bg-gray-700">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
+        <h3 class="text-2xl font-bold text-gray-900 md:text-xl dark:text-white">{{ vehicle.type }} {{vehicle.brand}} {{ vehicle.plate_number }}</h3>
+        <button
+          type="button"
+          class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
+          data-modal-hide="edit-modal"
+        >
+          <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+          </svg>
+          <span class="sr-only">Close modal</span>
+        </button>
+      </div>
+      <!-- Modal Body -->
+      <form method="POST" action="{% url 'preoperacionales:vehicle_admin' vehicle_code=vehicle.code %}" class="flex flex-col gap-4 p-4">
+        {% csrf_token %}
+        <input type="hidden" name="vehicle_code" value="{{ vehicle.code }}" />
+        <div>
+          <label for="status-{{ vehicle.code }}" class="mb-1 block text-xl font-medium text-gray-900 md:text-base dark:text-white">Seleccionar estado:</label>
+          <select
+            name="status"
+            id="status-{{ vehicle.code }}"
+            class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-xl text-gray-900 focus:border-blue-500 focus:ring-blue-500 md:text-base dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            {% for value, label in status_choices %} {%if vehicle.status == value%}
+            <option value="{{ value }}" selected>{{ label }}</option>
+            {%else%}
+            <option value="{{ value }}">{{ label }}</option>
+            {%endif%} {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="comment-{{ vehicle.code }}" class="mb-1 block text-xl font-medium text-gray-900 md:text-base dark:text-white"> Comentario: </label>
+          <textarea
+            name="comment"
+            id="comment-{{ vehicle.code }}"
+            rows="3"
+            class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-xl text-gray-900 focus:border-blue-500 focus:ring-blue-500 md:text-base dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            placeholder="Agrega un comentario opcional..."
+          ></textarea>
+        </div>
 
-</body>
+        <div class="flex justify-center">
+          <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-</html>
+<!-- JavaScript para alternar las secciones -->
+<script>
+  function showSection(sectionId) {
+    // Ocultar todas las secciones
+    document.querySelectorAll(".section").forEach((section) => {
+      section.classList.add("hidden");
+    });
+
+    // Mostrar la sección seleccionada
+    document.getElementById(sectionId).classList.remove("hidden");
+
+    // Resaltar el botón activo
+    // document.querySelectorAll('.section-btn').forEach(btn => {
+    //     btn.classList.remove('bg-gray-900', 'text-white');
+    //     btn.classList.add('bg-transparent', 'text-gray-900');
+    // });
+
+    // Agregar estilos al botón activo
+    // event.currentTarget.classList.add('bg-gray-900', 'text-white');
+  }
+
+  // Mostrar el historial por defecto al cargar la página
+  document.addEventListener("DOMContentLoaded", () => {
+    showSection("historial");
+  });
+</script>
+{% endblock %}

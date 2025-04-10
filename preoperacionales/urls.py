@@ -41,7 +41,7 @@ urlpatterns = [
         views.export_salidas_to_excel,
         name="export-preoperacionaldiario-excel",
     ),
-    path("gracias/<str:code>/", views.gracias_view, name="gracias"),
+    path("success/<str:code>/", views.success_view, name="success"),
     path(
         "preoperacional/<int:pk>/edit/",
         views.PreoperacionalUpdateView.as_view(),
@@ -53,14 +53,14 @@ urlpatterns = [
         name="public_vehicle_menu",
     ),
     path(
-        "preoperational_authorization/",
-        views.PreoperationalAuthorizationView.as_view(),
-        name="preoperational_authorization",
+        "departure_authorization/",
+        views.DepartureAuthorizationView.as_view(),
+        name="departure_authorization",
     ),
     path(
-        "preoperational_authorization/<str:action>/<str:vehicle_code>/",
-        views.PreoperationalAuthorizationView.as_view(),
-        name="preoperational_authorization_action",
+        "departure_authorization/<str:action>/<str:vehicle_code>/",
+        views.DepartureAuthorizationView.as_view(),
+        name="departure_authorization_action",
     ),
     path(
         "admin/",
@@ -76,5 +76,15 @@ urlpatterns = [
         "admin/<str:vehicle_code>/<str:action>/",
         views.VehicleAdminView.as_view(),
         name="vehicle_action",
+    ),
+    path(
+        "delete_vehicle_departure/<int:preoperational_id>/<str:vehicle_code>/",
+        views.delete_vehicle_departure,
+        name="delete_vehicle_departure",
+    ),
+    path(
+        "edit_vehicle_departure/<int:preoperational_id>/<str:vehicle_code>/",
+        views.edit_vehicle_departure,
+        name="edit_vehicle_departure",
     ),
 ]

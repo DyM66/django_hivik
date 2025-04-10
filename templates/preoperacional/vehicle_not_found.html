@@ -1,27 +1,12 @@
-<!-- templates/vehicle_not_found.html -->
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vehicle no encontrado</title>
-</head>
-
-<body class="bg-gray-100 font-sans flex items-center justify-center min-h-screen">
-
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
-        <h1 class="text-2xl font-semibold text-red-600 mb-4">Vehículo no encontrado</h1>
-        <p class="text-lg text-gray-700 mb-6">
-            Lo sentimos, no pudimos encontrar un vehículo con ese código. Por favor, verifica el código e inténtalo de nuevo.
-        </p>
-        <a href="{% url 'preoperacionales:admin' %}" class="inline-block bg-blue-600 text-white py-2 px-6 rounded-lg text-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800">
-            Volver al administrador
-        </a>
-    </div>
-
-</body>
-
-
-
-</html>
+{% extends "preoperacional/base.html" %} {% block title %}Vehiculo no encontrado{% endblock %} {% block content %}
+<!-- Content -->
+<div class="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-md justify-center mx-auto mt-10">
+    <h1 class="mb-4 text-2xl font-semibold text-red-600">Vehículo no encontrado</h1>
+    <p class="mb-6 text-lg text-gray-700">Lo sentimos, no pudimos encontrar un vehículo con ese código. Por favor,
+        verifica el código e inténtalo de nuevo.</p>
+    <a href="{% url 'preoperacionales:admin' %}"
+        class="inline-block rounded-lg bg-blue-600 px-6 py-2 text-lg text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800">
+        Volver al administrador
+    </a>
+</div>
+{% endblock %}

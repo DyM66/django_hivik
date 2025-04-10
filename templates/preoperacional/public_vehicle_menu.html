@@ -1,287 +1,204 @@
-<!-- templates/got/public_vehicle_menu.html -->
+{% extends "preoperacional/base.html" %}
 
-<!doctype html>
-<html lang="es">
+{% block title %}Menú de Vehículos - SERPORT{% endblock %}
 
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Menú de Vehículos - SERPORT</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
-
-  <!-- Load darkmode -->
-  <script>
-    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-    if (
-      localStorage.getItem("color-theme") === "dark" ||
-      (!("color-theme" in localStorage) &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches)
-    ) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  </script>
-</head>
-
-<body class="dark:bg-slate-600">
-  <!-- Navbar -->
-  <nav class="border-gray-200 bg-slate-100 dark:bg-gray-900">
-    <div class="mx-auto flex max-w-screen-xl flex-wrap items-center justify-between p-4">
-      <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" width="200px" />
-
-      <button id="theme-toggle" type="button"
-        class="rounded-lg p-2.5 text-sm text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700">
-        <svg id="theme-toggle-dark-icon" class="hidden h-5 w-5" fill="currentColor" viewBox="0 0 20 20"
-          xmlns="http://www.w3.org/2000/svg">
-          <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-        </svg>
-        <svg id="theme-toggle-light-icon" class="hidden h-5 w-5" fill="currentColor" viewBox="0 0 20 20"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-            fill-rule="evenodd" clip-rule="evenodd"></path>
-        </svg>
-      </button>
+{% block content %}
+<div class="flex flex-col">
+  <div class="my-10 flex flex-1 flex-col items-center">
+    <div class="text-black dark:text-white justify-center text-center">
+      <h1 class="text-4xl font-extrabold">Bienvenido a Nuestro Sistema de Vehículos</h1>
+      <p class="text-lg">
+        Seleccione un vehículo para acceder a sus opciones de Preoperacional
+        o Salida.
+      </p>
     </div>
-  </nav>
-
-  <!-- Content -->
-  <div class="flex flex-col flex-1 py-10">
-    <div class="flex flex-col">
-      <div class="my-10 flex flex-1 flex-col items-center">
-        <div class="text-black dark:text-white justify-center text-center">
-          <h1 class="text-4xl font-extrabold">Bienvenido a Nuestro Sistema de Vehículos</p>
-            <p class="text-lg">
-              Seleccione un vehículo para acceder a sus opciones de Preoperacional
-              o Salida.
-            </p>
-        </div>
-      </div>
-
-      <!-- Lista de Vehículos -->
-      <div class="grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {% for vehicle in vehicles %}
-        <div class="w-full max-w-xs" data-modal-target="{{ vehicle.plate_number }}-modal"
-          data-modal-toggle="{{ vehicle.plate_number }}-modal">
-          <div
-            class="card {% if vehicle.status == 'AVAILABLE' %}cursor-pointer{% endif %} shadow-lg border-2 border-slate-300 dark:border-slate-500 rounded-t-lg">
-            {% if vehicle.asset.imagen %}
-            <img src="{{ vehicle.asset.imagen}}" class="h-48 w-full rounded-t-lg object-cover"
-              alt="{{ vehicle.plate_number }}" />
-            {% else %}
-            <div class="flex h-48 w-full items-center justify-center rounded-t-lg bg-gray-200">
-              <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="#black">
-                <path
-                  d="M240-160q-50 0-85-35t-35-85H40v-440q0-33 23.5-56.5T120-800h560v160h120l120 160v200h-80q0 50-35 85t-85 35q-50 0-85-35t-35-85H360q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T280-280q0-17-11.5-28.5T240-320q-17 0-28.5 11.5T200-280q0 17 11.5 28.5T240-240ZM120-360h32q17-18 39-29t49-11q27 0 49 11t39 29h272v-360H120v360Zm600 120q17 0 28.5-11.5T760-280q0-17-11.5-28.5T720-320q-17 0-28.5 11.5T680-280q0 17 11.5 28.5T720-240Zm-40-200h170l-90-120h-80v120ZM360-540Z" />
-              </svg>
-            </div>
-            {% endif %}
-            <div class="flex flex-col p-4">
-              <h5 class="text-xl font-semibold text-center text-black dark:text-white">
-                {{ vehicle.type }} {{vehicle.brand}} {{ vehicle.plate_number }}
-              </h5>
-              <div class="flex flex-row justify-between">
-                <h4 class="text-lg text-black dark:text-white">Estado: </h4>
-                <h4 class="text-lg 
-              {% if vehicle.status == 'AVAILABLE' %}
-                  text-green-500 dark:text-green-300
-              {% elif vehicle.status == 'OCCUPIED' %}
-                  text-red-500 dark:text-red-300
-              {% elif vehicle.status == 'UNDER_MAINTENANCE' %}
-                  text-yellow-500 dark:text-yellow-300
-              {% elif vehicle.status == 'OUT_OF_SERVICE' %}
-                  text-gray-500 dark:text-gray-300
-              {% elif vehicle.status == 'REQUESTED' %}
-                  text-blue-500 dark:text-blue-300
-              {% elif vehicle.status == 'NOT_AVAILABLE' %}
-                  text-gray-700 dark:text-gray-400
-              {% endif %}
-          ">
-                  {{ vehicle.get_status_display }}
-                </h4>
-              </div>
-              {% if vehicle.status == "REQUESTED" or vehicle.status == "OCCUPIED" %}
-              <div class="flex flex-row justify-between">
-                <h4 class="text-lg text-black dark:text-white">Solicitado por: </h4>
-                <h4 class="text-lg text-black dark:text-white">{{ vehicle.requested_by }}</h4>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        {% empty %}
-        <div class="col-span-3 text-center">
-          <p class="text-lg text-gray-500">
-            No hay vehículos disponibles en este momento.
-          </p>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    {% for vehicle in vehicles %}
-    <!-- Modal for each vehicle -->
-    {% if vehicle.status == "AVAILABLE"%}
-    <div id="{{ vehicle.plate_number }}-modal" tabindex="-1"
-      class="fixed left-0 right-0 top-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full overflow-y-auto overflow-x-hidden p-4 md:inset-0">
-      <div class="relative max-h-full w-full max-w-lg">
-        <div class="relative rounded-lg border border-black bg-white shadow-sm dark:border-white dark:bg-gray-700">
-          <!-- Modal Header -->
-          <div
-            class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 dark:border-gray-600 md:p-5">
-            <h3 class="text-xl font-medium text-gray-900 dark:text-white">
-              {{ vehicle.type }} {{vehicle.brand}} {{ vehicle.plate_number }}
-            </h3>
-            <button type="button"
-              class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
-              data-modal-hide="{{ vehicle.plate_number }}-modal">
-              <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
-              </svg>
-              <span class="sr-only">Close modal</span>
-            </button>
-          </div>
-          <!-- Modal Body -->
-          <div class="flex flex-1 flex-col gap-2 my-5">
-            <!-- Ingreso de cédula -->
-
-            {% if not user.is_authenticated %}
-            <div id="cedulaContainer-{{ vehicle.plate_number }}">
-              <div>
-                <p class="text-center text-base leading-relaxed text-gray-500 dark:text-gray-400">
-                  Ingresa la cédula:
-                </p>
-                <div class="flex flex-1 items-center justify-center">
-                  <input type="text" id="cedula-{{ vehicle.plate_number }}" name="cedula"
-                    class="border border-gray-300 rounded-lg text-sm px-5 py-2.5 text-center bg-white dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="Ej. 123456789">
-                </div>
-              </div>
-              <!-- Botón para continuar con la acción -->
-              <div class="flex flex-1 items-center justify-center mt-5">
-                <button id="nextButton" onclick="showActions('{{ vehicle.plate_number }}')"
-                  class="text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900">
-                  Siguiente
-                </button>
-              </div>
-            </div>
-            {% endif %}
-
-            <!-- Opciones de acción, inicialmente ocultas -->
-            <div id="actionContainer-{{ vehicle.plate_number }}"
-              class="{% if not user.is_authenticated %} hidden {% endif %} flex flex-col gap-2 mt-5">
-              <p class="text-center text-base leading-relaxed text-gray-500 dark:text-gray-400">
-                ¿Qué acción deseas realizar con {{ vehicle.plate_number }}?
-              </p>
-
-              <div class="flex flex-1 items-center justify-center">
-                <a href="{% url 'preoperacionales:preoperacional-dia' vehicle.code %}"
-                  class="text-purple-700 hover:text-white border border-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-purple-400 dark:text-purple-400 dark:hover:text-white dark:hover:bg-purple-500 dark:focus:ring-purple-900">
-                  Preoperacional
-                </a>
-              </div>
-
-              <div class="flex flex-1 items-center justify-center">
-                <a href="{% url 'preoperacionales:preoperacional-especifico' vehicle.code %}"
-                  class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
-                  Salida
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    {%endif%}
-    {% endfor %}
   </div>
 
+  <div class="grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 lg:grid-cols-3 md:px-20">
+    {% for vehicle in vehicles %}
+    <div class="w-full max-w-xs cursor-pointer" data-modal-target="{{ vehicle.plate_number }}-modal"
+      data-modal-toggle="{{ vehicle.plate_number }}-modal">
+      <div class="max-w-sm bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+
+        {% if vehicle.equipo.images.all.0.image.url %}
+        <img src="{{ vehicle.equipo.images.all.0.image.url }}" class="h-48 w-full rounded-t-lg object-cover"
+          alt="{{ vehicle.plate_number }}" />
+        {% else %}
+        <div class="flex h-48 w-full items-center justify-center rounded-t-lg bg-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="#black">
+            <path
+              d="M240-160q-50 0-85-35t-35-85H40v-440q0-33 23.5-56.5T120-800h560v160h120l120 160v200h-80q0 50-35 85t-85 35q-50 0-85-35t-35-85H360q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T280-280q0-17-11.5-28.5T240-320q-17 0-28.5 11.5T200-280q0 17 11.5 28.5T240-240ZM120-360h32q17-18 39-29t49-11q27 0 49 11t39 29h272v-360H120v360Zm600 120q17 0 28.5-11.5T760-280q0-17-11.5-28.5T720-320q-17 0-28.5 11.5T680-280q0 17 11.5 28.5T720-240Zm-40-200h170l-90-120h-80v120ZM360-540Z" />
+          </svg>
+        </div>
+        {% endif %}
+        <div class="flex flex-col  gap-5 p-5">
+          <h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+            {{ vehicle.type }} {{vehicle.brand}} {{ vehicle.plate_number }}
+          </h5>
+          <div class="flex flex-col">
+            <div class="flex flex-row justify-center text-center">
+              <h4 class="text-lg 
+                          {% if vehicle.status == 'AVAILABLE' %}
+                              text-green-500 dark:text-green-300
+                          {% elif vehicle.status == 'OCCUPIED' %}
+                              text-red-500 dark:text-red-300
+                          {% elif vehicle.status == 'UNDER_MAINTENANCE' %}
+                              text-yellow-500 dark:text-yellow-300
+                          {% elif vehicle.status == 'OUT_OF_SERVICE' %}
+                              text-gray-500 dark:text-gray-300
+                          {% elif vehicle.status == 'REQUESTED' %}
+                              text-blue-500 dark:text-blue-300
+                          {% elif vehicle.status == 'NOT_AVAILABLE' %}
+                              text-gray-700 dark:text-gray-400
+                          {% endif %}
+                      ">
+                {{ vehicle.get_status_display }}
+              </h4>
+            </div>
+            {% if vehicle.status == "REQUESTED" or vehicle.status == "OCCUPIED" %}
+            <div class="flex flex-row justify-center">
+              <h4 class="text-lg text-black dark:text-white">{{ vehicle.requested_by }}</h4>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+    {% empty %}
+    <div class="col-span-3 text-center">
+      <p class="text-lg text-gray-500">
+        No hay vehículos disponibles en este momento.
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% for vehicle in vehicles %}
+<!-- Modal for each vehicle -->
+{% if vehicle.status != "OUT_OF_SERVICE" or vehicle.status != "UNDER_MAINTENANCE" %}
+<div id="{{ vehicle.plate_number }}-modal" tabindex="-1"
+  class="fixed left-0 right-0 top-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full overflow-y-auto overflow-x-hidden p-4 md:inset-0">
+  <div class="relative max-h-full w-full max-w-lg">
+    <div class="relative rounded-lg border border-black bg-white shadow-sm dark:border-white dark:bg-gray-700">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 dark:border-gray-600 md:p-5">
+        <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+          {{ vehicle.type }} {{vehicle.brand}} {{ vehicle.plate_number }}
+        </h3>
+        <button type="button"
+          class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
+          data-modal-hide="{{ vehicle.plate_number }}-modal">
+          <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+          </svg>
+          <span class="sr-only">Close modal</span>
+        </button>
+      </div>
+      <!-- Modal Body -->
+      <div class="flex flex-1 flex-col gap-2 my-10">
+        <!-- Ingreso de cédula -->
+
+        {% if not user.is_authenticated %}
+        <div id="cedulaContainer-{{ vehicle.plate_number }}">
+          <div>
+            <p class="text-center text-base leading-relaxed text-gray-500 dark:text-gray-400">
+              Ingresa la cédula:
+            </p>
+            <div class="flex flex-1 items-center justify-center">
+              <input type="text" id="cedula-{{ vehicle.plate_number }}" name="cedula"
+                class="border border-gray-300 rounded-lg text-sm px-5 py-2.5 text-center bg-white dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Ej. 123456789">
+            </div>
+          </div>
+          <!-- Botón para continuar con la acción -->
+          <div class="flex flex-1 items-center justify-center mt-5">
+            <button id="nextButton" onclick="showActions('{{ vehicle.plate_number }}')"
+              class="text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900">
+              Siguiente
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Opciones de acción, inicialmente ocultas -->
+        <div id="actionContainer-{{ vehicle.plate_number }}"
+          class="{% if not user.is_authenticated %} hidden {% endif %} flex flex-col gap-5">
+          <p class="text-center text-base leading-relaxed text-gray-600 dark:text-gray-200">
+            ¿Qué acción deseas realizar con {{ vehicle.plate_number }}?
+          </p>
+
+          <div class="flex flex-1 items-center justify-center">
+            {% if not vehicle.preoperational_completed %}
+            <a href="{% url 'preoperacionales:preoperacional-dia' vehicle.code %}"
+              class="text-purple-700 hover:text-white border border-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-purple-400 dark:text-purple-400 dark:hover:text-white dark:hover:bg-purple-500 dark:focus:ring-purple-900">
+              Preoperacional diario
+            </a>
+            {% else %}
+            <button onclick="alert('El vehículo ya realizó el preoperacional de hoy.');"
+              class="text-purple-700 hover:text-white border border-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-purple-400 dark:text-purple-400 dark:hover:text-white dark:hover:bg-purple-500 dark:focus:ring-purple-900">
+              Preoperacional diario
+              </a>
+              {% endif %}
+          </div>
 
 
-  <!-- DarkMode script -->
-  <script>
-    var themeToggleDarkIcon = document.getElementById(
-      "theme-toggle-dark-icon",
-    );
-    var themeToggleLightIcon = document.getElementById(
-      "theme-toggle-light-icon",
-    );
+          <div class="flex flex-1 items-center justify-center">
+            {% if vehicle.status != "AVAILABLE" %}
+            <button onclick="alert('El vehículo no está disponible para salida.');"
+              class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
+              Salida del vehículo
+            </button>
+            {% elif not vehicle.preoperational_completed %}
+            <button onclick="alert('El vehículo no ha realizado el preoperacional.');"
+              class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
+              Salida del vehículo
+            </button>
+            {% else %}
+            <a href="{% url 'preoperacionales:preoperacional-especifico' vehicle.code %}"
+              class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
+              Salida del vehículo
+            </a>
+            {% endif %}
+          </div>
 
-    // Change the icons inside the button based on previous settings
-    if (
-      localStorage.getItem("color-theme") === "dark" ||
-      (!("color-theme" in localStorage) &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches)
-    ) {
-      themeToggleLightIcon.classList.remove("hidden");
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{%endif%}
+{% endfor %}
+
+<script type="text/javascript">
+  const driverIds = "{{ driver_ids | safe }}";
+</script>
+
+<!-- Validate script -->
+<script>
+  // Obtener la lista de cedulas de conductores desde el backend (driver_ids)
+
+  function showActions(vehiclePlateNumber) {
+    const cedulaInput = document.getElementById('cedula-' + vehiclePlateNumber);
+    const cedulaContainer = document.getElementById('cedulaContainer-' + vehiclePlateNumber);
+    const actionContainer = document.getElementById('actionContainer-' + vehiclePlateNumber);
+
+    const cedula = cedulaInput.value;
+
+    // Validar si la cédula está en la lista de conductores
+    if (cedula.trim() === "") {
+      alert("Por favor, ingresa tu cédula. ");
+    } else if (!driverIds.includes(cedula)) {
+      alert("La cédula ingresada no tiene acceso.");
     } else {
-      themeToggleDarkIcon.classList.remove("hidden");
+      // Ocultar el contenedor de cédula
+      cedulaContainer.classList.add('hidden');
+
+      // Mostrar las opciones de acción después de ingresar la cédula
+      actionContainer.classList.remove('hidden');
     }
-
-    var themeToggleBtn = document.getElementById("theme-toggle");
-
-    themeToggleBtn.addEventListener("click", function () {
-      // toggle icons inside button
-      themeToggleDarkIcon.classList.toggle("hidden");
-      themeToggleLightIcon.classList.toggle("hidden");
-
-      // if set via local storage previously
-      if (localStorage.getItem("color-theme")) {
-        if (localStorage.getItem("color-theme") === "light") {
-          document.documentElement.classList.add("dark");
-          localStorage.setItem("color-theme", "dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-          localStorage.setItem("color-theme", "light");
-        }
-
-        // if NOT set via local storage previously
-      } else {
-        if (document.documentElement.classList.contains("dark")) {
-          document.documentElement.classList.remove("dark");
-          localStorage.setItem("color-theme", "light");
-        } else {
-          document.documentElement.classList.add("dark");
-          localStorage.setItem("color-theme", "dark");
-        }
-      }
-    });
-  </script>
-
-  <script type="text/javascript">
-    const driverIds = "{{ driver_ids | safe }}";
-  </script>
-
-  <!-- Validate script -->
-  <script>
-    // Obtener la lista de cedulas de conductores desde el backend (driver_ids)
-
-    function showActions(vehiclePlateNumber) {
-      const cedulaInput = document.getElementById('cedula-' + vehiclePlateNumber);
-      const cedulaContainer = document.getElementById('cedulaContainer-' + vehiclePlateNumber);
-      const actionContainer = document.getElementById('actionContainer-' + vehiclePlateNumber);
-
-      const cedula = cedulaInput.value;
-
-      // Validar si la cédula está en la lista de conductores
-      if (cedula.trim() === "") {
-        alert("Por favor, ingresa tu cédula. ");
-      } else if (!driverIds.includes(cedula)) {
-        alert("La cédula ingresada no tiene acceso.");
-      } else {
-        // Ocultar el contenedor de cédula
-        cedulaContainer.classList.add('hidden');
-
-        // Mostrar las opciones de acción después de ingresar la cédula
-        actionContainer.classList.remove('hidden');
-      }
-    }
-  </script>
-
-
-</body>
-
-</html>
+  }
+</script>
+{% endblock %}

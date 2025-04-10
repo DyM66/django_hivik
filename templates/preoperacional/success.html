@@ -1,0 +1,17 @@
+{% extends "preoperacional/base.html" %}
+
+{% block title %}Reporte Exitoso{% endblock %}
+
+{% block content %}
+<!-- Content -->
+<div class="flex flex-1 items-center justify-center bg-gradient-to-r text-white p-6">
+    <div class="text-center bg-white rounded-lg shadow-lg p-8 max-w-lg w-full">
+        <h1 class="text-3xl font-semibold text-blue-600 mb-4">¡Gracias por su reporte!</h1>
+        <p class="text-lg text-gray-700 mb-6">Su reporte ha sido registrado exitosamente.</p>
+        <a href="{% url 'preoperacionales:public_vehicle_menu' %}"
+            class="text-white bg-blue-500 hover:bg-blue-600 rounded-lg py-2 px-4 text-xl transition duration-300 ease-in-out">
+            Volver a la lista de Vehículos
+        </a>
+    </div>
+</div>
+{% endblock %}

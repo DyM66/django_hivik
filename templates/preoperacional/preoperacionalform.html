@@ -1,119 +1,137 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
+{% extends "preoperacional/base.html" %}
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-	{% include 'base/links.html' %}
-	<style>
-        .field-container {
-            margin-bottom: 20px;  /* Ajusta este valor según necesites */
-        }
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        header img {
-            width: 150px; /* Ajusta este valor según el tamaño deseado del logo */
-        }
-        .header-text {
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        .subtext {
-            font-size: 12px;
-            color: gray;
-        }
+{% block title %}Formulario{% endblock %}
+{% block head %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+{% include 'base/links.html' %}
+<style>
+    .field-container {
+        margin-bottom: 20px;
+        /* Ajusta este valor según necesites */
+    }
 
-        .custom-radio input[type="radio"] {
-            margin-right: 10px;
-        }
+    header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
 
-        .custom-radio label {
-            margin-right: 20px;
-            display: inline-block;
-            line-height: 1.5;
-        }
+    header img {
+        width: 150px;
+        /* Ajusta este valor según el tamaño deseado del logo */
+    }
 
-        .radio-horizontal .form-check {
-            display: inline-block;
-            margin-right: 20px; /* Espacio entre botones */
-        }
-    </style>
+    .header-text {
+        font-size: 14px;
+        margin-top: 10px;
+    }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-</head>
-<body>
+    .subtext {
+        font-size: 12px;
+        color: gray;
+    }
 
-    {% if not pre %}
-    <header>
-        <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" alt="Logo SERPORT">
-        <h1>FR-SP-GA-5 SOLICITUD DE AUTORIZACIÓN DE SALIDA DE VEHÍCULOS DE SERPORT S.A.S.</h1>
-        <h2>{{vehiculo}} {{vehiculo.horometro}}</h2>
-        <p class="header-text">VERSIÓN 001 FECHA DE ACTUALIZACION: 12/04/2024</p>
-        <p class="subtext">El diligenciamiento de este formulario es obligatorio para la trazabilidad de la autorización de salida de vehículos de SERPORT S.A.S. Se debe reportar, cada vez que se requiere de un vehículo para cumplir con actividades designadas por SERPORT y es responsabilidad del personal asignado como conductor realizarlo.</p>
-        <p class="subtext">Una vez diligenciado el presente formulario, se debe notificar al Área Administrativo para su visto bueno y aprobación de la salida del vehículo al área de Seguridad Física.</p>
-        <p class="subtext">Se debe verificar la realización de la INSPECCIÓN PRE-OPERACIONAL DEL VEHÍCULO y que el mismo esté aprobado para uso del vehículo solicitado en la fecha del presente formulario.</p>
-    </header>
-    {% else %}
-    <header>
-        <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo-gris.png" alt="Logo SERPORT">
-        <h1>FR-SP-GA-4 - INSPECCIÓN PRE-OPERACIONAL DE VEHÍCULOS DE SERPORT S.A.S. </h1>
-        <h2>{{vehiculo}} {{vehiculo.horometro}}</h2>
-        <p class="header-text">VERSIÓN 001 FECHA DE ACTUALIZACION: 12/04/2024</p>
-        <p class="subtext">El diligenciamiento de este formulario es obligatorio para la trazabilidad del proceso de mantenimiento vehicular de SERPORT S.A.S. Se debe reportar a diario y es responsabilidad del personal asignado para este proceso realizar el reporte.</p>
-        <p class="subtext">Resolución 20223040040595 de 2022 Ministerio de Transporte</p>
-    </header>
+    .custom-radio input[type="radio"] {
+        margin-right: 10px;
+    }
 
-    {% endif %}
+    .custom-radio label {
+        margin-right: 20px;
+        display: inline-block;
+        line-height: 1.5;
+    }
 
-    <div class="container">
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="field-container">
-                    {% if field.name == "nombre_no_registrado" %}
-                        {% if user.is_authenticated %}
-                            <label for="{{ field.id_for_label }}">Nombre y apellido del solicitante: {{ user.get_full_name }}</label>
-                            
-                        {% else %}
-                            {{ field.label_tag }}
-                            {{ field }}
-                        {% endif %}
-                    {% else %}
-                        {{ field.label_tag }}
-                        {{ field }}
-                    {% endif %}
-                    {{ field.errors }}
-                    {{ field.help_text }}
-                </div>
-            {% endfor %}
-            {{ image_form }}
-            <input type="submit" value="Generar" class="btn btn-primary" />
-        </form>
+    .radio-horizontal .form-check {
+        display: inline-block;
+        margin-right: 20px;
+        /* Espacio entre botones */
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Content -->
+
+{% if not pre %}
+<header class="mt-5 items-center flex flex-col">
+    <h1 class="text-xl font-bold">FR-SP-GA-5 SOLICITUD DE AUTORIZACIÓN DE SALIDA DE VEHÍCULOS DE SERPORT S.A.S.</h1>
+    <h2 class="text-lg font-bold">{{vehiculo}} {{vehiculo.horometro}}</h2>
+    <p class="text-base header-text">VERSIÓN 001 FECHA DE ACTUALIZACION: 12/04/2024</p>
+    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">El diligenciamiento de este formulario es obligatorio para la trazabilidad de la autorización de
+        salida de vehículos de SERPORT S.A.S. Se debe reportar, cada vez que se requiere de un vehículo para cumplir con
+        actividades designadas por SERPORT y es responsabilidad del personal asignado como conductor realizarlo.</p>
+    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">Una vez diligenciado el presente formulario, se debe notificar al Área Administrativo para su
+        visto bueno y aprobación de la salida del vehículo al área de Seguridad Física.</p>
+    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">Se debe verificar la realización de la INSPECCIÓN PRE-OPERACIONAL DEL VEHÍCULO y que el mismo
+        esté aprobado para uso del vehículo solicitado en la fecha del presente formulario.</p>
+</header>
+{% else %}
+<header class="mt-5 items-center flex flex-col">
+    <h1 class="text-xl font-bold">FR-SP-GA-4 - INSPECCIÓN PRE-OPERACIONAL DE VEHÍCULOS DE SERPORT S.A.S. </h1>
+    <h2 class="text-lg font-bold">{{vehiculo}} {{vehiculo.horometro}}</h2>
+    <p class="text-base header-text">VERSIÓN 001 FECHA DE ACTUALIZACION: 12/04/2024</p>
+    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">El
+        diligenciamiento de este formulario es obligatorio para la trazabilidad del proceso de mantenimiento vehicular
+        de SERPORT S.A.S. Se debe reportar a diario y es responsabilidad del personal asignado para este proceso
+        realizar el reporte.</p>
+    <p class="text-base subtext">Resolución 20223040040595 de 2022 Ministerio de Transporte</p>
+</header>
+
+{% endif %}
+
+<div class="container">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="field-container">
+            {% if field.name == "nombre_no_registrado" %}
+            {% if user.is_authenticated %}
+            <label for="{{ field.id_for_label }}">Nombre y apellido del solicitante: {{ user.get_full_name }}</label>
+
+            {% else %}
+            {{ field.label_tag }}
+            {{ field }}
+            {% endif %}
+            {% else %}
+            {{ field.label_tag }}
+            {{ field }}
+            {% endif %}
+            {{ field.errors }}
+            {{ field.help_text }}
+        </div>
+        {% endfor %}
+        {{ image_form }}
+        <input type="submit" value="Generar" class="btn btn-primary mt-4" />
+    </form>
+</div>
+
+
+<!-- Modales para rutas vencidas -->
+{% for ruta in rutas_vencidas %}
+<div class="modal fade" id="modalRuta{{ ruta.code }}" tabindex="-1" aria-labelledby="modalRutaLabel{{ ruta.code }}"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalRutaLabel{{ ruta.code }}">Ruta Vencida</h5>
+            </div>
+            <div class="modal-body">
+                La rutina "{{ ruta.name }}" de la {{ ruta.equipo.name }} está vencida.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="continueProcess('{{ ruta.code }}');">¿Deseas
+                    continuar?</button>
+            </div>
+        </div>
     </div>
+</div>
+{% endfor %}
 
-
-   <!-- Modales para rutas vencidas -->
-   {% for ruta in rutas_vencidas %}
-   <div class="modal fade" id="modalRuta{{ ruta.code }}" tabindex="-1" aria-labelledby="modalRutaLabel{{ ruta.code }}" aria-hidden="true">
-       <div class="modal-dialog">
-           <div class="modal-content">
-               <div class="modal-header">
-                   <h5 class="modal-title" id="modalRutaLabel{{ ruta.code }}">Ruta Vencida</h5>
-               </div>
-               <div class="modal-body">
-                   La rutina "{{ ruta.name }}" de la {{ ruta.equipo.name }} está vencida. 
-               </div>
-               <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" onclick="continueProcess('{{ ruta.code }}');">¿Deseas continuar?</button>
-               </div>
-           </div>
-       </div>
-   </div>
-   {% endfor %}
-
-   <script>
-    $(document).ready(function() {
+<script>
+    $(document).ready(function () {
         // Este código se ejecuta después de que la página ha sido completamente cargada
         {% for ruta in rutas_vencidas %}
         // Asegúrate de que el modal exista antes de intentar mostrarlo
@@ -131,6 +149,4 @@
         $('#modalRuta' + code).modal('hide');
     }
 </script>
-
-</body>
-</html>
+{% endblock %}
