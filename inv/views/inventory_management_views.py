@@ -271,8 +271,6 @@ class AssetInventarioReportView(AssetInventoryBaseView):
             grouped_suministros[key] = list(group)
         context['grouped_suministros'] = grouped_suministros
         context['group_by'] = 'seccion'
-        secciones_dict = dict(Item.SECCION)
-        context['secciones_dict'] = secciones_dict
 
         items_en_historial = set()
         for t in transacciones_historial:

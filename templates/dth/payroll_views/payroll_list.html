@@ -18,6 +18,12 @@
             <button id="toggleViewBtn" class="btn btn-outline-secondary btn-sm" title="Cambiar vista">
                 <i class="bi bi-table"></i>
             </button>
+
+            <!-- NUEVO: Botón que abre el offcanvas de cargos en móvil -->
+            <button class="btn btn-outline-secondary btn-sm d-md-none ms-1" type="button"
+                    data-bs-toggle="offcanvas" data-bs-target="#positionsOffcanvas" aria-controls="positionsOffcanvas">
+                <i class="bi bi-filter"></i> Cargos
+            </button>
         </div>
     </div>
     
@@ -94,13 +100,12 @@
         {% endif %}
   
 
-        <div class="positions-table">
+        <div class="positions-table d-none d-md-block">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h4>Cargos</h4>
                 <!-- NUEVO: barra de búsqueda -->
                 <input type="text" id="positionSearch" class="form-control form-control-sm"
-                       style="max-width: 200px;"
-                       placeholder="Filtrar cargos..."/>
+                       style="max-width: 200px;" placeholder="Filtrar cargos..."/>
             </div>
             
             
@@ -126,6 +131,41 @@
             </table>
         </div>
     </div>
+
+<!-- ====================================================================== -->
+<!-- OFFCANVAS: para mostrar la tabla de cargos en PANTALLAS PEQUEÑAS       -->
+<!-- ====================================================================== -->
+<div class="offcanvas offcanvas-end d-md-none" tabindex="-1" id="positionsOffcanvas" aria-labelledby="positionsOffcanvasLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="positionsOffcanvasLabel">Filtrar por cargo</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <!-- Repetimos la tabla de cargos que teníamos en la parte “positions-table” -->
+        <div class="mb-3">
+            <input type="text" id="positionSearchMobile" class="form-control form-control-sm"
+                   placeholder="Filtrar cargos..." />
+        </div>
+
+        <table class="table table-sm">
+            <tbody>
+                <tr onclick="seeAllPositions()" style="cursor: pointer;">
+                    <td><strong>Ver todos</strong></td>
+                </tr>
+                {% for pos in positions %}
+                    {% if pos.id|stringformat:"s" in selected_positions %}
+                        <tr class="selected-position" onclick="togglePosition('{{ pos.id }}')">
+                    {% else %}
+                        <tr onclick="togglePosition('{{ pos.id }}')">
+                    {% endif %}
+                            <td>{{ pos.name|capfirst }}</td>
+                        </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 
 <!-- Modal para crear nuevo registro de Nomina -->
 <div class="modal fade" id="nominaCreateModal" tabindex="-1" aria-hidden="true">
@@ -445,16 +485,37 @@
         // ------------------------------------------------------------------------
         // 5. FILTRAR POSITIONS
         // ------------------------------------------------------------------------
+        // const positionSearchInput = document.getElementById('positionSearch');
+        // const positionsTable = document.querySelector('.positions-table table tbody');
+    
+        // if (positionSearchInput && positionsTable) {
+        //     positionSearchInput.addEventListener('keyup', () => {
+        //         const filter = positionSearchInput.value.toLowerCase();
+    
+        //         const rows = positionsTable.querySelectorAll('tr');
+        //         rows.forEach(row => {
+        //             // Si la fila dice “Ver todos” => se deja
+        //             if (row.textContent.includes('Ver todos')) {
+        //                 row.style.display = '';
+        //                 return;
+        //             }
+        //             const td = row.querySelector('td');
+        //             if (!td) return;
+        //             const txtValue = td.textContent.toLowerCase();
+        //             row.style.display = txtValue.includes(filter) ? '' : 'none';
+        //         });
+        //     });
+        // }
+
+        // 1. Filtro en tabla “positions-table” versión ESCRITORIO
         const positionSearchInput = document.getElementById('positionSearch');
         const positionsTable = document.querySelector('.positions-table table tbody');
-    
+
         if (positionSearchInput && positionsTable) {
-            positionSearchInput.addEventListener('keyup', () => {
-                const filter = positionSearchInput.value.toLowerCase();
-    
+            positionSearchInput.addEventListener('keyup', function() {
+                const filter = this.value.toLowerCase().trim();
                 const rows = positionsTable.querySelectorAll('tr');
                 rows.forEach(row => {
-                    // Si la fila dice “Ver todos” => se deja
                     if (row.textContent.includes('Ver todos')) {
                         row.style.display = '';
                         return;
@@ -466,6 +527,27 @@
                 });
             });
         }
+
+        // 2. Filtro en tabla “positions-table” versión MÓVIL (offcanvas)
+        const positionSearchMobile = document.getElementById('positionSearchMobile');
+        const positionsOffcanvasTbody = document.querySelector('#positionsOffcanvas table tbody');
+
+        if (positionSearchMobile && positionsOffcanvasTbody) {
+            positionSearchMobile.addEventListener('keyup', function() {
+                const filter = this.value.toLowerCase().trim();
+                const rows = positionsOffcanvasTbody.querySelectorAll('tr');
+                rows.forEach(row => {
+                    if (row.textContent.includes('Ver todos')) {
+                        row.style.display = '';
+                        return;
+                    }
+                    const td = row.querySelector('td');
+                    if (!td) return;
+                    const txtValue = td.textContent.toLowerCase();
+                    row.style.display = txtValue.includes(filter) ? '' : 'none';
+                });
+            });
+        }      
     
         // ------------------------------------------------------------------------
         // 6. Toggle Positions (filtrado multi-cargo)

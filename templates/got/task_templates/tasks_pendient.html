@@ -208,46 +208,45 @@
             onDayCreate: function(dObj, dStr, fp, dayElem) {
                 var dateString = dayElem.dateObj.toISOString().split('T')[0];
                 if (holidays.includes(dateString)) {
-                dayElem.classList.add("flatpickr-holiday");
+                    dayElem.classList.add("flatpickr-holiday");
                 }
             },
-      onClose: function(selectedDates, dateStr, instance) {
-        if (selectedDates.length === 2) {
-          // Rango
-          document.getElementById("start_date").value = instance.formatDate(selectedDates[0], "Y-m-d");
-          document.getElementById("end_date").value   = instance.formatDate(selectedDates[1], "Y-m-d");
-        } else if (selectedDates.length === 1) {
-          // Solo un día
-          document.getElementById("start_date").value = instance.formatDate(selectedDates[0], "Y-m-d");
-          document.getElementById("end_date").value   = instance.formatDate(selectedDates[0], "Y-m-d");
-        } else {
-          document.getElementById("start_date").value = "";
-          document.getElementById("end_date").value   = "";
+            onClose: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    // Rango
+                    document.getElementById("start_date").value = instance.formatDate(selectedDates[0], "Y-m-d");
+                    document.getElementById("end_date").value   = instance.formatDate(selectedDates[1], "Y-m-d");
+                } else if (selectedDates.length === 1) {
+                    // Solo un día
+                    document.getElementById("start_date").value = instance.formatDate(selectedDates[0], "Y-m-d");
+                    document.getElementById("end_date").value   = instance.formatDate(selectedDates[0], "Y-m-d");
+                } else {
+                    document.getElementById("start_date").value = "";
+                    document.getElementById("end_date").value   = "";
+                }
+                toggleEstadoFilter();
+            }
+        });
+  
+        // Si ya hay start_date / end_date, recargamos el calendario:
+        var sdate = "{{ start_date }}";
+        var edate = "{{ end_date }}";
+        if (sdate && edate) {
+            dateRangePicker.setDate([sdate, edate], true);
         }
-        toggleEstadoFilter();
-      }
+  
+        // Mostrar/ocultar filtro de estado si tenemos un rango de fechas
+        function toggleEstadoFilter() {
+            var st = document.getElementById("start_date").value;
+            var en = document.getElementById("end_date").value;
+            var filterDiv = document.getElementById("estadoFilter");
+            if (st && en) {
+                filterDiv.style.display = "block";
+            } else {
+                filterDiv.style.display = "none";
+            }
+        }
+        toggleEstadoFilter(); // Llamamos una vez al inicio
     });
-  
-    // Si ya hay start_date / end_date, recargamos el calendario:
-    var sdate = "{{ start_date }}";
-    var edate = "{{ end_date }}";
-    if (sdate && edate) {
-      dateRangePicker.setDate([sdate, edate], true);
-    }
-  
-    // Mostrar/ocultar filtro de estado si tenemos un rango de fechas
-    function toggleEstadoFilter() {
-      var st = document.getElementById("start_date").value;
-      var en = document.getElementById("end_date").value;
-      var filterDiv = document.getElementById("estadoFilter");
-      if (st && en) {
-        filterDiv.style.display = "block";
-      } else {
-        filterDiv.style.display = "none";
-      }
-    }
-    toggleEstadoFilter(); // Llamamos una vez al inicio
-  
-  });
-  </script>
+</script>
 {% endblock %}

@@ -15,7 +15,7 @@
 {% block asset %}
 
 <!-- Sección de mensaje importante -->
-<div class="info-card-1 p-3 mb-4">
+<div class="info-card-1 shadow p-3 mb-4">
     <h5 class="mb-2">Información Importante</h5>
     <p class="mb-1">
         Si detecta alguna inconsistencia en reportes anteriores, por favor comuníquese a través de <strong>WhatsApp</strong> al número 
@@ -83,18 +83,14 @@
             <tbody>
                 {% for suministro in group %}
                     <tr>
-                        <td data-cell="Articulo">{{ suministro.item }} ({{ suministro.item.presentacion }})</td>
-                        <td data-cell="Ultima cantidad reportada">{{ suministro.cantidad|floatformat:2 }}</td>
-                        <td data-cell="Cantidad ingresada">
-                            <input class="form-control cantidad-ingresada"
-                                type="number" step="any"
-                                min="0" name="ingresado_{{ suministro.id }}"
-                                value="0.00" data-cantidad-actual="{{ suministro.cantidad }}"
-                                data-row-id="{{ suministro.id }}"
-                                data-suministro-id="{{ suministro.id }}"
-                                data-item-name="{{ suministro.item.name }}"/>
+                        <td>{{ suministro.item }} ({{ suministro.item.presentacion }})</td>
+                        <td>{{ suministro.cantidad|floatformat:2 }}</td>
+                        <td>
+                            <input class="form-control cantidad-ingresada" type="number" step="any"
+                                min="0" name="ingresado_{{ suministro.id }}" value="0.00" data-cantidad-actual="{{ suministro.cantidad }}"
+                                data-row-id="{{ suministro.id }}" data-suministro-id="{{ suministro.id }}" data-item-name="{{ suministro.item.name }}"/>
                         </td>
-                        <td data-cell="Cantidad consumida">
+                        <td>
                             <input class="form-control cantidad-consumida"
                                 type="number" step="any" min="0" name="consumido_{{ suministro.id }}" value="0.00"
                                 data-row-id="{{ suministro.id }}"/>
@@ -102,7 +98,7 @@
                         <td>
                             <span id="total_{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span>
                         </td>
-                        <td data-cell="Acciones">
+                        <td>
                             <div class="dropdown">
                                 <a class="badge badge--info dropdown-toggle" id="dropdownMenuButton{{ suministro.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                     Acciones
@@ -162,7 +158,9 @@
     {% endfor %}
 </form>
 
-<p>Último reporte realizado: {{ ultima_fecha_transaccion }}</p>
+<div class="text-end text-muted">
+    <em>Último reporte realizado: {{ ultima_fecha_transaccion }}</em>
+</div>
 
 {% if perms.inv.can_add_supply %}
     <!-- Modal para añadir un suministro -->
@@ -262,12 +260,12 @@
                             <!-- Fecha de transferencia -->
                             <div class="form-group">
                                 <label for="transferFecha{{ suministro.id }}">Fecha de la transferencia</label>
-                                <input type="date" class="form-control" id="transferFecha{{ suministro.id }}" name="transfer_fecha" value="{{ fecha_actual }}" required max="{{ fecha_actual }}">
+                                <input type="date" class="form-control" id="transferFecha{{ suministro.id }}" name="transfer_fecha" value="{{ fecha_actual|date:'Y-m-d' }}" max="{{ fecha_actual|date:'Y-m-d' }}" required>
                             </div>
                             <!-- Cantidad a transferir -->
                             <div class="form-group">
                                 <label for="transferCantidad{{ suministro.id }}">Cantidad a transferir</label>
-                                <input type="number" class="form-control" id="transferCantidad{{ suministro.id }}" name="transfer_cantidad" min="0" step="any" max="{{ suministro.cantidad }}" required>
+                                <input type="number" class="form-control" id="transferCantidad{{ suministro.id }}" name="transfer_cantidad" min="0" step="any" max="{{ suministro.cantidad|floatformat:2 }}" required>
                             </div>
                             <!-- Mostrar la cantidad restante -->
                             <p>Cantidad restante: <span id="remainingCantidad{{ suministro.id }}">{{ suministro.cantidad|floatformat:2 }}</span></p>
@@ -287,7 +285,6 @@
     {% endfor %}
 {% endfor %}
 
-
 <!-- Historial -->
 <div id="historial" style="display: none;">
 
@@ -302,18 +299,15 @@
 
         <!-- Filtros -->
         <div class="row g-3">
-            <div class="col-sm-12 col-md-4">
-                <label for="filtro_seccion" class="form-label">Categoría:</label>
-                <select id="filtro_seccion" class="form-select">
-                    <option value="">Todas</option>
-                    {% for seccion_key, seccion_name in secciones_dict.items %}
-                        <option value="{{ seccion_name }}">{{ seccion_name }}</option>
-                    {% endfor %}
-                </select>
+            <!-- Rango de fechas -->
+            <div class="col-md-3 input-group">
+                <label class="form-label">Rango de Fechas:</label>
+                <input type="text" id="filtro_fecha_inicio" class="form-control" placeholder="Desde">
+                <input type="text" id="filtro_fecha_fin" class="form-control" placeholder="Hasta">
             </div>
 
             <!-- Artículo -->
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-md-3">
                 <label for="filtro_articulo" class="form-label">Artículo:</label>
                 <select id="filtro_articulo" class="form-select">
                     <option value="">Todos</option>
@@ -324,23 +318,14 @@
             </div>
 
             <!-- Usuario -->
-            <div class="col-12 col-sm-6 col-md-3">
-                <label for="filtro_usuario" class="form-label">Usuario:</label>
+            <div class="col-md-3">
+                <label for="filtro_usuario" class="form-label">Reportado por:</label>
                 <select id="filtro_usuario" class="form-select">
                     <option value="">Todos</option>
                     {% for user in users_unicos %}
                         <option value="{{ user }}">{{ user }}</option>
                     {% endfor %}
                 </select>
-            </div>
-
-            <!-- Rango de fechas -->
-            <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label">Rango de Fechas:</label>
-                <div class="input-group">
-                    <input type="text" id="filtro_fecha_inicio" class="form-control" placeholder="Desde">
-                    <input type="text" id="filtro_fecha_fin" class="form-control" placeholder="Hasta">
-                </div>
             </div>
         </div>
 
@@ -355,18 +340,11 @@
             </form>
             
             <!-- Botón para generar PDF -->
-            <button 
-                type="button" 
-                class="btn btn-danger" 
-                data-bs-toggle="modal" 
-                data-bs-target="#exportPdfModal"
-            >
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#exportPdfModal">
                 Generar PDF
             </button>
         </div>
     </div>
-    
-
 
 
     <!-- NUEVO: Modal para filtrar Fechas y Artículos antes de generar PDF -->
@@ -426,23 +404,23 @@
         </div>
     </div>
 
-    <table id="tabla_historial" class="table-list table-detail">
+    <table id="tabla_historial" class="table-list table-w-100">
         <thead>
             <tr>
                 <th>Fecha</th>
                 <th class="nowrap">Reportado por</th>
                 <th>Artículo</th>
                 {% if group_by == 'seccion' %}
-                <th>Categoría</th>
+                    <th>Categoría</th>
                 {% else %}
-                <th>Presentación</th>
+                    <th>Presentación</th>
                 {% endif %}
                 <th>Cantidad</th>
                 <th>Movimiento</th>
                 <th>Total Reportado</th>
                 <th>Descripción</th>
-                {% if perms.got.delete_transaction %}
-                <th></th>
+                {% if perms.inv.delete_transaction %}
+                    <th></th>
                 {% endif %}
             </tr>
         </thead>
@@ -453,12 +431,13 @@
                 <td>{{ transaccion.user }}</td>
                 <td data-item-id="{{ transaccion.suministro.item.id }}">{{ transaccion.suministro.item }}</td>
                 {% if group_by == 'seccion' %}
-                <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
+                    <td>{{ secciones_dict|get_item:transaccion.suministro.item.seccion }}</td>
                 {% else %}
-                <td>{{ transaccion.suministro.item.presentacion }}</td>
+                    <td>{{ transaccion.suministro.item.presentacion }}</td>
                 {% endif %}
                 <td>{{ transaccion.cant }}</td>
                 <td>
+
                     {% if transaccion.tipo == 't' %}
                         {% if transaccion.suministro.asset == asset %}
                             <i class="fa-solid fa-hand-holding-hand" style="color:#ff5722;"></i> Enviado
@@ -477,45 +456,44 @@
                             <i class="fa-solid fa-hand-holding-hand"></i>
                         {% endif %}
                     {% endif %}
+
                 </td>
                 <td>
                     {% if transaccion.tipo == 't' %}
-                    {% if transaccion.suministro.asset == asset %}
-                    {{ transaccion.cant_report|default:"---" }}
-                    {% elif transaccion.suministro_transf.asset == asset %}
-                    {{ transaccion.cant_report_transf|default:"---" }}
+                        {% if transaccion.suministro.asset == asset %}
+                            {{ transaccion.cant_report|default:"---" }}
+                        {% elif transaccion.suministro_transf.asset == asset %}
+                            {{ transaccion.cant_report_transf|default:"---" }}
+                        {% else %}
+                            ---
+                        {% endif %}
                     {% else %}
-                    ---
-                    {% endif %}
-                    {% else %}
-                    {{ transaccion.cant_report|default:"---" }}
+                        {{ transaccion.cant_report|default:"---" }}
                     {% endif %}
                 </td>
                 <td>{{ transaccion.motivo }}</td>
-                {% if perms.got.delete_transaction %}
-                <td>
-                    <!-- Delete button triggers a confirmation modal -->
-                    <button type="button" class="btn btn-sm" data-bs-toggle="modal"
-                        data-bs-target="#deleteTransactionModal{{ transaccion.id }}">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </td>
+                {% if perms.inv.delete_transaction %}
+                    <td>
+                        <!-- Delete button triggers a confirmation modal -->
+                        <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTransactionModal{{ transaccion.id }}">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </td>
                 {% endif %}
             </tr>
 
             <!-- Delete Confirmation Modal -->
-            <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1"
-                aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
+            <div class="modal fade" id="deleteTransactionModal{{ transaccion.id }}" tabindex="-1" aria-labelledby="deleteTransactionModalLabel{{ transaccion.id }}" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <form method="post" action="{% url 'inv:delete_transaction' transaccion.id %}">{% csrf_token %}
                             <!-- Include the 'next' parameter -->
                             <input type="hidden" name="next" value="{{ request.path }}">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="deleteTransactionModalLabel{{ transaccion.id }}">Confirmar
-                                    Eliminación</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Cerrar"></button>
+                                <h5 class="modal-title" id="deleteTransactionModalLabel{{ transaccion.id }}">
+                                    Confirmar Eliminación
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                             </div>
                             <div class="modal-body">
                                 <p>¿Está seguro de que desea eliminar esta transacción?</p>
@@ -526,436 +504,20 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="submit" class="btn btn-danger">Eliminar</button>
-                                <button type="button" class="btn btn-secondary"
-                                    data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
-
-
             {% empty %}
-            <tr>
-                <td colspan="9">No hay transacciones registradas.</td>
-            </tr>
+                <tr>
+                    <td colspan="9">No hay transacciones registradas.</td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-
-<!-- Overwrite Confirmation Modal -->
-{% if overwriting_transactions %}
-<div class="modal fade" id="overwriteModal" tabindex="-1" aria-labelledby="overwriteModalLabel" aria-hidden="true"
-    style="display:block;">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post">{% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title" id="overwriteModalLabel">Advertencia de Sobrescritura</h5>
-                </div>
-                <div class="modal-body">
-                    <p>Las siguientes transacciones ya existen y serán sobrescritas:</p>
-                    <ul>
-                        {% for tipo, transaccion in overwriting_transactions %}
-                        <li>{{ tipo }} - {{ transaccion.suministro.item.name }} ({{ transaccion.fecha|date:"d/m/Y" }})
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <p>¿Desea continuar y sobrescribir estas transacciones?</p>
-                    {% for key, value in post_data.items %}
-                    <input type="hidden" name="{{ key }}" value="{{ value }}">
-                    {% endfor %}
-                    <input type="hidden" name="confirm_overwrite" value="yes">
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-danger">Sí, sobrescribir</button>
-                    <a href="{% url 'inv:asset_inventario_report' asset.abbreviation %}"
-                        class="btn btn-secondary">Cancelar</a>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<script>
-    // Función para seleccionar o deseleccionar TODOS los checkboxes de artículos
-    function toggleAllItems() {
-        const checkboxes = document.querySelectorAll('input[name="items_seleccionados"]');
-        const allChecked = [...checkboxes].every(cb => cb.checked === true);
-        checkboxes.forEach(cb => cb.checked = !allChecked);
-    }
-
-    // Función para seleccionar o deseleccionar TODOS los checkboxes de usuarios
-    function toggleAllUsers() {
-        const checkboxes = document.querySelectorAll('input[name="users_seleccionados"]');
-        const allChecked = [...checkboxes].every(cb => cb.checked === true);
-        checkboxes.forEach(cb => cb.checked = !allChecked);
-    }
-
-    // Función para mostrar/ocultar el historial
-    function toggleHistorial() {
-        const historialDiv = document.getElementById('historial');
-        if (historialDiv.style.display === 'none' || historialDiv.style.display === '') {
-            historialDiv.style.display = 'block';
-            historialDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-            historialDiv.style.display = 'none';
-        }
-    }
-
-    // Función para actualizar el total basado en la cantidad ingresada y consumida
-    function actualizarTotal(rowId) {
-        const cantidadActual = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).getAttribute('data-cantidad-actual')) || 0;
-        const cantidadIngresada = parseFloat(document.querySelector(`input[name="ingresado_${rowId}"]`).value) || 0;
-        const cantidadConsumidaInput = document.querySelector(`input[name="consumido_${rowId}"]`);
-        const cantidadConsumida = parseFloat(cantidadConsumidaInput.value) || 0;
-
-        // Calcular el nuevo total
-        const total = cantidadActual + cantidadIngresada - cantidadConsumida;
-
-        // Elementos para mostrar errores
-        const errorIngreso = document.getElementById(`error_ingreso_${rowId}`);
-        const errorConsumo = document.getElementById(`error_consumo_${rowId}`);
-
-        let valid = true;
-
-        // Validación para cantidad ingresada
-        if (cantidadIngresada < 0) {
-            errorIngreso.style.display = 'block';
-            valid = false;
-        } else {
-            errorIngreso.style.display = 'none';
-        }
-
-        // Validación para cantidad consumida
-        if (cantidadConsumida > (cantidadActual + cantidadIngresada)) {
-            errorConsumo.style.display = 'block';
-            cantidadConsumidaInput.value = (cantidadActual + cantidadIngresada).toFixed(2);
-            document.getElementById(`total_${rowId}`).innerText = '0.00';
-            valid = false;
-        } else {
-            errorConsumo.style.display = 'none';
-            document.getElementById(`total_${rowId}`).innerText = total.toFixed(2);
-        }
-
-        // Verificar si hay errores para habilitar/deshabilitar el botón
-        verificarErrores();
-    }
-
-    // Función para validar transferencia en el modal
-    function validarTransferencia(suministroId) {
-        const transferCantidadInput = document.getElementById(`transferCantidad${suministroId}`);
-        const remainingCantidadSpan = document.getElementById(`remainingCantidad${suministroId}`);
-        const errorTransferencia = document.getElementById(`error_transferencia_${suministroId}`);
-        const maxCantidad = parseFloat(transferCantidadInput.getAttribute('max')) || 0;
-
-        let transferCantidad = parseFloat(transferCantidadInput.value) || 0;
-
-        if (transferCantidad > maxCantidad) {
-            errorTransferencia.style.display = 'block';
-            transferCantidadInput.value = maxCantidad;
-            transferCantidad = maxCantidad;
-        } else {
-            errorTransferencia.style.display = 'none';
-        }
-
-        const remainingCantidad = maxCantidad - transferCantidad;
-        remainingCantidadSpan.textContent = remainingCantidad.toFixed(2);
-    }
-
-    // Función para verificar si hay errores en los totales
-    function verificarErrores() {
-        let errores = false;
-        document.querySelectorAll('.cantidad-consumida').forEach(input => {
-            const rowId = input.getAttribute('data-row-id');
-            const total = parseFloat(document.getElementById(`total_${rowId}`).innerText) || 0;
-            if (total < 0) {
-                errores = true;
-            }
-        });
-        document.querySelector('.submit-button').disabled = errores;
-    }
-
-    // Inicializar la verificación de errores al cargar la página
-    window.onload = function () {
-        verificarErrores();
-
-        // Event listeners para los filtros
-        const filtros = ['filtro_seccion', 'filtro_articulo', 'filtro_usuario', 'filtro_fecha_inicio', 'filtro_fecha_fin'];
-        filtros.forEach(id => {
-            const elemento = document.getElementById(id);
-            if (elemento) {
-                elemento.addEventListener('input', aplicarFiltros);
-                elemento.addEventListener('change', aplicarFiltros);
-            }
-        });
-    }
-
-    // Event listeners para los inputs de cantidad ingresada y consumida
-    document.querySelectorAll('.cantidad-ingresada, .cantidad-consumida').forEach(input => {
-        input.addEventListener('input', function () {
-            const rowId = this.getAttribute('data-row-id');
-            actualizarTotal(rowId);
-        });
-    });
-
-    // Inicializar la función para cada suministro
-    {% for group in grouped_suministros.values %}
-        {% for suministro in group %}
-        document.addEventListener('DOMContentLoaded', function () {
-            validarTransferencia('{{ suministro.id }}');
-        });
-        {% endfor %}
-    {% endfor %}
-
-    // Función para aplicar filtros dinámicamente
-    function aplicarFiltros() {
-        const filtroSeccion = document.getElementById('filtro_seccion').value.toLowerCase();
-        const filtroArticulo = document.getElementById('filtro_articulo').value.toLowerCase();
-        const filtroUsuario = document.getElementById('filtro_usuario').value.toLowerCase();
-        const filtroFechaInicio = document.getElementById('filtro_fecha_inicio').value;
-        const filtroFechaFin = document.getElementById('filtro_fecha_fin').value;
-
-        const rows = document.querySelectorAll('#tabla_historial tbody tr');
-
-        rows.forEach(row => {
-            const fechaTexto = row.cells[0].innerText.trim();
-            const articuloId = row.querySelector('td[data-item-id]').getAttribute('data-item-id').trim();
-
-            const usuario = row.cells[1].innerText.trim().toLowerCase();
-            const seccion = row.cells[3].innerText.trim().toLowerCase();
-
-            let mostrar = true;
-
-            // Filtrar por categoría
-            if (filtroSeccion && seccion !== filtroSeccion) {
-                mostrar = false;
-            }
-
-            // Filtrar por artículo (usando ID)
-            if (filtroArticulo && articuloId !== filtroArticulo) {
-                mostrar = false;
-            }
-
-            // Filtrar por usuario
-            if (filtroUsuario && usuario !== filtroUsuario) {
-                mostrar = false;
-            }
-
-            // Filtrar por fechas
-            if ((filtroFechaInicio || filtroFechaFin) && fechaTexto) {
-                const [dia, mes, anio] = fechaTexto.split('/');
-                const fechaRow = new Date(anio, mes - 1, dia);
-                let fechaInicio = filtroFechaInicio ? new Date(filtroFechaInicio) : null;
-                let fechaFin = filtroFechaFin ? new Date(filtroFechaFin) : null;
-
-                if (fechaInicio && fechaRow < fechaInicio) {
-                    mostrar = false;
-                }
-
-                if (fechaFin && fechaRow > fechaFin) {
-                    mostrar = false;
-                }
-            }
-
-            // Mostrar u ocultar la fila
-            row.style.display = mostrar ? '' : 'none';
-        });
-    }
-
-</script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const addSuministroForm = document.getElementById('add-suministro-form');
-      const addSuministroButton = document.getElementById('submitAddSuministro');
-    
-      if (addSuministroButton) {
-        addSuministroButton.addEventListener('click', function(event) {
-          event.preventDefault();
-    
-          // 1) Preparar la URL y los datos
-          const url = "{% url 'inv:create_supply' asset.abbreviation %}"; 
-          // Tomar el CSRF token del form
-          const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-          // Extraer el <select> con item_id
-          const itemSelect = document.getElementById('itemSelect');
-          const itemId = itemSelect.value;
-    
-          // 2) Realizar la petición AJAX
-          fetch(url, {
-            method: 'POST',
-            headers: {
-              'X-CSRFToken': csrftoken,
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: new URLSearchParams({ 'item_id': itemId })
-          })
-          .then(response => {
-            // Si el status es 403, 400, etc., lo manejes:
-            if (!response.ok) {
-              // Podrías mostrar un error genérico o continuar parseando:
-              // return Promise.reject(response);
-            }
-            return response.json();
-          })
-          .then(data => {
-            // 3) Manejar la respuesta JSON
-            if (data.success) {
-              // Cerrar modal
-              const modalEl = document.getElementById('addSuministroModal');
-              const modal = bootstrap.Modal.getInstance(modalEl);
-              if (modal) {
-                modal.hide();
-              }
-              // Redirigir o recargar para que aparezca el mensaje de Django
-              window.location.reload();
-            } else {
-              // data.message contiene el mensaje de error que enviamos
-              alert(data.message);
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('Ocurrió un error al crear el suministro. Inténtalo de nuevo.');
-          });
-        });
-      }
-    });
-</script>
-
-<script>
-    const REMISION_REQUIRED_ITEMS = [
-        "Combustible",
-        // etc.
-    ].map(item => item.toLowerCase());
-  
-
-    ///////////////////////////////////////////////
-    // Lógica de MODAL de Remisión / Ingreso Externo
-    ///////////////////////////////////////////////
-    document.addEventListener("DOMContentLoaded", function(){
-        const form = document.getElementById("inventoryForm");
-        const fileRemision = document.getElementById("fileRemision");
-        let currentIndex = 0;
-        let itemsRequiringRemision = [];
-
-        // Interceptar submit
-        form.addEventListener("submit", function(e){
-            e.preventDefault();
-
-        // Detectar ingresos > 0
-        itemsRequiringRemision = [];
-        document.querySelectorAll(".cantidad-ingresada").forEach(input => {
-            const sumID = input.getAttribute("data-suministro-id");
-            const itemName = (input.getAttribute("data-item-name") || "").toLowerCase(); 
-            const val = parseFloat(input.value) || 0;
-            if(val > 0 && REMISION_REQUIRED_ITEMS.includes(itemName)){
-                itemsRequiringRemision.push(sumID);
-            }
-        });
-
-        if(itemsRequiringRemision.length === 0){
-            form.submit();
-            return;
-        }
-
-        // Empezar proceso de modal en secuencia
-        currentIndex = 0;
-        abrirModalRemision(itemsRequiringRemision[currentIndex]);
-    });
-
-    function abrirModalRemision(suministroId){
-        document.getElementById("remisionSuministroID").value = suministroId;
-        fileRemision.value = "";
-        document.getElementById("contenedorJustificacion").style.display = "none";
-        document.getElementById("textoJustificacion").value = "";
-
-        const modal = new bootstrap.Modal(document.getElementById("modalRemision"));
-        modal.show();
-    }
-
-    // Link “No puedo subir la remisión”
-    document.getElementById("linkIngresoExterno").addEventListener("click", function(e){
-        e.preventDefault();
-        const contJust = document.getElementById("contenedorJustificacion");
-        contJust.style.display = (contJust.style.display === "none") ? "block" : "none";
-    });
-
-    // Botón “Continuar” en el modal
-    document.getElementById("btnModalRemisionOk").addEventListener("click", function(){
-        const sumID = document.getElementById("remisionSuministroID").value;
-        const justif = document.getElementById("textoJustificacion").value.trim();
-        const modalEl = document.getElementById("modalRemision");
-        const modalObj = bootstrap.Modal.getInstance(modalEl);
-
-        // Revisar si subió archivo
-        if(fileRemision.files.length === 0){
-            // Sin archivo => debe justificar
-            if(!justif){
-                alert("Debes subir un archivo o redactar justificación para ingreso externo.");
-                return;
-            } else {
-                // “Ingreso Externo” => Creamos un hidden
-                const hiddenJust = document.createElement("input");
-                hiddenJust.type = "hidden";
-                hiddenJust.name = "justificacion_" + sumID;
-                hiddenJust.value = justif;
-                form.appendChild(hiddenJust);
-            }
-            } else {
-                // Subió archivo => reubicar input “fileRemision” en el form con name=remision_sumId
-                fileRemision.name = "remision_" + sumID;
-                fileRemision.style.display = "none";
-                form.appendChild(fileRemision);
-            }
-
-            // Cerrar modal
-            modalObj.hide();
-
-            // Pasar al siguiente
-            currentIndex++;
-            if(currentIndex < itemsRequiringRemision.length){
-                abrirModalRemision(itemsRequiringRemision[currentIndex]);
-            } else {
-                // Cuando termina => submit final
-                form.submit();
-            }
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', function () {
-    // Seleccionar todos los checkboxes del modal
-    const toggleAllArticles = document.getElementById('toggleAllArticles');
-    const checkboxes = document.querySelectorAll('input[name="items_seleccionados"]');
-
-    // Función para seleccionar/desmarcar todos los checkboxes
-    toggleAllArticles.addEventListener('change', function () {
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = toggleAllArticles.checked;
-        });
-    });
-
-    // Función para verificar si todos los checkboxes están seleccionados
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function () {
-            // Si algún checkbox se desmarca, el toggle debe desmarcarse
-            if (!checkbox.checked) {
-                toggleAllArticles.checked = false;
-            }
-            // Si todos los checkboxes están marcados, el toggle debe marcarse
-            else if ([...checkboxes].every(cb => cb.checked)) {
-                toggleAllArticles.checked = true;
-            }
-        });
-    });
-});
-
-</script>
-
 
 {% include "inventory_management/asset_inv_report_js.html" %}
 {% endblock %}

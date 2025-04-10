@@ -20,7 +20,7 @@ urlpatterns = [
     path('equipo/<str:equipo_code>/dar_baja/', DarBajaCreateView.as_view(), name='dar_baja'),
 
     # Inventory
-    path('asset/<str:abbreviation>/suministros/', AssetSuministrosReportView.as_view(), name='asset-suministros'),
+    path('supplies/<str:abbreviation>/', AssetSuministrosReportView.as_view(), name='asset-suministros'),
     path('asset/<str:abbreviation>/inventario/', AssetInventarioReportView.as_view(), name='asset_inventario_report'),
 
     # Inv retirements
