@@ -84,7 +84,6 @@ def request_docs_form(request, emp_id):
 
 import boto3
 from django.conf import settings
-from io import BytesIO
 
 def get_s3_file_as_bytes(key):
     """
