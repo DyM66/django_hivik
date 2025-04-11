@@ -6,12 +6,12 @@ from got.paths import get_upload_path
 from datetime import date
 
 RISK_CLASS_CHOICES = [
-        ('I', '0.522%'),
-        ('II', '1.044%'),
-        ('III', '2.436%'),
-        ('IV', '4.350%'),
-        ('V', '6.96%'),
-    ]
+    ('I', '0.522%'),
+    ('II', '1.044%'),
+    ('III', '2.436%'),
+    ('IV', '4.350%'),
+    ('V', '6.96%'),
+]
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
@@ -63,8 +63,6 @@ class Nomina(models.Model):
 
 class PayrollDetails(models.Model):
     nomina = models.OneToOneField(Nomina, on_delete=models.CASCADE, related_name='details', primary_key=True)
-    RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
-    
     
     EDUCATION_LEVEL_CHOICES = [
         ('none', 'Ninguno'),
@@ -87,11 +85,6 @@ class PayrollDetails(models.Model):
         ('unionlibre', 'Unión Libre'),
         ('viudo', 'Viudo(a)'),
         ('divorciado', 'Divorciado(a)'),
-    ]
-    CRITICITY_CHOICES = [
-        ('bajo', 'Bajo'),
-        ('medio', 'Medio'),
-        ('alto', 'Alto'),
     ]
     SALARY_TYPE_CHOICES = [
         ('ordinario', 'Ordinario'),
@@ -121,15 +114,9 @@ class PayrollDetails(models.Model):
         ('justo', 'Justa Causa'),
         ('fin_obra', 'Finalización de la Obra'),
     ]
-    CENTER_OF_WORK_CHOICES = [
-        ('cartagena', 'Cartagena'),
-        ('guyana', 'Guyana'),
-    ]
-    AFP_CHOICES = [
-        ('proteccion', 'PROTECCIÓN'),
-        ('porvenir', 'PORVENIR'),
-        ('colpensiones', 'COLPENSIONES'),
-    ]
+    CRITICITY_CHOICES = [('bajo', 'Bajo'), ('medio', 'Medio'), ('alto', 'Alto')]
+    CENTER_OF_WORK_CHOICES = [('cartagena', 'Cartagena'), ('guyana', 'Guyana'),]
+    AFP_CHOICES = [('proteccion', 'PROTECCIÓN'), ('porvenir', 'PORVENIR'), ('colpensiones', 'COLPENSIONES'),]
 
     salary_type = models.CharField(max_length=10, choices=SALARY_TYPE_CHOICES, blank=True, null=True, help_text="Tipo de salario.")
     salary = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True, help_text="Salario en COP.")
