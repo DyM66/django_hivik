@@ -6,6 +6,7 @@ from preoperacionales.forms import *
 from preoperacionales.mixins import DriversAdminRequiredMixin
 from got.models import Equipo
 from django.utils.translation import gettext as _
+from datetime import datetime
 
 
 class AdminView(DriversAdminRequiredMixin, View):
@@ -18,6 +19,14 @@ class AdminView(DriversAdminRequiredMixin, View):
             vehicle.history = vehicle.movement_history.all()
             equipo = get_object_or_404(Equipo, code=vehicle.code)
             vehicle.equipo = equipo
+            # Validar si ya se realizó el preoperacional hoy
+            current_date = datetime.today().date()  # Fecha actual
+            preoperacional_diario = PreoperacionalDiario.objects.filter(
+                vehiculo=vehicle.equipo, fecha=current_date
+            ).exists()
+
+            # Añadir al vehículo si ya se realizó el preoperacional
+            vehicle.preoperational_completed = preoperacional_diario
 
         drivers = Driver.objects.all()
 

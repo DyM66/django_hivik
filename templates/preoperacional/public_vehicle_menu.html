@@ -191,7 +191,7 @@
     if (cedula.trim() === "") {
       alert("Por favor, ingresa tu cédula. ");
     } else if (!driverIds.includes(cedula)) {
-      alert("La cédula ingresada no tiene acceso.");
+      alert("La cédula ingresada no tiene permitido hacer esto.");
     } else {
       // Ocultar el contenedor de cédula
       cedulaContainer.classList.add('hidden');

@@ -64,6 +64,7 @@ def preoperacional_diario_view(request, code):
                     description=form.cleaned_data["observaciones"],
                     critico=False,
                     causas="Por definir",
+                    suggest_repair="Por definir",
                 )
             for file in request.FILES.getlist("file_field"):
                 Image.objects.create(
@@ -447,6 +448,7 @@ def preoperacional_especifico_view(request, code):
                     description=form.cleaned_data["observaciones"],
                     critico=False,
                     causas="Por definir",
+                    suggest_repair="Por definir",
                 )
 
             for file in request.FILES.getlist("file_field"):
