@@ -20,9 +20,7 @@ class Migration(migrations.Migration):
                 ('cargo', models.CharField(blank=True, max_length=100, null=True)),
                 ('firma', models.ImageField(blank=True, null=True, upload_to=got.models.get_upload_path)),
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
-                ('dpto', models.CharField(blank=True, max_length=100, null=True)),
             ],
-            # options={'verbose_name': 'Perfil de Usuario', 'verbose_name_plural': 'Perfiles de Usuario'},
         ),
         migrations.AlterModelTable(
             name='userprofile',
@@ -62,8 +60,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('id_number', models.CharField(help_text='Identificación del empleado.', max_length=50, verbose_name='Número de documento')),
-                ('name', models.CharField(help_text='Nombre del empleado.', max_length=100)),
-                ('surname', models.CharField(help_text='Apellido del empleado.', max_length=100)),
+                ('name', models.CharField(help_text='Nombres', max_length=100)),
+                ('surname', models.CharField(help_text='Apellidos', max_length=100)),
                 ('position', models.CharField(help_text='Cargo o puesto.', max_length=100)),
                 ('salary', models.DecimalField(decimal_places=2, help_text='Salario en COP.', max_digits=18)),
                 ('admission', models.DateField(help_text='Fecha de ingreso del empleado. (Obligatoria)')),
@@ -74,6 +72,8 @@ class Migration(migrations.Migration):
                 ('photo', models.ImageField(blank=True, help_text='Fotografía del empleado.', null=True, upload_to=got.paths.get_upload_path)),
                 ('position_id', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='employees', to='dth.position')),
                 ('email', models.EmailField(blank=True, help_text='Correo electrónico del empleado.', max_length=254, null=True)),
+                ('employment_status', models.CharField(choices=[('a', 'Activo'), ('r', 'Retirado'), ('l', 'Licencia'), ('s', 'Suspendido'), ('i', 'Incapacitado')], default='a', help_text='Estado actual del empleado en la empresa.', max_length=1)),
+                ('phone', models.CharField(blank=True, help_text='Teléfono de contacto.', max_length=50, null=True)),
             ],
         ),
         migrations.CreateModel(
@@ -135,13 +135,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Department',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(help_text='Nombre del departamento.', max_length=100, unique=True)),
-            ],
-        ),
-        migrations.CreateModel(
             name='Position',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -174,6 +167,13 @@ class Migration(migrations.Migration):
                 ('verified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('rejection_reason', models.TextField(blank=True, null=True)),
                 ('status', models.CharField(choices=[('P', 'Pendiente'), ('A', 'Aprobado'), ('R', 'Rechazado')], default='P', max_length=1)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='EPS',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100, unique=True)),
             ],
         ),
     ]

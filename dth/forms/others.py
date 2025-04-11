@@ -47,8 +47,7 @@ class NominaForm(forms.ModelForm):
     class Meta:
         model = Nomina
         fields = [
-            'id_number', 'name', 'surname', 'position_id', 'salary',
-            'admission', 'expiration', 'risk_class', 'is_driver',
+            'id_number', 'name', 'surname', 'position_id', 'is_driver',
             'gender', 'photo', 'email', 'employment_status'
         ]
         labels = {

@@ -11,10 +11,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='userprofile',
-            name='dpto',
-        ),
         migrations.AddField(
             model_name='userprofile',
             name='payroll_view_mode',
@@ -24,5 +20,40 @@ class Migration(migrations.Migration):
             model_name='overtimeproject',
             name='ot',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='got.ot'),
+        ),
+        migrations.CreateModel(
+            name='PayrollDetails',
+            fields=[
+                ('nomina', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='details', serialize=False, to='dth.nomina')),
+                ('salary_type', models.CharField(blank=True, choices=[('ordinario', 'Ordinario'), ('variable', 'Variable'), ('integral', 'Integral'), ('especie', 'Especie')], help_text='Tipo de salario.', max_length=10, null=True)),
+                ('salary', models.DecimalField(blank=True, decimal_places=2, help_text='Salario en COP.', max_digits=18, null=True)),
+                ('admission', models.DateField(blank=True, help_text='Fecha de ingreso del empleado. (Obligatoria)', null=True)),
+                ('expiration', models.DateField(blank=True, help_text='Fecha de expiración del contrato, si aplica.', null=True)),
+                ('risk_class', models.CharField(blank=True, choices=[('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%')], help_text='Clase de riesgo laboral.', max_length=3, null=True)),
+                ('birth_date', models.DateField(blank=True, help_text='Fecha de nacimiento.', null=True)),
+                ('place_of_birth', models.CharField(blank=True, help_text='Lugar de nacimiento (ciudad/municipio).', max_length=100, null=True)),
+                ('doc_expedition_date', models.DateField(blank=True, help_text='Fecha de expedición del documento de identidad.', null=True)),
+                ('doc_expedition_department', models.CharField(blank=True, help_text='Departamento expedición.', max_length=100, null=True)),
+                ('doc_expedition_municipality', models.CharField(blank=True, help_text='Municipio expedición.', max_length=100, null=True)),
+                ('education_level', models.CharField(blank=True, choices=[('none', 'Ninguno'), ('sec_incompleta', 'Secundaria Incompleta'), ('sec_completa', 'Secundaria Completa'), ('tecnico', 'Técnico'), ('tecnologo', 'Tecnólogo'), ('pregrado', 'Profesional'), ('postgrado', 'Postgrado')], help_text='Nivel de escolaridad.', max_length=20, null=True)),
+                ('profession', models.CharField(blank=True, help_text='Profesión del empleado.', max_length=100, null=True)),
+                ('last_academic_institution', models.CharField(blank=True, help_text='Última institución de formación académica.', max_length=200, null=True)),
+                ('municipality_of_residence', models.CharField(blank=True, help_text='Municipio de residencia.', max_length=100, null=True)),
+                ('address', models.CharField(blank=True, help_text='Dirección de residencia.', max_length=200, null=True)),
+                ('rh', models.CharField(blank=True, choices=[('O+', 'O+'), ('O-', 'O-'), ('A+', 'A+'), ('A-', 'A-'), ('B+', 'B+'), ('B-', 'B-'), ('AB+', 'AB+'), ('AB-', 'AB-')], help_text='Grupo y factor RH.', max_length=3, null=True)),
+                ('marital_status', models.CharField(blank=True, choices=[('soltero', 'Soltero(a)'), ('casado', 'Casado(a)'), ('unionlibre', 'Unión Libre'), ('viudo', 'Viudo(a)'), ('divorciado', 'Divorciado(a)')], help_text='Estado civil.', max_length=12, null=True)),
+                ('afp', models.CharField(blank=True, choices=[('proteccion', 'PROTECCIÓN'), ('porvenir', 'PORVENIR'), ('colpensiones', 'COLPENSIONES')], help_text='Fondo de pensiones (entre 3 opciones).', max_length=15, null=True)),
+                ('caja_compensacion', models.CharField(blank=True, help_text='Caja de compensación.', max_length=100, null=True)),
+                ('retiro_concept', models.CharField(blank=True, choices=[('NA', 'N/A'), ('venc', 'Vencimiento del contrato'), ('volunt', 'Voluntario'), ('injusto', 'Injusta Causa'), ('justo', 'Justa Causa'), ('fin_obra', 'Finalización de la Obra')], help_text='Concepto del retiro, si aplica.', max_length=15, null=True)),
+                ('center_of_work', models.CharField(blank=True, choices=[('cartagena', 'Cartagena'), ('guyana', 'Guyana')], help_text='Centro de trabajo actual.', max_length=20, null=True)),
+                ('contract_type', models.CharField(blank=True, choices=[('indefinido', 'Indefinido'), ('definido', 'Término Definido'), ('aprendizaje', 'Aprendizaje'), ('obra', 'Obra/Labor')], help_text='Tipo de contrato.', max_length=15, null=True)),
+                ('obra_description', models.TextField(blank=True, help_text='Descripción de la obra (si aplica).', null=True)),
+                ('months_term', models.PositiveIntegerField(blank=True, help_text='Término # de meses (si es contrato a término).', null=True)),
+                ('shift', models.CharField(blank=True, choices=[('5x2', '5 x 2 (Lunes a Viernes)'), ('6x1', '6 x 1'), ('6x1_nav', '6 x 1 (Navegando 2 x 1)'), ('14x7', '14 x 7'), ('flexible', 'Jornada Flexible'), ('14x14', '14 x 14 (1 x 1)')], help_text='Turno de trabajo.', max_length=15, null=True)),
+                ('criticity_level', models.CharField(blank=True, choices=[('bajo', 'Bajo'), ('medio', 'Medio'), ('alto', 'Alto')], help_text='Nivel de criticidad.', max_length=6, null=True)),
+                ('bank_account', models.CharField(blank=True, help_text='Número de cuenta bancaria.', max_length=50, null=True)),
+                ('bank', models.CharField(blank=True, help_text='Banco asociado.', max_length=100, null=True)),
+                ('eps', models.ForeignKey(blank=True, help_text='EPS seleccionada', null=True, on_delete=django.db.models.deletion.SET_NULL, to='dth.eps')),
+            ],
         ),
     ]

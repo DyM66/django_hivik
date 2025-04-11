@@ -16,6 +16,9 @@ class Position(models.Model):
     rule = models.CharField(max_length=100, blank=True, null=True)
     category = models.CharField(max_length=1, choices=CATEGORY_CHOICES, blank=True, null=True)
 
+    # RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%')]
+    # risk_class = models.CharField(max_length=3, choices=RISK_CLASS_CHOICES, blank=True, null=True, help_text="Clase de riesgo laboral.")
+
     def __str__(self):
         return self.name
 

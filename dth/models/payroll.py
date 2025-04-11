@@ -3,6 +3,7 @@ from django.db import models
 from decimal import Decimal
 from django.contrib.auth.models import User
 from got.paths import get_upload_path
+from datetime import date
 
 RISK_CLASS_CHOICES = [
         ('I', '0.522%'),
@@ -26,37 +27,22 @@ class UserProfile(models.Model):
         return f"{self.user.username}'s profile"
 
 
-class Department(models.Model):
-    """
-    Representa un departamento dentro de la empresa.
-    Cada departamento puede tener muchas personas asociadas (Nomina).
-    """
-    name = models.CharField(max_length=100, unique=True, help_text="Nombre del departamento.")
-
-    def __str__(self):
-        return self.name
-
-
 class Nomina(models.Model):
-    RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
     GENDER_CHOICES = [('h', 'Hombre'), ('m', 'Mujer'),]
     EMPLOYMENT_STATUS_CHOICES = [('a', 'Activo'), ('r', 'Retirado'), ('l', 'Licencia'), ('s', 'Suspendido'), ('i', 'Incapacitado'),]
+    RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
 
     id_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado.")
-    name = models.CharField(max_length=100, help_text="Nombre del empleado.")
-    surname = models.CharField(max_length=100, help_text="Apellido del empleado.")
+    name = models.CharField(max_length=100, help_text="Nombres")
+    surname = models.CharField(max_length=100, help_text="Apellidos")
     position_id = models.ForeignKey('dth.Position', on_delete=models.CASCADE, related_name='employees')
     employment_status = models.CharField(max_length=1, choices=EMPLOYMENT_STATUS_CHOICES, default='a', help_text="Estado actual del empleado en la empresa.")
 
-    risk_class = models.CharField(max_length=3, choices=RISK_CLASS_CHOICES, blank=True, null=True, help_text="Clase de riesgo laboral.")
     is_driver = models.BooleanField(default=False)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, default='h')
     photo = models.ImageField(upload_to=get_upload_path, blank=True, null=True, help_text="Fotografía del empleado.")
     email = models.EmailField(blank=True, null=True, help_text="Correo electrónico del empleado.")
-
-    salary = models.DecimalField(max_digits=18, decimal_places=2, help_text="Salario en COP.")
-    admission = models.DateField(help_text="Fecha de ingreso del empleado. (Obligatoria)")
-    expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")
+    phone = models.CharField(max_length=50, blank=True, null=True, help_text="Teléfono de contacto.")
 
     @property
     def photo_url(self):
@@ -75,6 +61,139 @@ class Nomina(models.Model):
     def __str__(self):
         return f"{self.name} {self.surname} - {self.id_number} - {self.position_id.name}"
     
+
+class PayrollDetails(models.Model):
+    nomina = models.OneToOneField(Nomina, on_delete=models.CASCADE, related_name='details', primary_key=True)
+    
+    EDUCATION_LEVEL_CHOICES = [
+        ('none', 'Ninguno'),
+        ('sec_incompleta', 'Secundaria Incompleta'),
+        ('sec_completa', 'Secundaria Completa'),
+        ('tecnico', 'Técnico'),
+        ('tecnologo', 'Tecnólogo'),
+        ('pregrado', 'Profesional'),
+        ('postgrado', 'Postgrado'),
+    ]
+    RH_CHOICES = [
+        ('O+', 'O+'), ('O-', 'O-'),
+        ('A+', 'A+'), ('A-', 'A-'),
+        ('B+', 'B+'), ('B-', 'B-'),
+        ('AB+', 'AB+'), ('AB-', 'AB-'),
+    ]
+    MARITAL_STATUS_CHOICES = [
+        ('soltero', 'Soltero(a)'),
+        ('casado', 'Casado(a)'),
+        ('unionlibre', 'Unión Libre'),
+        ('viudo', 'Viudo(a)'),
+        ('divorciado', 'Divorciado(a)'),
+    ]
+    CRITICITY_CHOICES = [
+        ('bajo', 'Bajo'),
+        ('medio', 'Medio'),
+        ('alto', 'Alto'),
+    ]
+    SALARY_TYPE_CHOICES = [
+        ('ordinario', 'Ordinario'),
+        ('variable', 'Variable'),
+        ('integral', 'Integral'),
+        ('especie', 'Especie'),
+    ]
+    SHIFT_CHOICES = [
+        ('5x2', '5 x 2 (Lunes a Viernes)'),
+        ('6x1', '6 x 1'),
+        ('6x1_nav', '6 x 1 (Navegando 2 x 1)'),
+        ('14x7', '14 x 7'),
+        ('flexible', 'Jornada Flexible'),
+        ('14x14', '14 x 14 (1 x 1)'),
+    ]
+    CONTRACT_TYPE_CHOICES = [
+        ('indefinido', 'Indefinido'),
+        ('definido', 'Término Definido'),
+        ('aprendizaje', 'Aprendizaje'),
+        ('obra', 'Obra/Labor'),
+    ]
+    RETIREMENT_CHOICES = [
+        ('NA', 'N/A'),
+        ('venc', 'Vencimiento del contrato'),
+        ('volunt', 'Voluntario'),
+        ('injusto', 'Injusta Causa'),
+        ('justo', 'Justa Causa'),
+        ('fin_obra', 'Finalización de la Obra'),
+    ]
+    CENTER_OF_WORK_CHOICES = [
+        ('cartagena', 'Cartagena'),
+        ('guyana', 'Guyana'),
+    ]
+    AFP_CHOICES = [
+        ('proteccion', 'PROTECCIÓN'),
+        ('porvenir', 'PORVENIR'),
+        ('colpensiones', 'COLPENSIONES'),
+    ]
+
+    salary_type = models.CharField(max_length=10, choices=SALARY_TYPE_CHOICES, blank=True, null=True, help_text="Tipo de salario.")
+    salary = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True, help_text="Salario en COP.")
+    admission = models.DateField(help_text="Fecha de ingreso del empleado. (Obligatoria)", blank=True, null=True,)
+    expiration = models.DateField(blank=True, null=True, help_text="Fecha de expiración del contrato, si aplica.")
+    risk_class = models.CharField(max_length=3, choices=RISK_CLASS_CHOICES, blank=True, null=True, help_text="Clase de riesgo laboral.")
+
+    birth_date = models.DateField(blank=True, null=True, help_text="Fecha de nacimiento.")
+    place_of_birth = models.CharField(max_length=100, blank=True, null=True, help_text="Lugar de nacimiento (ciudad/municipio).")
+    doc_expedition_date = models.DateField(blank=True, null=True, help_text="Fecha de expedición del documento de identidad.")
+    doc_expedition_department = models.CharField(max_length=100, blank=True, null=True, help_text="Departamento expedición.")
+    doc_expedition_municipality = models.CharField(max_length=100, blank=True, null=True, help_text="Municipio expedición.")
+
+    education_level = models.CharField(max_length=20, choices=EDUCATION_LEVEL_CHOICES, blank=True, null=True, help_text="Nivel de escolaridad.")
+    profession = models.CharField(max_length=100, blank=True, null=True, help_text="Profesión del empleado.")
+    last_academic_institution = models.CharField(max_length=200, blank=True, null=True, help_text="Última institución de formación académica.")
+    municipality_of_residence = models.CharField(max_length=100, blank=True, null=True, help_text="Municipio de residencia.")
+    address = models.CharField(max_length=200, blank=True, null=True, help_text="Dirección de residencia.")
+                               
+    rh = models.CharField(max_length=3, choices=RH_CHOICES, blank=True, null=True, help_text="Grupo y factor RH.")  
+    marital_status = models.CharField(max_length=12, choices=MARITAL_STATUS_CHOICES, blank=True, null=True, help_text="Estado civil.")
+    
+    eps = models.ForeignKey('dth.EPS', on_delete=models.SET_NULL, blank=True, null=True, help_text="EPS seleccionada")
+    afp = models.CharField(max_length=15, choices=AFP_CHOICES, blank=True, null=True, help_text="Fondo de pensiones (entre 3 opciones).")
+    caja_compensacion = models.CharField(max_length=100, blank=True, null=True, help_text="Caja de compensación.")
+    retiro_concept = models.CharField(max_length=15, choices=RETIREMENT_CHOICES, blank=True, null=True, help_text="Concepto del retiro, si aplica.")
+    center_of_work = models.CharField(max_length=20, choices=CENTER_OF_WORK_CHOICES, blank=True, null=True, help_text="Centro de trabajo actual.")
+    contract_type = models.CharField(max_length=15, choices=CONTRACT_TYPE_CHOICES, blank=True, null=True, help_text="Tipo de contrato.")
+    obra_description = models.TextField(blank=True, null=True, help_text="Descripción de la obra (si aplica).")
+    months_term = models.PositiveIntegerField(blank=True, null=True, help_text="Término # de meses (si es contrato a término).")
+    shift = models.CharField(max_length=15, choices=SHIFT_CHOICES, blank=True, null=True, help_text="Turno de trabajo.")
+    criticity_level = models.CharField(max_length=6, choices=CRITICITY_CHOICES, blank=True, null=True, help_text="Nivel de criticidad.")
+    bank_account = models.CharField(max_length=50, blank=True, null=True, help_text="Número de cuenta bancaria.")
+    bank = models.CharField(max_length=100, blank=True, null=True, help_text="Banco asociado.")
+
+    @property
+    def age(self):
+        """
+        Calcula la edad a partir de birth_date, si aplica.
+        """
+        if self.birth_date:
+            today = date.today()
+            return (today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day)))
+        return None
+
+    @property
+    def days_left_contract(self):
+        """
+        Si 'months_term' está definido y se quiere estimar
+        la fecha de finalización respecto a la fecha de admisión de Nomina.
+        Retorna días restantes (aprox) o None.
+        """
+        if self.nomina.admission and self.months_term:
+            from datetime import timedelta
+            start = self.nomina.admission
+            # Aprox: months_term * 30 días
+            end_date = start + timedelta(days=(self.months_term * 30))
+            remaining = (end_date - date.today()).days
+            return remaining if remaining > 0 else 0
+        return None
+
+    def __str__(self):
+        # Muestra algo como: "Detalles de # Nomina: 123"
+        return f"Detalles de {self.nomina.id_number}"
+
 
 class NominaReport(models.Model):
     mes = models.PositiveSmallIntegerField(help_text="Mes (1-12).")
@@ -158,7 +277,7 @@ class NominaReport(models.Model):
         if not self.nomina.risk_class:
             return Decimal('0')
         try:
-            value = Decimal(self.nomina.get_risk_class_display().replace('%', '').strip())
+            value = Decimal(self.nomina.details.get_risk_class_display().replace('%', '').strip())
             rc = value / Decimal('100')
         except Exception:
             rc = Decimal('0')
