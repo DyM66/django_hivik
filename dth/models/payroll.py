@@ -30,7 +30,6 @@ class UserProfile(models.Model):
 class Nomina(models.Model):
     GENDER_CHOICES = [('h', 'Hombre'), ('m', 'Mujer'),]
     EMPLOYMENT_STATUS_CHOICES = [('a', 'Activo'), ('r', 'Retirado'), ('l', 'Licencia'), ('s', 'Suspendido'), ('i', 'Incapacitado'),]
-    RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
 
     id_number = models.CharField(max_length=50, verbose_name="Número de documento", help_text="Identificación del empleado.")
     name = models.CharField(max_length=100, help_text="Nombres")
@@ -64,6 +63,8 @@ class Nomina(models.Model):
 
 class PayrollDetails(models.Model):
     nomina = models.OneToOneField(Nomina, on_delete=models.CASCADE, related_name='details', primary_key=True)
+    RISK_CLASS_CHOICES = [('I', '0.522%'), ('II', '1.044%'), ('III', '2.436%'), ('IV', '4.350%'), ('V', '6.96%'),]
+    
     
     EDUCATION_LEVEL_CHOICES = [
         ('none', 'Ninguno'),
@@ -143,7 +144,7 @@ class PayrollDetails(models.Model):
     doc_expedition_municipality = models.CharField(max_length=100, blank=True, null=True, help_text="Municipio expedición.")
 
     education_level = models.CharField(max_length=20, choices=EDUCATION_LEVEL_CHOICES, blank=True, null=True, help_text="Nivel de escolaridad.")
-    profession = models.CharField(max_length=100, blank=True, null=True, help_text="Profesión del empleado.")
+    profession = models.CharField(max_length=200, blank=True, null=True, help_text="Profesión del empleado.")
     last_academic_institution = models.CharField(max_length=200, blank=True, null=True, help_text="Última institución de formación académica.")
     municipality_of_residence = models.CharField(max_length=100, blank=True, null=True, help_text="Municipio de residencia.")
     address = models.CharField(max_length=200, blank=True, null=True, help_text="Dirección de residencia.")

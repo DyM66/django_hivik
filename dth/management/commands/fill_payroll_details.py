@@ -1,7 +1,7 @@
 # dth/management/commands/fill_payroll_details.py
 
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import transaction, DataError
 from openpyxl import load_workbook
 
 from dth.models import Nomina, PayrollDetails, EPS
@@ -10,12 +10,10 @@ import re
 import datetime
 
 class Command(BaseCommand):
-    """
-    Lee un archivo Excel (con hoja 'MARZO') a partir de la fila 4 y
-    actualiza la información de Nomina/PayrollDetails en base a
-    distintas columnas.
-    """
-    help = "Lee un Excel y actualiza campos en Nomina y PayrollDetails"
+    help = (
+        "Lee un Excel (hoja 'MARZO') y actualiza campos en Nomina y PayrollDetails.\n"
+        "Muestra debug info de cualquier valor que exceda max_length."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument('excel_path', type=str, help="Ruta local del archivo Excel a procesar")
@@ -30,17 +28,15 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"El archivo '{excel_path}' no fue encontrado."))
             return
         
-        # Asegurarnos de que existe la hoja 'MARZO'
         sheet_name = 'MARZO'
         if sheet_name not in wb.sheetnames:
             self.stdout.write(self.style.ERROR(f"No se encontró la hoja '{sheet_name}' en el Excel."))
             return
         
         ws = wb[sheet_name]
-
         self.stdout.write(self.style.NOTICE(f"Abriendo hoja '{sheet_name}'..."))
 
-        # Diccionarios de mapeo
+        # Diccionarios de mapeo...
         gender_map = {
             'M': 'h',  # Masculino => 'h'
             'F': 'm',  # Femenino => 'm'
@@ -83,35 +79,25 @@ class Command(BaseCommand):
             'Especie': 'especie',
         }
 
-        # Cache para EPS (para no buscar repetidas veces)
         eps_cache = {}
         
-        # Contadores para el resumen
         total_rows_processed = 0
         updated_nomina_count = 0
         updated_details_count = 0
         no_nomina_count = 0
 
-        # Empezamos a leer a partir de la fila 4
         row_index = 4
         while True:
-            # ------------------------------
-            # 1) Col C => Identificacion
-            # ------------------------------
+            # Identificacion => columna C
             id_number_cell = f"C{row_index}"
             id_number_val = ws[id_number_cell].value
-
-            # Si no hay valor => fin de datos
             if not id_number_val:
                 self.stdout.write(self.style.WARNING(
                     f"Fin de datos al llegar a fila {row_index}. No se encontró 'id_number'."
                 ))
                 break
 
-            # Convierto a str (por si es int/float)
             id_number_str = str(id_number_val).strip()
-            
-            # Salto si es "Identificacion" (cabecera)
             if id_number_str.lower() == "identificacion":
                 self.stdout.write(self.style.WARNING(
                     f"No se encontró registro en Nomina con id_number={id_number_str} (fila {row_index})."
@@ -122,7 +108,7 @@ class Command(BaseCommand):
                 row_index += 1
                 continue
 
-            # Buscamos en DB
+            # Buscamos Nomina
             try:
                 nomina_obj = Nomina.objects.get(id_number=id_number_str)
             except Nomina.DoesNotExist:
@@ -135,162 +121,146 @@ class Command(BaseCommand):
                     break
                 row_index += 1
                 continue
+            except Nomina.MultipleObjectsReturned:
+                self.stdout.write(self.style.ERROR(
+                    f"Existen múltiples registros en Nomina con id_number={id_number_str} (fila {row_index})."
+                ))
+                user_decision = input("¿Deseas continuar con la siguiente fila? (s/n): ").lower()
+                if user_decision.startswith('n'):
+                    break
+                row_index += 1
+                continue
 
             details_obj, _created = PayrollDetails.objects.get_or_create(nomina=nomina_obj)
 
             row_updates_nomina = False
             row_updates_details = False
 
-            # ------------------------------------------------------
-            # 2) Col G => género => "M" / "F"
-            # ------------------------------------------------------
+            ### PEQUEÑA FUNCIÓN DE DEBUG
+            def debug_update(model_name, field_name, old_val, new_val):
+                """Imprime info de la actualización."""
+                old_str = str(old_val) if old_val is not None else ""
+                new_str = str(new_val) if new_val is not None else ""
+                self.stdout.write(
+                    f"  Updating {model_name}.{field_name} from '{old_str[:40]}' to '{new_str[:40]}' "
+                    f"(length {len(new_str)})"
+                )
+
+            # Col G => genero => M / F
             g_cell = f"G{row_index}"
-            excel_gender_val = ws[g_cell].value
-            excel_gender_str = safe_str_cell(excel_gender_val).upper()  # "M" / "F"
+            excel_gender_str = safe_str_cell(ws[g_cell].value).upper()
             if excel_gender_str in gender_map:
                 desired_gender = gender_map[excel_gender_str]
                 if nomina_obj.gender != desired_gender:
+                    debug_update("Nomina", "gender", nomina_obj.gender, desired_gender)  ### DEBUG
                     nomina_obj.gender = desired_gender
                     row_updates_nomina = True
 
-            # ------------------------------------------------------
-            # 3) Col K => birth_date => "DD-MM-YYYY" (posible)
-            # ------------------------------------------------------
+            # Col K => birth_date => parse date
             k_cell = f"K{row_index}"
-            excel_birth_val = ws[k_cell].value
-            birth_date = parse_excel_date(excel_birth_val)
-            if birth_date is not None and details_obj.birth_date != birth_date:
-                details_obj.birth_date = birth_date
+            birth_val = parse_excel_date(ws[k_cell].value)
+            if birth_val is not None and details_obj.birth_date != birth_val:
+                debug_update("PayrollDetails", "birth_date", details_obj.birth_date, birth_val)  ### DEBUG
+                details_obj.birth_date = birth_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 4) Col M => place_of_birth
-            # ------------------------------------------------------
-            m_cell = f"M{row_index}"
-            place_of_birth_val = safe_str_cell(ws[m_cell].value)
+            # Col M => place_of_birth
+            place_of_birth_val = safe_str_cell(ws[f"M{row_index}"].value)
             if place_of_birth_val and details_obj.place_of_birth != place_of_birth_val:
+                debug_update("PayrollDetails", "place_of_birth", details_obj.place_of_birth, place_of_birth_val)
                 details_obj.place_of_birth = place_of_birth_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 5) Col N => doc_expedition_date
-            # ------------------------------------------------------
-            n_cell = f"N{row_index}"
-            doc_expedition_val = ws[n_cell].value
-            doc_expedition_date = parse_excel_date(doc_expedition_val)
-            if doc_expedition_date and details_obj.doc_expedition_date != doc_expedition_date:
-                details_obj.doc_expedition_date = doc_expedition_date
+            # Col N => doc_expedition_date
+            doc_exp_val = parse_excel_date(ws[f"N{row_index}"].value)
+            if doc_exp_val and details_obj.doc_expedition_date != doc_exp_val:
+                debug_update("PayrollDetails", "doc_expedition_date", details_obj.doc_expedition_date, doc_exp_val)
+                details_obj.doc_expedition_date = doc_exp_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 6) Col O => doc_expedition_department
-            # ------------------------------------------------------
-            o_cell = f"O{row_index}"
-            depto_val = safe_str_cell(ws[o_cell].value)
+            # Col O => doc_expedition_department
+            depto_val = safe_str_cell(ws[f"O{row_index}"].value)
             if depto_val and details_obj.doc_expedition_department != depto_val:
+                debug_update("PayrollDetails", "doc_expedition_department", details_obj.doc_expedition_department, depto_val)
                 details_obj.doc_expedition_department = depto_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 7) Col P => doc_expedition_municipality
-            # ------------------------------------------------------
-            p_cell = f"P{row_index}"
-            mun_val = safe_str_cell(ws[p_cell].value)
-            if mun_val and details_obj.doc_expedition_municipality != mun_val:
-                details_obj.doc_expedition_municipality = mun_val
+            # Col P => doc_expedition_municipality
+            muni_val = safe_str_cell(ws[f"P{row_index}"].value)
+            if muni_val and details_obj.doc_expedition_municipality != muni_val:
+                debug_update("PayrollDetails", "doc_expedition_municipality", details_obj.doc_expedition_municipality, muni_val)
+                details_obj.doc_expedition_municipality = muni_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 8) Col Q => education_level
-            # ------------------------------------------------------
-            q_cell = f"Q{row_index}"
-            edu_val = safe_str_cell(ws[q_cell].value)
-            if edu_val in education_map:
-                final_edu = education_map[edu_val]
+            # Col Q => education_level
+            edu_raw = safe_str_cell(ws[f"Q{row_index}"].value)
+            if edu_raw in education_map:
+                final_edu = education_map[edu_raw]
                 if details_obj.education_level != final_edu:
+                    debug_update("PayrollDetails", "education_level", details_obj.education_level, final_edu)
                     details_obj.education_level = final_edu
                     row_updates_details = True
 
-            # ------------------------------------------------------
-            # 9) Col R => profession
-            # ------------------------------------------------------
-            r_cell = f"R{row_index}"
-            prof_val = safe_str_cell(ws[r_cell].value)
+            # Col R => profession
+            prof_val = safe_str_cell(ws[f"R{row_index}"].value)
             if prof_val and details_obj.profession != prof_val:
+                debug_update("PayrollDetails", "profession", details_obj.profession, prof_val)
                 details_obj.profession = prof_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 10) Col V => last_academic_institution
-            # ------------------------------------------------------
-            v_cell = f"V{row_index}"
-            last_inst_val = safe_str_cell(ws[v_cell].value)
+            # Col V => last_academic_institution
+            last_inst_val = safe_str_cell(ws[f"V{row_index}"].value)
             if last_inst_val and details_obj.last_academic_institution != last_inst_val:
+                debug_update("PayrollDetails", "last_academic_institution", details_obj.last_academic_institution, last_inst_val)
                 details_obj.last_academic_institution = last_inst_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 11) Col W => phone => EN NOMINA
-            # ------------------------------------------------------
-            w_cell = f"W{row_index}"
-            phone_val = safe_str_cell(ws[w_cell].value)
+            # Col W => phone => Nomina
+            phone_val = safe_str_cell(ws[f"W{row_index}"].value)
             if phone_val and nomina_obj.phone != phone_val:
+                debug_update("Nomina", "phone", nomina_obj.phone, phone_val)
                 nomina_obj.phone = phone_val
                 row_updates_nomina = True
 
-            # ------------------------------------------------------
-            # 12) Col X => municipality_of_residence => PAYROLLDETAILS
-            # ------------------------------------------------------
-            x_cell = f"X{row_index}"
-            mun_res_val = safe_str_cell(ws[x_cell].value)
+            # Col X => municipality_of_residence => details
+            mun_res_val = safe_str_cell(ws[f"X{row_index}"].value)
             if mun_res_val and details_obj.municipality_of_residence != mun_res_val:
+                debug_update("PayrollDetails", "municipality_of_residence", details_obj.municipality_of_residence, mun_res_val)
                 details_obj.municipality_of_residence = mun_res_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 13) Col Y => address => PAYROLLDETAILS
-            # ------------------------------------------------------
-            y_cell = f"Y{row_index}"
-            addr_val = safe_str_cell(ws[y_cell].value)
+            # Col Y => address => details
+            addr_val = safe_str_cell(ws[f"Y{row_index}"].value)
             if addr_val and details_obj.address != addr_val:
+                debug_update("PayrollDetails", "address", details_obj.address, addr_val)
                 details_obj.address = addr_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 14) Col Z => email => NOMINA
-            # ------------------------------------------------------
-            z_cell = f"Z{row_index}"
-            email_val = safe_str_cell(ws[z_cell].value)
+            # Col Z => email => Nomina
+            email_val = safe_str_cell(ws[f"Z{row_index}"].value)
             if email_val and nomina_obj.email != email_val:
+                debug_update("Nomina", "email", nomina_obj.email, email_val)
                 nomina_obj.email = email_val
                 row_updates_nomina = True
 
-            # ------------------------------------------------------
-            # 15) Col AA => rh => PAYROLLDETAILS
-            # ------------------------------------------------------
-            aa_cell = f"AA{row_index}"
-            rh_val = safe_str_cell(ws[aa_cell].value)
+            # Col AA => rh => details
+            rh_val = safe_str_cell(ws[f"AA{row_index}"].value)
             if rh_val and details_obj.rh != rh_val:
+                debug_update("PayrollDetails", "rh", details_obj.rh, rh_val)
                 details_obj.rh = rh_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 16) Col AB => marital_status => PAYROLLDETAILS
-            # ------------------------------------------------------
-            ab_cell = f"AB{row_index}"
-            ms_val = safe_str_cell(ws[ab_cell].value)
+            # Col AB => marital_status => details
+            ms_val = safe_str_cell(ws[f"AB{row_index}"].value)
             final_ms = map_any(ms_val, marital_map)
             if final_ms and details_obj.marital_status != final_ms:
+                debug_update("PayrollDetails", "marital_status", details_obj.marital_status, final_ms)
                 details_obj.marital_status = final_ms
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 17) Col AD => EPS => PAYROLLDETAILS (FK)
-            # ------------------------------------------------------
-            ad_cell = f"AD{row_index}"
-            eps_name_val = safe_str_cell(ws[ad_cell].value)
+            # Col AD => EPS => details.eps
+            eps_name_val = safe_str_cell(ws[f"AD{row_index}"].value)
             if eps_name_val:
-                # Chequeamos cache
                 if eps_name_val in eps_cache:
                     eps_obj = eps_cache[eps_name_val]
                 else:
@@ -312,14 +282,12 @@ class Command(BaseCommand):
                         else:
                             eps_obj = None
                 if eps_obj and details_obj.eps != eps_obj:
+                    debug_update("PayrollDetails", "eps", details_obj.eps, eps_obj)
                     details_obj.eps = eps_obj
                     row_updates_details = True
 
-            # ------------------------------------------------------
-            # 18) Col AE => AFP => PAYROLLDETAILS
-            # ------------------------------------------------------
-            ae_cell = f"AE{row_index}"
-            afp_val = safe_str_cell(ws[ae_cell].value).lower()
+            # Col AE => afp => details.afp
+            afp_val = safe_str_cell(ws[f"AE{row_index}"].value).lower()
             if afp_val:
                 if afp_val.startswith('prot'):
                     afp_val = 'proteccion'
@@ -328,36 +296,30 @@ class Command(BaseCommand):
                 elif afp_val.startswith('colp'):
                     afp_val = 'colpensiones'
                 if details_obj.afp != afp_val:
+                    debug_update("PayrollDetails", "afp", details_obj.afp, afp_val)
                     details_obj.afp = afp_val
                     row_updates_details = True
 
-            # ------------------------------------------------------
-            # 19) Col AG => caja_compensacion => PAYROLLDETAILS
-            # ------------------------------------------------------
-            ag_cell = f"AG{row_index}"
-            ccomp_val = safe_str_cell(ws[ag_cell].value)
+            # Col AG => caja_compensacion
+            ccomp_val = safe_str_cell(ws[f"AG{row_index}"].value)
             if ccomp_val and details_obj.caja_compensacion != ccomp_val:
+                debug_update("PayrollDetails", "caja_compensacion", details_obj.caja_compensacion, ccomp_val)
                 details_obj.caja_compensacion = ccomp_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 20) Col AM => center_of_work => PAYROLLDETAILS
-            # ------------------------------------------------------
-            am_cell = f"AM{row_index}"
-            cow_val = safe_str_cell(ws[am_cell].value).lower()
+            # Col AM => center_of_work
+            cow_val = safe_str_cell(ws[f"AM{row_index}"].value).lower()
             if 'cartagena' in cow_val:
                 cow_val = 'cartagena'
             elif 'guyana' in cow_val:
                 cow_val = 'guyana'
             if cow_val and details_obj.center_of_work != cow_val:
+                debug_update("PayrollDetails", "center_of_work", details_obj.center_of_work, cow_val)
                 details_obj.center_of_work = cow_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 21) Col AO => contract_type => PAYROLLDETAILS
-            # ------------------------------------------------------
-            ao_cell = f"AO{row_index}"
-            ctype_val = safe_str_cell(ws[ao_cell].value).lower()
+            # Col AO => contract_type
+            ctype_val = safe_str_cell(ws[f"AO{row_index}"].value).lower()
             if ctype_val.startswith('inde'):
                 ctype_val = 'indefinido'
             elif ctype_val.startswith('defin'):
@@ -367,82 +329,85 @@ class Command(BaseCommand):
             elif ctype_val.startswith('obra'):
                 ctype_val = 'obra'
             if ctype_val and details_obj.contract_type != ctype_val:
+                debug_update("PayrollDetails", "contract_type", details_obj.contract_type, ctype_val)
                 details_obj.contract_type = ctype_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 22) Col AR => months_term => payrollDETAILS
-            # ------------------------------------------------------
-            ar_cell = f"AR{row_index}"
-            mt_val = ws[ar_cell].value
+            # Col AR => months_term
+            mt_val = ws[f"AR{row_index}"].value
             if isinstance(mt_val, int) and mt_val > 0:
                 if details_obj.months_term != mt_val:
+                    debug_update("PayrollDetails", "months_term", details_obj.months_term, mt_val)
                     details_obj.months_term = mt_val
                     row_updates_details = True
 
-            # ------------------------------------------------------
-            # 23) Col AZ => shift => payrollDETAILS
-            # ------------------------------------------------------
-            az_cell = f"AZ{row_index}"
-            shift_raw_val = safe_str_cell(ws[az_cell].value)
+            # Col AZ => shift
+            shift_raw_val = safe_str_cell(ws[f"AZ{row_index}"].value)
             final_shift = shift_map.get(shift_raw_val, None)
             if final_shift and details_obj.shift != final_shift:
+                debug_update("PayrollDetails", "shift", details_obj.shift, final_shift)
                 details_obj.shift = final_shift
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 24) Col BB => criticity_level => payrollDETAILS
-            # ------------------------------------------------------
-            bb_cell = f"BB{row_index}"
-            crit_raw_val = safe_str_cell(ws[bb_cell].value).upper()
+            # Col BB => criticity_level => BAJO/MEDIO/ALTO
+            crit_raw_val = safe_str_cell(ws[f"BB{row_index}"].value).upper()
             final_crit = criticity_map.get(crit_raw_val, None)
             if final_crit and details_obj.criticity_level != final_crit:
+                debug_update("PayrollDetails", "criticity_level", details_obj.criticity_level, final_crit)
                 details_obj.criticity_level = final_crit
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 25) Col BC => salary_type => payrollDETAILS
-            # ------------------------------------------------------
-            bc_cell = f"BC{row_index}"
-            stype_raw_val = safe_str_cell(ws[bc_cell].value)
+            # Col BC => salary_type
+            stype_raw_val = safe_str_cell(ws[f"BC{row_index}"].value)
             final_stype = salary_type_map.get(stype_raw_val, None)
             if final_stype and details_obj.salary_type != final_stype:
+                debug_update("PayrollDetails", "salary_type", details_obj.salary_type, final_stype)
                 details_obj.salary_type = final_stype
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 26) Col BE => bank_account => payrollDETAILS
-            # ------------------------------------------------------
-            be_cell = f"BE{row_index}"
-            bacc_val = safe_str_cell(ws[be_cell].value)
+            # Col BE => bank_account
+            bacc_val = safe_str_cell(ws[f"BE{row_index}"].value)
             if bacc_val and details_obj.bank_account != bacc_val:
+                debug_update("PayrollDetails", "bank_account", details_obj.bank_account, bacc_val)
                 details_obj.bank_account = bacc_val
                 row_updates_details = True
 
-            # ------------------------------------------------------
-            # 27) Col BF => bank => payrollDETAILS
-            # ------------------------------------------------------
-            bf_cell = f"BF{row_index}"
-            bank_val = safe_str_cell(ws[bf_cell].value)
+            # Col BF => bank
+            bank_val = safe_str_cell(ws[f"BF{row_index}"].value)
             if bank_val and details_obj.bank != bank_val:
+                debug_update("PayrollDetails", "bank", details_obj.bank, bank_val)
                 details_obj.bank = bank_val
                 row_updates_details = True
 
-            # Guardamos si hubo cambios
+            # Guardamos
             if row_updates_nomina:
-                nomina_obj.save()
+                ### Debug for Nomina
+                try:
+                    nomina_obj.save()
+                except DataError as e:
+                    self.stdout.write(self.style.ERROR(
+                        f"Ocurrió DataError al guardar Nomina (fila {row_index}, id_number={id_number_str}). Revisa logs arriba."
+                    ))
+                    raise e
+
                 updated_nomina_count += 1
+
             if row_updates_details:
-                details_obj.save()
+                ### Debug for PayrollDetails
+                try:
+                    details_obj.save()
+                except DataError as e:
+                    self.stdout.write(self.style.ERROR(
+                        f"Ocurrió DataError al guardar PayrollDetails (fila {row_index}, id_number={id_number_str}). Revisa logs arriba."
+                    ))
+                    raise e
+
                 updated_details_count += 1
 
             total_rows_processed += 1
             self.stdout.write(f"Fila {row_index} => id_number={id_number_str} procesada.")
-
-            # Pasamos a la siguiente fila
             row_index += 1
 
-        # --- Fin while True ---
         self.stdout.write(self.style.SUCCESS("=== RESUMEN DE PROCESAMIENTO ==="))
         self.stdout.write(f"Filas procesadas: {total_rows_processed}")
         self.stdout.write(f"Nominas sin coincidencia: {no_nomina_count}")
@@ -451,60 +416,49 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Proceso finalizado."))
 
 
+def safe_str_cell(value):
+    """Convierte cualquier valor a str y aplica strip(); si None => ''."""
+    if value is None:
+        return ''
+    return str(value).strip()
+
+
 def parse_excel_date(value):
-    """
-    Intenta parsear un valor (string, datetime de Excel, etc.) y devolver un date.
-    - Si es datetime.date/datetime.datetime => lo convertimos.
-    - Si es string 'DD-MM-YYYY' => parse manual.
-    - Devuelve None si no pudo.
-    """
+    """Intenta parsear un valor en date. Devuelve None si no se puede."""
     if not value:
         return None
-    
     if isinstance(value, datetime.date):
-        return value  # ya es date/datetime
+        return value
 
     text = str(value).strip()
-    # Regex dd-mm-yyyy
-    match = re.match(r'^(\d{1,2})-(\d{1,2})-(\d{4})$', text)
-    if match:
-        day, month, year = match.groups()
-        day, month, year = int(day), int(month), int(year)
+    m1 = re.match(r'^(\d{1,2})-(\d{1,2})-(\d{4})$', text)
+    if m1:
+        d, mn, y = m1.groups()
         try:
-            return datetime.date(year, month, day)
+            return datetime.date(int(y), int(mn), int(d))
         except ValueError:
             return None
 
-    # Regex yyyy-mm-dd
-    match2 = re.match(r'^(\d{4})-(\d{1,2})-(\d{1,2})$', text)
-    if match2:
-        year, month, day = match2.groups()
-        year, month, day = int(year), int(month), int(day)
+    m2 = re.match(r'^(\d{4})-(\d{1,2})-(\d{1,2})$', text)
+    if m2:
+        y, mn, d = m2.groups()
         try:
-            return datetime.date(year, month, day)
+            return datetime.date(int(y), int(mn), int(d))
         except ValueError:
             return None
 
     return None
 
-def safe_str_cell(value):
-    """
-    Convierte un valor (None, int, float, str) a str y hace strip().
-    Retorna '' si value es None.
-    """
-    if value is None:
-        return ''
-    return str(value).strip()
 
 def map_any(value_str, mapping_dict):
     """
-    Toma un string (value_str) y un diccionario:
-      e.g. {
-        'casado': ['Casado/da','casado/da','casado(a)'],
-        'unionlibre': ['Union Libre','Unión Libre'],
+    Toma un string y lo busca en el mapping_dict.
+    Ej:
+      {
+        'casado': ['Casado/da','Casado/a','casado(da)'],
+        'unionlibre': ['Union Libre','Unión Libre']
       }
-    y si value_str coincide con alguno de los sinónimos (ignorando may/min),
-    retorna la key. Si no coincide, retorna None.
+    Retorna la key si encuentra coincidencia; None si no la hay.
     """
     val_lower = value_str.lower()
     for final_key, synonyms in mapping_dict.items():
