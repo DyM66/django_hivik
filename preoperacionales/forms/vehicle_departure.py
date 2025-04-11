@@ -9,6 +9,11 @@ class PreoperacionalEspecificoForm(forms.ModelForm):
         (False, "No"),
     ]
 
+    choices_reporte = [
+        (True, "Si, reportar falla"),
+        (False, "No, solo dejar constancia"),
+    ]
+
     horas_trabajo = forms.ChoiceField(
         choices=choices,
         widget=forms.RadioSelect(
@@ -112,6 +117,13 @@ class PreoperacionalEspecificoForm(forms.ModelForm):
         required=True,
     )
 
+    wants_to_report_failure = forms.ChoiceField(
+        choices=choices_reporte,
+        widget=forms.RadioSelect(attrs={"class": "", "data-toggle": ""}),
+        label="Quieres registrar los hallazgos en un reporte de falla? (SOLO SI ES CRITICO)",
+        required=True,
+    )
+
     class Meta:
         model = Preoperacional
         fields = [
@@ -154,6 +166,9 @@ class PreoperacionalEspecificoForm(forms.ModelForm):
             "tipo_ruta": forms.Select(attrs={"class": "form-control"}),
             "authorized": forms.Select(attrs={"class": "form-control"}),
             "observaciones": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "wants_to_report_failure": forms.RadioSelect(
+                attrs={"class": "btn-group-toggle", "data-toggle": "buttons"}
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -167,6 +182,15 @@ class PreoperacionalEspecificoForm(forms.ModelForm):
             self.fields["nombre_no_registrado"].widget = forms.HiddenInput()
         else:
             self.fields["nombre_no_registrado"].required = True
+
+        for name, field in self.fields.items():
+            existing_classes = field.widget.attrs.get("class", "")
+            # Solo agregamos 'is-invalid' si el campo tiene errores después del binding
+            if self.errors.get(name):
+                if "is-invalid" not in existing_classes:
+                    field.widget.attrs["class"] = f"{existing_classes} is-invalid"
+            else:
+                field.widget.attrs["class"] = existing_classes
 
         if instance:
             # Prellenar 'nuevo_kilometraje' con el valor existente
@@ -195,6 +219,19 @@ class PreoperacionalEspecificoForm(forms.ModelForm):
                         "El nuevo kilometraje debe ser igual o mayor al kilometraje actual."
                     )
         return nuevo_kilometraje
+
+    def clean_observaciones(self):
+        cleaned_data = super().clean()
+        observaciones = cleaned_data.get("observaciones")
+        wants_to_report_failure = self.data.get("wants_to_report_failure")
+
+        if wants_to_report_failure == "True" and not observaciones:
+            self.add_error(
+                "observaciones",
+                "[!] Debes ingresar observaciones si deseas reportar una falla crítica. No olvides adjuntar evidencias.",
+            )
+
+        return observaciones
 
     def save(self, commit=True):
         instance = super().save(commit=False)

@@ -1,4 +1,5 @@
 <!-- templates/preoperacional/base.html -->
+{% load pwa %}
 
 <!doctype html>
 <html lang="es">
@@ -8,6 +9,7 @@
     <title>{% block title %}{% endblock %}</title>
     {% block head %}{% endblock %}
 
+    <link rel="icon" type="image/png" sizes="32x32" href="https://hivik.s3.us-east-2.amazonaws.com/static/Outlook-fdeyoovu.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
     <script>

@@ -2,6 +2,7 @@ from django import forms
 from got.models import Equipo
 from preoperacionales.models import *
 
+
 class PreoperacionalDiarioForm(forms.ModelForm):
 
     choices = [
@@ -376,6 +377,9 @@ class PreoperacionalDiarioForm(forms.ModelForm):
             "aprobado": forms.RadioSelect(
                 attrs={"class": "btn-group-toggle", "data-toggle": "buttons"}
             ),
+            "wants_to_report_failure": forms.RadioSelect(
+                attrs={"class": "btn-group-toggle", "data-toggle": "buttons"}
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -390,10 +394,32 @@ class PreoperacionalDiarioForm(forms.ModelForm):
             if field_name == "nombre_no_registrado" or field_name == "observaciones":
                 field.required = False
 
+        for name, field in self.fields.items():
+            existing_classes = field.widget.attrs.get("class", "")
+            # Solo agregamos 'is-invalid' si el campo tiene errores después del binding
+            if self.errors.get(name):
+                if "is-invalid" not in existing_classes:
+                    field.widget.attrs["class"] = f"{existing_classes} is-invalid"
+            else:
+                field.widget.attrs["class"] = existing_classes
+
         instance = kwargs.get("instance", None)
         if instance and instance.nombre_no_registrado:
             self.fields["nombre_no_registrado"].disabled = True
             self.fields["nombre_no_registrado"].required = False
+
+    def clean_observaciones(self):
+        cleaned_data = super().clean()
+        observaciones = cleaned_data.get("observaciones")
+        wants_to_report_failure = self.data.get("wants_to_report_failure")
+
+        if wants_to_report_failure == "True" and not observaciones:
+            self.add_error(
+                "observaciones",
+                "[!] Debes ingresar observaciones si deseas reportar una falla crítica. No olvides adjuntar evidencias.",
+            )
+
+        return observaciones
 
     def save(self, commit=True):
         instance = super().save(commit=False)

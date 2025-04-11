@@ -60,12 +60,15 @@
     <h1 class="text-xl font-bold">FR-SP-GA-5 SOLICITUD DE AUTORIZACIÓN DE SALIDA DE VEHÍCULOS DE SERPORT S.A.S.</h1>
     <h2 class="text-lg font-bold">{{vehiculo}} {{vehiculo.horometro}}</h2>
     <p class="text-base header-text">VERSIÓN 001 FECHA DE ACTUALIZACION: 12/04/2024</p>
-    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">El diligenciamiento de este formulario es obligatorio para la trazabilidad de la autorización de
+    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">El
+        diligenciamiento de este formulario es obligatorio para la trazabilidad de la autorización de
         salida de vehículos de SERPORT S.A.S. Se debe reportar, cada vez que se requiere de un vehículo para cumplir con
         actividades designadas por SERPORT y es responsabilidad del personal asignado como conductor realizarlo.</p>
-    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">Una vez diligenciado el presente formulario, se debe notificar al Área Administrativo para su
+    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">Una vez
+        diligenciado el presente formulario, se debe notificar al Área Administrativo para su
         visto bueno y aprobación de la salida del vehículo al área de Seguridad Física.</p>
-    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">Se debe verificar la realización de la INSPECCIÓN PRE-OPERACIONAL DEL VEHÍCULO y que el mismo
+    <p class="text-base w-4/5 justify-center text-center align-middle self-center items-center subtext">Se debe
+        verificar la realización de la INSPECCIÓN PRE-OPERACIONAL DEL VEHÍCULO y que el mismo
         esté aprobado para uso del vehículo solicitado en la fecha del presente formulario.</p>
 </header>
 {% else %}
@@ -85,27 +88,42 @@
 <div class="container">
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        {% for field in form %}
-        <div class="field-container">
-            {% if field.name == "nombre_no_registrado" %}
-            {% if user.is_authenticated %}
-            <label for="{{ field.id_for_label }}">Nombre y apellido del solicitante: {{ user.get_full_name }}</label>
 
-            {% else %}
+        {% for field in form %}
+        {% if field.name != "observaciones" and field.name != "wants_to_report_failure" %}
+        <div class="field-container">
             {{ field.label_tag }}
             {{ field }}
-            {% endif %}
-            {% else %}
-            {{ field.label_tag }}
-            {{ field }}
-            {% endif %}
             {{ field.errors }}
             {{ field.help_text }}
         </div>
+        {% endif %}
         {% endfor %}
+
+        <!-- Render wants_to_report_failure -->
+        <div class="field-container" id="wants-wrapper">
+            {{ form.wants_to_report_failure.label_tag }}
+            {{ form.wants_to_report_failure }}
+            {{ form.wants_to_report_failure.errors }}
+            {{ form.wants_to_report_failure.help_text }}
+        </div>
+
+        <!-- Render observaciones justo debajo -->
+        <div class="field-container" id="observaciones-wrapper">
+            {{ form.observaciones.label_tag }}
+            {{ form.observaciones }}
+            <div style="color: red;">
+                {{ form.observaciones.errors }}
+            </div>
+            {{ form.observaciones.help_text }}
+        </div>
+        
+
         {{ image_form }}
+
         <input type="submit" value="Generar" class="btn btn-primary mt-4" />
     </form>
+
 </div>
 
 
@@ -149,4 +167,40 @@
         $('#modalRuta' + code).modal('hide');
     }
 </script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Seleccionamos el primer campo que tiene un error
+        const firstErrorField = document.querySelector('.is-invalid');
+        if (firstErrorField) {
+            // Hacemos scroll hacia ese campo
+            firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const radioButtons = document.querySelectorAll('input[name="wants_to_report_failure"]');
+        const observacionesWrapper = document.getElementById("observaciones-wrapper");
+
+        function toggleObservaciones() {
+            const selected = document.querySelector('input[name="wants_to_report_failure"]:checked');
+            if (selected && selected.value === "True") {
+                observacionesWrapper.style.display = "block";
+            } else {
+                observacionesWrapper.style.display = "none";
+            }
+        }
+
+        // Inicializar al cargar
+        toggleObservaciones();
+
+        // Escuchar cambios
+        radioButtons.forEach(radio => {
+            radio.addEventListener("change", toggleObservaciones);
+        });
+    });
+</script>
+
 {% endblock %}

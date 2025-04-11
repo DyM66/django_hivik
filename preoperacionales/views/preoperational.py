@@ -52,32 +52,19 @@ def preoperacional_diario_view(request, code):
             preop.save()
 
             wants_to_report_failure = form.cleaned_data["wants_to_report_failure"]
-            print(wants_to_report_failure)
-            print(
-                "report ->",
-                (
-                    request.user.get_full_name()
-                    if request.user.is_authenticated
-                    else form.cleaned_data["nombre_no_registrado"]
-                ),
-            )
-            print("equipo ->", equipo)
-            print("description->", form.cleaned_data["observaciones"])
-            print("critico->", False)
-
-            failure = FailureReport.objects.create(
-                report=(
-                    request.user.get_full_name()
-                    if request.user.is_authenticated
-                    else form.cleaned_data["nombre_no_registrado"]
-                ),
-                equipo=equipo,
-                description=form.cleaned_data["observaciones"],
-                critico=False,
-                causas="Por definir",
-            )
-            print("Failure created", failure)
-
+            failure = None
+            if wants_to_report_failure == "True":
+                failure = FailureReport.objects.create(
+                    report=(
+                        request.user.get_full_name()
+                        if request.user.is_authenticated
+                        else form.cleaned_data["nombre_no_registrado"]
+                    ),
+                    equipo=equipo,
+                    description=form.cleaned_data["observaciones"],
+                    critico=False,
+                    causas="Por definir",
+                )
             for file in request.FILES.getlist("file_field"):
                 Image.objects.create(
                     preoperacionaldiario=preop, failure=failure, image=file
@@ -447,8 +434,23 @@ def preoperacional_especifico_view(request, code):
             equipo.horometro = nuevo_kilometraje
             equipo.save()
 
+            wants_to_report_failure = form.cleaned_data["wants_to_report_failure"]
+            failure = None
+            if wants_to_report_failure == "True":
+                failure = FailureReport.objects.create(
+                    report=(
+                        request.user.get_full_name()
+                        if request.user.is_authenticated
+                        else form.cleaned_data["nombre_no_registrado"]
+                    ),
+                    equipo=equipo,
+                    description=form.cleaned_data["observaciones"],
+                    critico=False,
+                    causas="Por definir",
+                )
+
             for file in request.FILES.getlist("file_field"):
-                Image.objects.create(preoperacional=preop, image=file)
+                Image.objects.create(preoperacional=preop, image=file, failure=failure)
 
             # Buscar el Vehicle con el mismo código y actualizar su estado a REQUESTED
             vehicle = Vehicle.objects.filter(code=equipo.code).first()
