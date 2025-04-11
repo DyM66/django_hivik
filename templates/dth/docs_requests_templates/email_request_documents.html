@@ -3,53 +3,97 @@
 <head>
     <meta charset="utf-8">
     <title>Solicitud de Documentos</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f2f2f2; }
+      .wrapper { background-color: #fff; padding: 20px; border-radius: 5px; }
+      .logo-serport { width: 200px; }
+      .btn {
+          background-color: #0157a4;
+          color: #fff;
+          text-decoration: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+      }
+      .important {
+          font-weight: bold;
+          color: #0157a4;
+      }
+      .list-instructions li {
+          margin-bottom: 8px;
+      }
+    </style>
 </head>
-<body style="font-family: Arial, sans-serif; margin: 0; padding: 0;">
-    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f2f2f2; padding: 20px;">
-        <tr>
-            <td align="center">
-                <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #fff; padding: 20px; border-radius: 5px;">
-                    <tr>
-                        <td align="center" style="padding-bottom: 20px;"> 
-                            <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" alt="SERPORT Logo" class="logo-serport mb-2" width="200px">
-                            <h2 style="color: #191645; margin: 0;">SERPORT - Solicitud de Documentos</h2>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color: #333; font-size: 16px; line-height: 1.5;">
-                            <p>Hola {{ employee.name }} {{ employee.surname }},</p>
-                            <p>
-                                Esperamos que te encuentres bien. Te solicitamos cordialmente que ingreses 
-                                al siguiente enlace para cargar tus documentos pendientes:
-                            </p>
-                            <p style="text-align: center; margin: 20px 0;">
-                                <a href="{{ upload_link }}" style="background-color: #0157a4; 
-                                    color: #fff; 
-                                    text-decoration: none; 
-                                    padding: 10px 20px; 
-                                    border-radius: 4px;">
-                                    Subir Documentos
-                                </a>
-                            </p>
-                            <p>
-                                <strong>Tu número de documento es la clave</strong> 
-                                que se te pedirá para acceder.
-                            </p>
-                            <p>¡Gracias por tu colaboración!</p>
-                            <br>
-                            <p>Atentamente,<br>
-                                <em>Equipo SERPORT</em>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: center; font-size: 12px; color: #999; padding-top: 20px;">
-                            <p>Este correo es generado automáticamente, por favor no responder.</p>
-                        </td>
-                    </tr>
-                </table>
+<body>
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" border="0" cellspacing="0" cellpadding="0" class="wrapper">
+          <tr>
+            <td align="center" style="padding-bottom: 20px;">
+              <img src="https://hivik.s3.us-east-2.amazonaws.com/static/Logo.png" alt="SERPORT Logo" class="logo-serport">
+              <h2 style="color: #191645; margin: 10px 0;">SERPORT - Solicitud de Documentos</h2>
             </td>
-        </tr>
-    </table>
+          </tr>
+          <tr>
+            <td style="color: #333; font-size: 16px; line-height: 1.5;">
+              <p>Hola {{ employee.name }} {{ employee.surname }},</p>
+              <p>
+                Esperamos que te encuentres bien. Te solicitamos cordialmente que ingreses 
+                al siguiente enlace para cargar los documentos pendientes de tu hoja de vida:
+              </p>
+              <p style="text-align: center; margin: 20px 0; color: #fff;">
+                <a href="{{ upload_link }}" class="btn">Subir Documentos</a>
+              </p>
+              <p>
+                Tu número de documento <span class="important">es la clave</span> que se te pedirá para acceder.
+              </p>
+
+              <hr style="margin: 20px 0;">
+
+              <h3 style="margin-top: 0;">Instructivo Cargue Información Hoja de Vida – GOT</h3>
+              <p>
+                Todos nuestros colaboradores, tanto nuevos como antiguos, recibirán un correo electrónico al correo registrado 
+                en las oficinas de talento Humano donde les solicitará cargar los soportes de su hoja de vida.
+                <br>
+                <strong>En caso de no recibir el correo electrónico</strong>, notifica de inmediato a las oficinas de talento Humano para actualizar tu correo.
+              </p>
+              <p>
+                <strong>Antes de cargar los documentos</strong>, por favor lee detenidamente las siguientes instrucciones:
+              </p>
+              <ul class="list-instructions">
+                <li>Preferiblemente subir el archivo en versión digital (ej: títulos de navegación se descargan desde portal Dimar).</li>
+                <li>Los documentos deben ser cargados en su versión original y en formato color, 
+                    asegurando la autenticidad y claridad de la información. <em>No se aceptan copias escaneadas a blanco y negro.</em></li>
+                <li>Si el archivo sólo está físicamente, se debe escanear con un escáner (no apps de celular ni fotos).</li>
+                <li>Debe ser un archivo <strong>PDF</strong>; cualquier otro formato no es compatible.</li>
+                <li>Una sola página por hoja, cada documento en un PDF independiente. Mismo tamaño de página en todo el PDF.</li>
+                <li>El peso máximo permitido es <strong>512MB</strong>. Puedes tener tantas páginas como necesites, siempre que no supere este tamaño.</li>
+                <li>No uses bordes, marcos ni adornos que no sean parte del documento oficial.</li>
+              </ul>
+
+              <p>
+                Adjuntos en este correo encontrarás los siguientes instructivos:
+                <br>
+                <strong>1)</strong> Instructivo Expedición Certificados de Suficiencia
+                <br>
+                <strong>2)</strong> PDFA_Paso_a_paso_para_la_descarga_de_tramites_por_la_Sede_Electronica
+              </p>
+
+              <p>Te recomendamos revisarlos antes de comenzar. ¡Gracias por tu colaboración!</p>
+              <br>
+              <p>Atentamente,<br>
+                <em>Equipo SERPORT</em>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align: center; font-size: 12px; color: #999; padding-top: 20px;">
+              <p>Este correo es generado automáticamente, por favor no responder.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>

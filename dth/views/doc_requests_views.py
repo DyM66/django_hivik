@@ -67,30 +67,6 @@ def document_upload_view(request, token):
         'items': doc_request.items.all()
     })
 
-    # Fase 2: Ya validamos la cédula, mostramos la página de subida
-    # items = doc_request.items.select_related('document').all()
-
-    # if request.method == 'POST':
-    #     # Guardar los archivos subidos
-    #     for item in items:
-    #         file_field_name = f"file_{item.id}"
-    #         expiration_field_name = f"expiration_{item.id}"
-    #         f = request.FILES.get(file_field_name, None)
-    #         exp = request.POST.get(expiration_field_name, '').strip()
-
-    #         if f:
-    #             item.pdf_file = f
-    #         if exp:
-    #             item.expiration_date = exp
-    #         item.save()
-    #     return redirect('dth:document_upload_view', token=token)
-
-    # context = {
-    #     'doc_request': doc_request,
-    #     'items': items
-    # }
-    # return render(request, 'dth/docs_requests_templates/public_docs_request/upload_form.html', context)
-
 
 @login_required
 def request_docs_form(request, emp_id):
@@ -106,23 +82,28 @@ def request_docs_form(request, emp_id):
         'doc_states': doc_states,
     })
 
+import boto3
+from django.conf import settings
+from io import BytesIO
+
+def get_s3_file_as_bytes(key):
+    """
+    Descarga el archivo (key) del bucket S3
+    y retorna el contenido binario (bytes).
+    """
+    s3 = boto3.client(
+        's3', 
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_S3_REGION_NAME
+    )
+    bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+
+    # 'key' es la ruta: e.g. 'instructivos/PDFA_Paso_a_paso.pdf'
+    file_obj = s3.get_object(Bucket=bucket_name, Key=key)
+    return file_obj['Body'].read()  # retorna bytes
 
 
-from django.http import JsonResponse
-from got.sns_service import SNSService
-
-def enviar_sms(request):
-    sns_service = SNSService()
-
-#     # Número de teléfono en formato internacional (ejemplo: +1 555-555-5555)
-#     phone_number = '+15555555555'  # Sustituye con el número de teléfono real
-#     message = 'Este es un mensaje SMS de prueba enviado desde Django a través de SNS.'
-
-#     try:
-#         response = sns_service.send_sms(phone_number, message)
-#         return JsonResponse({'message': 'SMS enviado con éxito', 'response': response})
-#     except Exception as e:
-#         return JsonResponse({'error': str(e)})
 
 @login_required
 def request_docs_submit(request):
@@ -149,10 +130,7 @@ def request_docs_submit(request):
     employee.save()
 
     token = uuid.uuid4().hex[:8]
-    doc_req = DocumentRequest.objects.create(
-        employee=employee,
-        token=token
-    )
+    doc_req = DocumentRequest.objects.create(employee=employee, token=token)
 
     for doc_id in documents_selected:
         doc_obj = get_object_or_404(Document, pk=doc_id)
@@ -169,9 +147,9 @@ def request_docs_submit(request):
 
     # response = sns_service.send_sms('+573012323204', f'Si funciona, {upload_link}')
     
-    subject = "Solicitud de Documentos - SERPORT"
+    subject = "Instructivo Cargue información Hoja de Vida – GOT "
     # Puedes usar render_to_string con una plantilla HTML para el cuerpo del email
-    html_message = render_to_string('dth/docs_requests_templates/email_request_documents.html', {
+    html_content = render_to_string('dth/docs_requests_templates/email_request_documents.html', {
         'employee': employee,
         'upload_link': upload_link,
         'doc_req': doc_req,
@@ -180,19 +158,39 @@ def request_docs_submit(request):
     # send_mail retorna el número de emails enviados
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@serport.com')
     recipient_list = [employee.email]
-    send_mail(
-        subject,
-        # Mensaje de texto plano (por si el cliente de correo no soporta HTML)
-        f"Hola {employee.name}, por favor ingresa al siguiente enlace para cargar tus documentos: {upload_link}",
-        from_email,
-        recipient_list,
-        fail_silently=False,
-        html_message=html_message  # cuerpo en HTML
-    )
 
+    # Armamos la versión de texto plano mínima
+    text_content = f"""Hola {employee.name} {employee.surname},
+    Por favor ingresa al siguiente enlace para cargar tus documentos: {upload_link}.
+    Adjuntamos instructivos en este correo.
+    """
+
+    # 1) Creamos un objeto EmailMultiAlternatives elsiloe7@hotmail.com
+    from django.core.mail import EmailMultiAlternatives
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,  # fallback
+        from_email=from_email,
+        to=recipient_list
+    )
+    # 2) Adjuntamos la versión HTML
+    msg.attach_alternative(html_content, "text/html")
+
+    # 3) Adjuntamos los PDFs (tomados de S3, si usas local dir es más sencillo).
+    #    Asumiendo tienes una función get_s3_file_as_bytes(key) que retorna bytes.
+    pdf_key_1 = 'static/instructivos/Instructivo_Expedicion_Certificados.pdf'
+    pdf_data_1 = get_s3_file_as_bytes(pdf_key_1)  # Esta función la defines/implementas
+    msg.attach('Instructivo_Expedicion_Certificados.pdf', pdf_data_1, 'application/pdf')
+
+    pdf_key_2 = 'static/instructivos/PDFA_Paso_a_paso_para_la_descarga_de_tramites_por_la_Sede_Electronica.pdf'
+    pdf_data_2 = get_s3_file_as_bytes(pdf_key_2)
+    msg.attach('PDFA_Paso_a_paso_para_la_descarga_de_tramites_por_la_Sede_Electronica.pdf', pdf_data_2, 'application/pdf')
+
+    # 4) Finalmente enviamos
+    msg.send(fail_silently=False)
 
     messages.success(request, f"Se ha enviado el correo de solicitud de documentos a {employee.email}.")
-    return redirect('dth:nomina_documents_matrix')  # ajusta el nombre del url pattern a tu preferencia
+    return redirect('dth:nomina_documents_matrix')
 
 
 @login_required

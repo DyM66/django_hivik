@@ -1,328 +1,109 @@
-{% load static %}
+{% load my_tags %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-end mb-2">
+        <!-- Botón Editar -->
+        <a href="{% url 'dth:nomina_update' nomina.id %}" class="btn btn-sm btn-outline-secondary me-2" title="Editar registro">
+            <i class="bi bi-pencil-square"></i>
+        </a>
 
-<!-- Contenido parcial que se inyecta en el modal. 
-     Separa Nomina vs PayrollDetails en pestañas. 
--->
+        <!-- Botón Editar -->
+        <a href="{% url 'dth:nomina_update' nomina.id %}" class="btn btn-sm btn-outline-secondary me-2" title="Editar registro">
+            <i class="bi bi-pencil-square"></i>
+        </a>
+    </div>
 
-<!-- Encabezado o parte superior con Botones (Opcional) -->
-<div class="d-flex justify-content-end mb-2">
-  <!-- Botón Editar -->
-  <a href="{% url 'dth:nomina_update' nomina.id %}" 
-     class="btn btn-sm btn-outline-secondary me-2" 
-     title="Editar registro">
-     <i class="bi bi-pencil-square"></i>
-  </a>
-  <!-- Botón Eliminar -->
-  <button type="button" class="btn btn-sm btn-outline-danger" 
-          id="deleteNominaBtn" 
-          data-nomina-id="{{ nomina.id }}" 
-          title="Eliminar registro">
-    <i class="bi bi-trash"></i>
-  </button>
-</div>
+    <!-- Nav tabs (Bootstrap) -->
+    <ul class="nav nav-tabs" id="nominaDetailTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="basic-info-tab" data-bs-toggle="tab" data-bs-target="#basicInfo" type="button" role="tab" aria-controls="basicInfo" aria-selected="true">
+                Información Básica
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="personal-data-tab" data-bs-toggle="tab" data-bs-target="#personalData" type="button" role="tab" aria-controls="personalData" aria-selected="false">
+                Datos Personales
+            </button>
+        </li>
+    </ul>
 
-<!-- Nav Tabs (Bootstrap) -->
-<ul class="nav nav-tabs" id="nominaTabs" role="tablist">
-  <!-- Tab 1: Información de Nómina -->
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="nomina-info-tab" data-bs-toggle="tab" data-bs-target="#nominaInfo" type="button" role="tab" aria-controls="nominaInfo" aria-selected="true">
-      Información de Nómina
-    </button>
-  </li>
-  <!-- Tab 2: Detalles de Nómina -->
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="nomina-details-tab" data-bs-toggle="tab" data-bs-target="#nominaDetails" type="button" role="tab" aria-controls="nominaDetails" aria-selected="false">
-      Detalles de Nómina
-    </button>
-  </li>
-</ul>
+    <div class="tab-content py-3">
+        <!-- TAB 1: INFORMACIÓN BÁSICA -->
+        <div class="tab-pane fade show active" id="basicInfo" role="tabpanel" aria-labelledby="basic-info-tab">
+            <div class="row g-3">
+                <div class="col-md-4 text-center">
+                    <img src="{{ nomina.photo_url }}" alt="Foto" class="img-fluid rounded shadow mb-3">
+                </div>
 
-<div class="tab-content py-3">
-  <!-- TAB 1: INFORMACIÓN DE NÓMINA -->
-  <div class="tab-pane fade show active" id="nominaInfo" role="tabpanel" aria-labelledby="nomina-info-tab">
-    <!-- 3 columnas: Foto, Info Nomina, Documentos -->
-    <div class="row g-3">
-      <!-- Col 1: Foto -->
-      <div class="col-md-4 text-center">
-        <img src="{{ nomina.photo_url }}" alt="Foto Empleado" class="img-fluid rounded shadow mb-3">
-      </div>
+                <div class="col-md-4">
+                    <h4 class="fw-bold">{{ nomina.name }} {{ nomina.surname }}</h4>
+                    <hr>
+                    <p class="mb-1"><strong>Cédula:</strong> {{ nomina.id_number }}</p>
+                    <p class="mb-1"><strong>Cargo:</strong> {{ nomina.position_id }}</p>
+                    <p class="mb-1"><strong>Es conductor:</strong> {% if nomina.is_driver %}Sí{% else %}No{% endif %}</p>
+                    <p class="mb-1"><strong>Estado:</strong>
+                        {% if nomina.employment_status == 'a' %}Activo
+                        {% elif nomina.employment_status == 'r' %}Retirado
+                        {% elif nomina.employment_status == 'l' %}Licencia
+                        {% elif nomina.employment_status == 's' %}Suspendido
+                        {% elif nomina.employment_status == 'i' %}Incapacitado
+                        {% endif %}
+                    </p>
+                
+                    <p class="mb-1"><strong>Email:</strong> {{ nomina.email|default:"N/A" }}</p>
+                    <p class="mb-1"><strong>Teléfono:</strong> {{ nomina.phone|default:"N/A" }}</p>
+                </div>
 
-      <!-- Col 2: Campos de Nomina (No de PayrollDetails) -->
-      <div class="col-md-4">
-        <h5 class="fw-bold" style="color: black;">Información Básica</h5>
-        <hr>
-        <p class="mb-1"><strong>Nombre:</strong> {{ nomina.name }} {{ nomina.surname }}</p>
-        <p class="mb-1"><strong>Cédula:</strong> {{ nomina.id_number }}</p>
-        <p class="mb-1"><strong>Cargo:</strong> {{ nomina.position_id }}</p>
-        <p class="mb-1">
-          <strong>Género:</strong>
-          {% if nomina.gender == 'h' %}Hombre{% else %}Mujer{% endif %}
-        </p>
-        <p class="mb-1">
-          <strong>Estado:</strong>
-          {% if nomina.employment_status == 'a' %}Activo
-          {% elif nomina.employment_status == 'r' %}Retirado
-          {% elif nomina.employment_status == 'l' %}Licencia
-          {% elif nomina.employment_status == 's' %}Suspendido
-          {% elif nomina.employment_status == 'i' %}Incapacitado
-          {% endif %}
-        </p>
-        <p class="mb-1"><strong>Es Conductor:</strong> {% if nomina.is_driver %}Sí{% else %}No{% endif %}</p>
-        <p class="mb-1"><strong>Email:</strong> {{ nomina.email|default:"N/A" }}</p>
-        <p class="mb-1"><strong>Teléfono:</strong> {{ nomina.phone|default:"N/A" }}</p>
-      </div>
-
-      <!-- Col 3: Documentos Requeridos (pos_docs) -->
-      <div class="col-md-4">
-        <h5 class="fw-bold">Documentos Requeridos</h5>
-        <p class="text-muted small mb-2">Estado de documentos exigidos por el cargo</p>
-        {% if doc_status_list %}
-          <div class="table-responsive">
-            <table class="table table-striped table-sm align-middle">
-              <thead class="table-dark">
-                <tr>
-                  <th>Documento</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in doc_status_list %}
-                <tr>
-                  <td>{{ item.document_name }}</td>
-                  <td>
-                    {% if item.state == 'Ok' %}
-                      <span class="badge bg-success">{{ item.state }}</span>
-                      {% if item.file_url %}
-                        <a href="{{ item.file_url }}" target="_blank" class="ms-2">
-                          <i class="bi bi-box-arrow-up-right"></i>
-                        </a>
-                      {% endif %}
-                    {% elif item.state == 'Pendiente' %}
-                      <span class="badge bg-warning text-dark">{{ item.state }}</span>
-                    {% elif item.state == 'Vencido' %}
-                      <span class="badge bg-danger">{{ item.state }}</span>
-                      {% if item.file_url %}
-                        <a href="{{ item.file_url }}" target="_blank" class="ms-2">
-                          <i class="bi bi-box-arrow-up-right"></i>
-                        </a>
-                      {% endif %}
+                <!-- SECCIÓN DE DOCUMENTOS REQUERIDOS -->
+                <div class="mt-4 pt-3" style="border-top: 1px solid #ddd;">
+                    <h5>Documentos Requeridos</h5>
+                    <p class="text-muted small mb-2">Estado de los documentos exigidos por el cargo</p>
+                
+                    {% if doc_status_list %}
+                    <table class="table table-striped table-sm align-middle" style="max-width: 600px;">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Documento</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in doc_status_list %}
+                            <tr>
+                                <td>{{ item.document_name }}</td>
+                                <td>
+                                    {% if item.state == 'Ok' %}
+                                        <span class="badge bg-success">{{ item.state }}</span>
+                                        {% if item.file_url %}
+                                        <a href="{{ item.file_url }}" target="_blank" class="ms-2">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                        {% endif %}
+                                    {% elif item.state == 'Pendiente' %}
+                                        <span class="badge bg-warning text-dark">{{ item.state }}</span>
+                                    {% elif item.state == 'Vencido' %}
+                                        <span class="badge bg-danger">{{ item.state }}</span>
+                                        {% if item.file_url %}
+                                        <a href="{{ item.file_url }}" target="_blank" class="ms-2">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                        {% endif %}
+                                    {% else %}
+                                        <span>{{ item.state }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
                     {% else %}
-                      <span>{{ item.state }}</span>
+                        <div class="alert alert-info">
+                            No se han configurado documentos para este cargo.
+                        </div>
                     {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <div class="alert alert-info m-0">
-            No se han configurado documentos para este cargo.
-          </div>
-        {% endif %}
-      </div>
-    </div> <!-- fin row de Tab 1 -->
-  </div> 
-  <!-- Fin Tab 1 -->
+                </div>
+            </div>
+            
+        </div>
 
-  <!-- TAB 2: DETALLES DE NÓMINA (PayrollDetails) -->
-  <div class="tab-pane fade show active" id="nominaDetails" role="tabpanel" aria-labelledby="nomina-details-tab">
-    <h5 class="fw-bold" style="color: black;">Detalles de Nómina (PayrollDetails)</h5>
-    <hr>
-
-    {% if nomina.details %}
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Salario:</strong> ${{ nomina.details.salary|default_if_none:"0.00" }}
-        </div>
-        <div class="col-sm-6">
-          <strong>Ingreso:</strong> 
-          {% if nomina.details.admission %}
-            {{ nomina.details.admission|date:"d/m/Y" }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Expiración:</strong>
-          {% if nomina.details.expiration %}
-            {{ nomina.details.expiration|date:"d/m/Y" }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-        <div class="col-sm-6">
-          <strong>ARL (riesgo):</strong> 
-          {% if nomina.details.risk_class %}
-            {{ nomina.details.risk_class }} ({{ nomina.details.get_risk_class_display }})
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Fecha Nacimiento:</strong>
-          {% if nomina.details.birth_date %}
-            {{ nomina.details.birth_date|date:"d/m/Y" }} ({{ nomina.details.age }} años)
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-        <div class="col-sm-6">
-          <strong>Lugar Nacimiento:</strong> {{ nomina.details.place_of_birth|default:"N/A" }}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Expedición Documento:</strong>
-          {% if nomina.details.doc_expedition_date %}
-            {{ nomina.details.doc_expedition_date|date:"d/m/Y" }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-        <div class="col-sm-3">
-          <strong>Depto:</strong> {{ nomina.details.doc_expedition_department|default:"N/A" }}
-        </div>
-        <div class="col-sm-3">
-          <strong>Municipio:</strong> {{ nomina.details.doc_expedition_municipality|default:"N/A" }}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Escolaridad:</strong> {{ nomina.details.get_education_level_display|default:"N/A" }}
-        </div>
-        <div class="col-sm-6">
-          <strong>Profesión:</strong> {{ nomina.details.profession|default:"N/A" }}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Última institución:</strong> {{ nomina.details.last_academic_institution|default:"N/A" }}
-        </div>
-        <div class="col-sm-6">
-          <strong>Residencia:</strong> 
-          {{ nomina.details.municipality_of_residence|default:"N/A" }} - {{ nomina.details.address|default:"N/A" }}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>RH:</strong> {{ nomina.details.rh|default:"N/A" }}
-        </div>
-        <div class="col-sm-6">
-          <strong>Estado civil:</strong> 
-          {% if nomina.details.marital_status %}
-            {{ nomina.details.get_marital_status_display }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>EPS:</strong> 
-          {% if nomina.details.eps %}
-            {{ nomina.details.eps.name }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-        <div class="col-sm-6">
-          <strong>AFP:</strong> {{ nomina.details.afp|default:"N/A" }}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Caja Compensación:</strong> {{ nomina.details.caja_compensacion|default:"N/A" }}
-        </div>
-        <div class="col-sm-6">
-          <strong>Concepto Retiro:</strong> 
-          {% if nomina.details.retiro_concept %}
-            {{ nomina.details.get_retiro_concept_display }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Centro de trabajo:</strong> 
-          {% if nomina.details.center_of_work %}
-            {{ nomina.details.get_center_of_work_display }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-        <div class="col-sm-6">
-          <strong>Tipo de contrato:</strong> 
-          {% if nomina.details.contract_type %}
-            {{ nomina.details.get_contract_type_display }}
-          {% else %}
-            N/A
-          {% endif %}
-          {% if nomina.details.obra_description %}
-            <br><em>{{ nomina.details.obra_description }}</em>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Duración (meses):</strong> {{ nomina.details.months_term|default:"0" }}
-        </div>
-        <div class="col-sm-6">
-          <strong>Turno de trabajo:</strong> 
-          {% if nomina.details.shift %}
-            {{ nomina.details.get_shift_display }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <strong>Nivel de criticidad:</strong> 
-          {% if nomina.details.criticity_level %}
-            {{ nomina.details.get_criticity_level_display }}
-          {% else %}
-            N/A
-          {% endif %}
-        </div>
-        <div class="col-sm-6">
-          <strong>Banco:</strong> 
-          {{ nomina.details.bank|default:"N/A" }}
-          <br>
-          <strong>Cuenta:</strong> {{ nomina.details.bank_account|default:"N/A" }}
-        </div>
-      </div>
-
-    {% else %}
-      <div class="alert alert-warning">
-        No hay información detallada (PayrollDetails) para este empleado.
-      </div>
-    {% endif %}
-  </div>
-  <!-- Fin Tab 2 -->
+    </div>
 </div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Por defecto la primer tab está "active". 
-    // Si deseas forzar la 2, puedes hacer algo con JS:
-    // let secondTab = new bootstrap.Tab(document.querySelector('#nomina-details-tab'));
-    // secondTab.show();
-  });
-</script>
